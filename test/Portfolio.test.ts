@@ -14,7 +14,7 @@ describe('Portfolio', () => {
   });
 
   describe('setup', () => {
-    it('successes', async () => {
+    it('successes with split 50/50', async () => {
       await expect(portfolio.setup([] ,[], {value: 1}))
       .to.be.revertedWith('Not yet implemented')
     });
@@ -25,6 +25,7 @@ describe('Portfolio', () => {
         .to.be.revertedWith('Caller is not the creator')
     });
 
+    xit('success with split 80/10/10')
     xit('fails if different array sizes')
     xit('fails if zero array size')
     xit('fails if invalid split')
