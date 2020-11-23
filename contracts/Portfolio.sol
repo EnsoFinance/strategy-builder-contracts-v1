@@ -2,14 +2,14 @@
 
 pragma solidity ^0.6.2;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 
 contract Portfolio is IERC20 {
     address public creator;
 
     struct Item {
         address token;
-        uint split;
+        uint256 split;
     }
 
     constructor(address _creator) public {
@@ -17,11 +17,11 @@ contract Portfolio is IERC20 {
     }
 
     modifier onlyCreator() {
-        require(creator == msg.sender, "Caller is not the creator");
+        require(creator == msg.sender, 'Caller is not the creator');
         _;
     }
 
-    function setup(address [] calldata tokens, uint [] calldata split) payable external onlyCreator {
+    function setup(address[] calldata tokens, uint256[] calldata split) external payable onlyCreator {
         revert('Not yet implemented');
     }
 
@@ -29,28 +29,31 @@ contract Portfolio is IERC20 {
         revert();
     }
 
-    function totalSupply() override external view returns (uint256) {
+    function totalSupply() external view override returns (uint256) {
         revert();
     }
 
-    function allowance(address owner, address spender) override external view returns (uint256) {
+    function allowance(address owner, address spender) external view override returns (uint256) {
         revert();
     }
 
-    function approve(address spender, uint256 amount) override external returns (bool) {
+    function approve(address spender, uint256 amount) external override returns (bool) {
         revert();
     }
 
-    function balanceOf(address account) override external view returns (uint256) {
+    function balanceOf(address account) external view override returns (uint256) {
         revert();
     }
 
-    function transfer(address recipient, uint256 amount) override external returns (bool) {
+    function transfer(address recipient, uint256 amount) external override returns (bool) {
         revert();
     }
 
-    function transferFrom(address sender, address recipient, uint256 amount) override external returns (bool) {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) external override returns (bool) {
         revert();
     }
 }
-
