@@ -1,18 +1,19 @@
 import { Wallet } from 'ethers'
 import { deployContract } from 'ethereum-waffle'
 
-import MathTestJSON from '../build/MathTest.json'
-import { MathTest } from '../build/types/MathTest'
+import PortfolioJSON from '../build/Portfolio.json'
+import { Portfolio } from '../build/types/Portfolio'
 
-import TenCounterJSON from '../build/TenCounter.json'
-import { TenCounter } from '../build/types/TenCounter'
+import PortfolioFactoryJSON from '../build/PortfolioFactory.json'
+import { PortfolioFactory } from '../build/types/PortfolioFactory'
 
-export async function mathFixture([wallet]: Wallet[]) {
-  const math = (await deployContract(wallet, MathTestJSON)) as MathTest
-  return { math }
+
+export async function portfolioFixture([wallet]: Wallet[]) {
+  const portfolio = (await deployContract(wallet, PortfolioJSON, [wallet.address])) as Portfolio
+  return { portfolio }
 }
 
-export async function tenCounterFixture([wallet]: Wallet[]) {
-  const tenCounter = (await deployContract(wallet, TenCounterJSON)) as TenCounter
-  return { tenCounter }
+export async function portfolioFactoryFixture([wallet]: Wallet[]) {
+  const portfolioFactory = (await deployContract(wallet, PortfolioFactoryJSON)) as PortfolioFactory
+  return { portfolioFactory }
 }
