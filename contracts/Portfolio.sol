@@ -37,6 +37,16 @@ contract Portfolio is IERC20 {
         revert();
     }
 
+    function deposit() public payable {
+        //onlySocialTrading
+        revert();
+    }
+
+    function withdraw(uint amount) public {
+        //this.transferFrom(msg.sender, this, amount);
+        //burn();
+    }
+
     function approve(address spender, uint256 amount) external override returns (bool) {
         revert();
     }
