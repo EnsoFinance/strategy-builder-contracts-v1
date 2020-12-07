@@ -42,7 +42,7 @@ contract Portfolio is IERC20 {
         revert();
     }
 
-    function withdraw(uint amount) public {
+    function withdraw(uint256 amount) public {
         //this.transferFrom(msg.sender, this, amount);
         //burn();
     }
