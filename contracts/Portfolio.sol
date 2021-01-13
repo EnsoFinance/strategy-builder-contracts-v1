@@ -1,69 +1,34 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.2;
+pragma solidity ^0.6.12;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
+contract Portfolio {
+    address public owner;
+    address public oracle;
+    address public whitelist;
+    string public name;
+    string public symbol;
+    uint256 public version;
+    address[] public tokens;
+    uint256[] public percentages;
 
-contract Portfolio is IERC20 {
-    address public creator;
-
-    struct Item {
-        address token;
-        uint256 split;
-    }
-
-    constructor(address _creator) public {
-        creator = _creator;
-    }
-
-    modifier onlyCreator() {
-        require(creator == msg.sender, 'Caller is not the creator');
-        _;
-    }
-
-    function setup(address[] calldata tokens, uint256[] calldata split) external payable onlyCreator {
-        revert('Not yet implemented');
-    }
-
-    function rebalance() public {
-        revert();
-    }
-
-    function totalSupply() external view override returns (uint256) {
-        revert();
-    }
-
-    function allowance(address owner, address spender) external view override returns (uint256) {
-        revert();
-    }
-
-    function deposit() public payable {
-        //onlySocialTrading
-        revert();
-    }
-
-    function withdraw(uint256 amount) public {
-        //this.transferFrom(msg.sender, this, amount);
-        //burn();
-    }
-
-    function approve(address spender, uint256 amount) external override returns (bool) {
-        revert();
-    }
-
-    function balanceOf(address account) external view override returns (uint256) {
-        revert();
-    }
-
-    function transfer(address recipient, uint256 amount) external override returns (bool) {
-        revert();
-    }
-
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external override returns (bool) {
-        revert();
+    constructor(
+        address _owner,
+        address _oracle,
+        address _whitelist,
+        string memory _name,
+        string memory _symbol,
+        uint256 _version,
+        address[] memory _tokens,
+        uint256[] memory _percentages
+    ) public {
+        owner = _owner;
+        oracle = _oracle;
+        whitelist = _whitelist;
+        name = _name;
+        symbol = _symbol;
+        version = _version;
+        tokens = _tokens;
+        percentages = _percentages;
     }
 }

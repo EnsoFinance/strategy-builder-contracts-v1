@@ -1,5 +1,5 @@
 {
-  "compilerVersion": "0.6.2",
+  "compilerVersion": "0.6.12",
   "outputType": "minimal",
   "compilerOptions": {
     "optimizer": {
