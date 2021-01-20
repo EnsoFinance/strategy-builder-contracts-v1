@@ -59,7 +59,8 @@ async function main() {
 
   console.log("Loop Controller deployed to: ", loopController.address)
 
-  await whitelist.approve(loopController.address)
+  const tx = await whitelist.approve(loopController.address)
+  await tx.wait();
 
   console.log("LoopController approved in Whitelist")
 
