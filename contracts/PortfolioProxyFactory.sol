@@ -1,37 +1,160 @@
-// SPDX-License-Identifier: MIT
+//SPDX-License-Identifier: Unlicense
+pragma solidity 0.6.12;
 
-pragma solidity ^0.6.12;
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 
-import './Portfolio.sol';
 
-contract PortfolioProxyFactory {
+// The contract implements a custom PrxoyAdmin
+// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
+contract PortfolioProxyFactory is Ownable {
     address public implementation;
     address public whitelist;
     address public oracle;
-    address public controller;
-    uint256 public constant version = 1;
+    uint256 public version;
+    mapping(address => address) private admins;
 
-    event NewPortfolio(address portfolio, address manager);
+    event Update(address newImplementation, uint256 version);
+    event NewPortfolio(address portfolio, address manager, string name, string symbol, address[] tokens, uint256[] percentages); //solhint-disable-line
+    event NewOracle(address newOracle);
+    event NewWhitelist(address newWhitelist);
 
     constructor(
-        address _implementation,
-        address _oracle,
-        address _whitelist,
-        address _controller
+        address implementation_,
+        address oracle_,
+        address whitelist_
     ) public {
-        implementation = _implementation;
-        oracle = _oracle;
-        whitelist = _whitelist;
-        controller = _controller;
+        implementation = implementation_;
+        oracle = oracle_;
+        whitelist = whitelist_;
+        version = 1;
+        emit Update(implementation, version);
+        emit NewOracle(oracle);
+        emit NewWhitelist(whitelist);
+    }
+
+    modifier onlyAdmin(address proxy) {
+        require(admins[proxy] == msg.sender, "PortfolioProxyFactory (onlyAdmin): User not admin");
+        _;
     }
 
     function createPortfolio(
         string memory name,
         string memory symbol,
         address[] memory tokens,
-        uint256[] memory percentages
+        uint256[] memory percentages,
+        uint256 threshold,
+        uint256 slippage,
+        uint256 timelock
     ) external {
-        Portfolio proxy = new Portfolio(msg.sender, oracle, whitelist, name, symbol, 0, tokens, percentages);
-        emit NewPortfolio(address(proxy), msg.sender);
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            implementation,
+            address(this),
+            abi.encodeWithSelector(
+                bytes4(keccak256("initialize(address,address,address,string,string,address[],uint256[],uint256,uint256,uint256)")), // solhint-disable-line
+                msg.sender,
+                oracle,
+                whitelist,
+                name,
+                symbol,
+                tokens,
+                percentages,
+                threshold,
+                slippage,
+                timelock
+            )
+        );
+        emit NewPortfolio(address(proxy), msg.sender, name, symbol, tokens, percentages);
+    }
+
+    function updateImplementation(address newImplementation) external onlyOwner {
+        implementation = newImplementation;
+        version++;
+        emit Update(newImplementation, version);
+    }
+
+    function updateOracle(address newOracle) external onlyOwner {
+        oracle = newOracle;
+        emit NewOracle(newOracle);
+    }
+
+    function updateWhitelist(address newWhitelist) external onlyOwner {
+        whitelist = newWhitelist;
+        emit NewWhitelist(newWhitelist);
+    }
+
+    /**
+     * @dev Changes the internal mapping of admin. The proxy's admin remains this address,
+     *      but the 'onlyAdmin' modifer will now check that msg.sender == 'newAdmin'
+     */
+    function changeAdmin(address proxy, address newAdmin) external onlyAdmin(proxy) {
+        admins[proxy] = newAdmin;
+    }
+
+    /**
+     * @dev Returns the current implementation of `proxy`.
+     *
+     * Requirements:
+     *
+     * - This contract must be the admin of `proxy`.
+     */
+    function getProxyImplementation(TransparentUpgradeableProxy proxy) public view returns (address) {
+        // We need to manually run the static call since the getter cannot be flagged as view
+        // bytes4(keccak256("implementation()")) == 0x5c60da1b
+        (bool success, bytes memory returndata) = address(proxy).staticcall(hex"5c60da1b");
+        require(success);
+        return abi.decode(returndata, (address));
+    }
+
+    /**
+     * @dev Returns the current admin of `proxy`.
+     *
+     * Requirements:
+     *
+     * - This contract must be the admin of `proxy`.
+     */
+    function getProxyAdmin(TransparentUpgradeableProxy proxy) public view returns (address) {
+        // We need to manually run the static call since the getter cannot be flagged as view
+        // bytes4(keccak256("admin()")) == 0xf851a440
+        (bool success, bytes memory returndata) = address(proxy).staticcall(hex"f851a440");
+        require(success);
+        return abi.decode(returndata, (address));
+    }
+
+    /**
+     * @dev Changes the admin of `proxy` to `newAdmin`.
+     *
+     * Requirements:
+     *
+     * - This contract must be the current admin of `proxy`.
+     */
+    function changeProxyAdmin(TransparentUpgradeableProxy proxy, address newAdmin) public onlyAdmin(address(proxy)) {
+        proxy.changeAdmin(newAdmin);
+    }
+
+    /**
+     * @dev Upgrades `proxy` to `implementation`. See {TransparentUpgradeableProxy-upgradeTo}.
+     *
+     * Requirements:
+     *
+     * - This contract must be the admin of `proxy`.
+     */
+    function upgrade(TransparentUpgradeableProxy proxy) public onlyAdmin(address(proxy)) {
+        proxy.upgradeTo(implementation);
+    }
+
+    /**
+     * @dev Upgrades `proxy` to `implementation` and calls a function on the new implementation. See
+     * {TransparentUpgradeableProxy-upgradeToAndCall}.
+     *
+     * Requirements:
+     *
+     * - This contract must be the admin of `proxy`.
+     */
+    function upgradeAndCall(
+        TransparentUpgradeableProxy proxy, //solhint-disable-line
+        bytes memory data
+    ) public payable onlyAdmin(address(proxy)) {
+        proxy.upgradeToAndCall{value: msg.value}(implementation, data); //solhint-disable-line
     }
 }

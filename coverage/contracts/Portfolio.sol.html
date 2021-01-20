@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/Portfolio.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> Portfolio.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">85.98% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>92/107</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">69.57% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>32/46</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">70.37% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>19/27</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">85.96% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>98/114</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">152×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">33×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">17×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">112×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//SPDX-License-Identifier: Unlicensed
+pragma solidity 0.6.12;
+&nbsp;
+import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "./interfaces/IOracle.sol";
+import "./interfaces/IPortfolio.sol";
+import "./interfaces/IPortfolioController.sol";
+import "./interfaces/IWhitelist.sol";
+import "./PortfolioToken.sol";
+import "./PortfolioOwnable.sol";
+import "./libraries/PortfolioLibrary.sol";
+&nbsp;
+&nbsp;
+contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializable {
+    using SafeMath for uint256;
+    uint256 private constant DIVISOR = 1000;
+&nbsp;
+    event RebalanceCalled(uint256 total, address caller);
+    event NewStructure(address[] tokens, uint256[] percentages);
+    event FundsReceived(uint256 amount, address account);
+&nbsp;
+    modifier onlyApproved(address controller) {
+        require(IWhitelist(_whitelist).approved(controller), "Portfolio.onlyApproved: Controller is not approved");
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(!_locked, "Portfolio.onlyApproved: Function locked");
+        _;
+    }
+&nbsp;
+    /*
+     * @notice This contract is proxiable. There is no constructor, instead we use the initialize function
+     * @params owner_ The address that will own the contract
+     * @params oracle_ The address of the oracle
+     * @params whitelist_ The address of the controller whitelist
+     * @params name_ The name of this token
+     * @params symbol_ The symbol of this token
+     * @params tokens_ A list of token addresses that will make up the portfolio
+     * @params percentages_ The percentage each token represents of the total portfolio value
+     * @params threshold_ The percentage out of balance a token must be before it can be rebalanced
+     * @params slippage_ The percentage away from 100% that the total can slip during rebalance due to fees
+     * @params timelock_ The amount of time between initializing a restructure and updating the portfolio
+     */
+    function initialize(
+        address owner_,
+        address oracle_,
+        address whitelist_,
+        string memory name_,
+        string memory symbol_,
+        address[] memory tokens_,
+        uint256[] memory percentages_,
+        uint256 threshold_,
+        uint256 slippage_,
+        uint256 timelock_
+    ) external payable initializer returns (bool) {
+        _initToken(name_, symbol_);
+        _initOwner(owner_);
+        // Set globals
+        _updateRebalanceThreshold(threshold_);
+        _updateSlippage(slippage_);
+        _updateTimelock(timelock_);
+        _oracle = oracle_;
+        _whitelist = whitelist_;
+        // Set structure
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (tokens_.length &gt; 0) {
+            PortfolioLibrary.verifyStructure(tokens_, percentages_);
+            _setStructure(tokens_, percentages_);
+            emit NewStructure(tokens_, percentages_);
+        }
+&nbsp;
+        return true;
+    }
+&nbsp;
+    /*
+     * @notice Rebalance the portfolio to match the current structure
+     * @dev The calldata that gets passed to this function can differ depending on which controller is being used
+     * @params data Calldata that gets passed the the controller's rebalance function
+     * @params controller The address of the controller that will be doing the handling the trading logic
+     */
+    function rebalance(
+        bytes memory data,
+        IPortfolioController controller
+    ) external override onlyApproved(address(controller)) {
+        require( // Should we include this?
+            _social || msg.sender == _owner,
+            "Portfolio.rebalance: Rebalance only open on social portfolios"
+        );
+        (uint256 totalBefore, bool balancedBefore) = _verifyBalance();
+        require(!balancedBefore, "Portfolio.rebalance: No point rebalancing a balanced portfolio");
+        _locked = true;
+        _approveTokens(address(controller), uint256(-1), _tokens);
+        _rebalance(totalBefore, data, controller);
+        _approveTokens(address(controller), uint256(0), _tokens);
+        _locked = false;
+    }
+&nbsp;
+    /*
+     * @notice Deposit ether, which is traded for the underlying assets, and mint portfolio tokens
+     * @params routers An array of addresses for the router that each token will be swap with
+     * @params rebalanceData The calldata that is used to rebalance the portfolio before deposit
+     * @params controller The address of the controller that will be doing the handling the trading logic
+     */
+    function deposit(
+        address[] memory routers,
+        bytes memory rebalanceData,
+        IPortfolioController controller
+    ) external payable override onlyApproved(address(controller)) {
+        require(
+            _social || msg.sender == owner(),
+            "Portfolio.deposit: Only owner may deposit on non-social profiles"
+        );
+        require(
+            msg.value &gt; 0,
+            "Portfolio.deposit: No ether sent with transaction"
+        );
+        require(
+            _tokens.length == routers.length,
+            "Portfolio.deposit: Need to pass a router address for each token in the portfolio"
+        );
+        // TODO: modifier
+        _locked = true;
+        (uint256 totalBefore, bool balancedBefore) = _verifyBalance();
+        _approveTokens(address(controller), uint256(-1), _tokens);
+        // Not sure about passing balance data along with tokens and routers arrays
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (!balancedBefore) {
+            // Could a router not need any calldata for rebalance?
+            // require(rebalanceData.length &gt; 0, "Portfolio.deposit: Rebalance data not passed");
+<span class="cstat-no" title="statement not covered" >            totalBefore = _rebalance(totalBefore, rebalanceData, controller)</span>;
+        }
+        // TODO: can this be done during the rebalance to maximize cases where a rebalance could be accomplished with a deposit?
+        controller.buyTokens{value: msg.value}(_tokens, routers); // solhint-disable-line
+        _approveTokens(address(controller), uint256(0), _tokens);
+        // Recheck total
+        (uint256 totalAfter, ) = IOracle(_oracle).estimateTotal(address(this), _tokens);
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(totalAfter &gt;= totalBefore, "Portfolio.deposit: Total value dropped!");
+        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
+        uint256 relativeTokens = _totalSupply &gt; 0 ? _totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
+        _mint(msg.sender, relativeTokens);
+        _locked = false;
+    }
+&nbsp;
+    /*
+     * @notice Withdraw the underlying assets and burn the equivalent amount of portfolio token
+     * @params amount The amount of portfolio tokens to burn to recover the equivalent underlying assets
+     * @params rebalanceData Calldata that gets passed the the controller's rebalance function
+     * @params controller The address of the controller that will be doing the handling the trading logic
+     */
+    function withdraw(
+        uint256 amount,
+        bytes memory rebalanceData,
+        IPortfolioController controller
+    ) external override onlyApproved(address(controller)) {
+        require(amount &gt; 0, "Error (withdraw): No amount set");
+        _locked = true;
+&nbsp;
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (rebalanceData.length &gt; 0) {
+<span class="cstat-no" title="statement not covered" >            (uint256 total, bool balanced) = _verifyBalance();</span>
+<span class="cstat-no" title="statement not covered" >            if (!balanced) {</span>
+<span class="cstat-no" title="statement not covered" >                _approveTokens(address(controller), uint256(-1), _tokens)</span>;
+<span class="cstat-no" title="statement not covered" >                _rebalance(total, rebalanceData, controller)</span>;
+<span class="cstat-no" title="statement not covered" >                _approveTokens(address(controller), uint256(0), _tokens)</span>;
+            }
+        }
+        _burn(msg.sender, amount);
+        uint256 percentage = amount.mul(10**18).div(_totalSupply);
+        for (uint256 i = 0; i &lt; _tokens.length; i++) {
+            // Should not be possible to have address(0) since the Portfolio will check for it
+            IERC20 token = IERC20(_tokens[i]);
+            uint256 currentBalance = token.balanceOf(address(this));
+            uint256 tokenAmount =
+                currentBalance.mul(percentage).div(10**18);
+            token.transfer(msg.sender, tokenAmount);
+        }
+        _locked = false;
+    }
+&nbsp;
+    /*
+     * @notice Initiate a restructure of the portfolio tokens. This gives users a chance to withdraw before restructure
+     * @dev We store the new structure as a bytes32 hash and then check that the
+            values are correct when finalizeStructure is called.
+     * @params tokens An array of token addresses that will comprise the portfolio
+     * @params percentages An array of percentages for each token in the above array. Must total 100%
+     */
+    function restructure(
+        address[] memory tokens,
+        uint256[] memory percentages
+    ) external override onlyOwner {
+        // Verify new structure
+        PortfolioLibrary.verifyStructure(tokens, percentages);
+        _restructureProof = keccak256(abi.encodePacked(tokens, percentages));
+        _restructureTimestamp = block.timestamp;
+        emit NewStructure(tokens, percentages);
+    }
+&nbsp;
+    /*
+     * @notice Finalize a restructure by setting the new values and trading the tokens
+     * @dev We confirm that the same structure is sent by checking the bytes32 hash against _restructureProof
+     * @params tokens An array of token addresses that will comprise the portfolio
+     * @params percentages An array of percentages for each token in the above array. Must total 100%
+     * @params sellRouters An array of routers for each sale of the current tokens
+     * @params buyRouters An array of routers for each purchase of the new tokens
+     * @params controller The address of the controller that will be doing the handling the trading logic
+     */
+    function finalizeStructure(
+        address[] memory tokens,
+        uint256[] memory percentages,
+        address[] memory sellRouters,
+        address[] memory buyRouters,
+        IPortfolioController controller
+    ) external override {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(
+            !_social || block.timestamp &gt; _restructureTimestamp.add(_timelock),
+            "Portfolio.finalizeStructure: Can only restructure after enough time has passed"
+        );
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(
+            keccak256(abi.encodePacked(tokens, percentages)) == _restructureProof,
+            "Portfolio.finalizeStructure: Incorrect parameters passed"
+        );
+        _finalizeStructure(tokens, percentages, sellRouters, buyRouters, controller);
+        delete _restructureProof;
+        delete _restructureTimestamp;
+    }
+&nbsp;
+    /*
+     * @notice Setter to change portfolio to social. Cannot be undone.
+     * @dev A social profile allows other users to deposit and rebalance the portfolio
+     */
+<span class="fstat-no" title="function not covered" >    function openPortfolio() external override onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        _social = true</span>;
+    }
+&nbsp;
+    /*
+     * @notice Setter to update the rebalance threshold
+     * @dev The rebalance threshold limits whether a token can be rebalanced. If its current percentage
+     *      is within the threshold, it does not get rebalanced.
+     * @params threshold The value of the new rebalance threshold
+     */
+<span class="fstat-no" title="function not covered" >    function updateRebalanceThreshold(uint256 threshold) external override onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        _updateRebalanceThreshold(threshold)</span>;
+    }
+&nbsp;
+    /*
+     * @notice Setter to update the slippage
+     * @dev The slippage is minimum percentage the total can drop to during a rebalance.
+            If it drops below that value the function reverts.
+            e.g. if slippage = 995, it can only drop to 99.5% of the total that was calculate before rebalance
+     * @params slippage The value of the new slippage
+     */
+<span class="fstat-no" title="function not covered" >    function updateSlippage(uint256 slippage) external override onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        _updateSlippage(slippage)</span>;
+    }
+&nbsp;
+    /*
+     * @notice Setter to update the timelock
+     * @dev The timelock is the amount of time in seconds that must pass between the
+            initial call of restructure() and calling finalizeStructure(). This allows
+            users to withdraw their funds if they don't like the new structure
+     * @params timelock The value of the new timelock
+     */
+<span class="fstat-no" title="function not covered" >    function updateTimelock(uint256 timelock) external override onlyOwner {</span>
+<span class="cstat-no" title="statement not covered" >        _updateTimelock(timelock)</span>;
+    }
+&nbsp;
+    /*
+     * @notice Oracle address getter
+     */
+    function oracle() external override view returns (address) {
+        return _oracle;
+    }
+&nbsp;
+    /*
+     * @notice Social bool getter
+     * @dev This value determines whether other account may deposit into this portfolio
+     */
+<span class="fstat-no" title="function not covered" >    function social() external override view returns (bool) {</span>
+<span class="cstat-no" title="statement not covered" >        return _social;</span>
+    }
+&nbsp;
+    /*
+     * @notice Rebalance threshold getter
+     */
+    function rebalanceThreshold() external override view returns (uint256) {
+        return _rebalanceThreshold;
+    }
+&nbsp;
+    /*
+     * @notice Slippage getter
+     */
+<span class="fstat-no" title="function not covered" >    function slippage() external override view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        return _slippage;</span>
+    }
+&nbsp;
+    /*
+     * @notice Timelock getter
+     */
+<span class="fstat-no" title="function not covered" >    function timelock() external override view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        return _timelock;</span>
+    }
+&nbsp;
+    /*
+     * @notice Tokens getter
+     */
+    function getPortfolioTokens() external override view returns (address[] memory) {
+        return _tokens;
+    }
+&nbsp;
+    /*
+     * @notice Get token by index
+     * @params index The index of the token in the _tokens array
+     */
+<span class="fstat-no" title="function not covered" >    function getToken(uint256 index) external override view returns (address) {</span>
+<span class="cstat-no" title="statement not covered" >        return _tokens[index];</span>
+    }
+&nbsp;
+    /*
+     * @notice Get token percentage using token address
+     * @params tokenAddress The address of the token
+     */
+    function getTokenPercentage(address tokenAddress) external override view returns (uint256) {
+        return _tokenPercentages[tokenAddress];
+    }
+&nbsp;
+    // Internal Portfolio Functions
+    /*
+     * @notice Rebalance the portfolio to match the current structure
+     * @dev The calldata that gets passed to this function can differ depending on which controller is being used
+     * @params totalBefore The valuation of the portfolio before rebalance
+     * @params data Calldata that gets passed the the controller's rebalance function
+     * @params controller The address of the controller that will be doing the handling the trading logic
+     */
+    function _rebalance(
+        uint256 totalBefore,
+        bytes memory data,
+        IPortfolioController controller
+    ) internal returns (uint256) {
+        controller.rebalance(data);
+        // Recheck total
+        (uint256 totalAfter, bool balancedAfter) = _verifyBalance();
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(balancedAfter, "Portfolio.rebalance: You had one job and you fucked it up"); //Too judgemental?
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(
+            totalAfter &gt;= totalBefore.mul(_slippage).div(DIVISOR),
+            "Portfolio.rebalance: Total value slipped too much!"
+        );
+        emit RebalanceCalled(totalAfter, msg.sender);
+        return totalAfter;
+    }
+&nbsp;
+    /*
+     * @notice Internal setter to update the rebalance threshold
+     * @dev The rebalance threshold limits whether a token can be rebalanced. If its current percentage
+     *      is within the threshold, it does not get rebalanced.
+     * @params threshold_ The value of the new rebalance threshold
+     */
+    function _updateRebalanceThreshold(uint256 threshold_) internal {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(
+            threshold_ &lt; DIVISOR,
+            "Portfolio.updateRebalanceThreshold: Threshold cannot be 100% or greater"
+        );
+        _rebalanceThreshold = threshold_;
+    }
+&nbsp;
+    /*
+     * @notice Internal setter to update the slippage
+     * @dev The slippage is minimum percentage the total can drop to during a rebalance.
+            If it drops below that value the function reverts.
+            e.g. if slippage = 995, it can only drop to 99.5% of the total that was calculate before rebalance
+     * @params slippage_ The value of the new slippage
+     */
+    function _updateSlippage(uint256 slippage_) internal {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(
+            slippage_ &lt; DIVISOR,
+            "Portfolio.updateSlippage: Slippage cannot be 100% or greater"
+        );
+        _slippage = slippage_;
+    }
+&nbsp;
+    /*
+     * @notice Internal setter to update the timelock
+     * @dev The timelock is the amount of time in seconds that must pass between the
+            initial call of restructure() and calling finalizeStructure(). This allows
+            users to withdraw their funds if they don't like the new structure
+     * @params timelock_ The value of the new timelock
+     */
+    function _updateTimelock(uint256 timelock_) internal {
+        _timelock = timelock_;
+    }
+&nbsp;
+    /*
+     * @notice This function gets the portfolio value from the oracle and checks
+     *         whether the portfolio is balanced. Necessary to confirm the balance
+     *         before and after a rebalance to ensure nothing fishy happened
+     */
+    function _verifyBalance() internal view returns (uint256, bool) {
+        (uint256 total, uint256[] memory estimates) = IOracle(_oracle).estimateTotal(address(this), _tokens);
+        bool balanced = true;
+        for (uint256 i = 0; i &lt; _tokens.length; i++) {
+            uint256 expectedValue = total.mul(_tokenPercentages[_tokens[i]]).div(DIVISOR);
+            uint256 rebalanceRange = expectedValue.mul(_rebalanceThreshold).div(DIVISOR);
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (estimates[i] &gt; expectedValue.add(rebalanceRange)) {
+<span class="cstat-no" title="statement not covered" >                balanced = false</span>;
+                break;
+            }
+            if (estimates[i] &lt; expectedValue.sub(rebalanceRange)) {
+                balanced = false;
+                break;
+            }
+        }
+        return (total, balanced);
+    }
+&nbsp;
+    /*
+     * @notice Set the structure of the portfolio
+     * @params tokens An array of token addresses that will comprise the portfolio
+     * @params percentages An array of percentages for each token in the above array. Must total 100%
+     */
+    function _setStructure(address[] memory tokens, uint256[] memory percentages) internal {
+        for (uint256 i = 0; i &lt; tokens.length; i++) {
+            _tokenPercentages[tokens[i]] = percentages[i];
+        }
+        _tokens = tokens;
+    }
+&nbsp;
+    /*
+     * @notice Finalize the structure by selling current posiition, setting new structure, and buying new position
+     * @params tokens An array of token addresses that will comprise the portfolio
+     * @params percentages An array of percentages for each token in the above array. Must total 100%
+     * @params sellRouters An array of routers for each sale of the current tokens
+     * @params buyRouters An array of routers for each purchase of the new tokens
+     * @params controller The address of the controller that will be doing the handling the trading logic
+     */
+    function _finalizeStructure(
+        address[] memory tokens,
+        uint256[] memory percentages,
+        address[] memory sellRouters,
+        address[] memory buyRouters,
+        IPortfolioController controller //solhint-disable-line
+    ) internal {
+        require(sellRouters.length == _tokens.length, "Portfolio._finalizeStructure: Sell routers length mismatch");
+        require(buyRouters.length == tokens.length, "Portfolio._finalizeStructure: Buy routers length mismatch");
+        _approveTokens(address(controller), uint256(-1), _tokens);
+        // Reset all values and return tokens to ETH
+        controller.sellTokens(_tokens, sellRouters);
+        // Remove percentages
+        for (uint256 i = 0; i &lt; _tokens.length; i++) {
+            delete _tokenPercentages[_tokens[i]];
+        }
+        _approveTokens(address(controller), uint256(0), _tokens);
+        // Set new structure
+        _setStructure(tokens, percentages);
+        // Since tokens have already been minted we don't do router.deposit, instead use router.convert
+        controller.buyTokens{value: address(this).balance}(_tokens, buyRouters); //solhint-disable-line
+    }
+&nbsp;
+    /*
+     * @notice Batch approve tokens
+     * @params spender The address that will be approved to spend tokens
+     * @params amount The amount the each token will be approved for
+     * @params tokens An array of tokens that will be approved
+     */
+    function _approveTokens(address spender, uint256 amount, address[] memory tokens) internal {
+        for (uint256 i = 0; i &lt; tokens.length; i++) {
+            IERC20(tokens[i]).approve(spender, amount);
+        }
+    }
+&nbsp;
+    /*
+     * @notice Receive ether sent to this address
+     * @dev We must allow this contract to receive funds for when tokens get sold
+     */
+    receive() external payable {
+        emit FundsReceived(msg.value, msg.sender);
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Jan 19 2021 20:45:09 GMT-0800 (Pacific Standard Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

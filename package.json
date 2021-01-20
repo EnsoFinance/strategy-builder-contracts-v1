@@ -1,41 +1,50 @@
 {
   "name": "@bodhi/contracts",
-  "description": "Smart contracts",
-  "private": true,
   "version": "0.1.0",
-  "engines": {
-    "node": ">=10",
-    "yarn": "^1.17.3"
-  },
+  "description": "Bodhi protocol smart contracts",
+  "main": "index.js",
   "scripts": {
-    "lint": "yarn lint:prettier --check && yarn lint:eslint",
-    "lint:fix": "yarn lint:prettier --write && yarn lint:eslint --fix",
-    "lint:eslint": "eslint './test/**/*.ts'",
-    "lint:prettier": "prettier './{test,contracts}/**/*.{ts,sol}'",
-    "clean": "rimraf ./build/",
-    "prebuild": "yarn clean",
-    "build": "yarn build:contracts && yarn build:typechain",
-    "build:contracts": "waffle .waffle.json",
-    "build:typechain": "typechain --target ethers-v5 --outDir build/types 'build/*.json'",
-    "test": "mocha"
+    "build": "npx hardhat compile",
+    "coverage": "npx hardhat coverage",
+    "deploy": "npx hardhat run scripts/full-deploy-script.js --network",
+    "lint": "eslint",
+    "prettier:solidity": "prettier --write contracts/**/*.sol",
+    "solhint": "solhint -f table contracts/**/*.sol",
+    "test": "npx hardhat test"
   },
+  "engines": {
+    "node": ">=0.14"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BodhiFinance/solidity_base_template.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BodhiFinance/asset_management_solidity_v1/issues"
+  },
+  "homepage": "https://github.com/BodhiFinance/asset_management_solidity_v1#readme",
   "devDependencies": {
-    "@openzeppelin/contracts": "^3.2.0",
-    "@typechain/ethers-v5": "^4.0.0",
-    "@types/chai": "^4.2.14",
-    "@types/mocha": "^8.0.3",
-    "@typescript-eslint/eslint-plugin": "^4.4.1",
-    "@typescript-eslint/parser": "^4.4.1",
-    "chai": "^4.2.0",
-    "eslint": "^7.11.0",
-    "ethereum-waffle": "^3.2.1",
-    "ethers": "^5.0.19",
-    "ganache-core": "^2.13.1",
-    "mocha": "^8.2.1",
-    "prettier-plugin-solidity": "^1.0.0-alpha.59",
-    "rimraf": "^3.0.2",
-    "ts-node": "^9.0.0",
-    "typechain": "^4.0.0",
-    "typescript": "^4.0.5"
+    "@nomiclabs/hardhat-ethers": "~2.0.1",
+    "@nomiclabs/hardhat-waffle": "~2.0.0",
+    "bignumber.js": "~9.0.1",
+    "chai": "~4.2.0",
+    "dotenv": "~8.2.0",
+    "eslint": "~7.14.0",
+    "ethereum-waffle": "~3.2.1",
+    "ethers": "~5.0.23",
+    "hardhat": "~2.0.4",
+    "prettier": "~2.2.1",
+    "prettier-plugin-solidity": "~1.0.0-beta.1",
+    "solhint": "~3.3.2",
+    "solhint-plugin-prettier": "~0.0.5",
+    "solidity-coverage": "~0.7.13"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "~3.3.0",
+    "@uniswap/lib": "~4.0.1-alpha",
+    "@uniswap/v2-core": "~1.0.1",
+    "@uniswap/v2-periphery": "~1.1.0-beta.0"
   }
 }

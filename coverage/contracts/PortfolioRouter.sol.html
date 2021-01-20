@@ -1,0 +1,938 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/PortfolioRouter.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> PortfolioRouter.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">66.96% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>75/112</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.38% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>22/42</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">91.67% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>11/12</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">67.24% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>78/116</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">231×</span>
+<span class="cline-any cline-yes">231×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">123×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">129×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-yes">130×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">pragma solidity 0.6.12;
+&nbsp;
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "./interfaces/IPortfolio.sol";
+import "./libraries/UniswapV2Library.sol";
+&nbsp;
+&nbsp;
+contract PortfolioRouter is IUniswapV2Callee {
+    using SafeMath for uint256;
+&nbsp;
+    uint256 private constant FEE = 997;
+    uint256 private constant DIVISOR = 1000;
+    address private _factory;
+    address private _weth;
+&nbsp;
+    constructor(address factory, address weth) public {
+        _factory = factory;
+        _weth = weth;
+    }
+&nbsp;
+    function uniswapV2Call(
+        address sender,
+        uint amount0,
+        uint amount1,
+        bytes calldata data
+    ) external override {
+        uint256 repay;
+        uint256 total;
+        address token0 = IUniswapV2Pair(msg.sender).token0();
+        address token1 = IUniswapV2Pair(msg.sender).token1();
+        {// solhint-disable-line
+            assert(msg.sender == UniswapV2Library.pairFor(_factory, token0, token1));
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (token0 == address(_weth)) {
+<span class="cstat-no" title="statement not covered" >                if (amount1 &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >                    repay = amount0.add(quotePrice(amount1, token1, token0).mul(DIVISOR).div(FEE))</span>;
+<span class="cstat-no" title="statement not covered" >                    IERC20(token1).transfer(sender, amount1)</span>;
+                } else {
+<span class="cstat-no" title="statement not covered" >                    repay = amount0</span>;
+                }
+            } else {
+                <span class="missing-if-branch" title="else path not taken" >E</span>if (amount0 &gt; 0) {
+                    repay = amount1.add(quotePrice(amount0, token0, token1).mul(DIVISOR).div(FEE));
+                    IERC20(token0).transfer(sender, amount0);
+                } else {
+<span class="cstat-no" title="statement not covered" >                    repay = amount1</span>;
+                }
+            }
+            total = repay;
+            repay = repay.mul(DIVISOR).div(FEE);
+        }
+        (uint256[] memory estimates, uint256 threshold) =
+            abi.decode(data, (uint256[], uint256)); // solhint-disable-line
+        {// solhint-disable-line
+            address[] memory tokens = IPortfolio(sender).getPortfolioTokens();
+            for (uint256 i = 0; i &lt; tokens.length; i++) {
+                if (tokens[i] != token0 &amp;&amp; tokens[i] != token1) {
+                    _rebalanceToken(
+                        sender,
+                        tokens[i],
+                        estimates[i],
+                        total,
+                        threshold
+                    );
+                } else {
+                    repay = repay.sub(_getDiffValue(
+                        sender,
+                        tokens[i],
+                        estimates[i],
+                        total
+                    ));
+                }
+            }
+        }
+        {// solhint-disable-line
+            repay = repay.sub(_settleFlashPair(
+                sender,
+                msg.sender,
+                token0,
+                token1,
+                total,
+                repay
+            ));
+            IERC20 weth = IERC20(_weth);
+            uint256 balance = weth.balanceOf(address(this));
+            assert(weth.transfer(msg.sender, repay));
+            uint256 amountRemaining = weth.balanceOf(address(this));
+            <span class="missing-if-branch" title="else path not taken" >E</span>if (amountRemaining &gt; 0) {
+                weth.transfer(sender, amountRemaining);
+            }
+        }
+    }
+&nbsp;
+    function weth() external view returns (address) {
+        return _weth;
+    }
+&nbsp;
+    function factory() external view returns (address) {
+        return _factory;
+    }
+&nbsp;
+    function quotePrice(uint256 amount, address input, address output) public view returns (uint256) {
+        (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(_factory, input, output);
+        return UniswapV2Library.quote(amount, reserveA, reserveB);
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function swapPrice(uint256 amount, address input, address output) public view returns (uint256) {</span>
+<span class="cstat-no" title="statement not covered" >        address[] memory path = new address[](2);</span>
+<span class="cstat-no" title="statement not covered" >        path[0] = input</span>;
+<span class="cstat-no" title="statement not covered" >        path[1] = output</span>;
+<span class="cstat-no" title="statement not covered" >        return UniswapV2Library.getAmountsOut(_factory, amount, path)[1];</span>
+    }
+&nbsp;
+    function swap(
+        uint256 amount,
+        uint256 expected,
+        address input,
+        address output
+    ) public payable returns (uint256) {
+        return _swap(amount, expected, input, output, msg.sender, false);
+    }
+&nbsp;
+    function _swap(
+        uint256 amount,
+        uint256 expected,
+        address input,
+        address output,
+        address to,
+        bool flash
+    ) internal returns (uint256 received) {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(input != output, "Error (swap): Input and output cannot match");
+        address[] memory path = new address[](2);
+        uint256 actualAmount;
+        if (input == address(0)) {
+            path[0] = _weth;
+            path[1] = output;
+            actualAmount = msg.value;
+            IWETH(_weth).deposit{value: actualAmount}(); // solhint-disable
+            assert(IWETH(_weth).transfer(UniswapV2Library.pairFor(_factory, path[0], path[1]), actualAmount));
+        } else {
+            <span class="missing-if-branch" title="else path not taken" >E</span>require(msg.value == 0, "Error (swap): Cannot send value if input is not Ether");
+            path[0] = input;
+            path[1] = output == address(0) ? _weth : output;
+            actualAmount = amount;
+            if (flash &amp;&amp; input == _weth) {
+              TransferHelper.safeTransfer(
+                  path[0], UniswapV2Library.pairFor(_factory, path[0], path[1]), actualAmount
+              );
+            } else {
+              TransferHelper.safeTransferFrom(
+                  path[0], to, UniswapV2Library.pairFor(_factory, path[0], path[1]), actualAmount
+              );
+            }
+        }
+        received = UniswapV2Library.getAmountsOut(_factory, actualAmount, path)[1];
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(received &gt;= expected, "Error (swap): Insufficient output amount");
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (output == address(0)) {
+<span class="cstat-no" title="statement not covered" >            _pairSwap(received, path[0], path[1], address(this))</span>;
+<span class="cstat-no" title="statement not covered" >            IWETH(_weth).withdraw(received)</span>;
+<span class="cstat-no" title="statement not covered" >            TransferHelper.safeTransferETH(to, received)</span>;
+        } else {
+            if (flash &amp;&amp; output == _weth) {
+              _pairSwap(received, path[0], path[1], address(this));
+            } else {
+              _pairSwap(received, path[0], path[1], to);
+            }
+&nbsp;
+        }
+    }
+&nbsp;
+    function _pairSwap(uint256 amountOut, address input, address output, address to) internal virtual {
+        (address token0,) = UniswapV2Library.sortTokens(input, output);
+        (uint amount0Out, uint amount1Out) = input == token0 ? (uint(0), amountOut) : (amountOut, uint(0));
+        IUniswapV2Pair(UniswapV2Library.pairFor(_factory, input, output)).swap(
+            amount0Out, amount1Out, to, new bytes(0)
+        );
+    }
+&nbsp;
+    function _rebalanceToken(
+        address portfolioAddress,
+        address tokenAddress,
+        uint256 estimatedValue,
+        uint256 total,
+        uint256 threshold
+    ) internal {
+        uint256 expectedValue = IPortfolio(portfolioAddress).getExpectedTokenValue(total, tokenAddress);
+        uint256 rebalanceRange = IPortfolio(portfolioAddress).getRebalanceRange(expectedValue, threshold);
+        if (estimatedValue &gt; expectedValue.add(rebalanceRange)) {
+            /*
+            uint256 diff = quotePrice(
+                estimatedValue.sub(expectedValue),
+                _weth,
+                tokenAddress
+            ).mul(DIVISOR).div(FEE);
+            */
+            uint256 diff = quotePrice(
+                estimatedValue.sub(expectedValue),
+                _weth,
+                tokenAddress
+            ).mul(DIVISOR).div(FEE);
+            _swap(diff, 0, tokenAddress, _weth, portfolioAddress, true);
+        }
+        if (estimatedValue &lt; expectedValue.sub(rebalanceRange)) {
+            uint256 diff = expectedValue.sub(estimatedValue);
+            _swap(diff.mul(FEE).div(DIVISOR), 0, _weth, tokenAddress, portfolioAddress, true);
+&nbsp;
+        }
+    }
+&nbsp;
+    function _settleFlashPair(
+        address portfolioAddress,
+        address uniswapAddress,
+        address token0,
+        address token1,
+        uint256 total,
+        uint256 repay
+    ) internal returns (uint256) {
+        uint256 excessWeth = IERC20(_weth).balanceOf(address(this));
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (IPortfolio(portfolioAddress).getTokenPercentage(_weth) &gt; 0) {
+            //Settle weth
+<span class="cstat-no" title="statement not covered" >            uint256 wethValue = IERC20(_weth).balanceOf(portfolioAddress);</span>
+<span class="cstat-no" title="statement not covered" >            uint256 expectedWethValue = IPortfolio(portfolioAddress).getExpectedTokenValue(total, _weth);</span>
+<span class="cstat-no" title="statement not covered" >            if (wethValue &gt; expectedWethValue) {</span>
+<span class="cstat-no" title="statement not covered" >                uint256 wethRemoved = wethValue.sub(expectedWethValue);</span>
+<span class="cstat-no" title="statement not covered" >                IERC20(_weth).transferFrom(portfolioAddress, address(this), wethRemoved)</span>;
+<span class="cstat-no" title="statement not covered" >                excessWeth = excessWeth.add(wethRemoved)</span>;
+            } else {
+<span class="cstat-no" title="statement not covered" >                uint256 wethNeeded = expectedWethValue.sub(wethValue);</span>
+                // There should never be a scenario where excess weth is less than weth needed
+<span class="cstat-no" title="statement not covered" >                assert(excessWeth &gt;= wethNeeded)</span>;
+<span class="cstat-no" title="statement not covered" >                IERC20(_weth).transferFrom(address(this), portfolioAddress, wethNeeded)</span>;
+<span class="cstat-no" title="statement not covered" >                excessWeth = excessWeth.sub(wethNeeded)</span>;
+            }
+        }
+        IERC20 pairToken = IERC20(token0 == _weth ? token1 : token0);
+        //Settle pair token
+        uint256 estimatedValue = quotePrice(pairToken.balanceOf(portfolioAddress), address(pairToken), _weth);
+        uint256 expectedValue = IPortfolio(portfolioAddress).getExpectedTokenValue(total, address(pairToken));
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (estimatedValue &gt; expectedValue) {
+<span class="cstat-no" title="statement not covered" >            uint256 diff;</span>
+            {
+<span class="cstat-no" title="statement not covered" >                diff = quotePrice(</span>
+                    estimatedValue.sub(expectedValue).mul(DIVISOR).div(FEE),
+                    _weth,
+                    address(pairToken)
+                );
+            }
+<span class="cstat-no" title="statement not covered" >            if (excessWeth &gt; repay) {</span>
+                // In case we have extra weth, we don't have to pay back as much of the flash pair token
+<span class="cstat-no" title="statement not covered" >                excessWeth = excessWeth.sub(repay)</span>;
+<span class="cstat-no" title="statement not covered" >                uint256 excessTokenEquivalent = quotePrice(excessWeth, _weth, address(pairToken));</span>
+<span class="cstat-no" title="statement not covered" >                if (excessTokenEquivalent &lt; diff) {</span>
+<span class="cstat-no" title="statement not covered" >                    diff = diff.sub(excessTokenEquivalent)</span>;
+<span class="cstat-no" title="statement not covered" >                    pairToken.transferFrom(portfolioAddress, uniswapAddress, diff)</span>;
+                }
+                //Potentially paying to0 much here if excessTokenEquivalent &gt; diff!
+<span class="cstat-no" title="statement not covered" >                IERC20(_weth).transfer(uniswapAddress, excessWeth)</span>;
+            } else {
+                //If we don't have enough weth to pay loan, we take more from the flash pair token
+<span class="cstat-no" title="statement not covered" >                uint256 repayDiff = repay.sub(excessWeth);</span>
+<span class="cstat-no" title="statement not covered" >                if (repayDiff &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >                  diff = diff.add(quotePrice(repayDiff, _weth, address(pairToken)))</span>;
+                }
+<span class="cstat-no" title="statement not covered" >                pairToken.transferFrom(portfolioAddress, uniswapAddress, diff)</span>;
+<span class="cstat-no" title="statement not covered" >                return repayDiff;</span>
+            }
+        } else {
+            //Need to swap weth for this token, but swap contract is locked!!
+            assert(excessWeth &gt;= repay);
+        }
+        return 0;
+    }
+&nbsp;
+    function _getDiffValue(
+        address portfolioAddress,
+        address tokenAddress,
+        uint256 estimatedValue,
+        uint256 total
+    ) internal view returns (uint256){
+        uint256 expectedValue = IPortfolio(portfolioAddress).getExpectedTokenValue(total, tokenAddress);
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (estimatedValue &gt; expectedValue) {
+<span class="cstat-no" title="statement not covered" >            return estimatedValue.sub(expectedValue);</span>
+        } else {
+            return 0;
+        }
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Dec 10 2020 13:37:20 GMT-0800 (Pacific Standard Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
