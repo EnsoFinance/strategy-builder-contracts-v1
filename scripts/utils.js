@@ -1,7 +1,6 @@
 const { expect } = require('chai')
-const { ethers, waffle } = require('hardhat')
-const { deployContract, provider } = waffle
-const { constants, Contract } = ethers
+const { ethers } = require('hardhat')
+const { constants } = ethers
 const { AddressZero, WeiPerEther } = constants
 
 const DIVISOR = 1000;
@@ -41,7 +40,6 @@ async function uniswapTokensForEther(portfolio, multicall, router, _oracle, toke
 }
 
 async function getPortfolioTokensUniswap(portfolio, multicall, router, _oracle, ethAmount, receiver) {
-  const msgValues = []
   const calls = []
   const percentages = await portfolio.getTokenPercentages()
   const tokens = await portfolio.portfolioTokens()

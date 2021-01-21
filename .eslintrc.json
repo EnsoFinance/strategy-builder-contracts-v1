@@ -20,5 +20,6 @@
           "varsIgnorePattern": "should|expect"
         }
       ]
-    }
+    },
+    "root": true
 }

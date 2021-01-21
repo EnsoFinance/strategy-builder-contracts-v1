@@ -2,13 +2,12 @@ const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
 const WETH9 = require('@uniswap/v2-periphery/build/WETH9.json')
 const UniswapV2Factory = require('@uniswap/v2-core/build/UniswapV2Factory.json')
 const UniswapV2Pair = require('@uniswap/v2-core/build/UniswapV2Pair.json')
-const BigNumber = require('bignumber.js')
 const { expect } = require('chai')
 const { ethers, waffle } = require('hardhat')
 const { deployContract, provider } = waffle
 const { constants, Contract } = ethers
-const { AddressZero, WeiPerEther } = constants
-const {encodeUniswapSwap, uniswapTokensForEther, getPortfolioTokensUniswap, DIVISOR} = require('../scripts/utils.js')
+const { WeiPerEther } = constants
+const {uniswapTokensForEther, getPortfolioTokensUniswap, DIVISOR} = require('../scripts/utils.js')
 
 
 function percentageOf(numerator, denominator) {
@@ -46,11 +45,9 @@ async function logPortfolioTokens(portfolio, acc, msg) {
 
 describe('FlashPortfolio', function () {
   const NUM_TOKENS = 15
-  const TOKEN_SUPPLY = 100_000_000_000
-  const WETH_SUPPLY = 100_000
+  const TOKEN_SUPPLY = 100000000000
   const tokens = []
-  let Portfolio
-  let accounts, uniswapFactory, uniswapRouter, oracle, loopController, flashController, portfolio, portfolioTokens, portfolioPercentages, whitelist, arbitrager
+  let accounts, uniswapFactory, uniswapRouter, oracle, loopController, flashController, portfolio, portfolioTokens, portfolioTokenAddresses, portfolioPercentages, whitelist, arbitrager, multicall, balancesLibrary
 
 
   before('Setup Uniswap', async function () {
@@ -66,7 +63,6 @@ describe('FlashPortfolio', function () {
         const token = await deployContract(WETH_SUPPLIER, WETH9)
         await token.deposit({ value: WeiPerEther.mul(NUM_TOKENS) })
         tokens.push(token)
-        WETH = token.address
       } else {
         const token = await deployContract(ERC20_DEPLOYER, ERC20, [WeiPerEther.mul(TOKEN_SUPPLY)])
         tokens.push(token)

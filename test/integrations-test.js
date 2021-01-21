@@ -8,7 +8,6 @@ const { ethers, waffle } = require('hardhat')
 const { deployContract, provider } = waffle
 const { constants, Contract } = ethers
 const { AddressZero, WeiPerEther } = constants
-const { getPortfolioTokensUniswap, encodeTransferFrom, encodeTransfer, DIVISOR } = require('../scripts/utils.js')
 
 const NUM_TOKENS = 15
 let WETH;
@@ -120,8 +119,8 @@ describe('Portfolio', function () {
     before('Deploy GenericController', async function () {
         const TRADER = accounts[10]
         const Multicall = await ethers.getContractFactory('GenericController')
-        multicall = await Multicall.connect(accounts[4]).deploy()
-        arbitrager = await Multicall.connect(TRADER).deploy()
+        await Multicall.connect(accounts[4]).deploy()
+        await Multicall.connect(TRADER).deploy()
     })
 
 
@@ -217,7 +216,6 @@ describe('Portfolio', function () {
         const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
         console.log('Rebalancing portfolio....')
         let diffs = []
-        let calls = []
         for (let i = 0; i < estimates.length; i++) {
             const expectedValue = await wrapper.getExpectedTokenValue(total, portfolioTokens[i])
             console.log('\ntoken: ', i, ' ', portfolioTokens[i])
@@ -232,7 +230,6 @@ describe('Portfolio', function () {
             }
 
         }
-        const portfolioDepositWeth = WeiPerEther.mul(10)
 
         // Multicall gets initial tokens from uniswap
         // let swapCall = await getPortfolioTokensUniswap(portfolio, multicall, uniswapRouter, oracle, portfolioDepositWeth, multicall.address)
@@ -250,9 +247,10 @@ describe('Portfolio', function () {
 
 })
 
-function colorLog(message, color) {
+/*
+function colorLog(message, defaultColor) {
 
-    color = color || "black";
+    let color = defaultColor || "black";
 
     switch (color) {
         case "success":
@@ -268,8 +266,9 @@ function colorLog(message, color) {
             color = "Orange";
             break;
         default:
-            color = color;
+            color = defaultColor;
     }
 
     console.log("%c" + message, "color:" + color);
 }
+*/
