@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/IPortfolio.sol";
 import "./interfaces/IPortfolioController.sol";
+import "./interfaces/IPortfolioProxyFactory.sol";
 import "./interfaces/IWhitelist.sol";
 import "./PortfolioToken.sol";
 import "./PortfolioOwnable.sol";
@@ -20,7 +21,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     event FundsReceived(uint256 amount, address account);
 
     modifier onlyApproved(address controller) {
-        require(IWhitelist(_whitelist).approved(controller), "Portfolio.onlyApproved: Controller is not approved");
+        require(IWhitelist(IPortfolioProxyFactory(_factory).whitelist()).approved(controller), "Portfolio.onlyApproved: Controller is not approved");
         require(!_locked, "Portfolio.onlyApproved: Function locked");
         _;
     }
@@ -28,8 +29,6 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     /*
      * @notice This contract is proxiable. There is no constructor, instead we use the initialize function
      * @params owner_ The address that will own the contract
-     * @params oracle_ The address of the oracle
-     * @params whitelist_ The address of the controller whitelist
      * @params name_ The name of this token
      * @params symbol_ The symbol of this token
      * @params tokens_ A list of token addresses that will make up the portfolio
@@ -39,11 +38,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params timelock_ The amount of time between initializing a restructure and updating the portfolio
      */
     function initialize(
+        address factory_,
         address owner_,
-        address oracle_,
-        address whitelist_,
         string memory name_,
         string memory symbol_,
+        address[] memory routers_,
         address[] memory tokens_,
         uint256[] memory percentages_,
         uint256 threshold_,
@@ -56,14 +55,16 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _updateRebalanceThreshold(threshold_);
         _updateSlippage(slippage_);
         _updateTimelock(timelock_);
-        _oracle = oracle_;
-        _whitelist = whitelist_;
+        _factory = factory_;
         // Set structure
         if (tokens_.length > 0) {
             PortfolioLibrary.verifyStructure(tokens_, percentages_);
             _setStructure(tokens_, percentages_);
         }
-
+        if (msg.value > 0) {
+            IPortfolioController(IPortfolioProxyFactory(_factory).controller()).buyTokens{value: msg.value}(_tokens, routers_); // solhint-disable-line
+            _mint(owner_, msg.value);
+        }
         return true;
     }
 
@@ -116,18 +117,19 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         // TODO: modifier
         _locked = true;
         (uint256 totalBefore, bool balancedBefore) = _verifyBalance();
-        _approveTokens(address(controller), uint256(-1), _tokens);
         // Not sure about passing balance data along with tokens and routers arrays
         if (!balancedBefore) {
             // Could a router not need any calldata for rebalance?
             // require(rebalanceData.length > 0, "Portfolio.deposit: Rebalance data not passed");
+            _approveTokens(address(controller), uint256(-1), _tokens);
             totalBefore = _rebalance(totalBefore, rebalanceData, controller);
+            _approveTokens(address(controller), uint256(0), _tokens);
         }
         // TODO: can this be done during the rebalance to maximize cases where a rebalance could be accomplished with a deposit?
         controller.buyTokens{value: msg.value}(_tokens, routers); // solhint-disable-line
-        _approveTokens(address(controller), uint256(0), _tokens);
+
         // Recheck total
-        (uint256 totalAfter, ) = IOracle(_oracle).estimateTotal(address(this), _tokens);
+        (uint256 totalAfter, ) = IOracle(IPortfolioProxyFactory(_factory).oracle()).estimateTotal(address(this), _tokens);
         require(totalAfter >= totalBefore, "Portfolio.deposit: Total value dropped!");
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         uint256 relativeTokens = _totalSupply > 0 ? _totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
@@ -261,7 +263,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @notice Oracle address getter
      */
     function oracle() external override view returns (address) {
-        return _oracle;
+        return IPortfolioProxyFactory(_factory).oracle();
     }
 
     /*
@@ -387,7 +389,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      *         before and after a rebalance to ensure nothing fishy happened
      */
     function _verifyBalance() internal view returns (uint256, bool) {
-        (uint256 total, uint256[] memory estimates) = IOracle(_oracle).estimateTotal(address(this), _tokens);
+        (uint256 total, uint256[] memory estimates) = IOracle(IPortfolioProxyFactory(_factory).oracle()).estimateTotal(address(this), _tokens);
         bool balanced = true;
         for (uint256 i = 0; i < _tokens.length; i++) {
             uint256 expectedValue = total.mul(_tokenPercentages[_tokens[i]]).div(DIVISOR);

@@ -46,6 +46,23 @@ module.exports = {
     await whitelist.deployed()
     console.log("Whitelist: ", whitelist.address)
 
+    const UniswapRouter = await getContractFactory('UniswapRouter')
+    const defaultRouter = await UniswapRouter.connect(owner).deploy(
+      uniswapFactory.address,
+      weth.address,
+      whitelist.address
+    )
+    await defaultRouter.deployed()
+
+    const LoopController = await getContractFactory('LoopController')
+    const defaultController = await LoopController.connect(owner).deploy(
+      defaultRouter.address,
+      uniswapFactory.address,
+      weth.address
+    )
+    await defaultController.deployed()
+    await whitelist.connect(owner).approve(defaultController.address)
+
     const Portfolio = await getContractFactory('Portfolio')
     const portfolioImplementation = await Portfolio.connect(owner).deploy()
     await portfolioImplementation.deployed()
@@ -54,11 +71,12 @@ module.exports = {
     const portfolioFactory = await PortfolioProxyFactory.connect(owner).deploy(
       portfolioImplementation.address,
       oracle.address,
-      whitelist.address
+      whitelist.address,
+      defaultController.address
     )
     await portfolioFactory.deployed()
     console.log("Portfolio Factory: ", portfolioFactory.address)
 
-    return [portfolioFactory, oracle, whitelist]
+    return [portfolioFactory, oracle, whitelist, defaultController, defaultRouter]
   }
 }

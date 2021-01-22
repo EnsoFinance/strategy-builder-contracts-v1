@@ -20,6 +20,7 @@ async function encodeUniswapSwap(router, amountTokens, minTokens, tokenIn, token
   return { target: router.address, callData: swapEncoded, value: msgValue}
 }
 
+// TODO: remove portfolio contract from params
 async function uniswapTokensForEther(portfolio, multicall, router, _oracle, tokens, receiver) {
   let calls = []
   for (let i = 0; i < tokens.length; i++) {
@@ -29,16 +30,12 @@ async function uniswapTokensForEther(portfolio, multicall, router, _oracle, toke
     const ethAmount = await _oracle.consult(swapAmount.div(WeiPerEther), tok.address)
     expect(ethAmount != 0)
     // console.log('Swapping token', i, 'tokens: ', ethers.utils.formatEther(swapAmount), '\n - for eth: ', ethers.utils.formatEther(ethAmount))
-    // get expected amount of tokens from uniswap. ETH is from multicall , tokens are transferred to receiver
     calls.push(await encodeUniswapSwap(router, swapAmount, 0, tok.address, AddressZero, multicall.address, receiver))
-    // should fail to deposit only some of the tokens
-    // if (i < tokens.length - 1 && receiver == portfolio.address) {
-    //   await expect(multicall.initiateRebalance(portfolio.address, [], [], calls)).to.be.reverted
-    // }
   }
   return calls
 }
 
+// TODO: take tokens + amounts instead of portfolio
 async function getPortfolioTokensUniswap(portfolio, multicall, router, _oracle, ethAmount, receiver) {
   const calls = []
   const percentages = await portfolio.getTokenPercentages()
@@ -46,18 +43,11 @@ async function getPortfolioTokensUniswap(portfolio, multicall, router, _oracle, 
   for (let i = 0; i < tokens.length; i++) {
     const swapAmount = ethAmount.mul(percentages[i]).div(DIVISOR)
     const expectedAmount = await _oracle.consult(swapAmount, tokens[i])
-    // TODO: calculate price properly
     expect(swapAmount == expectedAmount)
     // console.log('Swapping ', ethers.utils.formatEther(swapAmount), ' ETH for ', ethers.utils.formatEther(expectedAmount), 'token ', i)
-    // get expected amount of tokens from uniswap. ETH is from multicall , tokens are transferred to receiver
     calls.push(await encodeUniswapSwap(router, swapAmount, 0, AddressZero, tokens[i], multicall.address, receiver))
-    // should fail to deposit only some of the tokens
-    if (i < tokens.length - 1 && receiver == portfolio.address) {
-      await expect(multicall.initiateRebalance(portfolio.address, [], [], calls, { value: ethAmount.mul(2) })).to.be.reverted
-    }
   }
   return calls
 }
 
-// modules.exports.DIVISOR = _DIVISOR;
 module.exports =  {encodeUniswapSwap, getPortfolioTokensUniswap, uniswapTokensForEther, encodeTransferFrom, encodeTransfer, DIVISOR}

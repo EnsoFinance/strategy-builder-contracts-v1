@@ -19,8 +19,7 @@ contract PortfolioStorage { //solhint-disable
     //uint256 internal _version;
     uint8 internal _decimals;
     // Portfolio
-    address internal _oracle;
-    address internal _whitelist;
+    address internal _factory;
 
     bool internal _locked;
     bool internal _social;

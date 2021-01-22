@@ -7,7 +7,7 @@ const { ethers, waffle } = require('hardhat')
 const { deployContract, provider } = waffle
 const { constants, Contract } = ethers
 const { WeiPerEther } = constants
-const {uniswapTokensForEther, getPortfolioTokensUniswap, DIVISOR} = require('../scripts/utils.js')
+const {uniswapTokensForEther, getPortfolioTokensUniswap, DIVISOR} = require('./helpers/calldata.js')
 
 
 function percentageOf(numerator, denominator) {
@@ -189,7 +189,7 @@ describe('FlashPortfolio', function () {
     await logTokenBalances(portfolio, multicall.address)
 
     // Deposit tokens for eth from uniswap during deposit
-    // TODO: hitting a revert with no error msg
+    // TODO: hitting a revert with no error msg (something is encoded wrong in uniswapTokensForEther)
     let arbitrageCalls = await uniswapTokensForEther(portfolio, multicall, uniswapRouter, oracle, portfolioTokens, multicall.address)
 
 
@@ -203,7 +203,6 @@ describe('FlashPortfolio', function () {
     // // Deposit into portfolio
     // // depositCalls.concat(arbitrageCalls)
     // let combinedCalls = arbitrageCalls.concat(depositCalls)
-    // // console.log('debug - ', depositCalls)
     // console.log('number of internal calls: ', combinedCalls.length)
 
     const depositTx1 = await multicall.initiateRebalance(portfolio.address, [], [], depositCalls, { value: portfolioDepositWeth.mul(4) })
