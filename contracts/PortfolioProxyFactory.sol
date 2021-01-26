@@ -19,7 +19,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     mapping(address => address) private admins;
 
     event Update(address newImplementation, uint256 version);
-    event NewPortfolio(address portfolio, address manager, string name, string symbol, address[] tokens, uint256[] percentages); //solhint-disable-line
+    event NewPortfolio(address portfolio, address manager, string name, string symbol, address[] tokens, uint256[] percentages, uint256 threshold, uint256 slippage, uint256 timelock); //solhint-disable-line
     event NewOracle(address newOracle);
     event NewWhitelist(address newWhitelist);
     event NewController(address newController);
@@ -99,7 +99,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             slippage,
             timelock
         );
-        emit NewPortfolio(address(proxy), msg.sender, name, symbol, tokens, percentages);
+        emit NewPortfolio(address(proxy), msg.sender, name, symbol, tokens, percentages, threshold, slippage, timelock);
     }
 
     function updateImplementation(address newImplementation) external onlyOwner {
