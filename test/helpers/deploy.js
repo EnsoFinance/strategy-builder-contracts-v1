@@ -32,7 +32,16 @@ module.exports = {
     }
     return [uniswapFactory, tokens]
   },
-  deployPlatform: async (owner, uniswapFactory, weth) => {
+  deployUniswapRouter: async (owner, uniswapFactory, weth) => {
+    const UniswapRouter = await getContractFactory('UniswapRouter')
+    const router = await UniswapRouter.connect(owner).deploy(
+      uniswapFactory.address,
+      weth.address
+    )
+    await router.deployed()
+    return router
+  },
+  deployPlatform: async (owner, controller, uniswapFactory, weth) => {
     const Oracle = await getContractFactory('TestOracle')
     const oracle = await Oracle.connect(owner).deploy(
         uniswapFactory.address,
@@ -46,22 +55,7 @@ module.exports = {
     await whitelist.deployed()
     console.log("Whitelist: ", whitelist.address)
 
-    const UniswapRouter = await getContractFactory('UniswapRouter')
-    const defaultRouter = await UniswapRouter.connect(owner).deploy(
-      uniswapFactory.address,
-      weth.address,
-      whitelist.address
-    )
-    await defaultRouter.deployed()
-
-    const LoopController = await getContractFactory('LoopController')
-    const defaultController = await LoopController.connect(owner).deploy(
-      defaultRouter.address,
-      uniswapFactory.address,
-      weth.address
-    )
-    await defaultController.deployed()
-    await whitelist.connect(owner).approve(defaultController.address)
+    await whitelist.connect(owner).approve(controller.address)
 
     const Portfolio = await getContractFactory('Portfolio')
     const portfolioImplementation = await Portfolio.connect(owner).deploy()
@@ -72,11 +66,35 @@ module.exports = {
       portfolioImplementation.address,
       oracle.address,
       whitelist.address,
-      defaultController.address
+      controller.address
     )
     await portfolioFactory.deployed()
     console.log("Portfolio Factory: ", portfolioFactory.address)
 
-    return [portfolioFactory, oracle, whitelist, defaultController, defaultRouter]
+    return [portfolioFactory, oracle, whitelist]
+  },
+  deployLoopController: async (owner, uniswapFactory, weth) => {
+    const UniswapRouter = await getContractFactory('UniswapRouter')
+    const router = await UniswapRouter.connect(owner).deploy(
+      uniswapFactory.address,
+      weth.address
+    )
+    await router.deployed()
+
+    const LoopController = await getContractFactory('LoopController')
+    const controller = await LoopController.connect(owner).deploy(
+      router.address,
+      uniswapFactory.address,
+      weth.address
+    )
+    await controller.deployed()
+
+    return [controller, router]
+  },
+  deployGenericController: async (owner, weth) => {
+    const GenericController = await ethers.getContractFactory('GenericController')
+    const controller = await GenericController.connect(owner).deploy(weth.address)
+    await controller.deployed()
+    return controller
   }
 }

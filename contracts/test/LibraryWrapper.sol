@@ -29,6 +29,10 @@ contract LibraryWrapper {
         return !balanced;
     }
 
+    function getRebalanceRange(uint256 total) external view returns (uint256) {
+        return PortfolioLibrary.getRange(total, portfolio.rebalanceThreshold());
+    }
+
     function getPortfolioValue() external view returns (uint256) {
         (uint256 total, ) = oracle.estimateTotal(address(portfolio), portfolio.getPortfolioTokens());
         return total;

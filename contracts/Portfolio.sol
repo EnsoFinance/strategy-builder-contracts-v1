@@ -9,7 +9,6 @@ import "./interfaces/IPortfolioProxyFactory.sol";
 import "./interfaces/IWhitelist.sol";
 import "./PortfolioToken.sol";
 import "./PortfolioOwnable.sol";
-import "./libraries/PortfolioLibrary.sol";
 
 
 contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializable {
@@ -58,7 +57,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _factory = factory_;
         // Set structure
         if (tokens_.length > 0) {
-            PortfolioLibrary.verifyStructure(tokens_, percentages_);
+            _verifyStructure(tokens_, percentages_);
             _setStructure(tokens_, percentages_);
         }
         if (msg.value > 0) {
@@ -129,7 +128,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         controller.buyTokens{value: msg.value}(_tokens, routers); // solhint-disable-line
 
         // Recheck total
-        (uint256 totalAfter, ) = IOracle(IPortfolioProxyFactory(_factory).oracle()).estimateTotal(address(this), _tokens);
+        (uint256 totalAfter, ) = IOracle(oracle()).estimateTotal(address(this), _tokens);
         require(totalAfter >= totalBefore, "Portfolio.deposit: Total value dropped!");
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         uint256 relativeTokens = _totalSupply > 0 ? _totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
@@ -184,7 +183,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         uint256[] memory percentages
     ) external override onlyOwner {
         // Verify new structure
-        PortfolioLibrary.verifyStructure(tokens, percentages);
+        _verifyStructure(tokens, percentages);
         _restructureProof = keccak256(abi.encodePacked(tokens, percentages));
         _restructureTimestamp = block.timestamp;
         emit NewStructure(tokens, percentages);
@@ -260,13 +259,6 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     }
 
     /*
-     * @notice Oracle address getter
-     */
-    function oracle() external override view returns (address) {
-        return IPortfolioProxyFactory(_factory).oracle();
-    }
-
-    /*
      * @notice Social bool getter
      * @dev This value determines whether other account may deposit into this portfolio
      */
@@ -318,6 +310,13 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         return _tokenPercentages[tokenAddress];
     }
 
+    /*
+     * @notice Oracle address getter
+     */
+    function oracle() public override view returns (address) {
+        return IPortfolioProxyFactory(_factory).oracle();
+    }
+
     // Internal Portfolio Functions
     /*
      * @notice Rebalance the portfolio to match the current structure
@@ -366,8 +365,8 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      */
     function _updateSlippage(uint256 slippage_) internal {
         require(
-            slippage_ < DIVISOR,
-            "Portfolio.updateSlippage: Slippage cannot be 100% or greater"
+            slippage_ <= DIVISOR,
+            "Portfolio.updateSlippage: Slippage cannot be greater than 100%"
         );
         _slippage = slippage_;
     }
@@ -389,7 +388,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      *         before and after a rebalance to ensure nothing fishy happened
      */
     function _verifyBalance() internal view returns (uint256, bool) {
-        (uint256 total, uint256[] memory estimates) = IOracle(IPortfolioProxyFactory(_factory).oracle()).estimateTotal(address(this), _tokens);
+        (uint256 total, uint256[] memory estimates) = IOracle(oracle()).estimateTotal(address(this), _tokens);
         bool balanced = true;
         for (uint256 i = 0; i < _tokens.length; i++) {
             uint256 expectedValue = total.mul(_tokenPercentages[_tokens[i]]).div(DIVISOR);
@@ -404,6 +403,39 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
             }
         }
         return (total, balanced);
+    }
+
+    /*
+     * @notice This function verifies that the structure passed in parameters is valid
+     * @dev We check that the array lengths match, that the percentages add 100%,
+     *      no zero addresses, and no duplicates
+     */
+     // TODO: check for 0 percentage?
+    function _verifyStructure(
+        address[] memory tokens,
+        uint256[] memory percentages
+    ) internal pure returns (bool) {
+        require(
+            tokens.length == percentages.length,
+            "Portfolio._verifyAndSetStructure: Different array lengths"
+        );
+        uint256 total = 0;
+        for (uint256 i = 0; i < tokens.length; i++) {
+            require(
+                tokens[i] != address(0),
+                "Portfolio._verifyAndSetStructure: No zero address, please use WETH address"
+            );
+            require(
+                i == 0 ||
+                tokens[i] > tokens[i-1],
+                "Portfolio._verifyAndSetStructure: Duplicate token address or addresses out of order"
+            );
+            total = total.add(percentages[i]);
+        }
+        require(
+            total == DIVISOR,
+            "Portfolio._verifyAndSetStructure: Percentages do not add up to 100%"
+        );
     }
 
     /*
@@ -458,6 +490,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     function _approveTokens(address spender, uint256 amount, address[] memory tokens) internal {
         for (uint256 i = 0; i < tokens.length; i++) {
             IERC20(tokens[i]).approve(spender, amount);
+        }
+        address weth = IOracle(oracle()).weth();
+        if (_tokenPercentages[weth] == 0) {
+            //Approving is still needed as we need to transfer weth for rebalancing
+            IERC20(weth).approve(spender, amount);
         }
     }
 

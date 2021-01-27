@@ -2,14 +2,11 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./RevertDebug.sol";
-import "hardhat/console.sol";
 
 /// @title Multicall - Aggregate internal calls
 /// @author Kyle Dewhurst
 
 contract Multicall is RevertDebug {
-    using console for *;
-
     struct Call {
         address payable target;
         bytes callData;
@@ -38,9 +35,5 @@ contract Multicall is RevertDebug {
             }
             returnData[i] = ret;
         }
-    }
-
-    function getEthBalance(address addr) public view returns (uint256 balance) {
-        balance = addr.balance;
     }
 }

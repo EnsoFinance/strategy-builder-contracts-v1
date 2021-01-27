@@ -1,3 +1,3 @@
 module.exports = {
-  skipFiles: ['libraries/UniswapV2Library.sol']
+  skipFiles: ['controllers/UniswapFlashController','libraries/UniswapV2Library.sol','mocks','test']
 };

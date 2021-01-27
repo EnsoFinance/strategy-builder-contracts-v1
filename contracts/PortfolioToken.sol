@@ -114,6 +114,7 @@ contract PortfolioToken is IERC20, PortfolioStorage {
         // Set token
         _name = name_;
         _symbol = symbol_;
+        _decimals = 18;
     }
 
     /**

@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "./PortfolioProxyInitializer.sol";
+import "./PortfolioProxyAdminRegistry.sol";
 import "./interfaces/IPortfolioProxyFactory.sol";
 
 
@@ -11,12 +12,12 @@ import "./interfaces/IPortfolioProxyFactory.sol";
 // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
 contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     PortfolioProxyInitializer private initializer;
+    PortfolioProxyAdminRegistry private adminRegistry;
     address public override implementation;
     address public override whitelist;
     address public override oracle;
     address public override controller;
     uint256 public override version;
-    mapping(address => address) private admins;
 
     event Update(address newImplementation, uint256 version);
     event NewPortfolio(address portfolio, address manager, string name, string symbol, address[] tokens, uint256[] percentages, uint256 threshold, uint256 slippage, uint256 timelock); //solhint-disable-line
@@ -36,6 +37,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         controller = controller_;
         version = 1;
         initializer = new PortfolioProxyInitializer(address(this));
+        adminRegistry = new PortfolioProxyAdminRegistry(address(this));
         emit Update(implementation, version);
         emit NewOracle(oracle);
         emit NewWhitelist(whitelist);
@@ -43,7 +45,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     }
 
     modifier onlyAdmin(address proxy) {
-        require(admins[proxy] == msg.sender, "PortfolioProxyFactory (onlyAdmin): User not admin");
+        require(adminRegistry.admin(proxy) == msg.sender, "PortfolioProxyFactory (onlyAdmin): User not admin");
         _;
     }
 
@@ -121,14 +123,6 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     function updateController(address newController) external onlyOwner {
         controller = newController;
         emit NewController(newController);
-    }
-
-    /**
-     * @dev Changes the internal mapping of admin. The proxy's admin remains this address,
-     *      but the 'onlyAdmin' modifer will now check that msg.sender == 'newAdmin'
-     */
-    function changeAdmin(address proxy, address newAdmin) external onlyAdmin(proxy) {
-        admins[proxy] = newAdmin;
     }
 
     /**

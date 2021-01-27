@@ -11,50 +11,6 @@ library PortfolioLibrary {
     using SafeMath for uint256;
     uint256 private constant DIVISOR = 1000;
 
-    /*
-     * @notice This function verifies that the structure passed in parameters is valid
-     * @dev We check that the array lengths match, that the percentages add 100%,
-     *      no zero addresses, and no duplicates
-     */
-     // TODO: check for 0 percentage?
-    function verifyStructure(
-        address[] memory tokens,
-        uint256[] memory percentages
-    ) internal pure returns (bool) {
-        require(
-            tokens.length == percentages.length,
-            "Portfolio._verifyAndSetStructure: Different array lengths"
-        );
-        uint256 total = 0;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            require(
-                tokens[i] != address(0),
-                "Portfolio._verifyAndSetStructure: No zero address, please use WETH address"
-            );
-            require(
-                i == 0 ||
-                tokens[i] > tokens[i-1],
-                "Portfolio._verifyAndSetStructure: Duplicate token address or addresses out of order"
-            );
-            total = total.add(percentages[i]);
-        }
-        require(
-            total == DIVISOR,
-            "Portfolio._verifyAndSetStructure: Percentages do not add up to 100%"
-        );
-        /*
-        if (tokens.length != percentages.length) return false;
-        uint256 total = 0;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i] == address(0)) return false;
-            if (i != 0 && tokens[i] <= tokens[i-1]) return false;
-            total = total.add(percentages[i]);
-        }
-        if (total != DIVISOR) return false;
-        return true;
-        */
-    }
-
     function checkBalance(
         address portfolio,
         address[] memory tokens,

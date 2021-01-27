@@ -16,7 +16,7 @@ contract UniswapRouter is PortfolioRouter {
 
     address internal _factory;
 
-    constructor(address factory_, address weth_, address whitelist_) public PortfolioRouter(weth_, whitelist_) {
+    constructor(address factory_, address weth_) public PortfolioRouter(weth_) {
         _factory = factory_;
         _package = abi.encode(factory_);
     }
@@ -33,6 +33,12 @@ contract UniswapRouter is PortfolioRouter {
         return UniswapV2Library.getAmountsOut(_factory, amount, path)[1];
     }
 
+    /*
+     * WARNING: This function can be called by anyone! Never approve this contract
+     * to transfer your tokens. It should only ever be called by a contract which
+     * approves an exact token amount and immediately swaps the tokens OR is used
+     * in a delegate call where this contract NEVER gets approved to transfer tokens.
+    */
     function swap(
         uint256 amount,
         uint256 expected,

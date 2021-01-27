@@ -16,8 +16,6 @@ interface IPortfolioRouter {
 
     function weth() external view returns (address);
 
-    function whitelist() external view returns (address);
-
     function getPackage() external view returns (bytes memory);
 
     function spotPrice(uint256 amount, address tokenIn, address tokenOut)

@@ -2,22 +2,13 @@
 pragma solidity 0.6.12;
 
 import "../interfaces/IPortfolioRouter.sol";
-import "../interfaces/IWhitelist.sol";
-
 
 abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
     address public override weth;
-    address public override whitelist;
     bytes internal _package;
 
-    constructor(address weth_, address whitelist_) public {
+    constructor(address weth_) public {
         weth = weth_;
-        whitelist = whitelist_;
-    }
-
-    modifier onlyApproved() {
-        require(IWhitelist(whitelist).approved(msg.sender), "PortfolioRouter.onlyApproved: Sender not approved");
-        _;
     }
 
     function getPackage() external view override returns (bytes memory) {

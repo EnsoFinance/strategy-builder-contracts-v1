@@ -1,9 +1,10 @@
-pragma solidity >=0.6.12;
+pragma solidity 0.6.12;
+
 
 // Original: https://github.com/authereum/contracts/blob/master/contracts/account/BaseAccount.sol
 // Author: Authereum Labs, Inc.
 contract RevertDebug {
-        string constant public CALL_REVERT_PREFIX = "Multicall: ";
+    string constant public CALL_REVERT_PREFIX = "Multicall: ";
 
     /// @dev Get the revert message from a call
     /// @notice This is needed in order to get the human-readable revert message from a call
