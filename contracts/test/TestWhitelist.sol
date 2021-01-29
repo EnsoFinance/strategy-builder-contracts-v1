@@ -3,7 +3,6 @@ pragma solidity 0.6.12;
 
 import "../interfaces/IWhitelist.sol";
 
-
 contract TestWhitelist is IWhitelist {
     mapping(address => bool) internal _approvals;
 

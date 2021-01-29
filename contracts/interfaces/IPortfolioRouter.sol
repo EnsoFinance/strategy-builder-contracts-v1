@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-
 interface IPortfolioRouter {
     function swap(
         uint256 amount,
@@ -18,9 +17,15 @@ interface IPortfolioRouter {
 
     function getPackage() external view returns (bytes memory);
 
-    function spotPrice(uint256 amount, address tokenIn, address tokenOut)
-        external view returns (uint256);
+    function spotPrice(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) external view returns (uint256);
 
-    function swapPrice(uint256 amount, address tokenIn, address tokenOut)
-        external view returns (uint256);
+    function swapPrice(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) external view returns (uint256);
 }

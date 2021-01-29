@@ -4,7 +4,6 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./IPortfolioController.sol";
 
-
 interface IPortfolio is IERC20 {
     function deposit(
         address[] memory routers,
@@ -12,12 +11,13 @@ interface IPortfolio is IERC20 {
         IPortfolioController controller
     ) external payable;
 
-    function withdraw(uint256 amount, bytes calldata rebalanceData, IPortfolioController controller) external;
-
-    function restructure(
-        address[] memory tokens,
-        uint256[] memory percentages
+    function withdraw(
+        uint256 amount,
+        bytes calldata rebalanceData,
+        IPortfolioController controller
     ) external;
+
+    function restructure(address[] memory tokens, uint256[] memory percentages) external;
 
     function finalizeStructure(
         address[] memory tokens,
@@ -39,7 +39,7 @@ interface IPortfolio is IERC20 {
 
     function oracle() external view returns (address);
 
-    function social() external  view returns (bool);
+    function social() external view returns (bool);
 
     function rebalanceThreshold() external view returns (uint256);
 

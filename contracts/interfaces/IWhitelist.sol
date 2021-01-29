@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-
 interface IWhitelist {
     function approve(address account) external;
 

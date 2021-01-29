@@ -9,7 +9,6 @@ import "./PortfolioController.sol";
 import "../interfaces/IPortfolioRouter.sol";
 import "../libraries/UniswapV2Library.sol";
 
-
 contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
     using SafeMath for uint256;
 
@@ -18,16 +17,17 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
     address private factory;
     IPortfolioRouter private router;
 
-    constructor(address router_, address factory_, address weth_) public PortfolioController(weth_) {
+    constructor(
+        address router_,
+        address factory_,
+        address weth_
+    ) public PortfolioController(weth_) {
         factory = factory_;
         router = IPortfolioRouter(router_);
     }
 
-    function rebalance(
-        bytes calldata data
-    ) external override {
-        (uint256 total, uint256[] memory estimates) =
-            abi.decode(data, (uint256, uint256[])); //solhint-disable-line
+    function rebalance(bytes calldata data) external override {
+        (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[])); //solhint-disable-line
         // Flash swap to cover purchases, rebalance, and settle up
         // https://uniswap.org/docs/v2/core-concepts/flash-swaps/
         uint256 wethAmount = total.mul(FEE).div(DIVISOR);
@@ -35,10 +35,11 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
         // Get pair token
         uint256 index = IPortfolio(msg.sender).getToken(0) == weth ? 1 : 0;
         address pairToken = IPortfolio(msg.sender).getToken(index);
-        {// solhint-disable
-            uint256 expectedPairValue =
-                PortfolioLibrary.getExpectedTokenValue(wethAmount, msg.sender, pairToken);
-            uint256 rebalanceRange = PortfolioLibrary.getRange(expectedPairValue, IPortfolio(msg.sender).rebalanceThreshold());
+        {
+            // solhint-disable
+            uint256 expectedPairValue = PortfolioLibrary.getExpectedTokenValue(wethAmount, msg.sender, pairToken);
+            uint256 rebalanceRange =
+                PortfolioLibrary.getRange(expectedPairValue, IPortfolio(msg.sender).rebalanceThreshold());
             if (estimates[index] < expectedPairValue.add(rebalanceRange)) {
                 uint256 diff = expectedPairValue.sub(estimates[index]).mul(FEE).div(DIVISOR);
                 pairAmount = router.spotPrice(diff, weth, pairToken);
@@ -48,25 +49,35 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
         // Do flash swap
         _pairSwap(pairAmount, wethAmount, pairToken, weth, address(this), abi.encode(msg.sender, estimates));
         // Hate this, but need to sort out extra weth if there is any
-        if(IPortfolio(msg.sender).getTokenPercentage(weth) == 0 && IERC20(weth).balanceOf(address(msg.sender)) > 0) {
-            router.swap(IERC20(weth).balanceOf(msg.sender), 0, weth, pairToken, msg.sender, msg.sender, new bytes(0), new bytes(0));
+        if (IPortfolio(msg.sender).getTokenPercentage(weth) == 0 && IERC20(weth).balanceOf(address(msg.sender)) > 0) {
+            router.swap(
+                IERC20(weth).balanceOf(msg.sender),
+                0,
+                weth,
+                pairToken,
+                msg.sender,
+                msg.sender,
+                new bytes(0),
+                new bytes(0)
+            );
         }
     }
 
     function uniswapV2Call(
         address sender,
-        uint amount0,
-        uint amount1,
+        uint256 amount0,
+        uint256 amount1,
         bytes calldata data
-    ) external override { // solhint-disable-line
+    ) external override {
+        // solhint-disable-line
         assert(sender == address(this));
-        (address portfolio, ) =
-            abi.decode(data, (address, uint256[])); // solhint-disable-line
+        (address portfolio, ) = abi.decode(data, (address, uint256[])); // solhint-disable-line
         uint256 repay;
         uint256 total;
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
-        {// solhint-disable-line
+        {
+            // solhint-disable-line
             assert(msg.sender == UniswapV2Library.pairFor(factory, token0, token1));
             if (token0 == address(weth)) {
                 if (amount1 > 0) {
@@ -87,38 +98,22 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
             repay = repay.mul(DIVISOR).div(FEE);
         }
 
-        {// solhint-disable-line
-            ( , uint256[] memory estimates) =
-                abi.decode(data, (address, uint256[])); // solhint-disable-line
+        {
+            // solhint-disable-line
+            (, uint256[] memory estimates) = abi.decode(data, (address, uint256[])); // solhint-disable-line
             address[] memory tokens = IPortfolio(portfolio).getPortfolioTokens();
             IERC20(weth).approve(address(router), uint256(-1));
             for (uint256 i = 0; i < tokens.length; i++) {
                 if (tokens[i] != token0 && tokens[i] != token1) {
-                    _rebalanceToken(
-                        portfolio,
-                        tokens[i],
-                        estimates[i],
-                        total
-                    );
+                    _rebalanceToken(portfolio, tokens[i], estimates[i], total);
                 } else {
-                    repay = repay.sub(_getDiffValue(
-                        portfolio,
-                        tokens[i],
-                        estimates[i],
-                        total
-                    ));
+                    repay = repay.sub(_getDiffValue(portfolio, tokens[i], estimates[i], total));
                 }
             }
         }
-        {// solhint-disable-line
-            repay = repay.sub(_settleFlashPair(
-                portfolio,
-                msg.sender,
-                token0,
-                token1,
-                total,
-                repay
-            ));
+        {
+            // solhint-disable-line
+            repay = repay.sub(_settleFlashPair(portfolio, msg.sender, token0, token1, total, repay));
             IERC20 wethToken = IERC20(weth);
             assert(wethToken.transfer(msg.sender, repay));
             uint256 amountRemaining = wethToken.balanceOf(address(this));
@@ -128,12 +123,17 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
         }
     }
 
-    function _pairSwap(uint256 tokenAOut, uint256 tokenBOut, address tokenA, address tokenB, address to, bytes memory data) internal virtual {
-        (address token0,) = UniswapV2Library.sortTokens(tokenA, tokenB);
-        (uint amount0Out, uint amount1Out) = tokenA == token0 ? (tokenAOut, tokenBOut) : (tokenBOut, tokenAOut);
-        IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB)).swap(
-            amount0Out, amount1Out, to, data
-        );
+    function _pairSwap(
+        uint256 tokenAOut,
+        uint256 tokenBOut,
+        address tokenA,
+        address tokenB,
+        address to,
+        bytes memory data
+    ) internal virtual {
+        (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
+        (uint256 amount0Out, uint256 amount1Out) = tokenA == token0 ? (tokenAOut, tokenBOut) : (tokenBOut, tokenAOut);
+        IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB)).swap(amount0Out, amount1Out, to, data);
     }
 
     function _rebalanceToken(
@@ -143,7 +143,8 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
         uint256 total
     ) internal {
         uint256 expectedValue = PortfolioLibrary.getExpectedTokenValue(total, portfolioAddress, tokenAddress);
-        uint256 rebalanceRange = PortfolioLibrary.getRange(expectedValue, IPortfolio(portfolioAddress).getTokenPercentage(tokenAddress));
+        uint256 rebalanceRange =
+            PortfolioLibrary.getRange(expectedValue, IPortfolio(portfolioAddress).getTokenPercentage(tokenAddress));
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             /*
             uint256 diff = router.spotPrice(
@@ -152,18 +153,24 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
                 tokenAddress
             ).mul(DIVISOR).div(FEE);
             */
-            uint256 diff = router.spotPrice(
-                estimatedValue.sub(expectedValue),
-                weth,
-                tokenAddress
-            ).mul(DIVISOR).div(FEE);
+            uint256 diff =
+                router.spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress).mul(DIVISOR).div(FEE);
             IERC20(tokenAddress).transferFrom(portfolioAddress, address(this), diff);
             IERC20(tokenAddress).approve(address(router), diff);
             router.swap(diff, 0, tokenAddress, weth, address(this), address(this), new bytes(0), new bytes(0));
         }
         if (estimatedValue < expectedValue.sub(rebalanceRange)) {
             uint256 diff = expectedValue.sub(estimatedValue);
-            router.swap(diff.mul(FEE).div(DIVISOR), 0, weth, tokenAddress, address(this), portfolioAddress, new bytes(0), new bytes(0));
+            router.swap(
+                diff.mul(FEE).div(DIVISOR),
+                0,
+                weth,
+                tokenAddress,
+                address(this),
+                portfolioAddress,
+                new bytes(0),
+                new bytes(0)
+            );
         }
     }
 
@@ -219,7 +226,7 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
                 //If we don't have enough weth to pay loan, we take more from the flash pair token
                 uint256 repayDiff = repay.sub(excessWeth);
                 if (repayDiff > 0) {
-                  diff = diff.add(router.spotPrice(repayDiff, weth, address(pairToken)));
+                    diff = diff.add(router.spotPrice(repayDiff, weth, address(pairToken)));
                 }
                 pairToken.transferFrom(portfolioAddress, uniswapAddress, diff);
                 return repayDiff;
@@ -236,7 +243,7 @@ contract UniswapFlashController is PortfolioController, IUniswapV2Callee {
         address tokenAddress,
         uint256 estimatedValue,
         uint256 total
-    ) internal view returns (uint256){
+    ) internal view returns (uint256) {
         uint256 expectedValue = PortfolioLibrary.getExpectedTokenValue(total, portfolioAddress, tokenAddress);
         if (estimatedValue > expectedValue) {
             return estimatedValue.sub(expectedValue);

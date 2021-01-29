@@ -4,9 +4,8 @@ pragma experimental ABIEncoderV2;
 
 import "./PortfolioController.sol";
 import "../interfaces/IPortfolioRouter.sol";
-import {Multicall} from "../helpers/Multicall.sol";
+import { Multicall } from "../helpers/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 
 contract GenericController is PortfolioController, Multicall {
     address public target;
@@ -15,7 +14,7 @@ contract GenericController is PortfolioController, Multicall {
 
     // Receive call from portfolio
     function rebalance(bytes memory data) external override {
-        (Call[] memory callStructs) = abi.decode(data, (Call[])); //solhint-disable-line
+        Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
         aggregate(callStructs);
         // TODO: validate multicall made profit/returnData
     }

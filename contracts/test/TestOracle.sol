@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
 import "../libraries/UniswapV2Library.sol";
 
-
 contract TestOracle is IOracle {
     using SafeMath for uint256;
 
@@ -49,7 +48,6 @@ contract TestOracle is IOracle {
                 } else {
                     estimate = 0;
                 }
-
             }
             total = total.add(estimate);
             estimates[i] = estimate;
@@ -64,6 +62,5 @@ contract TestOracle is IOracle {
         } else {
             return 0;
         }
-
     }
 }

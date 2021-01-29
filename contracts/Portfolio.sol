@@ -10,7 +10,6 @@ import "./interfaces/IWhitelist.sol";
 import "./PortfolioToken.sol";
 import "./PortfolioOwnable.sol";
 
-
 contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializable {
     using SafeMath for uint256;
     uint256 private constant DIVISOR = 1000;
@@ -18,12 +17,6 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     event RebalanceCalled(uint256 total, address caller);
     event NewStructure(address[] tokens, uint256[] percentages);
     event FundsReceived(uint256 amount, address account);
-
-    modifier onlyApproved(address controller) {
-        require(IWhitelist(IPortfolioProxyFactory(_factory).whitelist()).approved(controller), "Portfolio.onlyApproved: Controller is not approved");
-        require(!_locked, "Portfolio.onlyApproved: Function locked");
-        _;
-    }
 
     /*
      * @notice This contract is proxiable. There is no constructor, instead we use the initialize function
@@ -61,7 +54,10 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
             _setStructure(tokens_, percentages_);
         }
         if (msg.value > 0) {
-            IPortfolioController(IPortfolioProxyFactory(_factory).controller()).buyTokens{value: msg.value}(_tokens, routers_); // solhint-disable-line
+            IPortfolioController(IPortfolioProxyFactory(_factory).controller()).buyTokens{ value: msg.value }(
+                _tokens,
+                routers_
+            ); // solhint-disable-line
             _mint(owner_, msg.value);
         }
         return true;
@@ -73,21 +69,16 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params data Calldata that gets passed the the controller's rebalance function
      * @params controller The address of the controller that will be doing the handling the trading logic
      */
-    function rebalance(
-        bytes memory data,
-        IPortfolioController controller
-    ) external override onlyApproved(address(controller)) {
-        require( // Should we include this?
-            _social || msg.sender == _owner,
-            "Portfolio.rebalance: Rebalance only open on social portfolios"
-        );
+    function rebalance(bytes memory data, IPortfolioController controller) external override {
+        _setLock();
+        _onlyApproved(address(controller));
+        _socialOrOwner();
         (uint256 totalBefore, bool balancedBefore) = _verifyBalance();
         require(!balancedBefore, "Portfolio.rebalance: No point rebalancing a balanced portfolio");
-        _locked = true;
         _approveTokens(address(controller), uint256(-1), _tokens);
         _rebalance(totalBefore, data, controller);
         _approveTokens(address(controller), uint256(0), _tokens);
-        _locked = false;
+        _removeLock();
     }
 
     /*
@@ -100,23 +91,16 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         address[] memory routers,
         bytes memory rebalanceData,
         IPortfolioController controller
-    ) external payable override onlyApproved(address(controller)) {
-        require(
-            _social || msg.sender == owner(),
-            "Portfolio.deposit: Only owner may deposit on non-social profiles"
-        );
-        require(
-            msg.value > 0,
-            "Portfolio.deposit: No ether sent with transaction"
-        );
+    ) external payable override {
+        _setLock();
+        _onlyApproved(address(controller));
+        _socialOrOwner();
+        require(msg.value > 0, "deposit: No ether sent with transaction");
         require(
             _tokens.length == routers.length,
-            "Portfolio.deposit: Need to pass a router address for each token in the portfolio"
+            "deposit: Need to pass a router address for each token in the portfolio"
         );
-        // TODO: modifier
-        _locked = true;
         (uint256 totalBefore, bool balancedBefore) = _verifyBalance();
-        // Not sure about passing balance data along with tokens and routers arrays
         if (!balancedBefore) {
             // Could a router not need any calldata for rebalance?
             // require(rebalanceData.length > 0, "Portfolio.deposit: Rebalance data not passed");
@@ -124,8 +108,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
             totalBefore = _rebalance(totalBefore, rebalanceData, controller);
             _approveTokens(address(controller), uint256(0), _tokens);
         }
-        // TODO: can this be done during the rebalance to maximize cases where a rebalance could be accomplished with a deposit?
-        controller.buyTokens{value: msg.value}(_tokens, routers); // solhint-disable-line
+        controller.buyTokens{ value: msg.value }(_tokens, routers); // solhint-disable-line
 
         // Recheck total
         (uint256 totalAfter, ) = IOracle(oracle()).estimateTotal(address(this), _tokens);
@@ -133,7 +116,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         uint256 relativeTokens = _totalSupply > 0 ? _totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
         _mint(msg.sender, relativeTokens);
-        _locked = false;
+        _removeLock();
     }
 
     /*
@@ -146,9 +129,10 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         uint256 amount,
         bytes memory rebalanceData,
         IPortfolioController controller
-    ) external override onlyApproved(address(controller)) {
+    ) external override {
+        _setLock();
+        _onlyApproved(address(controller));
         require(amount > 0, "Error (withdraw): No amount set");
-        _locked = true;
 
         if (rebalanceData.length > 0) {
             (uint256 total, bool balanced) = _verifyBalance();
@@ -164,11 +148,10 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
             // Should not be possible to have address(0) since the Portfolio will check for it
             IERC20 token = IERC20(_tokens[i]);
             uint256 currentBalance = token.balanceOf(address(this));
-            uint256 tokenAmount =
-                currentBalance.mul(percentage).div(10**18);
+            uint256 tokenAmount = currentBalance.mul(percentage).div(10**18);
             token.transfer(msg.sender, tokenAmount);
         }
-        _locked = false;
+        _removeLock();
     }
 
     /*
@@ -178,11 +161,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params tokens An array of token addresses that will comprise the portfolio
      * @params percentages An array of percentages for each token in the above array. Must total 100%
      */
-    function restructure(
-        address[] memory tokens,
-        uint256[] memory percentages
-    ) external override onlyOwner {
-        // Verify new structure
+    function restructure(address[] memory tokens, uint256[] memory percentages) external override onlyOwner {
         _verifyStructure(tokens, percentages);
         _restructureProof = keccak256(abi.encodePacked(tokens, percentages));
         _restructureTimestamp = block.timestamp;
@@ -205,6 +184,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         address[] memory buyRouters,
         IPortfolioController controller
     ) external override {
+        _setLock();
         require(
             !_social || block.timestamp > _restructureTimestamp.add(_timelock),
             "Portfolio.finalizeStructure: Can only restructure after enough time has passed"
@@ -216,6 +196,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _finalizeStructure(tokens, percentages, sellRouters, buyRouters, controller);
         delete _restructureProof;
         delete _restructureTimestamp;
+        _removeLock();
     }
 
     /*
@@ -233,7 +214,9 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params threshold The value of the new rebalance threshold
      */
     function updateRebalanceThreshold(uint256 threshold) external override onlyOwner {
+        _setLock();
         _updateRebalanceThreshold(threshold);
+        _removeLock();
     }
 
     /*
@@ -244,7 +227,9 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params slippage The value of the new slippage
      */
     function updateSlippage(uint256 slippage) external override onlyOwner {
+        _setLock();
         _updateSlippage(slippage);
+        _removeLock();
     }
 
     /*
@@ -255,42 +240,44 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params timelock The value of the new timelock
      */
     function updateTimelock(uint256 timelock) external override onlyOwner {
+        _setLock();
         _updateTimelock(timelock);
+        _removeLock();
     }
 
     /*
      * @notice Social bool getter
      * @dev This value determines whether other account may deposit into this portfolio
      */
-    function social() external override view returns (bool) {
+    function social() external view override returns (bool) {
         return _social;
     }
 
     /*
      * @notice Rebalance threshold getter
      */
-    function rebalanceThreshold() external override view returns (uint256) {
+    function rebalanceThreshold() external view override returns (uint256) {
         return _rebalanceThreshold;
     }
 
     /*
      * @notice Slippage getter
      */
-    function slippage() external override view returns (uint256) {
+    function slippage() external view override returns (uint256) {
         return _slippage;
     }
 
     /*
      * @notice Timelock getter
      */
-    function timelock() external override view returns (uint256) {
+    function timelock() external view override returns (uint256) {
         return _timelock;
     }
 
     /*
      * @notice Tokens getter
      */
-    function getPortfolioTokens() external override view returns (address[] memory) {
+    function getPortfolioTokens() external view override returns (address[] memory) {
         return _tokens;
     }
 
@@ -298,7 +285,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @notice Get token by index
      * @params index The index of the token in the _tokens array
      */
-    function getToken(uint256 index) external override view returns (address) {
+    function getToken(uint256 index) external view override returns (address) {
         return _tokens[index];
     }
 
@@ -306,14 +293,14 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @notice Get token percentage using token address
      * @params tokenAddress The address of the token
      */
-    function getTokenPercentage(address tokenAddress) external override view returns (uint256) {
+    function getTokenPercentage(address tokenAddress) external view override returns (uint256) {
         return _tokenPercentages[tokenAddress];
     }
 
     /*
      * @notice Oracle address getter
      */
-    function oracle() public override view returns (address) {
+    function oracle() public view override returns (address) {
         return IPortfolioProxyFactory(_factory).oracle();
     }
 
@@ -349,10 +336,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params threshold_ The value of the new rebalance threshold
      */
     function _updateRebalanceThreshold(uint256 threshold_) internal {
-        require(
-            threshold_ < DIVISOR,
-            "Portfolio.updateRebalanceThreshold: Threshold cannot be 100% or greater"
-        );
+        require(threshold_ < DIVISOR, "Portfolio.updateRebalanceThreshold: Threshold cannot be 100% or greater");
         _rebalanceThreshold = threshold_;
     }
 
@@ -364,10 +348,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params slippage_ The value of the new slippage
      */
     function _updateSlippage(uint256 slippage_) internal {
-        require(
-            slippage_ <= DIVISOR,
-            "Portfolio.updateSlippage: Slippage cannot be greater than 100%"
-        );
+        require(slippage_ <= DIVISOR, "Portfolio.updateSlippage: Slippage cannot be greater than 100%");
         _slippage = slippage_;
     }
 
@@ -410,15 +391,8 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @dev We check that the array lengths match, that the percentages add 100%,
      *      no zero addresses, and no duplicates
      */
-     // TODO: check for 0 percentage?
-    function _verifyStructure(
-        address[] memory tokens,
-        uint256[] memory percentages
-    ) internal pure returns (bool) {
-        require(
-            tokens.length == percentages.length,
-            "Portfolio._verifyAndSetStructure: Different array lengths"
-        );
+    function _verifyStructure(address[] memory tokens, uint256[] memory percentages) internal pure returns (bool) {
+        require(tokens.length == percentages.length, "Portfolio._verifyAndSetStructure: Different array lengths");
         uint256 total = 0;
         for (uint256 i = 0; i < tokens.length; i++) {
             require(
@@ -426,16 +400,13 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
                 "Portfolio._verifyAndSetStructure: No zero address, please use WETH address"
             );
             require(
-                i == 0 ||
-                tokens[i] > tokens[i-1],
+                i == 0 || tokens[i] > tokens[i - 1],
                 "Portfolio._verifyAndSetStructure: Duplicate token address or addresses out of order"
             );
+            require(percentages[i] > 0, "Portfolio._verifyAndSetStructure: Provided 0 for token percentage");
             total = total.add(percentages[i]);
         }
-        require(
-            total == DIVISOR,
-            "Portfolio._verifyAndSetStructure: Percentages do not add up to 100%"
-        );
+        require(total == DIVISOR, "Portfolio._verifyAndSetStructure: Percentages do not add up to 100%");
     }
 
     /*
@@ -477,8 +448,8 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _approveTokens(address(controller), uint256(0), _tokens);
         // Set new structure
         _setStructure(tokens, percentages);
-        // Since tokens have already been minted we don't do router.deposit, instead use router.convert
-        controller.buyTokens{value: address(this).balance}(_tokens, buyRouters); //solhint-disable-line
+        // Since tokens have already been minted we don"t do router.deposit, instead use router.convert
+        controller.buyTokens{ value: address(this).balance }(_tokens, buyRouters); //solhint-disable-line
     }
 
     /*
@@ -487,7 +458,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
      * @params amount The amount the each token will be approved for
      * @params tokens An array of tokens that will be approved
      */
-    function _approveTokens(address spender, uint256 amount, address[] memory tokens) internal {
+    function _approveTokens(
+        address spender,
+        uint256 amount,
+        address[] memory tokens
+    ) internal {
         for (uint256 i = 0; i < tokens.length; i++) {
             IERC20(tokens[i]).approve(spender, amount);
         }
@@ -498,7 +473,40 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         }
     }
 
-    /*
+    /**
+     * @notice Checks that controller is whitelisted
+     */
+
+    function _onlyApproved(address controller) internal {
+        require(
+            IWhitelist(IPortfolioProxyFactory(_factory).whitelist()).approved(controller),
+            "Portfolio: Controller not approved"
+        );
+    }
+
+    /**
+     * @notice Checks if portfolio is social or else require msg.sender is owner
+     */
+    function _socialOrOwner() internal {
+        require(_social || msg.sender == _owner, "Portfolio: Not owner");
+    }
+
+    /**
+     * @notice Sets Reentrancy guard
+     */
+    function _setLock() internal {
+        require(!_locked, "No Reentrancy");
+        _locked = true;
+    }
+
+    /**
+     * @notice Removes reentrancy guard.
+     */
+    function _removeLock() internal {
+        _locked = false;
+    }
+
+    /**
      * @notice Receive ether sent to this address
      * @dev We must allow this contract to receive funds for when tokens get sold
      */

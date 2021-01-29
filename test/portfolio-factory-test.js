@@ -74,7 +74,7 @@ describe('PortfolioProxyFactory', function() {
 
   it('Should update whitelist', async function() {
     const oldBalance = await portfolio.balanceOf(accounts[1].address)
-    await expect(portfolio.connect(accounts[1]).deposit(portfolioRouters, [], newController.address, {value: ethers.BigNumber.from('10000000000000000')})).to.be.revertedWith('Controller is not approved')
+    await expect(portfolio.connect(accounts[1]).deposit(portfolioRouters, [], newController.address, {value: ethers.BigNumber.from('10000000000000000')})).to.be.revertedWith('Controller not approved')
     await portfolioFactory.connect(accounts[0]).updateWhitelist(newWhitelist.address)
     expect(await portfolioFactory.whitelist()).to.equal(newWhitelist.address)
     await portfolio.connect(accounts[1]).deposit(portfolioRouters, [], newController.address, {value: ethers.BigNumber.from('10000000000000000')})
@@ -87,7 +87,7 @@ describe('PortfolioProxyFactory', function() {
   })
 
   it('Should update implementation', async function() {
-    portfolioFactory.connect(accounts[0]).updateController(newController.address)
+    await portfolioFactory.connect(accounts[0]).updateController(newController.address)
     expect(await portfolioFactory.controller()).to.equal(newController.address)
   })
 
@@ -96,7 +96,7 @@ describe('PortfolioProxyFactory', function() {
   })
 
   it('Should update implementation', async function() {
-    portfolioFactory.connect(accounts[0]).updateImplementation(newImplementationAddress)
+    await portfolioFactory.connect(accounts[0]).updateImplementation(newImplementationAddress)
     expect(await portfolioFactory.implementation()).to.equal(newImplementationAddress)
     expect(ethers.BigNumber.from(await portfolioFactory.version()).eq(2)).to.equal(true)
     expect(await portfolioFactory.getProxyImplementation(portfolio.address)).to.not.equal(newImplementationAddress)

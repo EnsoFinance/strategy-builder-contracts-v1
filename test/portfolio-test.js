@@ -129,7 +129,7 @@ describe('Portfolio', function() {
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
     await expect(portfolio.connect(accounts[1]).rebalance(data, AddressZero))
-      .to.be.revertedWith('Controller is not approved')
+      .to.be.revertedWith('Controller not approved')
   })
 
   it('Should rebalance portfolio', async function() {
@@ -148,12 +148,12 @@ describe('Portfolio', function() {
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
     await expect(portfolio.connect(accounts[2]).rebalance(data, controller.address))
-      .to.be.revertedWith('Rebalance only open on social portfolios')
+      .to.be.revertedWith('Not owner')
   })
 
   it('Should fail to deposit: not owner', async function() {
     await expect(portfolio.connect(accounts[0]).deposit(portfolioRouters, [], controller.address, { value: ethers.BigNumber.from('10000000000000000')}))
-      .to.be.revertedWith('Only owner may deposit on non-social profiles')
+      .to.be.revertedWith('Not owner')
   })
 
   it('Should fail to deposit: no funds deposited', async function() {

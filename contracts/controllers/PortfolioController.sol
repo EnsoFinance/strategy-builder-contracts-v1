@@ -9,8 +9,9 @@ import "../interfaces/IPortfolioRouter.sol";
 import "../libraries/PortfolioLibrary.sol";
 import "hardhat/console.sol";
 
-
-abstract contract PortfolioController is IPortfolioController { //solhint-disable-line
+abstract contract PortfolioController is
+    IPortfolioController //solhint-disable-line
+{
     using SafeMath for uint256;
 
     address public override weth;
@@ -55,7 +56,7 @@ abstract contract PortfolioController is IPortfolioController { //solhint-disabl
     }
     */
     // Abstract external functions to be defined by inheritor
-    function rebalance(bytes calldata data) external override virtual;
+    function rebalance(bytes calldata data) external virtual override;
 
     function sellTokens(address[] memory tokens, address[] memory routers) external override {
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -76,7 +77,8 @@ abstract contract PortfolioController is IPortfolioController { //solhint-disabl
                         address(0),
                         msg.sender,
                         msg.sender,
-                        new bytes(0)),
+                        new bytes(0)
+                    ),
                     "PortfolioController.sellTokens: Swap failed"
                 );
 
@@ -100,18 +102,18 @@ abstract contract PortfolioController is IPortfolioController { //solhint-disabl
     }
 
     function buyTokens(address[] memory tokens, address[] memory routers) external payable override {
-        require(
-            tokens.length > 0,
-            "PortfolioController.convert: Tokens not yet set"
-        );
+        require(tokens.length > 0, "PortfolioController.convert: Tokens not yet set");
         require(routers.length == tokens.length, "PortfolioController.convert: Routers/tokens mismatch");
         console.log("Balance before: ", address(this).balance);
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenAddress = tokens[i];
-            uint256 amount = i == tokens.length - 1 ? address(this).balance : PortfolioLibrary.getExpectedTokenValue(msg.value, msg.sender, tokenAddress); // solhint-disable-line
+            uint256 amount =
+                i == tokens.length - 1
+                    ? address(this).balance
+                    : PortfolioLibrary.getExpectedTokenValue(msg.value, msg.sender, tokenAddress); // solhint-disable-line
             if (tokenAddress == weth) {
                 // Wrap ETH to WETH
-                IWETH(weth).deposit{value: amount}(); // solhint-disable-line
+                IWETH(weth).deposit{ value: amount }(); // solhint-disable-line
                 // Transfer weth back to sender
                 IERC20(weth).transfer(msg.sender, amount);
             } else {
@@ -131,7 +133,7 @@ abstract contract PortfolioController is IPortfolioController { //solhint-disabl
                 );
                 */
 
-                IPortfolioRouter(routers[i]).swap{value: amount}( // solhint-disable-line
+                IPortfolioRouter(routers[i]).swap{ value: amount }( // solhint-disable-line
                     amount,
                     0,
                     address(0),
@@ -141,7 +143,6 @@ abstract contract PortfolioController is IPortfolioController { //solhint-disabl
                     new bytes(0),
                     new bytes(0)
                 );
-
             }
         }
         console.log("Balance after: ", address(this).balance);
@@ -159,17 +160,18 @@ abstract contract PortfolioController is IPortfolioController { //solhint-disabl
         bytes memory data
     ) internal returns (bool success) {
         bytes memory package = IPortfolioRouter(router).getPackage();
-        bytes memory swapData = abi.encodeWithSelector(
-            bytes4(keccak256("swap(uint256,uint256,address,address,address,address,bytes,bytes)")), // solhint-disable-line
-            amount,
-            expected,
-            tokenIn,
-            tokenOut,
-            from,
-            to,
-            data,
-            package
-        );
+        bytes memory swapData =
+            abi.encodeWithSelector(
+                bytes4(keccak256("swap(uint256,uint256,address,address,address,address,bytes,bytes)")), // solhint-disable-line
+                amount,
+                expected,
+                tokenIn,
+                tokenOut,
+                from,
+                to,
+                data,
+                package
+            );
         uint256 txGas = gasleft();
         assembly {
             success := delegatecall(txGas, router, add(swapData, 0x20), mload(swapData), 0, 0)

@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IPortfolio.sol";
 import "../interfaces/IOracle.sol";
 
-
 library PortfolioLibrary {
     using SafeMath for uint256;
     uint256 private constant DIVISOR = 1000;
@@ -35,10 +34,7 @@ library PortfolioLibrary {
         return balanced;
     }
 
-    function imbalanceMagnitude(
-        address portfolio,
-        address[] memory tokens
-    ) internal view returns (uint256) {
+    function imbalanceMagnitude(address portfolio, address[] memory tokens) internal view returns (uint256) {
         address oracle = IPortfolio(portfolio).oracle();
         (uint256 total, uint256[] memory estimates) = IOracle(oracle).estimateTotal(portfolio, tokens);
         uint256 magnitude = 0;
@@ -56,21 +52,14 @@ library PortfolioLibrary {
         return magnitude;
     }
 
-    function getTokenValue(address portfolio, address token)
-        internal
-        view
-        returns (uint256)
-    {
+    function getTokenValue(address portfolio, address token) internal view returns (uint256) {
         IOracle oracle = IOracle(IPortfolio(portfolio).oracle());
         if (token == address(0)) {
             return address(this).balance;
         } else if (token == oracle.weth()) {
             return IERC20(token).balanceOf(portfolio);
         } else {
-            return oracle.consult(
-                IERC20(token).balanceOf(portfolio),
-                token
-            );
+            return oracle.consult(IERC20(token).balanceOf(portfolio), token);
         }
     }
 
@@ -79,9 +68,7 @@ library PortfolioLibrary {
         address portfolio,
         address token
     ) internal view returns (uint256) {
-        return total
-            .mul(IPortfolio(portfolio).getTokenPercentage(token))
-            .div(DIVISOR);
+        return total.mul(IPortfolio(portfolio).getTokenPercentage(token)).div(DIVISOR);
     }
 
     function getRange(uint256 expectedValue, uint256 threshold) internal pure returns (uint256) {

@@ -5,7 +5,6 @@ import "../interfaces/IOracle.sol";
 import "../interfaces/IPortfolio.sol";
 import "../libraries/PortfolioLibrary.sol";
 
-
 contract LibraryWrapper {
     IOracle public oracle;
     IPortfolio public portfolio;
@@ -16,16 +15,17 @@ contract LibraryWrapper {
     }
 
     function isBalanced() external view returns (bool) {
-        return PortfolioLibrary.checkBalance(
-            address(portfolio), portfolio.getPortfolioTokens(), portfolio.rebalanceThreshold());
+        return
+            PortfolioLibrary.checkBalance(
+                address(portfolio),
+                portfolio.getPortfolioTokens(),
+                portfolio.rebalanceThreshold()
+            );
     }
 
     function isRebalanceNeeded(uint256 alertThreshold) external view returns (bool) {
-        bool balanced = PortfolioLibrary.checkBalance(
-            address(portfolio),
-            portfolio.getPortfolioTokens(),
-            alertThreshold
-        );
+        bool balanced =
+            PortfolioLibrary.checkBalance(address(portfolio), portfolio.getPortfolioTokens(), alertThreshold);
         return !balanced;
     }
 
@@ -38,18 +38,11 @@ contract LibraryWrapper {
         return total;
     }
 
-    function getTokenValue(address token)
-        external
-        view
-        returns (uint256)
-    {
+    function getTokenValue(address token) external view returns (uint256) {
         return PortfolioLibrary.getTokenValue(address(portfolio), token);
     }
 
-    function getExpectedTokenValue(
-        uint256 total,
-        address token
-    ) external view returns (uint256) {
+    function getExpectedTokenValue(uint256 total, address token) external view returns (uint256) {
         return PortfolioLibrary.getExpectedTokenValue(total, address(portfolio), token);
     }
 }
