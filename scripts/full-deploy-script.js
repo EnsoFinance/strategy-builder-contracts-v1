@@ -42,8 +42,7 @@ async function main() {
   const UniswapRouter = await hre.ethers.getContractFactory('UniswapRouter')
   const uniswapRouter = await UniswapRouter.deploy(
     deployedContracts[process.env.HARDHAT_NETWORK].uniswapFactory,
-    deployedContracts[process.env.HARDHAT_NETWORK].weth,
-    whitelist.address
+    deployedContracts[process.env.HARDHAT_NETWORK].weth
   )
   await uniswapRouter.deployed()
 
