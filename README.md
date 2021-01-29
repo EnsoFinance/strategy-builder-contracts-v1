@@ -8,7 +8,7 @@ npm install
 
 ## Compile
 ```
-npm run compile
+npm run build
 ```
 
 ## Test
