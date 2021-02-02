@@ -8,29 +8,36 @@ const { constants, Contract, getContractFactory } = ethers
 const { WeiPerEther } = constants
 
 module.exports = {
-  deployUniswap: async (owner, numTokens) => {
-    const tokens = []
+  deployUniswap: async (owner, tokens) => {
     const uniswapFactory = await deployContract(owner, UniswapV2Factory, [owner.address])
     console.log('Uniswap factory: ', uniswapFactory.address)
+    for(let i = 0; i < tokens.length; i++) {
+      if (i !== 0) { //tokens[0] is used as the trading pair (WETH)
+        await uniswapFactory.createPair(tokens[0].address, tokens[i].address)
+        const pairAddress = await uniswapFactory.getPair(tokens[0].address, tokens[i].address)
+        const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider)
+        // Add liquidity
+        await tokens[0].transfer(pairAddress, WeiPerEther.mul(100))
+        await tokens[i].transfer(pairAddress, WeiPerEther.mul(100))
+        await pair.connect(owner).mint(owner.address)
+      }
+    }
+    return uniswapFactory
+  },
+  deployTokens: async (owner, numTokens, value) => {
+    const tokens = []
     for(let i = 0; i < numTokens; i++) {
       if (i === 0) {
         const token = await deployContract(owner, WETH9)
-        token.deposit({ value: WeiPerEther.mul(100*(numTokens-1))})
+        token.deposit({ value: value})
         tokens.push(token)
         console.log("Weth: ", token.address)
       } else {
         const token = await deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
         tokens.push(token)
-        await uniswapFactory.createPair(tokens[0].address, token.address)
-        const pairAddress = await uniswapFactory.getPair(tokens[0].address, token.address)
-        const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), provider)
-        // Add liquidity
-        await tokens[0].transfer(pairAddress, WeiPerEther.mul(100))
-        await token.transfer(pairAddress, WeiPerEther.mul(100))
-        await pair.connect(owner).mint(owner.address)
       }
     }
-    return [uniswapFactory, tokens]
+    return tokens
   },
   deployUniswapRouter: async (owner, uniswapFactory, weth) => {
     const UniswapRouter = await getContractFactory('UniswapRouter')
@@ -39,6 +46,7 @@ module.exports = {
       weth.address
     )
     await router.deployed()
+    console.log('Uniswap router: ', router.address)
     return router
   },
   deployPlatform: async (owner, controller, uniswapFactory, weth) => {

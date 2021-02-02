@@ -320,7 +320,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         controller.rebalance(data);
         // Recheck total
         (uint256 totalAfter, bool balancedAfter) = _verifyBalance();
-        require(balancedAfter, "Portfolio.rebalance: You had one job and you fucked it up"); //Too judgemental?
+        require(balancedAfter, "Portfolio.rebalance: Portfolio not balanced");
         require(
             totalAfter >= totalBefore.mul(_slippage).div(DIVISOR),
             "Portfolio.rebalance: Total value slipped too much!"
@@ -476,8 +476,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     /**
      * @notice Checks that controller is whitelisted
      */
-
-    function _onlyApproved(address controller) internal {
+    function _onlyApproved(address controller) internal view {
         require(
             IWhitelist(IPortfolioProxyFactory(_factory).whitelist()).approved(controller),
             "Portfolio: Controller not approved"
@@ -487,7 +486,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     /**
      * @notice Checks if portfolio is social or else require msg.sender is owner
      */
-    function _socialOrOwner() internal {
+    function _socialOrOwner() internal view {
         require(_social || msg.sender == _owner, "Portfolio: Not owner");
     }
 

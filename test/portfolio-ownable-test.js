@@ -1,8 +1,8 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
-const { AddressZero } = constants
-const { deployUniswap, deployPlatform, deployLoopController } = require('./helpers/deploy.js')
+const { AddressZero, WeiPerEther } = constants
+const { deployTokens, deployUniswap, deployPlatform, deployLoopController } = require('./helpers/deploy.js')
 const { preparePortfolio } = require('./helpers/utils.js')
 
 const NUM_TOKENS = 15
@@ -16,8 +16,9 @@ describe('PortfolioOwnable', function() {
 
   before('Setup Uniswap + Factory', async function() {
     accounts = await getSigners();
-    [uniswapFactory, tokens] = await deployUniswap(accounts[0], NUM_TOKENS);
+    tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100*(NUM_TOKENS-1)));
     WETH = tokens[0];
+    uniswapFactory = await deployUniswap(accounts[0], tokens);
     [controller, router] = await deployLoopController(accounts[0], uniswapFactory, WETH);
     [portfolioFactory, , ] = await deployPlatform(accounts[0], controller, uniswapFactory, WETH);
   })

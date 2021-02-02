@@ -3,7 +3,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
-const { deployUniswap, deployPlatform, deployLoopController } = require('./helpers/deploy.js')
+const { deployTokens, deployUniswap, deployPlatform, deployLoopController } = require('./helpers/deploy.js')
 const { displayBalances } = require('./helpers/logging.js')
 const { preparePortfolio } = require('./helpers/utils.js')
 
@@ -14,14 +14,15 @@ const TIMELOCK = 60 // 1 minute
 let WETH;
 
 describe('Portfolio', function() {
-  let tokens, accounts, uniswapFactory, portfolioFactory, oracle, controller, router, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, wrapper, whitelist
+  let tokens, accounts, uniswapFactory, portfolioFactory, oracle, controller, router, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, wrapper
 
   before('Setup Uniswap + Factory', async function() {
     accounts = await getSigners();
-    [uniswapFactory, tokens] = await deployUniswap(accounts[0], NUM_TOKENS);
+    tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100*(NUM_TOKENS-1)));
     WETH = tokens[0];
+    uniswapFactory = await deployUniswap(accounts[0], tokens);
     [controller, router] = await deployLoopController(accounts[0], uniswapFactory, WETH);
-    [portfolioFactory, oracle, whitelist] = await deployPlatform(accounts[0], controller, uniswapFactory, WETH);
+    [portfolioFactory, oracle, ] = await deployPlatform(accounts[0], controller, uniswapFactory, WETH);
   })
 
   it('Should deploy portfolio', async function() {
@@ -107,7 +108,6 @@ describe('Portfolio', function() {
 
   it('Should purchase a token, requiring a rebalance', async function() {
     // Approve the user to use the router
-    await whitelist.connect(accounts[0]).approve(accounts[2].address)
     const value = WeiPerEther.mul(50)
     await router.connect(accounts[2]).swap(
       value,

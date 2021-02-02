@@ -3,49 +3,39 @@ const { ethers } = require('hardhat')
 const { displayBalances } = require('./helpers/logging.js')
 const { deployUniswap, deployTokens, deployPlatform, deployUniswapRouter, deployGenericController } = require('./helpers/deploy.js')
 const { preparePortfolio, prepareMulticall } = require('./helpers/utils.js')
+const { flashloan } = require('./helpers/cookbook.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
-const NUM_TOKENS = 15
-let WETH;
+const NUM_TOKENS = 4
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
 const SLIPPAGE = 995 // 995/1000 = 99.5%
 const TIMELOCK = 1209600 // Two weeks
+let WETH;
 
-describe('GenericController', function () {
-    let tokens, accounts, uniswapFactory, portfolioFactory, oracle, genericController, router, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, wrapper
+describe('Flash Loan', function () {
+    let tokens, accounts, uniswapFactory, sushiFactory, portfolioFactory, oracle, genericController, uniswapRouter, sushiRouter, arbitrager, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, wrapper
 
-    before('Setup Uniswap, Factory, GenericController', async function() {
+    before('Setup Uniswap, Sushiswap, Factory, GenericController', async function() {
       accounts = await getSigners();
-      tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100*(NUM_TOKENS-1)));
+      tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200*(NUM_TOKENS-1)));
       WETH = tokens[0];
       uniswapFactory = await deployUniswap(accounts[0], tokens);
-      router = await deployUniswapRouter(accounts[0], uniswapFactory, WETH);
+      sushiFactory = await deployUniswap(accounts[0], tokens);
+      uniswapRouter = await deployUniswapRouter(accounts[0], uniswapFactory, WETH);
+      sushiRouter = await deployUniswapRouter(accounts[0], sushiFactory, WETH);
       genericController = await deployGenericController(accounts[0], WETH);
-      [portfolioFactory, oracle,] = await deployPlatform(accounts[0], genericController, uniswapFactory, WETH);
+      [portfolioFactory, oracle, ] = await deployPlatform(accounts[0], genericController, uniswapFactory, WETH);
     })
 
     it('Should deploy portfolio', async function() {
       console.log('Portfolio factory: ', portfolioFactory.address)
       const positions = [
-        {token: tokens[1].address, percentage: 200},
-        {token: tokens[2].address, percentage: 200},
-        {token: tokens[3].address, percentage: 50},
-        {token: tokens[4].address, percentage: 50},
-        {token: tokens[5].address, percentage: 50},
-        {token: tokens[6].address, percentage: 50},
-        {token: tokens[7].address, percentage: 50},
-        {token: tokens[8].address, percentage: 50},
-        {token: tokens[9].address, percentage: 50},
-        {token: tokens[10].address, percentage: 50},
-        {token: tokens[11].address, percentage: 50},
-        {token: tokens[12].address, percentage: 50},
-        {token: tokens[13].address, percentage: 50},
-        {token: tokens[14].address, percentage: 50},
+        {token: tokens[1].address, percentage: 500},
+        {token: tokens[2].address, percentage: 300},
+        {token: tokens[3].address, percentage: 200}
       ];
-      [portfolioTokens, portfolioPercentages, portfolioRouters] = preparePortfolio(positions, router.address);
-      // let duplicateTokens = portfolioTokens
-      // duplicateTokens[0] = portfolioTokens[1]
+      [portfolioTokens, portfolioPercentages, portfolioRouters] = preparePortfolio(positions, uniswapRouter.address);
       // TODO: portfolio is currently accepting duplicate tokens
       let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
         'Test Portfolio',
@@ -77,10 +67,16 @@ describe('GenericController', function () {
       expect(await wrapper.isBalanced()).to.equal(true)
     })
 
-    it('Should purchase a token, requiring a rebalance', async function () {
-        // Approve the user to use the router
+    it('Should deploy arbitrager contract', async function() {
+        const Arbitrager = await getContractFactory('Arbitrager')
+        arbitrager = await Arbitrager.connect(accounts[1]).deploy()
+        await arbitrager.deployed()
+        console.log("Arbitrager: ", arbitrager.address)
+    })
+
+    it('Should purchase a token, requiring a rebalance and create arbitrage opportunity', async function () {
         const value = WeiPerEther.mul(50)
-        await router.connect(accounts[2]).swap(
+        await uniswapRouter.connect(accounts[2]).swap(
             value,
             0,
             AddressZero,
@@ -91,20 +87,35 @@ describe('GenericController', function () {
             [],
             { value: value }
         )
-        await displayBalances(wrapper, portfolioTokens, WETH)
+        const tokenBalance = await tokens[1].balanceOf(accounts[2].address)
+        await tokens[1].connect(accounts[2]).approve(sushiRouter.address, tokenBalance)
+        await sushiRouter.connect(accounts[2]).swap(
+            tokenBalance,
+            0,
+            tokens[1].address,
+            AddressZero,
+            accounts[2].address,
+            accounts[2].address,
+            [],
+            []
+        )
         expect(await wrapper.isBalanced()).to.equal(false)
     })
 
-    it('Should rebalance portfolio with multicall', async function () {
+    it('Should rebalance portfolio with multicall + flash loan', async function () {
         console.log('Rebalancing portfolio....')
+        const balanceBefore = await tokens[1].balanceOf(accounts[1].address)
         // Multicall gets initial tokens from uniswap
-        const calls = await prepareMulticall(portfolio, genericController, router, oracle, wrapper, WETH)
+        const rebalanceCalls = await prepareMulticall(portfolio, genericController, uniswapRouter, oracle, wrapper, WETH)
+        const flashLoanCalls = await flashloan(portfolio, arbitrager, uniswapRouter, sushiRouter, ethers.BigNumber.from('1000000000000000'), tokens[1], WETH)
+        const calls = [...rebalanceCalls, ...flashLoanCalls]
         const data = await genericController.encodeCalls(calls);
         const tx = await portfolio.connect(accounts[1]).rebalance(data, genericController.address)
         const receipt = await tx.wait()
         console.log('Gas Used: ', receipt.gasUsed.toString())
-        await displayBalances(wrapper, portfolioTokens, WETH)
-        expect(await wrapper.isBalanced()).to.equal(true)
+        const balanceAfter = await tokens[1].balanceOf(accounts[1].address)
+        expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+        console.log('Tokens Earned: ', balanceAfter.sub(balanceBefore).toString())
     })
 
 

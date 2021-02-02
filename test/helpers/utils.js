@@ -24,6 +24,7 @@ function preparePortfolio(positions, router){
 
 async function prepareMulticall(portfolio, controller, router, oracle, wrapper, weth) {
   const calls = []
+  const buyLoop = []
   const tokens = await portfolio.getPortfolioTokens()
   const [total, estimates] = await oracle.estimateTotal(portfolio.address, tokens)
 
@@ -36,7 +37,7 @@ async function prepareMulticall(portfolio, controller, router, oracle, wrapper, 
           ethers.BigNumber.from(await wrapper.getExpectedTokenValue(total, token.address))
       const rebalanceRange = ethers.BigNumber.from(await wrapper.getRebalanceRange(expectedValue))
       if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
-          console.log('Sell token: ', i, ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
+          console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
           const diff = ethers.BigNumber.from(
               await router.spotPrice(
                   estimatedValue.sub(expectedValue),
@@ -52,22 +53,27 @@ async function prepareMulticall(portfolio, controller, router, oracle, wrapper, 
           } else {
             wethInPortfolio = true
           }
+      } else {
+        buyLoop.push({
+          token: tokens[i],
+          estimate: estimates[i]
+        })
       }
   }
   // Buy loop
-  for (let i = 0; i < tokens.length; i++) {
-      const token = await getContractAt(ERC20.abi, tokens[i])
-      const estimatedValue = ethers.BigNumber.from(estimates[i])
+  for (let i = 0; i < buyLoop.length; i++) {
+      const token = await getContractAt(ERC20.abi, buyLoop[i].token)
+      const estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate)
       if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-          if (!wethInPortfolio && i == tokens.length-1) {
-              console.log('Buy token: ', i, ' estimated value: ', estimatedValue.toString())
+          if (!wethInPortfolio && i == buyLoop.length-1) {
+              console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
               calls.push(await encodeSettleSwap(controller, portfolio.address, router.address, weth.address, token.address))
           } else {
               const expectedValue =
                   ethers.BigNumber.from(await wrapper.getExpectedTokenValue(total, token.address))
               const rebalanceRange = ethers.BigNumber.from(await wrapper.getRebalanceRange(expectedValue))
               if (estimatedValue.lt(expectedValue.sub(rebalanceRange))) {
-                  console.log('Buy token: ', i, ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
+                  console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
                   const diff = expectedValue.sub(estimatedValue).mul(FEE).div(DIVISOR);
                   if (token.address.toLowerCase() != weth.address.toLowerCase()) {
                     //calls.push(await encodeApprove(weth, router.address, diff))
