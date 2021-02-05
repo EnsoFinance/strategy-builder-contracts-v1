@@ -2,8 +2,8 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { displayBalances } = require('./helpers/logging.js')
 const { deployUniswap, deployTokens, deployPlatform, deployUniswapRouter, deployGenericController } = require('./helpers/deploy.js')
-const { preparePortfolio, prepareMulticall } = require('./helpers/utils.js')
-const { flashloan } = require('./helpers/cookbook.js')
+const { preparePortfolio, prepareRebalanceMulticall } = require('./helpers/utils.js')
+const { prepareFlashLoan } = require('./helpers/cookbook.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
@@ -106,8 +106,8 @@ describe('Flash Loan', function () {
         console.log('Rebalancing portfolio....')
         const balanceBefore = await tokens[1].balanceOf(accounts[1].address)
         // Multicall gets initial tokens from uniswap
-        const rebalanceCalls = await prepareMulticall(portfolio, genericController, uniswapRouter, oracle, wrapper, WETH)
-        const flashLoanCalls = await flashloan(portfolio, arbitrager, uniswapRouter, sushiRouter, ethers.BigNumber.from('1000000000000000'), tokens[1], WETH)
+        const rebalanceCalls = await prepareRebalanceMulticall(portfolio, genericController, uniswapRouter, oracle, WETH)
+        const flashLoanCalls = await prepareFlashLoan(portfolio, arbitrager, uniswapRouter, sushiRouter, ethers.BigNumber.from('1000000000000000'), tokens[1], WETH)
         const calls = [...rebalanceCalls, ...flashLoanCalls]
         const data = await genericController.encodeCalls(calls);
         const tx = await portfolio.connect(accounts[1]).rebalance(data, genericController.address)

@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { displayBalances } = require('./helpers/logging.js')
 const { deployUniswap, deployTokens, deployPlatform, deployUniswapRouter, deployGenericController } = require('./helpers/deploy.js')
-const { preparePortfolio, prepareMulticall } = require('./helpers/utils.js')
+const { preparePortfolio, prepareRebalanceMulticall } = require('./helpers/utils.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
@@ -98,7 +98,7 @@ describe('GenericController', function () {
     it('Should rebalance portfolio with multicall', async function () {
         console.log('Rebalancing portfolio....')
         // Multicall gets initial tokens from uniswap
-        const calls = await prepareMulticall(portfolio, genericController, router, oracle, wrapper, WETH)
+        const calls = await prepareRebalanceMulticall(portfolio, genericController, router, oracle, WETH)
         const data = await genericController.encodeCalls(calls);
         const tx = await portfolio.connect(accounts[1]).rebalance(data, genericController.address)
         const receipt = await tx.wait()

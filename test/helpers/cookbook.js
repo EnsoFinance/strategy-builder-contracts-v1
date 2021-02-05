@@ -1,7 +1,7 @@
 const { encodeTransferFrom } = require('./utils.js')
 
 
-async function flashloan(portfolio, arbitrager, sellRouter, buyRouter, loanAmount, loanToken, pairToken) {
+async function prepareFlashLoan(portfolio, arbitrager, sellRouter, buyRouter, loanAmount, loanToken, pairToken) {
   const calls = []
   // Withdraw flash loan
   calls.push(await encodeTransferFrom(loanToken, portfolio.address, arbitrager.address, loanAmount))
@@ -16,5 +16,5 @@ async function encodeArbitrageLoan(arbitrager, lender, amount, loanToken, pairTo
 }
 
 module.exports = {
-  flashloan
+  prepareFlashLoan
 }

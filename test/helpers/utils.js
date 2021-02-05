@@ -22,7 +22,7 @@ function preparePortfolio(positions, router){
   return [portfolioTokens, portfolioPercentages, portfolioRouters]
 }
 
-async function prepareMulticall(portfolio, controller, router, oracle, wrapper, weth) {
+async function prepareRebalanceMulticall(portfolio, controller, router, oracle, weth) {
   const calls = []
   const buyLoop = []
   const tokens = await portfolio.getPortfolioTokens()
@@ -34,8 +34,8 @@ async function prepareMulticall(portfolio, controller, router, oracle, wrapper, 
       const token = await getContractAt(ERC20.abi, tokens[i])
       const estimatedValue = ethers.BigNumber.from(estimates[i])
       const expectedValue =
-          ethers.BigNumber.from(await wrapper.getExpectedTokenValue(total, token.address))
-      const rebalanceRange = ethers.BigNumber.from(await wrapper.getRebalanceRange(expectedValue))
+          ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, portfolio))
+      const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, portfolio))
       if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
           console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
           const diff = ethers.BigNumber.from(
@@ -45,10 +45,7 @@ async function prepareMulticall(portfolio, controller, router, oracle, wrapper, 
                   token.address
               )
           );
-          //calls.push(await encodeTransferFrom(token, portfolio.address, controller.address, diff))
           if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-            //calls.push(await encodeApprove(token, router.address, diff))
-            //calls.push(await encodeSwap(router, diff, 0, token.address, weth.address, controller.address, controller.address))
             calls.push(await encodeDelegateSwap(controller, portfolio.address, router.address, diff, 0, token.address, weth.address))
           } else {
             wethInPortfolio = true
@@ -70,26 +67,29 @@ async function prepareMulticall(portfolio, controller, router, oracle, wrapper, 
               calls.push(await encodeSettleSwap(controller, portfolio.address, router.address, weth.address, token.address))
           } else {
               const expectedValue =
-                  ethers.BigNumber.from(await wrapper.getExpectedTokenValue(total, token.address))
-              const rebalanceRange = ethers.BigNumber.from(await wrapper.getRebalanceRange(expectedValue))
+                  ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, portfolio))
+              const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, portfolio))
               if (estimatedValue.lt(expectedValue.sub(rebalanceRange))) {
                   console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
                   const diff = expectedValue.sub(estimatedValue).mul(FEE).div(DIVISOR);
                   if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-                    //calls.push(await encodeApprove(weth, router.address, diff))
-                    //calls.push(await encodeSwap(router, diff, 0, weth.address, token.address, controller.address, portfolio.address))
                     calls.push(await encodeDelegateSwap(controller, portfolio.address, router.address, diff, 0, weth.address, token.address))
                   }
               }
           }
       }
   }
-  /*
-  if (wethInPortfolio) {
-    calls.push(await encodeSettleTransfer(controller, weth.address, portfolio.address))
-  }
-  */
   return calls
+}
+
+async function getExpectedTokenValue(total, token, portfolio) {
+  const percentage = await portfolio.getTokenPercentage(token)
+  return ethers.BigNumber.from(total).mul(percentage).div(DIVISOR);
+}
+
+async function getRebalanceRange(expectedValue, portfolio) {
+  const threshold = await portfolio.rebalanceThreshold()
+  return ethers.BigNumber.from(expectedValue).mul(threshold).div(DIVISOR);
 }
 
 
@@ -132,7 +132,7 @@ async function encodeApprove(token, to, amount) {
 
 module.exports = {
   preparePortfolio,
-  prepareMulticall,
+  prepareRebalanceMulticall,
   encodeSwap,
   encodeTransfer,
   encodeTransferFrom,
