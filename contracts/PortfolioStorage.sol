@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-
-contract PortfolioStorage { //solhint-disable
+contract PortfolioStorage {
+    //solhint-disable
     // ALERT: Do not reorder variables on upgrades! Append only
     // EIP712
     //bytes32 public DOMAIN_SEPARATOR;
@@ -10,9 +10,9 @@ contract PortfolioStorage { //solhint-disable
     // Ownable
     address internal _owner;
     // ERC20
-    mapping (address => uint256) internal _balances;
+    mapping(address => uint256) internal _balances;
     //mapping (address => uint256) internal _nonces;
-    mapping (address => mapping (address => uint256)) internal _allowances;
+    mapping(address => mapping(address => uint256)) internal _allowances;
     uint256 internal _totalSupply;
     string internal _name;
     string internal _symbol;

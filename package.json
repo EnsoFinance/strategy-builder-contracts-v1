@@ -8,9 +8,10 @@
     "coverage": "npx hardhat coverage",
     "deploy": "npx hardhat run scripts/full-deploy-script.js --network",
     "lint": "eslint",
-    "prettier:solidity": "prettier --write contracts/**/*.sol",
+    "prettier:solidity": "prettier --write contracts/*",
     "solhint": "solhint -f table contracts/**/*.sol",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "docs": "./scripts/build_docs.sh"
   },
   "engines": {
     "node": ">=10"
@@ -37,6 +38,7 @@
     "hardhat": "~2.0.4",
     "prettier": "~2.2.1",
     "prettier-plugin-solidity": "~1.0.0-beta.1",
+    "sol2uml": "~1.1.25",
     "solhint": "~3.3.2",
     "solhint-plugin-prettier": "~0.0.5",
     "solidity-coverage": "~0.7.13"
@@ -45,6 +47,7 @@
     "@openzeppelin/contracts": "~3.3.0",
     "@uniswap/lib": "~4.0.1-alpha",
     "@uniswap/v2-core": "~1.0.1",
-    "@uniswap/v2-periphery": "~1.1.0-beta.0"
+    "@uniswap/v2-periphery": "~1.1.0-beta.0",
+    "solidity-docgen": "~0.5.11"
   }
 }

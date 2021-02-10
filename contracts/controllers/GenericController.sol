@@ -4,25 +4,38 @@ pragma experimental ABIEncoderV2;
 
 import "./PortfolioController.sol";
 import "../interfaces/IPortfolioRouter.sol";
-import { Multicall } from "../helpers/Multicall.sol";
+import "../helpers/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+/**
+ * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
+ */
 contract GenericController is PortfolioController, Multicall {
-    address public target;
-
+    /**
+     * @notice Setup PortfolioController with the weth address
+     */
     constructor(address weth_) public PortfolioController(weth_) {} //solhint-disable-line
 
+    /**
+     * @notice Executes provided calldata to achieve a rebalance for the Portfolio
+     */
     // Receive call from portfolio
     function rebalance(bytes memory data) external override {
         Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
         aggregate(callStructs);
-        // TODO: validate multicall made profit/returnData
     }
 
+    /**
+     * @notice Helper function to encode typed struct into bytes
+     */
     function encodeCalls(Call[] calldata calls) external pure returns (bytes memory data) {
         data = abi.encode(calls);
     }
 
+    /**
+     * @notice Uses delegate call to swap tokens
+     * @dev Delegate call to avoid redundant token transfers
+     */
     function delegateSwap(
         address portfolio,
         address router,
@@ -63,22 +76,4 @@ contract GenericController is PortfolioController, Multicall {
             );
         }
     }
-
-    /*
-    Don't think we need this anymore as funds don't have to be transferred to
-    this contract since we're using delegateSwap
-
-    function settleTransfer(
-        address token,
-        address to
-    ) public {
-        require(
-            msg.sender == address(this),
-            "GenericController.settleTransfer: Function may only be called from the rebalance function"
-        );
-        IERC20 erc20 = IERC20(token);
-        uint256 amount = erc20.balanceOf(address(this));
-        erc20.transferFrom(address(this), to, amount);
-    }
-    */
 }

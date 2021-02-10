@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./PortfolioStorage.sol";
 
-
 contract PortfolioToken is IERC20, PortfolioStorage {
     using SafeMath for uint256;
 
@@ -100,7 +99,11 @@ contract PortfolioToken is IERC20, PortfolioStorage {
      * - the caller must have allowance for ``sender``'s tokens of at least
      * `amount`.
      */
-    function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
         _approve(
             sender,
@@ -131,7 +134,11 @@ contract PortfolioToken is IERC20, PortfolioStorage {
      * - `recipient` cannot be the zero address.
      * - `sender` must have a balance of at least `amount`.
      */
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal virtual {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
@@ -189,7 +196,11 @@ contract PortfolioToken is IERC20, PortfolioStorage {
      * - `owner` cannot be the zero address.
      * - `spender` cannot be the zero address.
      */
-    function _approve(address owner, address spender, uint256 amount) internal virtual {
+    function _approve(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 

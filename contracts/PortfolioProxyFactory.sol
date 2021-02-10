@@ -7,9 +7,11 @@ import "./PortfolioProxyInitializer.sol";
 import "./PortfolioProxyAdminRegistry.sol";
 import "./interfaces/IPortfolioProxyFactory.sol";
 
-
-// The contract implements a custom PrxoyAdmin
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
+/**
+ * @notice Deploys Proxy Portfolios
+ * @dev The contract implements a custom PrxoyAdmin
+ * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
+ */
 contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     PortfolioProxyInitializer private initializer;
     PortfolioProxyAdminRegistry private adminRegistry;
@@ -19,10 +21,39 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     address public override controller;
     uint256 public override version;
 
+    /**
+     * @notice Log the address of an implementation contract update
+     */
     event Update(address newImplementation, uint256 version);
-    event NewPortfolio(address portfolio, address manager, string name, string symbol, address[] tokens, uint256[] percentages, uint256 threshold, uint256 slippage, uint256 timelock); //solhint-disable-line
+
+    /**
+     * @notice Log the creation of a new portfolio
+     */
+    event NewPortfolio(
+        address portfolio,
+        address manager,
+        string name,
+        string symbol,
+        address[] tokens,
+        uint256[] percentages,
+        uint256 threshold,
+        uint256 slippage,
+        uint256 timelock
+    ); //solhint-disable-line
+
+    /**
+     * @notice Log the new Oracle for the portfolios
+     */
     event NewOracle(address newOracle);
+
+    /**
+     * @notice New default whitelist address
+     */
     event NewWhitelist(address newWhitelist);
+
+    /**
+     * @notice New default controller address
+     */
     event NewController(address newController);
 
     constructor(
@@ -76,20 +107,17 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             )
         );
         */
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            implementation,
-            address(this),
-            new bytes(0)
-        );
-        /*
-         * This contract cannot directly call the initialize() function during the deployment of the
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(implementation, address(this), new bytes(0));
+        /**
+         * @dev This contract cannot directly call the initialize() function during the deployment of the
          * proxy because that particular function calls a PortfolioRouter which then calls back to the yet to
          * be fully deployed Proxy. However, we also cannot directly call the initialize() function
          * after deployment because TransparentUpgradeableProxy restricts what calls the admin (this
          * contract) is able to make. We are using PortfolioProxyInitializer contract as a little hack
          * to scoot around the restrictions of the TransparentUpgradeableProxy.
-        */
-        initializer.initialize{value: msg.value}( // solhint-disable-line
+         */
+        initializer.initialize{ value: msg.value }( // solhint-disable-line
             address(proxy),
             msg.sender,
             name,
@@ -189,6 +217,6 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         TransparentUpgradeableProxy proxy, //solhint-disable-line
         bytes memory data
     ) public payable onlyAdmin(address(proxy)) {
-        proxy.upgradeToAndCall{value: msg.value}(implementation, data); //solhint-disable-line
+        proxy.upgradeToAndCall{ value: msg.value }(implementation, data); //solhint-disable-line
     }
 }

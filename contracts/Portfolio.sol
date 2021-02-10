@@ -10,6 +10,11 @@ import "./interfaces/IWhitelist.sol";
 import "./PortfolioToken.sol";
 import "./PortfolioOwnable.sol";
 
+/**
+ * @notice This contract holds tokens in proportion to their weth value as reported by IOracle and mints/burns portfolio tokens to represent the underlying assets.
+ * @dev Whitelisted controllers are able to execute different swapping strategies as long as total portfolio value doesn't drop below the defined slippage amount
+ * @dev To avoid someone from repeatedly skimming off this slippage value, threshold should be set sufficiently high
+ */
 contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializable {
     using SafeMath for uint256;
     uint256 private constant DIVISOR = 1000;
@@ -20,14 +25,14 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
 
     /*
      * @notice This contract is proxiable. There is no constructor, instead we use the initialize function
-     * @params owner_ The address that will own the contract
-     * @params name_ The name of this token
-     * @params symbol_ The symbol of this token
-     * @params tokens_ A list of token addresses that will make up the portfolio
-     * @params percentages_ The percentage each token represents of the total portfolio value
-     * @params threshold_ The percentage out of balance a token must be before it can be rebalanced
-     * @params slippage_ The percentage away from 100% that the total can slip during rebalance due to fees
-     * @params timelock_ The amount of time between initializing a restructure and updating the portfolio
+     * @param owner_ The address that will own the contract
+     * @param name_ The name of this token
+     * @param symbol_ The symbol of this token
+     * @param tokens_ A list of token addresses that will make up the portfolio
+     * @param percentages_ The percentage each token represents of the total portfolio value
+     * @param threshold_ The percentage out of balance a token must be before it can be rebalanced
+     * @param slippage_ The percentage away from 100% that the total can slip during rebalance due to fees
+     * @param timelock_ The amount of time between initializing a restructure and updating the portfolio
      */
     function initialize(
         address factory_,
@@ -63,11 +68,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         return true;
     }
 
-    /*
+    /**
      * @notice Rebalance the portfolio to match the current structure
      * @dev The calldata that gets passed to this function can differ depending on which controller is being used
-     * @params data Calldata that gets passed the the controller's rebalance function
-     * @params controller The address of the controller that will be doing the handling the trading logic
+     * @param data Calldata that gets passed the the controller's rebalance function
+     * @param controller The address of the controller that will be doing the handling the trading logic
      */
     function rebalance(bytes memory data, IPortfolioController controller) external override {
         _setLock();
@@ -81,11 +86,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Deposit ether, which is traded for the underlying assets, and mint portfolio tokens
-     * @params routers An array of addresses for the router that each token will be swap with
-     * @params rebalanceData The calldata that is used to rebalance the portfolio before deposit
-     * @params controller The address of the controller that will be doing the handling the trading logic
+     * @param routers An array of addresses for the router that each token will be swap with
+     * @param rebalanceData The calldata that is used to rebalance the portfolio before deposit
+     * @param controller The address of the controller that will be doing the handling the trading logic
      */
     function deposit(
         address[] memory routers,
@@ -119,11 +124,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Withdraw the underlying assets and burn the equivalent amount of portfolio token
-     * @params amount The amount of portfolio tokens to burn to recover the equivalent underlying assets
-     * @params rebalanceData Calldata that gets passed the the controller's rebalance function
-     * @params controller The address of the controller that will be doing the handling the trading logic
+     * @param amount The amount of portfolio tokens to burn to recover the equivalent underlying assets
+     * @param rebalanceData Calldata that gets passed the the controller's rebalance function
+     * @param controller The address of the controller that will be doing the handling the trading logic
      */
     function withdraw(
         uint256 amount,
@@ -154,12 +159,12 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Initiate a restructure of the portfolio tokens. This gives users a chance to withdraw before restructure
      * @dev We store the new structure as a bytes32 hash and then check that the
             values are correct when finalizeStructure is called.
-     * @params tokens An array of token addresses that will comprise the portfolio
-     * @params percentages An array of percentages for each token in the above array. Must total 100%
+     * @param tokens An array of token addresses that will comprise the portfolio
+     * @param percentages An array of percentages for each token in the above array. Must total 100%
      */
     function restructure(address[] memory tokens, uint256[] memory percentages) external override onlyOwner {
         _verifyStructure(tokens, percentages);
@@ -168,14 +173,14 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         emit NewStructure(tokens, percentages);
     }
 
-    /*
+    /**
      * @notice Finalize a restructure by setting the new values and trading the tokens
      * @dev We confirm that the same structure is sent by checking the bytes32 hash against _restructureProof
-     * @params tokens An array of token addresses that will comprise the portfolio
-     * @params percentages An array of percentages for each token in the above array. Must total 100%
-     * @params sellRouters An array of routers for each sale of the current tokens
-     * @params buyRouters An array of routers for each purchase of the new tokens
-     * @params controller The address of the controller that will be doing the handling the trading logic
+     * @param tokens An array of token addresses that will comprise the portfolio
+     * @param percentages An array of percentages for each token in the above array. Must total 100%
+     * @param sellRouters An array of routers for each sale of the current tokens
+     * @param buyRouters An array of routers for each purchase of the new tokens
+     * @param controller The address of the controller that will be doing the handling the trading logic
      */
     function finalizeStructure(
         address[] memory tokens,
@@ -199,7 +204,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Setter to change portfolio to social. Cannot be undone.
      * @dev A social profile allows other users to deposit and rebalance the portfolio
      */
@@ -207,11 +212,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _social = true;
     }
 
-    /*
+    /**
      * @notice Setter to update the rebalance threshold
      * @dev The rebalance threshold limits whether a token can be rebalanced. If its current percentage
      *      is within the threshold, it does not get rebalanced.
-     * @params threshold The value of the new rebalance threshold
+     * @param threshold The value of the new rebalance threshold
      */
     function updateRebalanceThreshold(uint256 threshold) external override onlyOwner {
         _setLock();
@@ -219,12 +224,12 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Setter to update the slippage
      * @dev The slippage is minimum percentage the total can drop to during a rebalance.
             If it drops below that value the function reverts.
             e.g. if slippage = 995, it can only drop to 99.5% of the total that was calculate before rebalance
-     * @params slippage The value of the new slippage
+     * @param slippage The value of the new slippage
      */
     function updateSlippage(uint256 slippage) external override onlyOwner {
         _setLock();
@@ -232,12 +237,12 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Setter to update the timelock
      * @dev The timelock is the amount of time in seconds that must pass between the
             initial call of restructure() and calling finalizeStructure(). This allows
             users to withdraw their funds if they don't like the new structure
-     * @params timelock The value of the new timelock
+     * @param timelock The value of the new timelock
      */
     function updateTimelock(uint256 timelock) external override onlyOwner {
         _setLock();
@@ -245,7 +250,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _removeLock();
     }
 
-    /*
+    /**
      * @notice Social bool getter
      * @dev This value determines whether other account may deposit into this portfolio
      */
@@ -253,45 +258,45 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         return _social;
     }
 
-    /*
+    /**
      * @notice Rebalance threshold getter
      */
     function rebalanceThreshold() external view override returns (uint256) {
         return _rebalanceThreshold;
     }
 
-    /*
+    /**
      * @notice Slippage getter
      */
     function slippage() external view override returns (uint256) {
         return _slippage;
     }
 
-    /*
+    /**
      * @notice Timelock getter
      */
     function timelock() external view override returns (uint256) {
         return _timelock;
     }
 
-    /*
+    /**
      * @notice Tokens getter
      */
     function getPortfolioTokens() external view override returns (address[] memory) {
         return _tokens;
     }
 
-    /*
+    /**
      * @notice Get token by index
-     * @params index The index of the token in the _tokens array
+     * @param index The index of the token in the _tokens array
      */
     function getToken(uint256 index) external view override returns (address) {
         return _tokens[index];
     }
 
-    /*
+    /**
      * @notice Get token percentage using token address
-     * @params tokenAddress The address of the token
+     * @param tokenAddress The address of the token
      */
     function getTokenPercentage(address tokenAddress) external view override returns (uint256) {
         return _tokenPercentages[tokenAddress];
@@ -305,12 +310,12 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
     }
 
     // Internal Portfolio Functions
-    /*
+    /**
      * @notice Rebalance the portfolio to match the current structure
      * @dev The calldata that gets passed to this function can differ depending on which controller is being used
-     * @params totalBefore The valuation of the portfolio before rebalance
-     * @params data Calldata that gets passed the the controller's rebalance function
-     * @params controller The address of the controller that will be doing the handling the trading logic
+     * @param totalBefore The valuation of the portfolio before rebalance
+     * @param data Calldata that gets passed the the controller's rebalance function
+     * @param controller The address of the controller that will be doing the handling the trading logic
      */
     function _rebalance(
         uint256 totalBefore,
@@ -329,41 +334,41 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         return totalAfter;
     }
 
-    /*
+    /**
      * @notice Internal setter to update the rebalance threshold
      * @dev The rebalance threshold limits whether a token can be rebalanced. If its current percentage
      *      is within the threshold, it does not get rebalanced.
-     * @params threshold_ The value of the new rebalance threshold
+     * @param threshold_ The value of the new rebalance threshold
      */
     function _updateRebalanceThreshold(uint256 threshold_) internal {
         require(threshold_ < DIVISOR, "Portfolio.updateRebalanceThreshold: Threshold cannot be 100% or greater");
         _rebalanceThreshold = threshold_;
     }
 
-    /*
+    /**
      * @notice Internal setter to update the slippage
      * @dev The slippage is minimum percentage the total can drop to during a rebalance.
             If it drops below that value the function reverts.
             e.g. if slippage = 995, it can only drop to 99.5% of the total that was calculate before rebalance
-     * @params slippage_ The value of the new slippage
+     * @param slippage_ The value of the new slippage
      */
     function _updateSlippage(uint256 slippage_) internal {
         require(slippage_ <= DIVISOR, "Portfolio.updateSlippage: Slippage cannot be greater than 100%");
         _slippage = slippage_;
     }
 
-    /*
+    /**
      * @notice Internal setter to update the timelock
      * @dev The timelock is the amount of time in seconds that must pass between the
             initial call of restructure() and calling finalizeStructure(). This allows
             users to withdraw their funds if they don't like the new structure
-     * @params timelock_ The value of the new timelock
+     * @param timelock_ The value of the new timelock
      */
     function _updateTimelock(uint256 timelock_) internal {
         _timelock = timelock_;
     }
 
-    /*
+    /**
      * @notice This function gets the portfolio value from the oracle and checks
      *         whether the portfolio is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
@@ -386,7 +391,7 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         return (total, balanced);
     }
 
-    /*
+    /**
      * @notice This function verifies that the structure passed in parameters is valid
      * @dev We check that the array lengths match, that the percentages add 100%,
      *      no zero addresses, and no duplicates
@@ -409,10 +414,10 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         require(total == DIVISOR, "Portfolio._verifyAndSetStructure: Percentages do not add up to 100%");
     }
 
-    /*
+    /**
      * @notice Set the structure of the portfolio
-     * @params tokens An array of token addresses that will comprise the portfolio
-     * @params percentages An array of percentages for each token in the above array. Must total 100%
+     * @param tokens An array of token addresses that will comprise the portfolio
+     * @param percentages An array of percentages for each token in the above array. Must total 100%
      */
     function _setStructure(address[] memory tokens, uint256[] memory percentages) internal {
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -421,13 +426,13 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         _tokens = tokens;
     }
 
-    /*
+    /**
      * @notice Finalize the structure by selling current posiition, setting new structure, and buying new position
-     * @params tokens An array of token addresses that will comprise the portfolio
-     * @params percentages An array of percentages for each token in the above array. Must total 100%
-     * @params sellRouters An array of routers for each sale of the current tokens
-     * @params buyRouters An array of routers for each purchase of the new tokens
-     * @params controller The address of the controller that will be doing the handling the trading logic
+     * @param tokens An array of token addresses that will comprise the portfolio
+     * @param percentages An array of percentages for each token in the above array. Must total 100%
+     * @param sellRouters An array of routers for each sale of the current tokens
+     * @param buyRouters An array of routers for each purchase of the new tokens
+     * @param controller The address of the controller that will be doing the handling the trading logic
      */
     function _finalizeStructure(
         address[] memory tokens,
@@ -452,11 +457,11 @@ contract Portfolio is IPortfolio, PortfolioToken, PortfolioOwnable, Initializabl
         controller.buyTokens{ value: address(this).balance }(_tokens, buyRouters); //solhint-disable-line
     }
 
-    /*
+    /**
      * @notice Batch approve tokens
-     * @params spender The address that will be approved to spend tokens
-     * @params amount The amount the each token will be approved for
-     * @params tokens An array of tokens that will be approved
+     * @param spender The address that will be approved to spend tokens
+     * @param amount The amount the each token will be approved for
+     * @param tokens An array of tokens that will be approved
      */
     function _approveTokens(
         address spender,
