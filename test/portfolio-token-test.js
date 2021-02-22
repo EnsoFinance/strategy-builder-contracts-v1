@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
-const { deployTokens, deployUniswap, deployPlatform, deployLoopController } = require('./helpers/deploy.js')
+const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
 const { preparePortfolio } = require('./helpers/utils.js')
 
 const NUM_TOKENS = 15
@@ -12,15 +12,16 @@ const TIMELOCK = 60 // 1 minute
 let WETH;
 
 describe('PortfolioToken', function() {
-  let tokens, accounts, uniswapFactory, portfolioFactory, controller, router, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, amount
+  let tokens, accounts, uniswapFactory, portfolioFactory, controller, whitelist, router, adapter, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, amount
 
   before('Setup Uniswap + Factory', async function() {
     accounts = await getSigners();
     tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100*(NUM_TOKENS-1)));
     WETH = tokens[0];
     uniswapFactory = await deployUniswap(accounts[0], tokens);
-    [controller, router] = await deployLoopController(accounts[0], uniswapFactory, WETH);
-    [portfolioFactory, , ] = await deployPlatform(accounts[0], controller, uniswapFactory, WETH);
+    [portfolioFactory, controller, , whitelist ] = await deployPlatform(accounts[0], uniswapFactory, WETH);
+    [router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH);
+    await whitelist.connect(accounts[0]).approve(router.address);
   })
 
   it('Should deploy portfolio', async function() {
@@ -41,7 +42,7 @@ describe('PortfolioToken', function() {
       {token: tokens[13].address, percentage: 50},
       {token: tokens[14].address, percentage: 50},
     ];
-    [portfolioTokens, portfolioPercentages, portfolioRouters] = preparePortfolio(positions, router.address);
+    [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
     // let duplicateTokens = portfolioTokens
     // duplicateTokens[0] = portfolioTokens[1]
     // TODO: portfolio is currently accepting duplicate tokens
@@ -49,7 +50,7 @@ describe('PortfolioToken', function() {
     let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio',
       'TEST',
-      portfolioRouters,
+      portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
       REBALANCE_THRESHOLD,
@@ -117,4 +118,28 @@ describe('PortfolioToken', function() {
     expect(ethers.BigNumber.from(await portfolio.balanceOf(accounts[2].address)).eq(amount.mul(2))).to.equal(true)
     expect(ethers.BigNumber.from(await portfolio.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
   })
+
+  it('Should fail to update manager: not manager', async function() {
+    await expect(portfolio.connect(accounts[2]).updateManager(accounts[2].address)).to.be.revertedWith()
+  })
+  /*
+  it('Should fail to update manager: zero address', async function() {
+    await expect(portfolio.connect(accounts[1]).updateManager(AddressZero)).to.be.revertedWith()
+  })
+  */
+
+  it('Should update manager', async function() {
+    await portfolio.connect(accounts[1]).updateManager(accounts[2].address)
+    expect(await portfolio.manager()).to.equal(accounts[2].address)
+  })
+  /*
+  it('Should fail to renounce ownership: not owner', async function() {
+    await expect(portfolio.connect(accounts[1]).renounceOwnership()).to.be.revertedWith()
+  })
+
+  it('Should renounce ownership', async function() {
+    await portfolio.connect(accounts[2]).renounceOwnership()
+    expect(await portfolio.owner()).to.equal(AddressZero)
+  })
+  */
 });

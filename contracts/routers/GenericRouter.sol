@@ -2,25 +2,38 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./PortfolioController.sol";
-import "../interfaces/IPortfolioRouter.sol";
+import "./PortfolioRouter.sol";
+import "../interfaces/IExchangeAdapter.sol";
 import "../helpers/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 
 /**
  * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
  */
-contract GenericController is PortfolioController, Multicall {
+contract GenericRouter is PortfolioRouter, Multicall {
     /**
-     * @notice Setup PortfolioController with the weth address
+     * @notice Setup PortfolioRouter with the weth address
      */
-    constructor(address weth_) public PortfolioController(weth_) {} //solhint-disable-line
+    constructor(address controller_, address weth_) public PortfolioRouter(controller_, weth_) {} //solhint-disable-line
+
+    /**
+     * @notice Executes provided calldata to achieve a deposit for the Portfolio
+     */
+    // Receive call from controller
+    function deposit(address portfolio, bytes memory data) external override payable onlyController {
+        (portfolio);
+        Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
+        aggregate(callStructs);
+        require(address(this).balance == uint256(0), "GenericRouter.convert: Leftover funds");
+    }
 
     /**
      * @notice Executes provided calldata to achieve a rebalance for the Portfolio
      */
-    // Receive call from portfolio
-    function rebalance(bytes memory data) external override {
+    // Receive call from controller
+    function rebalance(address portfolio, bytes memory data) external override onlyController {
+        (portfolio);
         Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
         aggregate(callStructs);
     }
@@ -38,7 +51,7 @@ contract GenericController is PortfolioController, Multicall {
      */
     function delegateSwap(
         address portfolio,
-        address router,
+        address adapter,
         uint256 amount,
         uint256 expected,
         address tokenIn,
@@ -47,31 +60,30 @@ contract GenericController is PortfolioController, Multicall {
     ) public {
         require(
             msg.sender == address(this),
-            "GenericController.delegateSwap: Function may only be called from the rebalance function"
+            "GenericRouter.delegateSwap: Function may only be called from the rebalance function"
         );
         require(
-            _delegateSwap(router, amount, expected, tokenIn, tokenOut, portfolio, portfolio, data),
-            "GenericController.delegateSwap: Swap failed"
+            _delegateSwap(adapter, amount, expected, tokenIn, tokenOut, portfolio, portfolio, data),
+            "GenericRouter.delegateSwap: Swap failed"
         );
     }
 
     function settleSwap(
-        address portfolio,
-        address router,
+        address adapter,
         address tokenIn,
         address tokenOut,
+        address from,
+        address to,
         bytes memory data
     ) public {
         require(
             msg.sender == address(this),
             "GenericController.settleSwap: Function may only be called from the rebalance function"
         );
-        uint256 amount = IERC20(tokenIn).balanceOf(portfolio);
+        uint256 amount = IERC20(tokenIn).balanceOf(from);
         if (amount > 0) {
-            //erc20.approve(router, amount);
-            //IPortfolioRouter(router).swap(amount, 0, tokenIn, tokenOut, address(this), to, data, package);
             require(
-                _delegateSwap(router, amount, 0, tokenIn, tokenOut, portfolio, portfolio, data),
+                _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to, data),
                 "GenericController.delegateSwap: Swap failed"
             );
         }

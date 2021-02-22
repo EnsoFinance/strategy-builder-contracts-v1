@@ -1,0 +1,12 @@
+{
+  "kovan": {
+    "Oracle" : "0x8427A14b4D6F63336bE75e1b3501626B9ef1d9C0",
+    "Whitelist" : "0x9322B0Cb683583A60B2334f6085ddC65c76011D1",
+    "UniswapAdapter" : "0x2E145331C8C9800135C70de6e8F67ebFcd27FD1E",
+    "PortfolioControllerDeployer" : "0x34DAdAc3899fD65c847872B16915422F05308569",
+    "PortfolioController" : "0xD454e59de72592dEbB28a3EC529cE068114164Db",
+    "LoopRouter" : "0x9b01b889E652f2d9F12d10aD177912363dFE55cF",
+    "GenericRouter" : "0x3F4c51e1180281B5b8c17c6Ec01Aa1DE1597655F",
+    "PortfolioProxyFactory" : "0x6b7d480f1deD80571CF87a05711683c223880b46"
+  }
+}

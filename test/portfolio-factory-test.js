@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther } = constants
-const { deployTokens, deployUniswap, deployPlatform, deployLoopController } = require('./helpers/deploy.js')
+const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
 const { preparePortfolio } = require('./helpers/utils.js')
 
 const NUM_TOKENS = 15
@@ -12,20 +12,22 @@ const TIMELOCK = 60 // 1 minute
 let WETH;
 
 describe('PortfolioProxyFactory', function() {
-  let tokens, accounts, uniswapFactory, portfolioFactory, oracle, controller, router, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, newFactory, newOracle, newWhitelist, newController, newImplementationAddress
+  let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, router, adapter, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, newFactory, newController, newOracle, newWhitelist, newRouter, newImplementationAddress
 
   before('Setup Uniswap + Factory', async function() {
     accounts = await getSigners();
     tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100*(NUM_TOKENS-1)));
     WETH = tokens[0];
     uniswapFactory = await deployUniswap(accounts[0], tokens);
-    [controller, router] = await deployLoopController(accounts[0], uniswapFactory, WETH);
-    [portfolioFactory, oracle, ] = await deployPlatform(accounts[0], controller, uniswapFactory, WETH);
+    [portfolioFactory, controller, oracle, whitelist ] = await deployPlatform(accounts[0], uniswapFactory, WETH);
+    [router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH);
+    await whitelist.connect(accounts[0]).approve(router.address);
   })
 
   before('Setup new implementation, oracle, whitelist', async function() {
-    [newController, ] = await deployLoopController(accounts[0], uniswapFactory, WETH);
-    [newFactory, newOracle, newWhitelist] = await deployPlatform(accounts[0], newController, uniswapFactory, WETH);
+    [newFactory, , newOracle, newWhitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH);
+    [newRouter, ] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH);
+    await newWhitelist.connect(accounts[0]).approve(newRouter.address);
     newImplementationAddress = await newFactory.implementation()
   })
 
@@ -35,7 +37,7 @@ describe('PortfolioProxyFactory', function() {
       {token: tokens[1].address, percentage: 500},
       {token: tokens[2].address, percentage: 500},
     ];
-    [portfolioTokens, portfolioPercentages, portfolioRouters] = preparePortfolio(positions, router.address);
+    [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
     // let duplicateTokens = portfolioTokens
     // duplicateTokens[0] = portfolioTokens[1]
     // TODO: portfolio is currently accepting duplicate tokens
@@ -43,7 +45,7 @@ describe('PortfolioProxyFactory', function() {
     let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio',
       'TEST',
-      portfolioRouters,
+      portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
       REBALANCE_THRESHOLD,
@@ -76,21 +78,13 @@ describe('PortfolioProxyFactory', function() {
 
   it('Should update whitelist', async function() {
     const oldBalance = await portfolio.balanceOf(accounts[1].address)
-    await expect(portfolio.connect(accounts[1]).deposit(portfolioRouters, [], newController.address, {value: ethers.BigNumber.from('10000000000000000')})).to.be.revertedWith('Controller not approved')
+    const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
+    await expect(controller.connect(accounts[1]).deposit(portfolio.address, newRouter.address, data, {value: ethers.BigNumber.from('10000000000000000')})).to.be.revertedWith('Router not approved')
     await portfolioFactory.connect(accounts[0]).updateWhitelist(newWhitelist.address)
     expect(await portfolioFactory.whitelist()).to.equal(newWhitelist.address)
-    await portfolio.connect(accounts[1]).deposit(portfolioRouters, [], newController.address, {value: ethers.BigNumber.from('10000000000000000')})
+    await controller.connect(accounts[1]).deposit(portfolio.address, newRouter.address, data, {value: ethers.BigNumber.from('10000000000000000')})
     const newBalance = await portfolio.balanceOf(accounts[1].address)
     expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
-  })
-
-  it('Should fail to update controller: not owner', async function() {
-    await expect(portfolioFactory.connect(accounts[1]).updateController(newController.address)).to.be.revertedWith('caller is not the owner')
-  })
-
-  it('Should update implementation', async function() {
-    await portfolioFactory.connect(accounts[0]).updateController(newController.address)
-    expect(await portfolioFactory.controller()).to.equal(newController.address)
   })
 
   it('Should fail to update implementation: not owner', async function() {
@@ -105,7 +99,7 @@ describe('PortfolioProxyFactory', function() {
   })
 
   it('Should fail to upgrade portfolio proxy: not admin', async function() {
-    await expect(portfolioFactory.connect(accounts[0]).upgrade(portfolio.address)).to.be.revertedWith('User not admin')
+    await expect(portfolioFactory.connect(accounts[0]).upgrade(portfolio.address)).to.be.revertedWith('User not manager')
   })
 
   it('Should upgrade portfolio proxy', async function() {
@@ -114,7 +108,7 @@ describe('PortfolioProxyFactory', function() {
   })
 
   it('Should fail to change proxy admin: not admin', async function() {
-    await expect(portfolioFactory.connect(accounts[2]).changeProxyAdmin(portfolio.address, newFactory.address)).to.be.revertedWith('User not admin')
+    await expect(portfolioFactory.connect(accounts[2]).changeProxyAdmin(portfolio.address, newFactory.address)).to.be.revertedWith('User not manager')
   })
 
   it('Should change proxy admin', async function() {

@@ -39,18 +39,18 @@ module.exports = {
     }
     return tokens
   },
-  deployUniswapRouter: async (owner, uniswapFactory, weth) => {
-    const UniswapRouter = await getContractFactory('UniswapRouter')
-    const router = await UniswapRouter.connect(owner).deploy(
+  deployUniswapAdapter: async (owner, uniswapFactory, weth) => {
+    const UniswapAdapter = await getContractFactory('UniswapAdapter')
+    const adapter = await UniswapAdapter.connect(owner).deploy(
       uniswapFactory.address,
       weth.address
     )
-    await router.deployed()
-    console.log('Uniswap router: ', router.address)
-    return router
+    await adapter.deployed()
+    console.log('Uniswap adapter: ', adapter.address)
+    return adapter
   },
-  deployPlatform: async (owner, controller, uniswapFactory, weth) => {
-    const Oracle = await getContractFactory('TestOracle')
+  deployPlatform: async (owner, uniswapFactory, weth) => {
+    const Oracle = await getContractFactory('UniswapNaiveOracle')
     const oracle = await Oracle.connect(owner).deploy(
         uniswapFactory.address,
         weth.address
@@ -63,7 +63,13 @@ module.exports = {
     await whitelist.deployed()
     console.log("Whitelist: ", whitelist.address)
 
-    await whitelist.connect(owner).approve(controller.address)
+    const PortfolioControllerDeployer = await getContractFactory('PortfolioControllerDeployer')
+    const deployer = await PortfolioControllerDeployer.connect(owner).deploy()
+    await deployer.deployed()
+
+    const controllerAddress = await deployer.controller()
+    const PortfolioController = await getContractFactory('PortfolioController')
+    const controller = await PortfolioController.attach(controllerAddress)
 
     const Portfolio = await getContractFactory('Portfolio')
     const portfolioImplementation = await Portfolio.connect(owner).deploy()
@@ -72,37 +78,40 @@ module.exports = {
     const PortfolioProxyFactory = await getContractFactory('PortfolioProxyFactory')
     const portfolioFactory = await PortfolioProxyFactory.connect(owner).deploy(
       portfolioImplementation.address,
+      controllerAddress,
       oracle.address,
-      whitelist.address,
-      controller.address
+      whitelist.address
     )
     await portfolioFactory.deployed()
     console.log("Portfolio Factory: ", portfolioFactory.address)
 
-    return [portfolioFactory, oracle, whitelist]
+    return [portfolioFactory, controller, oracle, whitelist]
   },
-  deployLoopController: async (owner, uniswapFactory, weth) => {
-    const UniswapRouter = await getContractFactory('UniswapRouter')
-    const router = await UniswapRouter.connect(owner).deploy(
+  deployLoopRouter: async (owner, controller, uniswapFactory, weth) => {
+    console.log('Controller: ', controller.address);
+    console.log('WETH: ', weth.address);
+    const UniswapAdapter = await getContractFactory('UniswapAdapter')
+    const adapter = await UniswapAdapter.connect(owner).deploy(
       uniswapFactory.address,
+      weth.address
+    )
+    await adapter.deployed()
+
+    const LoopRouter = await getContractFactory('LoopRouter')
+    const router = await LoopRouter.connect(owner).deploy(
+      adapter.address,
+      uniswapFactory.address,
+      controller.address,
       weth.address
     )
     await router.deployed()
 
-    const LoopController = await getContractFactory('LoopController')
-    const controller = await LoopController.connect(owner).deploy(
-      router.address,
-      uniswapFactory.address,
-      weth.address
-    )
-    await controller.deployed()
-
-    return [controller, router]
+    return [router, adapter]
   },
-  deployGenericController: async (owner, weth) => {
-    const GenericController = await ethers.getContractFactory('GenericController')
-    const controller = await GenericController.connect(owner).deploy(weth.address)
-    await controller.deployed()
-    return controller
+  deployGenericRouter: async (owner, controller, weth) => {
+    const GenericRouter = await ethers.getContractFactory('GenericRouter')
+    const router = await GenericRouter.connect(owner).deploy(controller.address, weth.address)
+    await router.deployed()
+    return router
   }
 }

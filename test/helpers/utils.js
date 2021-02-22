@@ -1,4 +1,5 @@
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
+const UniswapV2Pair = require('@uniswap/v2-core/build/UniswapV2Pair.json')
 const { ethers } = require('hardhat')
 const { constants, getContractAt } = ethers
 const { AddressZero } = constants
@@ -6,7 +7,7 @@ const { AddressZero } = constants
 const DIVISOR = 1000
 const FEE = 997
 
-function preparePortfolio(positions, router){
+function preparePortfolio(positions, adapter){
   let portfolioTokens = []
   let portfolioPercentages = []
   let portfolioRouters = []
@@ -17,15 +18,42 @@ function preparePortfolio(positions, router){
   }).forEach(position => {
     portfolioTokens.push(position.token)
     portfolioPercentages.push(position.percentage)
-    portfolioRouters.push(router)
+    portfolioRouters.push(adapter)
   })
   return [portfolioTokens, portfolioPercentages, portfolioRouters]
 }
 
-async function prepareRebalanceMulticall(portfolio, controller, router, oracle, weth) {
+async function prepareUniswapSwap(router, adapter, factory, from, to, amount, tokenIn, tokenOut) {
+  const calls = []
+  //Get pair address
+  const pairAddress = await factory.getPair(tokenIn.address, tokenOut.address)
+  if (pairAddress !== AddressZero) {
+    const pair = await getContractAt(UniswapV2Pair.abi, pairAddress)
+    //Transfer input token to pair address
+    if (from.toLowerCase() === router.address.toLowerCase()) {
+      calls.push(await encodeTransfer(tokenIn, pairAddress, amount))
+    } else {
+      calls.push(await encodeTransferFrom(tokenIn, from, pairAddress, amount))
+    }
+    //Swap tokens
+    const received = await adapter.swapPrice(amount, tokenIn.address, tokenOut.address)
+    const tokenInNum = ethers.BigNumber.from(tokenIn.address)
+    const tokenOutNum = ethers.BigNumber.from(tokenOut.address)
+    if (tokenInNum.lt(tokenOutNum)) {
+      calls.push(await encodeUniswapPairSwap(pair, 0, received, to))
+    } else if (tokenOutNum.lt(tokenInNum)) {
+      calls.push(await encodeUniswapPairSwap(pair, received, 0, to))
+    } else {
+      return []
+    }
+    return calls
+  }
+}
+
+async function prepareRebalanceMulticall(portfolio, controller, router, adapter, oracle, factory, weth) {
   const calls = []
   const buyLoop = []
-  const tokens = await portfolio.getPortfolioTokens()
+  const tokens = await portfolio.tokens()
   const [total, estimates] = await oracle.estimateTotal(portfolio.address, tokens)
 
   let wethInPortfolio = false
@@ -35,19 +63,23 @@ async function prepareRebalanceMulticall(portfolio, controller, router, oracle, 
       const estimatedValue = ethers.BigNumber.from(estimates[i])
       const expectedValue =
           ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, portfolio))
-      const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, portfolio))
+      const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, controller, portfolio))
       if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
           console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
-          const diff = ethers.BigNumber.from(
-              await router.spotPrice(
-                  estimatedValue.sub(expectedValue),
-                  weth.address,
-                  token.address
-              )
-          );
           if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-            calls.push(await encodeDelegateSwap(controller, portfolio.address, router.address, diff, 0, token.address, weth.address))
+            const diff = ethers.BigNumber.from(
+                await adapter.spotPrice(
+                    estimatedValue.sub(expectedValue),
+                    weth.address,
+                    token.address
+                )
+            );
+            //calls.push(await encodeDelegateSwap(router, portfolio.address, adapter.address, diff, 0, token.address, weth.address))
+            const swapCalls = await prepareUniswapSwap(router, adapter, factory, portfolio.address, router.address, diff, token, weth)
+            calls.push(...swapCalls)
           } else {
+            const diff = estimatedValue.sub(expectedValue)
+            calls.push(await encodeTransferFrom(token, portfolio.address, controller.address, diff))
             wethInPortfolio = true
           }
       } else {
@@ -64,56 +96,90 @@ async function prepareRebalanceMulticall(portfolio, controller, router, oracle, 
       if (token.address.toLowerCase() != weth.address.toLowerCase()) {
           if (!wethInPortfolio && i == buyLoop.length-1) {
               console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
-              calls.push(await encodeSettleSwap(controller, portfolio.address, router.address, weth.address, token.address))
+              // The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
+              calls.push(await encodeSettleSwap(router, adapter.address, weth.address, token.address, router.address, portfolio.address))
           } else {
               const expectedValue =
                   ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, portfolio))
-              const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, portfolio))
+              const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, controller, portfolio))
               if (estimatedValue.lt(expectedValue.sub(rebalanceRange))) {
                   console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
                   const diff = expectedValue.sub(estimatedValue).mul(FEE).div(DIVISOR);
-                  if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-                    calls.push(await encodeDelegateSwap(controller, portfolio.address, router.address, diff, 0, weth.address, token.address))
-                  }
+                  const swapCalls = await prepareUniswapSwap(router, adapter, factory, router.address, portfolio.address, diff, weth, token)
+                  calls.push(...swapCalls)
               }
           }
       }
+  }
+  if (wethInPortfolio) {
+    calls.push(await encodeSettleTransfer(controller, weth.address, portfolio.address))
+  }
+  return calls
+}
+
+async function prepareDepositMulticall(portfolio, router, adapter, factory, weth, total, tokens, percentages) {
+  const calls = []
+  calls.push(await encodeWethDeposit(weth, total))
+  let wethInPortfolio = false
+  for (let i = 0; i < tokens.length; i++) {
+      const token = await getContractAt(ERC20.abi, tokens[i])
+
+      if (token.address.toLowerCase() !== weth.address.toLowerCase()) {
+        if (!wethInPortfolio && i == tokens.length-1) {
+          calls.push(await encodeSettleSwap(router, adapter.address, weth.address, token.address, router.address, portfolio.address))
+        } else {
+          const expectedValue =
+              ethers.BigNumber.from(total).mul(percentages[i]).div(DIVISOR)
+          console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', expectedValue.toString())
+          const swapCalls = await prepareUniswapSwap(router, adapter, factory, router.address, portfolio.address, expectedValue, weth, token)
+          calls.push(...swapCalls)
+        }
+      } else {
+        wethInPortfolio = true
+      }
+  }
+  if (wethInPortfolio) {
+    calls.push(await encodeSettleTransfer(router, weth.address, portfolio.address))
   }
   return calls
 }
 
 async function getExpectedTokenValue(total, token, portfolio) {
-  const percentage = await portfolio.getTokenPercentage(token)
+  const percentage = await portfolio.tokenPercentage(token)
   return ethers.BigNumber.from(total).mul(percentage).div(DIVISOR);
 }
 
-async function getRebalanceRange(expectedValue, portfolio) {
-  const threshold = await portfolio.rebalanceThreshold()
+async function getRebalanceRange(expectedValue, controller, portfolio) {
+  const threshold = await controller.rebalanceThreshold(portfolio.address)
   return ethers.BigNumber.from(expectedValue).mul(threshold).div(DIVISOR);
 }
 
 
-async function encodeSwap(router, amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo) {
-  const swapEncoded = await router.interface.encodeFunctionData("swap", [amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo, '0x', '0x'])
+async function encodeSwap(adapter, amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo) {
+  const swapEncoded = await adapter.interface.encodeFunctionData("swap", [amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo, '0x', '0x'])
   const msgValue = tokenIn == AddressZero ? amountTokens : 0
-  return { target: router.address, callData: swapEncoded, value: msgValue}
+  return { target: adapter.address, callData: swapEncoded, value: msgValue}
 }
 
-async function encodeDelegateSwap(controller, portfolio, router, amount, minTokens, tokenIn, tokenOut) {
-  const delegateSwapEncoded = await controller.interface.encodeFunctionData("delegateSwap", [portfolio, router, amount, minTokens, tokenIn, tokenOut, '0x'])
-  return { target: controller.address, callData: delegateSwapEncoded, value: 0}
+async function encodeDelegateSwap(router, portfolio, adapter, amount, minTokens, tokenIn, tokenOut) {
+  const delegateSwapEncoded = await router.interface.encodeFunctionData("delegateSwap", [portfolio, adapter, amount, minTokens, tokenIn, tokenOut, '0x'])
+  return { target: router.address, callData: delegateSwapEncoded, value: 0}
 }
 
-async function encodeSettleSwap(controller, portfolio, router, tokenIn, tokenOut) {
-  const settleSwapEncoded = await controller.interface.encodeFunctionData("settleSwap", [portfolio, router, tokenIn, tokenOut, '0x'])
-  return { target: controller.address, callData: settleSwapEncoded, value: 0}
+async function encodeUniswapPairSwap(pair, amount0Out, amount1Out, accountTo) {
+  const pairSwapEncoded = await pair.interface.encodeFunctionData("swap", [amount0Out, amount1Out, accountTo, '0x'])
+  return { target: pair.address, callData: pairSwapEncoded, value: 0}
 }
-/*
-async function encodeSettleTransfer(controller, token, to) {
-  const settleTransferEncoded = await controller.interface.encodeFunctionData("settleTransfer", [token, to])
-  return { target: controller.address, callData: settleTransferEncoded, value: 0}
+
+async function encodeSettleSwap(router, adapter, tokenIn, tokenOut, accountFrom, accountTo) {
+  const settleSwapEncoded = await router.interface.encodeFunctionData("settleSwap", [adapter, tokenIn, tokenOut, accountFrom, accountTo, '0x'])
+  return { target: router.address, callData: settleSwapEncoded, value: 0}
 }
-*/
+
+async function encodeSettleTransfer(router, token, to) {
+  const settleTransferEncoded = await router.interface.encodeFunctionData("settleTransfer", [token, to])
+  return { target: router.address, callData: settleTransferEncoded, value: 0}
+}
 
 async function encodeTransfer(token, to, amount) {
   const transferEncoded = await token.interface.encodeFunctionData("transfer", [to, amount])
@@ -130,9 +196,15 @@ async function encodeApprove(token, to, amount) {
   return { target: token.address, callData: approveEncoded, value: 0 }
 }
 
+async function encodeWethDeposit(weth, amount) {
+  const depositEncoded = await weth.interface.encodeFunctionData("deposit", [])
+  return { target: weth.address, callData: depositEncoded, value: amount }
+}
+
 module.exports = {
   preparePortfolio,
   prepareRebalanceMulticall,
+  prepareDepositMulticall,
   encodeSwap,
   encodeTransfer,
   encodeTransferFrom,

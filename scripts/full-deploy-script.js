@@ -24,7 +24,7 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
 
-  const Oracle = await hre.ethers.getContractFactory('TestOracle')
+  const Oracle = await hre.ethers.getContractFactory('UniswapNaiveOracle')
   const oracle = await Oracle.deploy(
     deployedContracts[process.env.HARDHAT_NETWORK].uniswapFactory,
     deployedContracts[process.env.HARDHAT_NETWORK].weth
@@ -39,46 +39,69 @@ async function main() {
 
   console.log('Whitelist deployed to: ', whitelist.address)
 
-  const UniswapRouter = await hre.ethers.getContractFactory('UniswapRouter')
-  const uniswapRouter = await UniswapRouter.deploy(
+  const UniswapAdapter = await hre.ethers.getContractFactory('UniswapAdapter')
+  const uniswapAdapter = await UniswapAdapter.deploy(
     deployedContracts[process.env.HARDHAT_NETWORK].uniswapFactory,
     deployedContracts[process.env.HARDHAT_NETWORK].weth
   )
-  await uniswapRouter.deployed()
+  await uniswapAdapter.deployed()
 
-  console.log('Uniswap Router deployed to: ', uniswapRouter.address)
+  console.log('UniswapAdapter deployed to: ', uniswapAdapter.address)
 
-  const LoopController = await hre.ethers.getContractFactory('LoopController')
-  const loopController = await LoopController.deploy(
-    uniswapRouter.address,
+  const PortfolioControllerDeployer = await hre.ethers.getContractFactory('PortfolioControllerDeployer')
+  const deployer = await PortfolioControllerDeployer.deploy()
+  await deployer.deployed()
+
+  console.log('PortfolioControllerDeployer deployed to: ', deployer.address)
+
+  const controllerAddress = await deployer.controller()
+
+  console.log('PortfolioController deployed to: ', controllerAddress)
+
+  const LoopRouter = await hre.ethers.getContractFactory('LoopRouter')
+  const loopRouter = await LoopRouter.deploy(
+    uniswapAdapter.address,
     deployedContracts[process.env.HARDHAT_NETWORK].uniswapFactory,
+    controllerAddress,
     deployedContracts[process.env.HARDHAT_NETWORK].weth
   )
-  await loopController.deployed()
+  await loopRouter.deployed()
 
-  console.log('Loop Controller deployed to: ', loopController.address)
+  console.log('LoopRouter deployed to: ', loopRouter.address)
 
-  const tx = await whitelist.approve(loopController.address)
+  let tx = await whitelist.approve(loopRouter.address)
   await tx.wait()
 
-  console.log('LoopController approved in Whitelist')
+  console.log('LoopRouter approved in Whitelist')
+
+  const GenericRouter = await hre.ethers.getContractFactory('GenericRouter')
+  const genericRouter = await GenericRouter.deploy(
+    controllerAddress,
+    deployedContracts[process.env.HARDHAT_NETWORK].weth
+  )
+  await genericRouter.deployed()
+
+  console.log('GenericRouter deployed to: ', genericRouter.address)
+
+  tx = await whitelist.approve(genericRouter.address)
+  await tx.wait()
+
+  console.log('GenericRouter approved in Whitelist')
 
   const Portfolio = await hre.ethers.getContractFactory('Portfolio')
   const portfolioImplementation = await Portfolio.deploy()
   await portfolioImplementation.deployed()
 
-  console.log('Portfolio Implementation deployed to: ', portfolioImplementation.address)
-
   const PortfolioProxyFactory = await hre.ethers.getContractFactory('PortfolioProxyFactory')
   const portfolioFactory = await PortfolioProxyFactory.deploy(
     portfolioImplementation.address,
+    controllerAddress,
     oracle.address,
-    whitelist.address,
-    loopController.address
+    whitelist.address
   )
   await portfolioFactory.deployed()
 
-  console.log('Factory deployed to:', portfolioFactory.address)
+  console.log('PortfolioProxyFactory deployed to:', portfolioFactory.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

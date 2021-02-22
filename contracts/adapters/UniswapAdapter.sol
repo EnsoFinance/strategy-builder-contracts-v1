@@ -7,17 +7,17 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./PortfolioRouter.sol";
+import "./ExchangeAdapter.sol";
 import "../libraries/UniswapV2Library.sol";
 
-contract UniswapRouter is PortfolioRouter {
+contract UniswapAdapter is ExchangeAdapter {
     using SafeMath for uint256;
 
     address internal _factory;
 
-    constructor(address factory_, address weth_) public PortfolioRouter(weth_) {
+    constructor(address factory_, address weth_) public ExchangeAdapter(weth_) {
         _factory = factory_;
-        _package = abi.encode(factory_);
+        _package = abi.encode(factory_, weth_);
     }
 
     function spotPrice(
@@ -59,29 +59,30 @@ contract UniswapRouter is PortfolioRouter {
         require(tokenIn != tokenOut, "Error (swap): Input and tokenOut cannot match");
         // For delegate call must pass state in with 'package' parameters.
         // If package.length == 0 just rely on regular state
-        address factory = package.length > 0 ? abi.decode(package, (address)) : (_factory);
+        (address factoryAddress, address wethAddress)
+            = package.length > 0 ? abi.decode(package, (address, address)) : (_factory, weth);
         address[] memory path = new address[](2);
         if (tokenIn == address(0)) {
             //require(amount == msg.value, "UniswapRouter.swap: Not enough ETH sent");
-            path[0] = weth;
+            path[0] = wethAddress;
             path[1] = tokenOut;
-            IWETH(weth).deposit{ value: amount }(); // solhint-disable
-            assert(IWETH(weth).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amount));
+            IWETH(wethAddress).deposit{ value: amount }(); // solhint-disable
+            assert(IWETH(wethAddress).transfer(UniswapV2Library.pairFor(factoryAddress, path[0], path[1]), amount));
         } else {
             require(msg.value == 0, "Error (swap): Cannot send value if tokenIn is not Ether");
             path[0] = tokenIn;
-            path[1] = tokenOut == address(0) ? weth : tokenOut;
-            TransferHelper.safeTransferFrom(path[0], from, UniswapV2Library.pairFor(factory, path[0], path[1]), amount);
+            path[1] = tokenOut == address(0) ? wethAddress : tokenOut;
+            TransferHelper.safeTransferFrom(path[0], from, UniswapV2Library.pairFor(factoryAddress, path[0], path[1]), amount);
         }
 
-        uint256 received = UniswapV2Library.getAmountsOut(factory, amount, path)[1];
+        uint256 received = UniswapV2Library.getAmountsOut(factoryAddress, amount, path)[1];
         require(received >= expected, "Error (swap): Insufficient tokenOut amount");
         if (tokenOut == address(0)) {
-            _pairSwap(factory, 0, received, path[0], path[1], address(this), data);
-            IWETH(weth).withdraw(received);
+            _pairSwap(factoryAddress, 0, received, path[0], path[1], address(this), data);
+            IWETH(wethAddress).withdraw(received);
             TransferHelper.safeTransferETH(to, received);
         } else {
-            _pairSwap(factory, 0, received, path[0], path[1], to, data);
+            _pairSwap(factoryAddress, 0, received, path[0], path[1], to, data);
         }
         return true;
     }

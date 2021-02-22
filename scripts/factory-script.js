@@ -7,6 +7,7 @@ const hre = require("hardhat");
 
 // MUST SET VALUES!
 const portfolioImplementation = ''
+const portfolioController = ''
 const oracle = ''
 const whitelist = ''
 
@@ -22,6 +23,7 @@ async function main() {
   const PortfolioProxyFactory = await hre.ethers.getContractFactory('PortfolioProxyFactory')
   const portfolioFactory = await PortfolioProxyFactory.deploy(
     portfolioImplementation,
+    portfolioController,
     oracle,
     whitelist
   )

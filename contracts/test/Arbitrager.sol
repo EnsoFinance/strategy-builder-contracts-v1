@@ -2,7 +2,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/IPortfolioRouter.sol";
+import "../interfaces/IExchangeAdapter.sol";
 import "hardhat/console.sol";
 
 
@@ -14,11 +14,11 @@ contract Arbitrager is Ownable {
         uint256 amount,
         IERC20 loanToken,
         IERC20 pairToken,
-        IPortfolioRouter sellRouter,
-        IPortfolioRouter buyRouter
+        IExchangeAdapter sellAdapter,
+        IExchangeAdapter buyAdapter
     ) external {
         // Do arbitrage trades
-        _arbitrage(amount, loanToken, pairToken, sellRouter, buyRouter);
+        _arbitrage(amount, loanToken, pairToken, sellAdapter, buyAdapter);
         // Return loan
         loanToken.transfer(lender, amount);
         // Withdraw earnings
@@ -29,10 +29,10 @@ contract Arbitrager is Ownable {
         uint256 amount,
         IERC20 arbToken,
         IERC20 pairToken,
-        IPortfolioRouter sellRouter,
-        IPortfolioRouter buyRouter
+        IExchangeAdapter sellAdapter,
+        IExchangeAdapter buyAdapter
     ) external onlyOwner {
-        _arbitrage(amount, arbToken, pairToken, sellRouter, buyRouter);
+        _arbitrage(amount, arbToken, pairToken, sellAdapter, buyAdapter);
     }
 
     function withdraw(IERC20 token) external onlyOwner {
@@ -43,11 +43,11 @@ contract Arbitrager is Ownable {
         uint256 amount,
         IERC20 arbToken,
         IERC20 pairToken,
-        IPortfolioRouter sellRouter,
-        IPortfolioRouter buyRouter
+        IExchangeAdapter sellAdapter,
+        IExchangeAdapter buyAdapter
     ) internal {
-        arbToken.approve(address(sellRouter), amount);
-        sellRouter.swap(
+        arbToken.approve(address(sellAdapter), amount);
+        sellAdapter.swap(
             amount,
             0,
             address(arbToken),
@@ -58,8 +58,8 @@ contract Arbitrager is Ownable {
             new bytes(0)
         );
         uint256 balance = pairToken.balanceOf(address(this));
-        pairToken.approve(address(buyRouter), balance);
-        buyRouter.swap(
+        pairToken.approve(address(buyAdapter), balance);
+        buyAdapter.swap(
             balance,
             0,
             address(pairToken),

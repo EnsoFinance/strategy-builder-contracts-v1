@@ -2,30 +2,19 @@
 pragma solidity 0.6.12;
 
 interface IPortfolioRouter {
-    function swap(
-        uint256 amount,
-        uint256 expected,
-        address tokenIn,
-        address tokenOut,
-        address from,
-        address to,
-        bytes memory data,
-        bytes memory package
-    ) external payable returns (bool);
+    //address public weth;
+    //function deposit(address depositor, address[] memory tokens, address[] memory routers) external payable;
+    //function withdraw(address withdrawer, uint256 amount) external;
+
+    function sellTokens(address portfolio, address[] memory tokens, address[] memory routers) external;
+
+    function buyTokens(address portfolio, address[] memory tokens, address[] memory routers) external payable;
+
+    function rebalance(address portfolio, bytes calldata data) external;
+
+    function deposit(address portfolio, bytes calldata data) external payable;
+
+    function controller() external view returns (address);
 
     function weth() external view returns (address);
-
-    function getPackage() external view returns (bytes memory);
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view returns (uint256);
-
-    function swapPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view returns (uint256);
 }

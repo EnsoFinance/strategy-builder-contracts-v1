@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IPortfolio.sol";
+import "../interfaces/IPortfolioController.sol";
 import "../interfaces/IOracle.sol";
 
 library PortfolioLibrary {
@@ -68,10 +69,11 @@ library PortfolioLibrary {
         address portfolio,
         address token
     ) internal view returns (uint256) {
-        return total.mul(IPortfolio(portfolio).getTokenPercentage(token)).div(DIVISOR);
+        return total.mul(IPortfolio(portfolio).tokenPercentage(token)).div(DIVISOR);
     }
 
     function getRange(uint256 expectedValue, uint256 threshold) internal pure returns (uint256) {
+        if (threshold == 0) return 0;
         return expectedValue.mul(threshold).div(DIVISOR);
     }
 }

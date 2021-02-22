@@ -1,6 +1,6 @@
 # 1. Asset Management Solidity V1
 
-Template Solidity environment based on Hardhat, Waffle, and Ethers 
+Template Solidity environment based on Hardhat, Waffle, and Ethers
 - [1. Asset Management Solidity V1](#1-asset-management-solidity-v1)
 - [2. Getting started](#2-getting-started)
   - [2.1. Install](#21-install)
@@ -68,7 +68,7 @@ If the eth value of any asset in the portfolio falls outside of a provided thres
 
 ## 3.3. Routers
   - Interface to swap tokens on different dexes
-  
+
 
 ## 3.4. Controllers
   - Using the routers, the controller implements a trading strategy provided by the portfolio manager.
@@ -161,12 +161,19 @@ Or- [1. Asset Management Solidity V1](#1-asset-management-solidity-v1)
 - [6. Examples](#6-examples)
 - [7. Kovan Deployment](#7-kovan-deployment)
 
-Whitelist deployed to:  0x2541704464409B798a211755B8daE579171415CD
 
-Uniswap Router deployed to:  0x68f9FfF89A247a3578ABFc8d8B62584725D031d2
+Oracle deployed to:  0x8427A14b4D6F63336bE75e1b3501626B9ef1d9C0
 
-Loop Controller deployed to:  0xC75cb456a178fBc2AfED9b41CaFE0d1eA20c2F43
+Whitelist deployed to:  0x9322B0Cb683583A60B2334f6085ddC65c76011D1
 
-Portfolio Implementation deployed to:  0x56142d3c72Ef39C75b06095150d9e8EF04Db20de
+UniswapAdapter deployed to:  0x2E145331C8C9800135C70de6e8F67ebFcd27FD1E
 
-Factory deployed to: 0xEF7B263C46343713848Db0233aCC06E5C475d85c
+PortfolioControllerDeployer deployed to:  0x34DAdAc3899fD65c847872B16915422F05308569
+
+PortfolioController deployed to:  0xD454e59de72592dEbB28a3EC529cE068114164Db
+
+LoopRouter deployed to:  0x9b01b889E652f2d9F12d10aD177912363dFE55cF
+
+GenericRouter deployed to:  0x3F4c51e1180281B5b8c17c6Ec01Aa1DE1597655F
+
+PortfolioProxyFactory deployed to: 0x6b7d480f1deD80571CF87a05711683c223880b46

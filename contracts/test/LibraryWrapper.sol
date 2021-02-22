@@ -3,7 +3,9 @@ pragma solidity 0.6.12;
 
 import "../interfaces/IOracle.sol";
 import "../interfaces/IPortfolio.sol";
+import "../interfaces/IPortfolioController.sol";
 import "../libraries/PortfolioLibrary.sol";
+
 
 contract LibraryWrapper {
     IOracle public oracle;
@@ -18,23 +20,24 @@ contract LibraryWrapper {
         return
             PortfolioLibrary.checkBalance(
                 address(portfolio),
-                portfolio.getPortfolioTokens(),
-                portfolio.rebalanceThreshold()
+                portfolio.tokens(),
+                IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio))
             );
     }
 
     function isRebalanceNeeded(uint256 alertThreshold) external view returns (bool) {
         bool balanced =
-            PortfolioLibrary.checkBalance(address(portfolio), portfolio.getPortfolioTokens(), alertThreshold);
+            PortfolioLibrary.checkBalance(address(portfolio), portfolio.tokens(), alertThreshold);
         return !balanced;
     }
 
     function getRebalanceRange(uint256 total) external view returns (uint256) {
-        return PortfolioLibrary.getRange(total, portfolio.rebalanceThreshold());
+        uint256 range = IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio));
+        return PortfolioLibrary.getRange(total, range);
     }
 
     function getPortfolioValue() external view returns (uint256) {
-        (uint256 total, ) = oracle.estimateTotal(address(portfolio), portfolio.getPortfolioTokens());
+        (uint256 total, ) = oracle.estimateTotal(address(portfolio), portfolio.tokens());
         return total;
     }
 

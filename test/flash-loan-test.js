@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { displayBalances } = require('./helpers/logging.js')
-const { deployUniswap, deployTokens, deployPlatform, deployUniswapRouter, deployGenericController } = require('./helpers/deploy.js')
+const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployGenericRouter } = require('./helpers/deploy.js')
 const { preparePortfolio, prepareRebalanceMulticall } = require('./helpers/utils.js')
 const { prepareFlashLoan } = require('./helpers/cookbook.js')
 const { constants, getContractFactory, getSigners } = ethers
@@ -14,18 +14,19 @@ const TIMELOCK = 1209600 // Two weeks
 let WETH;
 
 describe('Flash Loan', function () {
-    let tokens, accounts, uniswapFactory, sushiFactory, portfolioFactory, oracle, genericController, uniswapRouter, sushiRouter, arbitrager, portfolio, portfolioTokens, portfolioPercentages, portfolioRouters, wrapper
+    let tokens, accounts, uniswapFactory, sushiFactory, portfolioFactory, controller, oracle, whitelist, genericRouter, uniswapAdapter, sushiAdapter, arbitrager, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper
 
-    before('Setup Uniswap, Sushiswap, Factory, GenericController', async function() {
+    it('Setup Uniswap, Sushiswap, Factory, GenericRouter', async function() {
       accounts = await getSigners();
       tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200*(NUM_TOKENS-1)));
       WETH = tokens[0];
       uniswapFactory = await deployUniswap(accounts[0], tokens);
       sushiFactory = await deployUniswap(accounts[0], tokens);
-      uniswapRouter = await deployUniswapRouter(accounts[0], uniswapFactory, WETH);
-      sushiRouter = await deployUniswapRouter(accounts[0], sushiFactory, WETH);
-      genericController = await deployGenericController(accounts[0], WETH);
-      [portfolioFactory, oracle, ] = await deployPlatform(accounts[0], genericController, uniswapFactory, WETH);
+      uniswapAdapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH);
+      sushiAdapter = await deployUniswapAdapter(accounts[0], sushiFactory, WETH);
+      [portfolioFactory, controller, oracle, whitelist ] = await deployPlatform(accounts[0], uniswapFactory, WETH);
+      genericRouter = await deployGenericRouter(accounts[0], controller, WETH);
+      await whitelist.connect(accounts[0]).approve(genericRouter.address)
     })
 
     it('Should deploy portfolio', async function() {
@@ -35,12 +36,12 @@ describe('Flash Loan', function () {
         {token: tokens[2].address, percentage: 300},
         {token: tokens[3].address, percentage: 200}
       ];
-      [portfolioTokens, portfolioPercentages, portfolioRouters] = preparePortfolio(positions, uniswapRouter.address);
+      [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, uniswapAdapter.address);
       // TODO: portfolio is currently accepting duplicate tokens
       let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
         'Test Portfolio',
         'TEST',
-        portfolioRouters,
+        portfolioAdapters,
         portfolioTokens,
         portfolioPercentages,
         REBALANCE_THRESHOLD,
@@ -53,7 +54,7 @@ describe('Flash Loan', function () {
 
       const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
       const Portfolio = await getContractFactory('Portfolio')
-      portfolio = Portfolio.attach(portfolioAddress)
+      portfolio = await Portfolio.attach(portfolioAddress)
 
       const LibraryWrapper = await getContractFactory('LibraryWrapper')
       wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
@@ -76,7 +77,7 @@ describe('Flash Loan', function () {
 
     it('Should purchase a token, requiring a rebalance and create arbitrage opportunity', async function () {
         const value = WeiPerEther.mul(50)
-        await uniswapRouter.connect(accounts[2]).swap(
+        await uniswapAdapter.connect(accounts[2]).swap(
             value,
             0,
             AddressZero,
@@ -88,8 +89,8 @@ describe('Flash Loan', function () {
             { value: value }
         )
         const tokenBalance = await tokens[1].balanceOf(accounts[2].address)
-        await tokens[1].connect(accounts[2]).approve(sushiRouter.address, tokenBalance)
-        await sushiRouter.connect(accounts[2]).swap(
+        await tokens[1].connect(accounts[2]).approve(sushiAdapter.address, tokenBalance)
+        await sushiAdapter.connect(accounts[2]).swap(
             tokenBalance,
             0,
             tokens[1].address,
@@ -106,17 +107,15 @@ describe('Flash Loan', function () {
         console.log('Rebalancing portfolio....')
         const balanceBefore = await tokens[1].balanceOf(accounts[1].address)
         // Multicall gets initial tokens from uniswap
-        const rebalanceCalls = await prepareRebalanceMulticall(portfolio, genericController, uniswapRouter, oracle, WETH)
-        const flashLoanCalls = await prepareFlashLoan(portfolio, arbitrager, uniswapRouter, sushiRouter, ethers.BigNumber.from('1000000000000000'), tokens[1], WETH)
+        const rebalanceCalls = await prepareRebalanceMulticall(portfolio, controller, genericRouter, uniswapAdapter, oracle, uniswapFactory, WETH)
+        const flashLoanCalls = await prepareFlashLoan(portfolio, arbitrager, uniswapAdapter, sushiAdapter, ethers.BigNumber.from('1000000000000000'), tokens[1], WETH)
         const calls = [...rebalanceCalls, ...flashLoanCalls]
-        const data = await genericController.encodeCalls(calls);
-        const tx = await portfolio.connect(accounts[1]).rebalance(data, genericController.address)
+        const data = await genericRouter.encodeCalls(calls);
+        const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, genericRouter.address, data)
         const receipt = await tx.wait()
         console.log('Gas Used: ', receipt.gasUsed.toString())
         const balanceAfter = await tokens[1].balanceOf(accounts[1].address)
         expect(balanceAfter.gt(balanceBefore)).to.equal(true)
         console.log('Tokens Earned: ', balanceAfter.sub(balanceBefore).toString())
     })
-
-
 })
