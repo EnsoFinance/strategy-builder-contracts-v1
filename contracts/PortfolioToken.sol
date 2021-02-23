@@ -5,9 +5,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./PortfolioTokenStorage.sol";
 
-
 contract PortfolioToken is IERC20, PortfolioTokenStorage {
     using SafeMath for uint256;
+
+    string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";
 
     /**
      * @dev See {IERC20-transfer}.
@@ -56,7 +57,7 @@ contract PortfolioToken is IERC20, PortfolioTokenStorage {
         _approve(
             sender,
             msg.sender,
-            _allowances[sender][msg.sender].sub(amount, "ERC20: transfer amount exceeds allowance")
+            _allowances[sender][msg.sender].sub(amount, "ERC20: allowance too low")
         );
         return true;
     }
@@ -103,7 +104,13 @@ contract PortfolioToken is IERC20, PortfolioTokenStorage {
     /**
      * @dev See {IERC20-allowance}.
      */
-    function allowance(address owner, address spender) external view virtual override returns (uint256) {
+    function allowance(address owner, address spender)
+        external
+        view
+        virtual
+        override
+        returns (uint256)
+    {
         return _allowances[owner][spender];
     }
 
@@ -133,10 +140,9 @@ contract PortfolioToken is IERC20, PortfolioTokenStorage {
         address recipient,
         uint256 amount
     ) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
-
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
+        _validAddress(sender);
+        _validAddress(recipient);
+        _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
     }
@@ -151,8 +157,7 @@ contract PortfolioToken is IERC20, PortfolioTokenStorage {
      * - `to` cannot be the zero address.
      */
     function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: mint to the zero address");
-
+        _validAddress(account);
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
         emit Transfer(address(0), account, amount);
@@ -170,9 +175,8 @@ contract PortfolioToken is IERC20, PortfolioTokenStorage {
      * - `account` must have at least `amount` tokens.
      */
     function _burn(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20: burn from the zero address");
-
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
+        _validAddress(account);
+        _balances[account] = _balances[account].sub(amount, BALANCE_LOW);
         _totalSupply = _totalSupply.sub(amount);
         emit Transfer(account, address(0), amount);
     }
@@ -195,10 +199,14 @@ contract PortfolioToken is IERC20, PortfolioTokenStorage {
         address spender,
         uint256 amount
     ) internal virtual {
-        require(owner != address(0), "ERC20: approve from the zero address");
-        require(spender != address(0), "ERC20: approve to the zero address");
+        _validAddress(owner);
+        _validAddress(spender);
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+    }
+
+    function _validAddress(address addr) internal pure {
+        require(addr != address(0), "ERC20: No address(0)");
     }
 }

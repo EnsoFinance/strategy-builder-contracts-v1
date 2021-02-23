@@ -25,7 +25,8 @@ contract UniswapAdapter is ExchangeAdapter {
         address tokenIn,
         address tokenOut
     ) external view override returns (uint256) {
-        (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(_factory, tokenIn, tokenOut);
+        (uint256 reserveA, uint256 reserveB) =
+            UniswapV2Library.getReserves(_factory, tokenIn, tokenOut);
         return UniswapV2Library.quote(amount, reserveA, reserveB);
     }
 
@@ -59,20 +60,30 @@ contract UniswapAdapter is ExchangeAdapter {
         require(tokenIn != tokenOut, "Error (swap): Input and tokenOut cannot match");
         // For delegate call must pass state in with 'package' parameters.
         // If package.length == 0 just rely on regular state
-        (address factoryAddress, address wethAddress)
-            = package.length > 0 ? abi.decode(package, (address, address)) : (_factory, weth);
+        (address factoryAddress, address wethAddress) =
+            package.length > 0 ? abi.decode(package, (address, address)) : (_factory, weth);
         address[] memory path = new address[](2);
         if (tokenIn == address(0)) {
             //require(amount == msg.value, "UniswapRouter.swap: Not enough ETH sent");
             path[0] = wethAddress;
             path[1] = tokenOut;
-            IWETH(wethAddress).deposit{ value: amount }(); // solhint-disable
-            assert(IWETH(wethAddress).transfer(UniswapV2Library.pairFor(factoryAddress, path[0], path[1]), amount));
+            IWETH(wethAddress).deposit{value: amount}(); // solhint-disable
+            assert(
+                IWETH(wethAddress).transfer(
+                    UniswapV2Library.pairFor(factoryAddress, path[0], path[1]),
+                    amount
+                )
+            );
         } else {
             require(msg.value == 0, "Error (swap): Cannot send value if tokenIn is not Ether");
             path[0] = tokenIn;
             path[1] = tokenOut == address(0) ? wethAddress : tokenOut;
-            TransferHelper.safeTransferFrom(path[0], from, UniswapV2Library.pairFor(factoryAddress, path[0], path[1]), amount);
+            TransferHelper.safeTransferFrom(
+                path[0],
+                from,
+                UniswapV2Library.pairFor(factoryAddress, path[0], path[1]),
+                amount
+            );
         }
 
         uint256 received = UniswapV2Library.getAmountsOut(factoryAddress, amount, path)[1];
@@ -97,8 +108,14 @@ contract UniswapAdapter is ExchangeAdapter {
         bytes memory data
     ) internal {
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
-        (uint256 amount0Out, uint256 amount1Out) = tokenA == token0 ? (tokenAOut, tokenBOut) : (tokenBOut, tokenAOut);
-        IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB)).swap(amount0Out, amount1Out, to, data);
+        (uint256 amount0Out, uint256 amount1Out) =
+            tokenA == token0 ? (tokenAOut, tokenBOut) : (tokenBOut, tokenAOut);
+        IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB)).swap(
+            amount0Out,
+            amount1Out,
+            to,
+            data
+        );
     }
 
     receive() external payable {

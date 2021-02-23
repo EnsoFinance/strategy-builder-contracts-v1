@@ -4,7 +4,6 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
 import "./PortfolioController.sol";
 
-
 /**
  * @notice Deploys Controller Proxy
  * @dev The contract implements a custom PrxoyAdmin
@@ -15,11 +14,8 @@ contract PortfolioControllerDeployer is ProxyAdmin {
 
     constructor() public {
         PortfolioController implementation = new PortfolioController();
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            address(implementation),
-            address(this),
-            new bytes(0)
-        );
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(address(implementation), address(this), new bytes(0));
         controller = address(proxy);
     }
 }

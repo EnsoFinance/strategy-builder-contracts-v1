@@ -1,16 +1,16 @@
 {
   "name": "@bodhi/contracts",
   "version": "0.1.0",
-  "description": "Bodhi protocol smart contracts",
+  "description": "Enso protocol smart contracts",
   "main": "index.js",
   "scripts": {
-    "build": "npx hardhat compile",
-    "coverage": "npx hardhat coverage",
-    "deploy": "npx hardhat run scripts/full-deploy-script.js --network",
-    "lint": "eslint",
-    "prettier:solidity": "prettier --write contracts/*",
-    "solhint": "solhint -f table contracts/**/*.sol",
-    "test": "npx hardhat test",
+    "build": "yarn hardhat compile",
+    "coverage": "yarn hardhat coverage",
+    "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
+    "lint": "yarn eslint",
+    "prettier:solidity": "yarn prettier --write 'contracts/**/*.sol'",
+    "solhint": "solhint -f table --fix 'contracts/**/*.sol'",
+    "test": "yarn hardhat test",
     "docs": "./scripts/build_docs.sh"
   },
   "engines": {
@@ -37,18 +37,18 @@
     "ethers": "~5.0.23",
     "hardhat": "~2.0.4",
     "prettier": "~2.2.1",
-    "prettier-plugin-solidity": "~1.0.0-beta.1",
+    "prettier-plugin-solidity": "~1.0.0-beta.5",
     "sol2uml": "~1.1.25",
     "solhint": "~3.3.2",
     "solhint-plugin-prettier": "~0.0.5",
-    "solidity-coverage": "~0.7.13"
+    "solidity-coverage": "~0.7.13",
+    "solidity-docgen": "~0.5.11"
   },
   "dependencies": {
-    "@chainlink/contracts": "^0.1.6",
+    "@chainlink/contracts": "~0.1.6",
     "@openzeppelin/contracts": "~3.3.0",
     "@uniswap/lib": "~4.0.1-alpha",
     "@uniswap/v2-core": "~1.0.1",
-    "@uniswap/v2-periphery": "~1.1.0-beta.0",
-    "solidity-docgen": "~0.5.11"
+    "@uniswap/v2-periphery": "~1.1.0-beta.0"
   }
 }

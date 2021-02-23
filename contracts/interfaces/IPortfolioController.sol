@@ -16,7 +16,11 @@ interface IPortfolioController {
         uint256 timelock_
     ) external payable;
 
-    function rebalance(IPortfolio portfolio, IPortfolioRouter router, bytes memory data) external;
+    function rebalance(
+        IPortfolio portfolio,
+        IPortfolioRouter router,
+        bytes memory data
+    ) external;
 
     function deposit(
         IPortfolio portfolio,
@@ -29,7 +33,9 @@ interface IPortfolioController {
     function withdrawPerformanceFee(IPortfolio portfolio) external;
 
     function restructure(
-        IPortfolio portfolio, address[] memory tokens, uint256[] memory percentages
+        IPortfolio portfolio,
+        address[] memory tokens,
+        uint256[] memory percentages
     ) external;
 
     function finalizeStructure(
@@ -39,7 +45,11 @@ interface IPortfolioController {
         address[] memory buyAdapters
     ) external;
 
-    function updateValue(IPortfolio portfolio, uint256 categoryIndex, uint256 newValue) external;
+    function updateValue(
+        IPortfolio portfolio,
+        uint256 categoryIndex,
+        uint256 newValue
+    ) external;
 
     function finalizeValue(address portfolio) external;
 

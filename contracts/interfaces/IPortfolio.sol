@@ -4,17 +4,23 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IPortfolio is IERC20 {
-    function approveToken(IERC20 token, address account, uint256 amount) external;
+    function approveToken(
+        IERC20 token,
+        address account,
+        uint256 amount
+    ) external;
 
     function approveTokens(address account, uint256 amount) external;
 
-    function transferToken(IERC20 token, address account, uint256 amount) external;
+    function transferToken(
+        IERC20 token,
+        address account,
+        uint256 amount
+    ) external;
 
     function setStructure(address[] memory newTokens, uint256[] memory newPercentages) external;
 
-    function withdraw(
-        uint256 amount
-    ) external;
+    function withdraw(uint256 amount) external;
 
     function updateManager(address newManager) external;
 

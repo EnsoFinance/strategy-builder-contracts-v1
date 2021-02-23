@@ -9,7 +9,9 @@ import "../interfaces/IPortfolio.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "../libraries/PortfolioLibrary.sol";
 
-abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
+abstract contract PortfolioRouter is
+    IPortfolioRouter //solhint-disable-line
+{
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -25,18 +27,20 @@ abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(controller == msg.sender, "PortfolioRouter.onlyController: caller is not the controller");
+        require(controller == msg.sender, "PR.onlyController: only controller");
         _;
     }
 
     // Abstract external functions to be defined by inheritor
-    function deposit(address portfolio, bytes calldata data) external payable override virtual;
+    function deposit(address portfolio, bytes calldata data) external payable virtual override;
 
     function rebalance(address portfolio, bytes calldata data) external virtual override;
 
     // Public functions
     function sellTokens(
-        address portfolio, address[] memory tokens, address[] memory adapters
+        address portfolio,
+        address[] memory tokens,
+        address[] memory adapters
     ) public override onlyController {
         for (uint256 i = 0; i < tokens.length; i++) {
             // Convert funds into Ether
@@ -58,17 +62,19 @@ abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
                         msg.sender,
                         new bytes(0)
                     ),
-                    "PortfolioRouter.sellTokens: Swap failed"
+                    "PR.sellTokens: Swap failed"
                 );
             }
         }
     }
 
     function buyTokens(
-        address portfolio, address[] memory tokens, address[] memory adapters
+        address portfolio,
+        address[] memory tokens,
+        address[] memory adapters
     ) public payable override onlyController {
-        require(tokens.length > 0, "PortfolioRouter.convert: Tokens not yet set");
-        require(adapters.length == tokens.length, "PortfolioRouter.convert: Routers/tokens mismatch");
+        require(tokens.length > 0, "PR.convert: Tokens not yet set");
+        require(adapters.length == tokens.length, "PR.convert: Routers/tokens mismatch");
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenAddress = tokens[i];
             uint256 amount =
@@ -77,7 +83,7 @@ abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
                     : PortfolioLibrary.getExpectedTokenValue(msg.value, portfolio, tokenAddress); // solhint-disable-line
             if (tokenAddress == weth) {
                 // Wrap ETH to WETH
-                IWETH(weth).deposit{ value: amount }(); // solhint-disable-line
+                IWETH(weth).deposit{value: amount}(); // solhint-disable-line
                 // Transfer weth back to sender
                 IWETH(weth).transfer(portfolio, amount);
             } else {
@@ -94,10 +100,10 @@ abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
                         portfolio,
                         new bytes(0)
                     ),
-                    "PortfolioRouter.buyTokens: Swap failed"
+                    "PR.buyTokens: Swap failed"
                 );
                 */
-                IExchangeAdapter(adapters[i]).swap{ value: amount }( // solhint-disable-line
+                IExchangeAdapter(adapters[i]).swap{value: amount}( // solhint-disable-line
                     amount,
                     0,
                     address(0),
@@ -109,7 +115,7 @@ abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
                 );
             }
         }
-        require(address(this).balance == uint256(0), "PortfolioRouter.convert: Leftover funds");
+        require(address(this).balance == uint256(0), "PR.convert: Leftover funds");
     }
 
     function _delegateSwap(
@@ -125,7 +131,9 @@ abstract contract PortfolioRouter is IPortfolioRouter { //solhint-disable-line
         bytes memory package = IExchangeAdapter(adapter).getPackage();
         bytes memory swapData =
             abi.encodeWithSelector(
-                bytes4(keccak256("swap(uint256,uint256,address,address,address,address,bytes,bytes)")), // solhint-disable-line
+                bytes4(
+                    keccak256("swap(uint256,uint256,address,address,address,address,bytes,bytes)")
+                ), // solhint-disable-line
                 amount,
                 expected,
                 tokenIn,

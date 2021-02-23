@@ -6,7 +6,6 @@ import "../interfaces/IPortfolio.sol";
 import "../interfaces/IPortfolioController.sol";
 import "../libraries/PortfolioLibrary.sol";
 
-
 contract LibraryWrapper {
     IOracle public oracle;
     IPortfolio public portfolio;
@@ -32,7 +31,8 @@ contract LibraryWrapper {
     }
 
     function getRebalanceRange(uint256 total) external view returns (uint256) {
-        uint256 range = IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio));
+        uint256 range =
+            IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio));
         return PortfolioLibrary.getRange(total, range);
     }
 

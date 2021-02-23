@@ -1,13 +1,12 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-
 contract PortfolioTokenStorage {
     bytes32 public DOMAIN_SEPARATOR;
     bytes32 public PERMIT_TYPEHASH;
 
     mapping(address => uint256) internal _balances;
-    mapping (address => uint256) internal _nonces;
+    mapping(address => uint256) internal _nonces;
     mapping(address => mapping(address => uint256)) internal _allowances;
     uint256 internal _totalSupply;
     string internal _name;

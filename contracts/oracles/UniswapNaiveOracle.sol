@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
 import "../libraries/UniswapV2Library.sol";
 
-
 contract UniswapNaiveOracle is IOracle {
     using SafeMath for uint256;
 

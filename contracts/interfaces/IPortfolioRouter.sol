@@ -6,9 +6,17 @@ interface IPortfolioRouter {
     //function deposit(address depositor, address[] memory tokens, address[] memory routers) external payable;
     //function withdraw(address withdrawer, uint256 amount) external;
 
-    function sellTokens(address portfolio, address[] memory tokens, address[] memory routers) external;
+    function sellTokens(
+        address portfolio,
+        address[] memory tokens,
+        address[] memory routers
+    ) external;
 
-    function buyTokens(address portfolio, address[] memory tokens, address[] memory routers) external payable;
+    function buyTokens(
+        address portfolio,
+        address[] memory tokens,
+        address[] memory routers
+    ) external payable;
 
     function rebalance(address portfolio, bytes calldata data) external;
 

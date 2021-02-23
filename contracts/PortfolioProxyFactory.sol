@@ -7,7 +7,6 @@ import "./PortfolioProxyManagerRegistry.sol";
 import "./interfaces/IPortfolioProxyFactory.sol";
 import "./interfaces/IPortfolioController.sol";
 
-
 /**
  * @notice Deploys Proxy Portfolios
  * @dev The contract implements a custom PrxoyAdmin
@@ -69,7 +68,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     }
 
     modifier onlyManager(address proxy) {
-        require(managerRegistry.manager(proxy) == msg.sender, "PortfolioProxyFactory (onlyAdmin): User not manager");
+        require(managerRegistry.manager(proxy) == msg.sender, "PPF.onlyManager: Not manager");
         _;
     }
 
@@ -83,24 +82,25 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         uint256 slippage,
         uint256 timelock
     ) external payable {
-        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
-            implementation,
-            address(this),
-            abi.encodeWithSelector(
-                bytes4(keccak256("initialize(string,string,uint256,address,address)")), // solhint-disable-line
-                name,
-                symbol,
-                version,
-                controller,
-                msg.sender
-            )
-        );
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy(
+                implementation,
+                address(this),
+                abi.encodeWithSelector(
+                    bytes4(keccak256("initialize(string,string,uint256,address,address)")), // solhint-disable-line
+                    name,
+                    symbol,
+                    version,
+                    controller,
+                    msg.sender
+                )
+            );
         /*
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy(implementation, address(this), new bytes(0));
         */
 
-        IPortfolioController(controller).setupPortfolio{ value: msg.value }( // solhint-disable-line
+        IPortfolioController(controller).setupPortfolio{value: msg.value}( // solhint-disable-line
             msg.sender,
             address(proxy),
             routers,
@@ -110,7 +110,17 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             slippage,
             timelock
         );
-        emit NewPortfolio(address(proxy), msg.sender, name, symbol, tokens, percentages, threshold, slippage, timelock);
+        emit NewPortfolio(
+            address(proxy),
+            msg.sender,
+            name,
+            symbol,
+            tokens,
+            percentages,
+            threshold,
+            slippage,
+            timelock
+        );
     }
 
     function updateImplementation(address newImplementation) external onlyOwner {
@@ -136,7 +146,11 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
      *
      * - This contract must be the admin of `proxy`.
      */
-    function getProxyImplementation(TransparentUpgradeableProxy proxy) public view returns (address) {
+    function getProxyImplementation(TransparentUpgradeableProxy proxy)
+        public
+        view
+        returns (address)
+    {
         // We need to manually run the static call since the getter cannot be flagged as view
         // bytes4(keccak256("implementation()")) == 0x5c60da1b
         (bool success, bytes memory returndata) = address(proxy).staticcall(hex"5c60da1b");
@@ -166,7 +180,10 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
      *
      * - This contract must be the current admin of `proxy`.
      */
-    function changeProxyAdmin(TransparentUpgradeableProxy proxy, address newAdmin) public onlyManager(address(proxy)) {
+    function changeProxyAdmin(TransparentUpgradeableProxy proxy, address newAdmin)
+        public
+        onlyManager(address(proxy))
+    {
         proxy.changeAdmin(newAdmin);
     }
 
@@ -193,6 +210,6 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         TransparentUpgradeableProxy proxy, //solhint-disable-line
         bytes memory data
     ) public payable onlyManager(address(proxy)) {
-        proxy.upgradeToAndCall{ value: msg.value }(implementation, data); //solhint-disable-line
+        proxy.upgradeToAndCall{value: msg.value}(implementation, data); //solhint-disable-line
     }
 }

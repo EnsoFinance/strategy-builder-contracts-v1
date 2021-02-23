@@ -8,7 +8,6 @@ import "./interfaces/IExchangeAdapter.sol";
 import "./interfaces/IOracle.sol";
 import "./PortfolioControllerStorage.sol";
 
-
 /**
  * @notice This contract holds tokens in proportion to their weth value as reported by IOracle and mints/burns portfolio tokens to represent the underlying assets.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total portfolio value doesn't drop below the defined slippage amount
@@ -47,12 +46,8 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         uint256 timelock_
     ) external payable override {
         _setLock();
-        require(_initialized[portfolio_] == false, "PortfolioController.setupPortfolio: Portfolio already setup");
-        require(
-            threshold_ <= DIVISOR &&
-            slippage_ <= DIVISOR,
-            "PortfolioController.setupPortfolio: Value cannot be greater than 100%"
-        );
+        require(_initialized[portfolio_] == false, "PC.sP: already setup");
+        require(threshold_ <= DIVISOR && slippage_ <= DIVISOR, "PC.sP: slippage/threshold high");
         _initialized[portfolio_] = true;
         // Set globals
         PortfolioState storage portfolioState = _portfolioStates[portfolio_];
@@ -65,11 +60,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             IPortfolio(portfolio_).setStructure(tokens_, percentages_);
         }
         if (msg.value > 0) {
-            _buyTokens(
-                IPortfolio(portfolio_),
-                tokens_,
-                adapters_
-            );
+            _buyTokens(IPortfolio(portfolio_), tokens_, adapters_);
             IPortfolio(portfolio_).mint(creator_, msg.value);
         }
         _removeLock();
@@ -81,12 +72,16 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @param router The address of the router that will be doing the handling the trading logic
      * @param data Calldata that gets passed the the router's rebalance function
      */
-    function rebalance(IPortfolio portfolio, IPortfolioRouter router, bytes memory data) external override {
+    function rebalance(
+        IPortfolio portfolio,
+        IPortfolioRouter router,
+        bytes memory data
+    ) external override {
         _setLock();
         _onlyApproved(portfolio, address(router));
         _onlyManager(portfolio);
         (uint256 totalBefore, bool balancedBefore) = _verifyBalance(portfolio);
-        require(!balancedBefore, "Portfolio.rebalance: No point rebalancing a balanced portfolio");
+        require(!balancedBefore, "PC.rebalance: balanced");
         _approveTokens(portfolio, address(router), uint256(-1));
         _rebalance(portfolio, router, totalBefore, data);
         _approveTokens(portfolio, address(router), uint256(0));
@@ -107,16 +102,19 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         _setLock();
         _onlyApproved(portfolio, address(router));
         _socialOrManager(portfolio);
-        require(msg.value > 0, "PortfolioController.deposit: No ether sent with transaction");
-        (uint256 totalBefore, ) = IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
-        router.deposit{ value: msg.value }(address(portfolio), data); // solhint-disable-line
+        require(msg.value > 0, "PC.deposit: No ether sent");
+        (uint256 totalBefore, ) =
+            IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
+        router.deposit{value: msg.value}(address(portfolio), data); // solhint-disable-line
 
         // Recheck total
-        (uint256 totalAfter, ) = IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
-        require(totalAfter > totalBefore, "PortfolioController.deposit: Total value dropped!");
+        (uint256 totalAfter, ) =
+            IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
+        require(totalAfter > totalBefore, "PC.deposit: Lost value");
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         uint256 totalSupply = portfolio.totalSupply();
-        uint256 relativeTokens = totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
+        uint256 relativeTokens =
+            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
         portfolio.mint(msg.sender, relativeTokens);
         emit Deposit(address(portfolio), msg.value, relativeTokens);
         _removeLock();
@@ -127,12 +125,9 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @param portfolio The portfolio that will be withdrawn from
      * @param amount The amount of portfolio tokens to burn to recover the equivalent underlying assets
      */
-    function withdrawAssets(
-        IPortfolio portfolio,
-        uint256 amount
-    ) external override {
+    function withdrawAssets(IPortfolio portfolio, uint256 amount) external override {
         _setLock();
-        require(amount > 0, "Error (withdraw): No amount set");
+        require(amount > 0, "PC.withdraw: No amount");
         uint256 percentage = amount.mul(10**18).div(portfolio.totalSupply());
         portfolio.burn(msg.sender, amount);
         address[] memory tokens = portfolio.tokens();
@@ -152,7 +147,8 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
     function withdrawPerformanceFee(IPortfolio portfolio) external override {
         _setLock();
         _onlyManager(portfolio);
-        (uint256 total, ) = IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
+        (uint256 total, ) =
+            IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
         uint256 totalSupply = portfolio.totalSupply();
         uint256 tokenValue = total.mul(10**18).div(totalSupply);
         if (tokenValue > _lastTokenValues[address(portfolio)]) {
@@ -173,15 +169,18 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @param percentages An array of percentages for each token in the above array. Must total 100%
      */
     function restructure(
-        IPortfolio portfolio, address[] memory tokens, uint256[] memory percentages
+        IPortfolio portfolio,
+        address[] memory tokens,
+        uint256[] memory percentages
     ) external override {
         _setLock();
         _onlyManager(portfolio);
         Timelock storage timelock = _timelocks[address(portfolio)];
         require(
             timelock.timestamp == 0 ||
-            block.timestamp > timelock.timestamp.add(_portfolioStates[address(portfolio)].timelock),
-            "Portfolio.restructure: Timelock is active"
+                block.timestamp >
+                timelock.timestamp.add(_portfolioStates[address(portfolio)].timelock),
+            "PC.restructure: Timelock active"
         );
         _verifyStructure(tokens, percentages);
         timelock.category = TimelockCategory.RESTRUCTURE;
@@ -210,10 +209,11 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         Timelock storage timelock = _timelocks[portfolio];
         require(
             !portfolioState.social ||
-            block.timestamp > timelock.timestamp.add(portfolioState.timelock),
-            "Portfolio.finalizeStructure: Can only restructure after enough time has passed"
+                block.timestamp > timelock.timestamp.add(portfolioState.timelock),
+            "PC.fS: Timelock active"
         );
-        (address[] memory tokens, uint256[] memory percentages) = abi.decode(timelock.data, (address[], uint256[])); //solhint-disable-line
+        (address[] memory tokens, uint256[] memory percentages) =
+            abi.decode(timelock.data, (address[], uint256[])); //solhint-disable-line
         _finalizeStructure(portfolio, router, tokens, percentages, sellAdapters, buyAdapters);
         delete timelock.category;
         delete timelock.timestamp;
@@ -221,19 +221,24 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         _removeLock();
     }
 
-    function updateValue(IPortfolio portfolio, uint256 categoryIndex, uint256 newValue) external override {
+    function updateValue(
+        IPortfolio portfolio,
+        uint256 categoryIndex,
+        uint256 newValue
+    ) external override {
         _setLock();
         _onlyManager(portfolio);
         Timelock storage timelock = _timelocks[address(portfolio)];
         require(
             timelock.timestamp == 0 ||
-            block.timestamp > timelock.timestamp.add(_portfolioStates[address(portfolio)].timelock),
-            "Portfolio.updateValue: Timelock is active"
+                block.timestamp >
+                timelock.timestamp.add(_portfolioStates[address(portfolio)].timelock),
+            "PC.uV: Timelock active"
         );
         TimelockCategory category = TimelockCategory(categoryIndex);
         require(category != TimelockCategory.RESTRUCTURE);
         if (category != TimelockCategory.TIMELOCK)
-            require(newValue <= DIVISOR, "Portfolio.updateValue: Value cannot be greater than 100%");
+            require(newValue <= DIVISOR, "PC.uV: Value too high");
 
         timelock.category = category;
         timelock.timestamp = block.timestamp;
@@ -249,10 +254,10 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         require(timelock.category != TimelockCategory.RESTRUCTURE);
         require(
             !portfolioState.social ||
-            block.timestamp > timelock.timestamp.add(portfolioState.timelock),
-            "Portfolio.finalizeValue: Can only restructure after enough time has passed"
+                block.timestamp > timelock.timestamp.add(portfolioState.timelock),
+            "PC.fV: Timelock active"
         );
-        (uint256 newValue) = abi.decode(timelock.data, (uint256)); //solhint-disable-line
+        uint256 newValue = abi.decode(timelock.data, (uint256)); //solhint-disable-line
         if (timelock.category == TimelockCategory.THRESHOLD) {
             portfolioState.rebalanceThreshold = newValue;
         } else if (timelock.category == TimelockCategory.SLIPPAGE) {
@@ -273,8 +278,9 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
     function openPortfolio(IPortfolio portfolio, uint256 fee) external override {
         _setLock();
         _onlyManager(portfolio);
-        require(fee > DIVISOR, "PortfolioController.openPortfolio: Fee must be less than 100%");
-        (uint256 total, ) = IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
+        require(fee > DIVISOR, "PC.oP: Fee too high");
+        (uint256 total, ) =
+            IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
         //As token value increase compared to the _tokenValueLast value, performance fees may be extracted
         _lastTokenValues[address(portfolio)] = total.mul(10**18).div(portfolio.totalSupply());
         PortfolioState storage portfolioState = _portfolioStates[address(portfolio)];
@@ -329,18 +335,23 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         router.rebalance(address(portfolio), data);
         // Recheck total
         (uint256 totalAfter, bool balancedAfter) = _verifyBalance(portfolio);
-        require(balancedAfter, "Portfolio.rebalance: Portfolio not balanced");
+        require(balancedAfter, "PC._rebalance: not balanced");
         require(
-            totalAfter >= totalBefore.mul(_portfolioStates[address(portfolio)].slippage).div(DIVISOR),
-            "Portfolio.rebalance: Total value slipped too much!"
+            totalAfter >=
+                totalBefore.mul(_portfolioStates[address(portfolio)].slippage).div(DIVISOR),
+            "PC._rebalance: value slipped!"
         );
         emit RebalanceCalled(address(portfolio), totalAfter, msg.sender);
         return totalAfter;
     }
 
-    function _buyTokens(IPortfolio portfolio, address[] memory tokens, address[] memory adapters) internal {
-        require(tokens.length > 0, "PortfolioController._buyTokens: Tokens not yet set");
-        require(adapters.length == tokens.length, "PortfolioController._buyTokens: Routers/tokens mismatch");
+    function _buyTokens(
+        IPortfolio portfolio,
+        address[] memory tokens,
+        address[] memory adapters
+    ) internal {
+        require(tokens.length > 0, "PC._bT: not initialized");
+        require(adapters.length == tokens.length, "PC._bT: invalid param lengths");
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenAddress = tokens[i];
             uint256 amount =
@@ -350,12 +361,12 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             if (tokenAddress == IOracle(portfolio.oracle()).weth()) {
                 // Wrap ETH to WETH
                 IWETH weth = IWETH(tokenAddress);
-                weth.deposit{ value: amount }(); // solhint-disable-line
+                weth.deposit{value: amount}(); // solhint-disable-line
                 // Transfer weth back to sender
                 weth.transfer(address(portfolio), amount);
             } else {
                 // Convert ETH to Token
-                IExchangeAdapter(adapters[i]).swap{ value: amount }( // solhint-disable-line
+                IExchangeAdapter(adapters[i]).swap{value: amount}( // solhint-disable-line
                     amount,
                     0,
                     address(0),
@@ -367,7 +378,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
                 );
             }
         }
-        require(address(this).balance == uint256(0), "PortfolioController._buyTokens: Leftover funds");
+        require(address(this).balance == uint256(0), "PC._bT: Leftover ETH");
     }
 
     /**
@@ -383,7 +394,9 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         for (uint256 i = 0; i < tokens.length; i++) {
             uint256 expectedValue = total.mul(portfolio.tokenPercentage(tokens[i])).div(DIVISOR);
             uint256 rebalanceRange =
-                expectedValue.mul(_portfolioStates[address(portfolio)].rebalanceThreshold).div(DIVISOR);
+                expectedValue.mul(_portfolioStates[address(portfolio)].rebalanceThreshold).div(
+                    DIVISOR
+                );
             if (estimates[i] > expectedValue.add(rebalanceRange)) {
                 balanced = false;
                 break;
@@ -400,23 +413,22 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @notice This function verifies that the structure passed in parameters is valid
      * @dev We check that the array lengths match, that the percentages add 100%,
      *      no zero addresses, and no duplicates
+     * @dev Token addresses must be passed in, according to increasing byte value
      */
-    function _verifyStructure(address[] memory tokens, uint256[] memory percentages) internal pure returns (bool) {
-        require(tokens.length == percentages.length, "Portfolio._verifyStructure: Different array lengths");
+    function _verifyStructure(address[] memory tokens, uint256[] memory percentages)
+        internal
+        pure
+        returns (bool)
+    {
+        require(tokens.length == percentages.length, "PC._vS: invalid input lengths");
         uint256 total = 0;
         for (uint256 i = 0; i < tokens.length; i++) {
-            require(
-                tokens[i] != address(0),
-                "Portfolio._verifyStructure: No zero address, please use WETH address"
-            );
-            require(
-                i == 0 || tokens[i] > tokens[i - 1],
-                "Portfolio._verifyStructure: Duplicate token address or addresses out of order"
-            );
-            require(percentages[i] > 0, "Portfolio._verifyStructure: Provided 0 for token percentage");
+            require(tokens[i] != address(0), "PC._vS: invalid weth addr");
+            require(i == 0 || tokens[i] > tokens[i - 1], "PC._vS: token ordering");
+            require(percentages[i] > 0, "PC._vS: bad percentage");
             total = total.add(percentages[i]);
         }
-        require(total == DIVISOR, "Portfolio._verifyStructure: Percentages do not add up to 100%");
+        require(total == DIVISOR, "PC._vS: total percentage wrong");
     }
 
     /**
@@ -436,8 +448,8 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         address[] memory buyAdapters
     ) internal {
         address[] memory oldTokens = IPortfolio(portfolio).tokens();
-        require(sellAdapters.length == oldTokens.length, "Portfolio._finalizeStructure: Sell adapters length mismatch");
-        require(buyAdapters.length == tokens.length, "Portfolio._finalizeStructure: Buy adapters length mismatch");
+        require(sellAdapters.length == oldTokens.length, "PC._fS: Sell adapters length");
+        require(buyAdapters.length == tokens.length, "PC._fS: Buy adapters length");
         _approveTokens(IPortfolio(portfolio), router, uint256(-1));
         // Reset all values and return tokens to ETH
         IPortfolioRouter(router).sellTokens(portfolio, oldTokens, sellAdapters);
@@ -445,7 +457,11 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         // Set new structure
         IPortfolio(portfolio).setStructure(tokens, percentages);
         // Since tokens have already been minted we don"t do router.deposit, instead use router.convert
-        IPortfolioRouter(router).buyTokens{ value: address(this).balance }(portfolio, tokens, buyAdapters); //solhint-disable-line
+        IPortfolioRouter(router).buyTokens{value: address(this).balance}(
+            portfolio,
+            tokens,
+            buyAdapters
+        ); //solhint-disable-line
     }
 
     /**
@@ -470,14 +486,11 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(IPortfolio portfolio, address router) internal view {
-        require(
-            portfolio.isWhitelisted(router),
-            "Portfolio: Router not approved"
-        );
+        require(portfolio.isWhitelisted(router), "PC._oA: Router not approved");
     }
 
     function _onlyManager(IPortfolio portfolio) internal view {
-        require(msg.sender == portfolio.manager(), "PortfolioController._onlyManager: Not manager");
+        require(msg.sender == portfolio.manager(), "PC._oM: Not manager");
     }
 
     /**
@@ -485,9 +498,8 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      */
     function _socialOrManager(IPortfolio portfolio) internal view {
         require(
-            msg.sender == portfolio.manager() ||
-            _portfolioStates[address(portfolio)].social,
-            "Portfolio: Not manager"
+            msg.sender == portfolio.manager() || _portfolioStates[address(portfolio)].social,
+            "PC._sOM: Not manager"
         );
     }
 
@@ -495,7 +507,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @notice Sets Reentrancy guard
      */
     function _setLock() internal {
-        require(!_locked, "No Reentrancy");
+        require(!_locked, "PC._sL: No Reentrancy");
         _locked = true;
     }
 

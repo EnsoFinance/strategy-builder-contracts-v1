@@ -5,9 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "hardhat/console.sol";
 
-
 contract Arbitrager is Ownable {
-
     //Assumes a flash loan has already been sent to this contract
     function arbitrageLoan(
         address lender,

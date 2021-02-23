@@ -7,7 +7,6 @@ import "../interfaces/IExchangeAdapter.sol";
 import "../helpers/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-
 /**
  * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
  */
@@ -21,11 +20,16 @@ contract GenericRouter is PortfolioRouter, Multicall {
      * @notice Executes provided calldata to achieve a deposit for the Portfolio
      */
     // Receive call from controller
-    function deposit(address portfolio, bytes memory data) external override payable onlyController {
+    function deposit(address portfolio, bytes memory data)
+        external
+        payable
+        override
+        onlyController
+    {
         (portfolio);
         Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
         aggregate(callStructs);
-        require(address(this).balance == uint256(0), "GenericRouter.convert: Leftover funds");
+        require(address(this).balance == uint256(0), "GR.deposit: Leftover funds");
     }
 
     /**
@@ -58,13 +62,19 @@ contract GenericRouter is PortfolioRouter, Multicall {
         address tokenOut,
         bytes memory data
     ) public {
+        _onlyInternal();
         require(
-            msg.sender == address(this),
-            "GenericRouter.delegateSwap: Function may only be called from the rebalance function"
-        );
-        require(
-            _delegateSwap(adapter, amount, expected, tokenIn, tokenOut, portfolio, portfolio, data),
-            "GenericRouter.delegateSwap: Swap failed"
+            _delegateSwap(
+                adapter,
+                amount,
+                expected,
+                tokenIn,
+                tokenOut,
+                portfolio,
+                portfolio,
+                data
+            ),
+            "GR.delegateSwap: Swap failed"
         );
     }
 
@@ -76,16 +86,17 @@ contract GenericRouter is PortfolioRouter, Multicall {
         address to,
         bytes memory data
     ) public {
-        require(
-            msg.sender == address(this),
-            "GenericController.settleSwap: Function may only be called from the rebalance function"
-        );
+        _onlyInternal();
         uint256 amount = IERC20(tokenIn).balanceOf(from);
         if (amount > 0) {
             require(
                 _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to, data),
-                "GenericController.delegateSwap: Swap failed"
+                "GR.delegateSwap: Swap failed"
             );
         }
+    }
+
+    function _onlyInternal() internal view {
+        require(msg.sender == address(this), "GR.settleSwap: Only internal");
     }
 }

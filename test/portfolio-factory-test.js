@@ -99,7 +99,7 @@ describe('PortfolioProxyFactory', function() {
   })
 
   it('Should fail to upgrade portfolio proxy: not admin', async function() {
-    await expect(portfolioFactory.connect(accounts[0]).upgrade(portfolio.address)).to.be.revertedWith('User not manager')
+    await expect(portfolioFactory.connect(accounts[0]).upgrade(portfolio.address)).to.be.revertedWith('PPF.onlyManager: Not manager')
   })
 
   it('Should upgrade portfolio proxy', async function() {
@@ -108,7 +108,7 @@ describe('PortfolioProxyFactory', function() {
   })
 
   it('Should fail to change proxy admin: not admin', async function() {
-    await expect(portfolioFactory.connect(accounts[2]).changeProxyAdmin(portfolio.address, newFactory.address)).to.be.revertedWith('User not manager')
+    await expect(portfolioFactory.connect(accounts[2]).changeProxyAdmin(portfolio.address, newFactory.address)).to.be.revertedWith('PPF.onlyManager: Not manager')
   })
 
   it('Should change proxy admin', async function() {

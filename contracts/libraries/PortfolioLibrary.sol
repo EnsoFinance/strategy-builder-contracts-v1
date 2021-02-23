@@ -17,7 +17,8 @@ library PortfolioLibrary {
         uint256 threshold
     ) internal view returns (bool) {
         address oracle = IPortfolio(portfolio).oracle();
-        (uint256 total, uint256[] memory estimates) = IOracle(oracle).estimateTotal(portfolio, tokens);
+        (uint256 total, uint256[] memory estimates) =
+            IOracle(oracle).estimateTotal(portfolio, tokens);
         bool balanced = true;
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenAddress = tokens[i];
@@ -35,9 +36,14 @@ library PortfolioLibrary {
         return balanced;
     }
 
-    function imbalanceMagnitude(address portfolio, address[] memory tokens) internal view returns (uint256) {
+    function imbalanceMagnitude(address portfolio, address[] memory tokens)
+        internal
+        view
+        returns (uint256)
+    {
         address oracle = IPortfolio(portfolio).oracle();
-        (uint256 total, uint256[] memory estimates) = IOracle(oracle).estimateTotal(portfolio, tokens);
+        (uint256 total, uint256[] memory estimates) =
+            IOracle(oracle).estimateTotal(portfolio, tokens);
         uint256 magnitude = 0;
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenAddress = tokens[i];

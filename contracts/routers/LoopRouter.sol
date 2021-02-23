@@ -7,7 +7,6 @@ import "../interfaces/IPortfolioController.sol";
 import "../libraries/UniswapV2Library.sol";
 import "./PortfolioRouter.sol";
 
-
 contract LoopRouter is PortfolioRouter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -27,10 +26,12 @@ contract LoopRouter is PortfolioRouter {
         adapter = IExchangeAdapter(adapter_);
     }
 
-    function deposit(
-        address portfolio,
-        bytes calldata data
-    ) external override payable onlyController {
+    function deposit(address portfolio, bytes calldata data)
+        external
+        payable
+        override
+        onlyController
+    {
         (address[] memory tokens, address[] memory routers) =
             abi.decode(data, (address[], address[])); //solhint-disable-line
         buyTokens(portfolio, tokens, routers);
@@ -81,15 +82,31 @@ contract LoopRouter is PortfolioRouter {
         uint256 estimatedValue,
         uint256 total
     ) internal returns (bool) {
-        uint256 expectedValue = PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
+        uint256 expectedValue =
+            PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
         uint256 rebalanceRange =
-            PortfolioLibrary.getRange(expectedValue, IPortfolioController(msg.sender).rebalanceThreshold(portfolio));
+            PortfolioLibrary.getRange(
+                expectedValue,
+                IPortfolioController(msg.sender).rebalanceThreshold(portfolio)
+            );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             uint256 diff =
-                adapter.spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress).mul(DIVISOR).div(FEE);
+                adapter
+                    .spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress)
+                    .mul(DIVISOR)
+                    .div(FEE);
             require(
-                _delegateSwap(address(adapter), diff, 0, tokenAddress, weth, portfolio, address(this), new bytes(0)),
-                "LoopRouter._sellToken: Swap failed"
+                _delegateSwap(
+                    address(adapter),
+                    diff,
+                    0,
+                    tokenAddress,
+                    weth,
+                    portfolio,
+                    address(this),
+                    new bytes(0)
+                ),
+                "LR._sT: Swap failed"
             );
             return true;
         }
@@ -115,13 +132,16 @@ contract LoopRouter is PortfolioRouter {
                     portfolio,
                     new bytes(0)
                 ),
-                "LoopRouter._buyToken: Swap failed"
+                "LR._bT: Swap failed"
             );
         } else {
-            uint256 expectedValue = PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
-            uint256 rebalanceRange = PortfolioLibrary.getRange(
-                expectedValue, IPortfolioController(msg.sender).rebalanceThreshold(portfolio)
-            );
+            uint256 expectedValue =
+                PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
+            uint256 rebalanceRange =
+                PortfolioLibrary.getRange(
+                    expectedValue,
+                    IPortfolioController(msg.sender).rebalanceThreshold(portfolio)
+                );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
                 uint256 diff = expectedValue.sub(estimatedValue);
                 require(
@@ -135,7 +155,7 @@ contract LoopRouter is PortfolioRouter {
                         portfolio,
                         new bytes(0)
                     ),
-                    "LoopRouter._buyToken: Swap failed"
+                    "LR._bT: Swap failed"
                 );
             }
         }

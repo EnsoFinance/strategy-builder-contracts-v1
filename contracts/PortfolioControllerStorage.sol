@@ -1,15 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-
 contract PortfolioControllerStorage {
     // ALERT: Do not reorder variables on upgrades! Append only
-    enum TimelockCategory {
-        RESTRUCTURE,
-        THRESHOLD,
-        SLIPPAGE,
-        TIMELOCK
-    }
+    enum TimelockCategory {RESTRUCTURE, THRESHOLD, SLIPPAGE, TIMELOCK}
 
     struct PortfolioState {
         bool social;

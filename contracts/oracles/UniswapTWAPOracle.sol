@@ -10,12 +10,11 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../libraries/UniswapV2Library.sol";
 import "../interfaces/IOracle.sol";
 
-
 // sliding window oracle that uses observations collected over a window to provide moving price averages in the past
 // `windowSize` with a precision of `windowSize / granularity`
 // note this is a singleton oracle and only needs to be deployed once per desired parameters, which
 // differs from the simple oracle which must be deployed once per pair.
-contract UniswapTWAPOracle is IOracle{
+contract UniswapTWAPOracle is IOracle {
     using FixedPoint for *;
     using SafeMath for uint256;
 
@@ -23,15 +22,15 @@ contract UniswapTWAPOracle is IOracle{
     uint256 private constant UPDATE_GAS = 17264; //Cost of calculating reward and sending it in a single token update
 
     struct Observation {
-        uint timestamp;
-        uint price0Cumulative;
-        uint price1Cumulative;
+        uint256 timestamp;
+        uint256 price0Cumulative;
+        uint256 price1Cumulative;
     }
 
     address public immutable factory;
     address public override weth;
     // the desired amount of time over which the moving average should be computed, e.g. 24 hours
-    uint public immutable windowSize;
+    uint256 public immutable windowSize;
     // the number of observations stored for each pair, i.e. how many price observations are stored for the window.
     // as granularity increases from 1, more frequent updates are needed, but moving averages become more precise.
     // averages are computed over intervals with sizes in the range:
@@ -41,13 +40,18 @@ contract UniswapTWAPOracle is IOracle{
     //   [now - [22 hours, 24 hours], now]
     uint8 public immutable granularity;
     // this is redundant with granularity and windowSize, but stored for gas savings & informational purposes.
-    uint public immutable periodSize;
+    uint256 public immutable periodSize;
 
     mapping(address => address) private wethPairs;
     // mapping from pair address to a list of price observations of that pair
     mapping(address => Observation[]) public pairObservations;
 
-    constructor(address factory_, address weth_, uint windowSize_, uint8 granularity_) public {
+    constructor(
+        address factory_,
+        address weth_,
+        uint256 windowSize_,
+        uint8 granularity_
+    ) public {
         require(granularity_ > 1, "WethOracle (constructor): GRANULARITY");
         require(
             (periodSize = windowSize_ / granularity_) * granularity_ == windowSize_,
@@ -91,8 +95,8 @@ contract UniswapTWAPOracle is IOracle{
 
     function estimateTotal(address account, address[] calldata tokens)
         external
-        override
         view
+        override
         returns (uint256, uint256[] memory)
     {
         //Loop through tokens and calculate the total
@@ -111,7 +115,6 @@ contract UniswapTWAPOracle is IOracle{
                 } else {
                     estimate = 0;
                 }
-
             }
             total = total.add(estimate);
             estimates[i] = estimate;
@@ -122,33 +125,50 @@ contract UniswapTWAPOracle is IOracle{
     // returns the amount out corresponding to the amount in for a given token using the moving average over the time
     // range [now - [windowSize, windowSize - periodSize * 2], now]
     // update must have been called for the bucket corresponding to timestamp `now - windowSize`
-    function consult(uint amount, address token) public override view returns (uint256) {
+    function consult(uint256 amount, address token) public view override returns (uint256) {
         address pair = UniswapV2Library.pairFor(factory, token, weth);
         Observation storage firstObservation = _getFirstObservationInWindow(pair);
 
-        uint timeElapsed = block.timestamp - firstObservation.timestamp;
+        uint256 timeElapsed = block.timestamp - firstObservation.timestamp;
         //require(timeElapsed <= windowSize, "WethOracle (consult): MISSING_HISTORICAL_OBSERVATION");
         if (timeElapsed <= windowSize) {
             // should never happen.
-            require(timeElapsed >= windowSize - periodSize * 2, "WethOracle (consult): UNEXPECTED_TIME_ELAPSED");
+            require(
+                timeElapsed >= windowSize - periodSize * 2,
+                "WethOracle (consult): UNEXPECTED_TIME_ELAPSED"
+            );
 
-            (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
-            (address token0,) = UniswapV2Library.sortTokens(token, weth);
+            (uint256 price0Cumulative, uint256 price1Cumulative, ) =
+                UniswapV2OracleLibrary.currentCumulativePrices(pair);
+            (address token0, ) = UniswapV2Library.sortTokens(token, weth);
 
             if (token0 == token) {
-                return _computeAmountOut(firstObservation.price0Cumulative, price0Cumulative, timeElapsed, amount);
+                return
+                    _computeAmountOut(
+                        firstObservation.price0Cumulative,
+                        price0Cumulative,
+                        timeElapsed,
+                        amount
+                    );
             } else {
-                return _computeAmountOut(firstObservation.price1Cumulative, price1Cumulative, timeElapsed, amount);
+                return
+                    _computeAmountOut(
+                        firstObservation.price1Cumulative,
+                        price1Cumulative,
+                        timeElapsed,
+                        amount
+                    );
             }
         } else {
-            (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, token, weth);
+            (uint256 reserveA, uint256 reserveB) =
+                UniswapV2Library.getReserves(factory, token, weth);
             return UniswapV2Library.quote(amount, reserveA, reserveB);
         }
     }
 
     // returns the index of the observation corresponding to the given timestamp
-    function observationIndexOf(uint timestamp) public view returns (uint8 index) {
-        uint epochPeriod = timestamp / periodSize;
+    function observationIndexOf(uint256 timestamp) public view returns (uint8 index) {
+        uint256 epochPeriod = timestamp / periodSize;
         return uint8(epochPeriod % granularity);
     }
 
@@ -163,7 +183,7 @@ contract UniswapTWAPOracle is IOracle{
             }
 
             // populate the array with empty observations (first call only)
-            for (uint i = pairObservations[pair].length; i < granularity; i++) {
+            for (uint256 i = pairObservations[pair].length; i < granularity; i++) {
                 pairObservations[pair].push();
             }
 
@@ -172,9 +192,10 @@ contract UniswapTWAPOracle is IOracle{
             Observation storage observation = pairObservations[pair][observationIndex];
 
             // we only want to commit updates once per period (i.e. windowSize / granularity)
-            uint timeElapsed = block.timestamp - observation.timestamp;
+            uint256 timeElapsed = block.timestamp - observation.timestamp;
             if (timeElapsed > periodSize) {
-                (uint price0Cumulative, uint price1Cumulative,) = UniswapV2OracleLibrary.currentCumulativePrices(pair);
+                (uint256 price0Cumulative, uint256 price1Cumulative, ) =
+                    UniswapV2OracleLibrary.currentCumulativePrices(pair);
                 observation.timestamp = block.timestamp;
                 observation.price0Cumulative = price0Cumulative;
                 observation.price1Cumulative = price1Cumulative;
@@ -185,11 +206,14 @@ contract UniswapTWAPOracle is IOracle{
         } else {
             return false;
         }
-
     }
 
     // returns the observation from the oldest epoch (at the beginning of the window) relative to the current time
-    function _getFirstObservationInWindow(address pair) private view returns (Observation storage firstObservation) {
+    function _getFirstObservationInWindow(address pair)
+        private
+        view
+        returns (Observation storage firstObservation)
+    {
         uint8 observationIndex = observationIndexOf(block.timestamp);
         // no overflow issue. if observationIndex + 1 overflows, result is still zero.
         uint8 firstObservationIndex = (observationIndex + 1) % granularity;
@@ -199,13 +223,16 @@ contract UniswapTWAPOracle is IOracle{
     // given the cumulative prices of the start and end of a period, and the length of the period, compute the average
     // price in terms of how much amount out is received for the amount in
     function _computeAmountOut(
-        uint priceCumulativeStart, uint priceCumulativeEnd,
-        uint timeElapsed, uint amountIn
-    ) private pure returns (uint amountOut) {
+        uint256 priceCumulativeStart,
+        uint256 priceCumulativeEnd,
+        uint256 timeElapsed,
+        uint256 amountIn
+    ) private pure returns (uint256 amountOut) {
         // overflow is desired.
-        FixedPoint.uq112x112 memory priceAverage = FixedPoint.uq112x112(
-            uint224((priceCumulativeEnd - priceCumulativeStart) / timeElapsed)
-        );
+        FixedPoint.uq112x112 memory priceAverage =
+            FixedPoint.uq112x112(
+                uint224((priceCumulativeEnd - priceCumulativeStart) / timeElapsed)
+            );
         amountOut = priceAverage.mul(amountIn).decode144();
     }
 }

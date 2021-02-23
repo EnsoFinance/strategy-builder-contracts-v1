@@ -9,7 +9,6 @@ import "./interfaces/IPortfolio.sol";
 import "./interfaces/IPortfolioProxyFactory.sol";
 import "./interfaces/IWhitelist.sol";
 
-
 contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -21,12 +20,16 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(_controller == msg.sender, "PortfolioToken.onlyController: caller is not the controller");
+        require(_controller == msg.sender, "P.oC: controller only");
         _;
     }
 
     function initialize(
-        string memory name_, string memory symbol_, uint256 version_, address controller_, address manager_
+        string memory name_,
+        string memory symbol_,
+        uint256 version_,
+        address controller_,
+        address manager_
     ) external initializer returns (bool) {
         _controller = controller_;
         _manager = manager_;
@@ -36,16 +39,25 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         _decimals = 18;
         // keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
         PERMIT_TYPEHASH = 0xea2aa0a1be11a07ed86d755c93467f4f82362b452371d1ba94d1715123511acb;
-        DOMAIN_SEPARATOR = keccak256(abi.encode(
-            keccak256("EIP712Domain(string name,uint256 version,uint256 chainId,address verifyingContract)"),
-            keccak256(bytes(name_)),
-            version_,
-            chainId(),
-            address(this)
-        ));
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,uint256 version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes(name_)),
+                version_,
+                chainId(),
+                address(this)
+            )
+        );
+        return true;
     }
 
-    function approveToken(IERC20 token, address account, uint256 amount) external override onlyController {
+    function approveToken(
+        IERC20 token,
+        address account,
+        uint256 amount
+    ) external override onlyController {
         token.safeApprove(account, amount);
     }
 
@@ -55,7 +67,11 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         }
     }
 
-    function transferToken(IERC20 token, address account, uint256 amount) external override onlyController {
+    function transferToken(
+        IERC20 token,
+        address account,
+        uint256 amount
+    ) external override onlyController {
         token.safeTransfer(account, amount);
     }
 
@@ -64,9 +80,11 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
      * @param newTokens An array of token addresses that will comprise the portfolio
      * @param newPercentages An array of percentages for each token in the above array. Must total 100%
      */
-    function setStructure(
-        address[] memory newTokens, uint256[] memory newPercentages
-    ) external override onlyController {
+    function setStructure(address[] memory newTokens, uint256[] memory newPercentages)
+        external
+        override
+        onlyController
+    {
         // Remove old percentages
         for (uint256 i = 0; i < _tokens.length; i++) {
             delete _tokenPercentages[_tokens[i]];
@@ -81,10 +99,8 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
      * @notice Withdraw the underlying assets and burn the equivalent amount of portfolio token
      * @param amount The amount of portfolio tokens to burn to recover the equivalent underlying assets
      */
-    function withdraw(
-        uint256 amount
-    ) external override {
-        require(amount > 0, "Error (withdraw): No amount set");
+    function withdraw(uint256 amount) external override {
+        require(amount > 0, "P.withdraw: 0 amount");
         uint256 percentage = amount.mul(10**18).div(_totalSupply);
         _burn(msg.sender, amount);
         for (uint256 i = 0; i < _tokens.length; i++) {
@@ -97,7 +113,7 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     }
 
     function updateManager(address newManager) external override {
-        require(msg.sender == _manager, "Portfolio.updateManager: Not manager");
+        require(msg.sender == _manager, "P.uM: Not manager");
         _manager = newManager;
     }
 
@@ -113,50 +129,46 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         bytes32 s
     ) external override {
         bytes32 digest =
-            keccak256(abi.encodePacked(
-                "\x19\x01",
-                DOMAIN_SEPARATOR,
-                keccak256(abi.encode(
-                    PERMIT_TYPEHASH,
-                    holder,
-                    spender,
-                    nonce,
-                    expiry,
-                    allowed))
-        ));
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    DOMAIN_SEPARATOR,
+                    keccak256(abi.encode(PERMIT_TYPEHASH, holder, spender, nonce, expiry, allowed))
+                )
+            );
 
-        require(holder != address(0), "PortfolioToken.permit: No null address");
-        require(holder == ecrecover(digest, v, r, s), "PortfolioToken.permit: Invalid permit");
-        require(expiry == 0 || block.timestamp <= expiry, "PortfolioToken.permit: Expired");
-        require(nonce == _nonces[holder]++, "PortfolioToken.permit: Invalid nonce");
+        require(holder != address(0), "P.permit: No null address");
+        require(holder == ecrecover(digest, v, r, s), "P.permit: Invalid permit");
+        require(expiry == 0 || block.timestamp <= expiry, "P.permit: Expired");
+        require(nonce == _nonces[holder]++, "P.permit: Invalid nonce");
         uint256 amount = allowed ? uint256(-1) : 0;
         _approve(holder, spender, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-    * the total supply.
-    *
-    * Emits a {Transfer} event with `from` set to the zero address.
-    *
-    * Requirements:
-    *
-    * - `account` cannot be the zero address.
-    */
+     * the total supply.
+     *
+     * Emits a {Transfer} event with `from` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     */
     function mint(address account, uint256 amount) external override onlyController {
         _mint(account, amount);
     }
 
-   /**
-    * @dev Destroys `amount` tokens from `account`, reducing the
-    * total supply.
-    *
-    * Emits a {Transfer} event with `to` set to the zero address.
-    *
-    * Requirements:
-    *
-    * - `account` cannot be the zero address.
-    * - `account` must have at least `amount` tokens.
-    */
+    /**
+     * @dev Destroys `amount` tokens from `account`, reducing the
+     * total supply.
+     *
+     * Emits a {Transfer} event with `to` set to the zero address.
+     *
+     * Requirements:
+     *
+     * - `account` cannot be the zero address.
+     * - `account` must have at least `amount` tokens.
+     */
     function burn(address account, uint256 amount) external override onlyController {
         _burn(account, amount);
     }
@@ -190,6 +202,8 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     }
 
     function chainId() public pure returns (uint256 id) {
-        assembly { id := chainid() }
+        assembly {
+            id := chainid()
+        }
     }
 }

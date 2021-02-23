@@ -1,15 +1,14 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-
 interface IKeep3rV1Oracle {
     struct Observation {
-        uint timestamp;
-        uint price0Cumulative;
-        uint price1Cumulative;
+        uint256 timestamp;
+        uint256 price0Cumulative;
+        uint256 price1Cumulative;
     }
 
-    function setMinKeep(uint _keep) external;
+    function setMinKeep(uint256 _keep) external;
 
     function setGovernance(address _governance) external;
 
@@ -19,7 +18,7 @@ interface IKeep3rV1Oracle {
 
     function update(address tokenA, address tokenB) external returns (bool);
 
-    function updateFor(uint i, uint length) external returns (bool updated);
+    function updateFor(uint256 i, uint256 length) external returns (bool updated);
 
     function add(address tokenA, address tokenB) external;
 
@@ -27,10 +26,9 @@ interface IKeep3rV1Oracle {
 
     function workForFree() external;
 
-
     function pairs() external view returns (address[] memory);
 
-    function observationLength(address pair) external view returns (uint);
+    function observationLength(address pair) external view returns (uint256);
 
     function pairFor(address tokenA, address tokenB) external pure returns (address);
 
@@ -42,40 +40,78 @@ interface IKeep3rV1Oracle {
 
     function workable() external view returns (bool);
 
-    function current(address tokenIn, uint amountIn, address tokenOut) external view returns (uint amountOut);
+    function current(
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut
+    ) external view returns (uint256 amountOut);
 
     function quote(
-        address tokenIn, uint amountIn, address tokenOut, uint granularity) external view returns (uint amountOut);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 granularity
+    ) external view returns (uint256 amountOut);
 
     function prices(
-        address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 points
+    ) external view returns (uint256[] memory);
 
     function sample(
         address tokenIn,
-        uint amountIn,
+        uint256 amountIn,
         address tokenOut,
-        uint points,
-        uint window
-    ) external view returns (uint[] memory);
+        uint256 points,
+        uint256 window
+    ) external view returns (uint256[] memory);
 
     function hourly(
-        address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 points
+    ) external view returns (uint256[] memory);
 
     function daily(
-        address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 points
+    ) external view returns (uint256[] memory);
 
     function weekly(
-        address tokenIn, uint amountIn, address tokenOut, uint points) external view returns (uint[] memory);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 points
+    ) external view returns (uint256[] memory);
 
     function realizedVolatility(
-        address tokenIn, uint amountIn, address tokenOut, uint points, uint window) external view returns (uint);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 points,
+        uint256 window
+    ) external view returns (uint256);
 
     function realizedVolatilityHourly(
-        address tokenIn, uint amountIn, address tokenOut) external view returns (uint);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut
+    ) external view returns (uint256);
 
     function realizedVolatilityDaily(
-        address tokenIn, uint amountIn, address tokenOut) external view returns (uint);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut
+    ) external view returns (uint256);
 
     function realizedVolatilityWeekly(
-        address tokenIn, uint amountIn, address tokenOut) external view returns (uint);
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut
+    ) external view returns (uint256);
 }

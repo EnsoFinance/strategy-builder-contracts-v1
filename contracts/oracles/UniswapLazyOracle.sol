@@ -12,7 +12,6 @@ import "../interfaces/IKeep3rV1Oracle.sol";
 import "../interfaces/IOracle.sol";
 import "../libraries/UniswapV2Library.sol";
 
-
 contract UniswapLazyOracle is IOracle {
     using FixedPoint for *;
     using SafeMath for uint256;
@@ -84,8 +83,8 @@ contract UniswapLazyOracle is IOracle {
 
     function estimateTotal(address account, address[] calldata tokens)
         external
-        override
         view
+        override
         returns (uint256, uint256[] memory)
     {
         //Loop through tokens and calculate the total
@@ -104,7 +103,6 @@ contract UniswapLazyOracle is IOracle {
                 } else {
                     estimate = 0;
                 }
-
             }
             total = total.add(estimate);
             estimates[i] = estimate;
@@ -113,19 +111,25 @@ contract UniswapLazyOracle is IOracle {
     }
 
     function needsUpdate(address token) external view returns (bool) {
-        if (token == weth || chainlinkOracles[token] != address(0) || keep3rOracles[token] != address(0)) return false;
+        if (
+            token == weth ||
+            chainlinkOracles[token] != address(0) ||
+            keep3rOracles[token] != address(0)
+        ) return false;
         address pair = UniswapV2Library.pairFor(factory, token, weth);
         Observation storage observation = pairObservations[pair];
         if (observation.timestamp == 0 || observation.timestampLast == 0) return true;
-        uint256 amount = 10*18;
+        uint256 amount = 10 * 18;
 
-        uint256 timeElapsedSinceObservation = uint256(observation.timestamp - observation.timestampLast);
-        uint256 computedAmount = _computeAmountOut(
-            observation.priceCumulativeLast,
-            observation.priceCumulative,
-            timeElapsedSinceObservation,
-            amount
-        );
+        uint256 timeElapsedSinceObservation =
+            uint256(observation.timestamp - observation.timestampLast);
+        uint256 computedAmount =
+            _computeAmountOut(
+                observation.priceCumulativeLast,
+                observation.priceCumulative,
+                timeElapsedSinceObservation,
+                amount
+            );
 
         (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, token, weth);
         uint256 currentAmount = UniswapV2Library.quote(amount, reserveA, reserveB);
@@ -135,37 +139,40 @@ contract UniswapLazyOracle is IOracle {
         return false;
     }
 
-    function consult(uint amount, address token) public view override returns (uint256) {
+    function consult(uint256 amount, address token) public view override returns (uint256) {
         if (token == weth) return amount;
         address pair = UniswapV2Library.pairFor(factory, token, weth);
 
         // if time has elapsed since the last update on the pair, mock the accumulated price values
         uint32 blockTimestamp = UniswapV2OracleLibrary.currentBlockTimestamp();
-        (uint256 reserve0, uint256 reserve1, uint32 blockTimestampLast) = IUniswapV2Pair(pair).getReserves();
+        (uint256 reserve0, uint256 reserve1, uint32 blockTimestampLast) =
+            IUniswapV2Pair(pair).getReserves();
         if (blockTimestampLast == blockTimestamp) {
             //NOTE: A swap has happened this block, risk of price manipulation. Try other oracles first
             if (chainlinkOracles[token] != address(0)) {
-                (, int price, , ,  ) = AggregatorV3Interface(chainlinkOracles[token]).latestRoundData();
+                (, int256 price, , , ) =
+                    AggregatorV3Interface(chainlinkOracles[token]).latestRoundData();
                 return uint256(price).mul(amount).div(10**18); // TODO: Get token's decimal value
             }
             if (keep3rOracles[token] != address(0)) {
-                return IKeep3rV1Oracle(keep3rOracles[token]).sample(
-                    token, amount, weth, 1, 24)[0]; // TODO: Get proper values!
+                return IKeep3rV1Oracle(keep3rOracles[token]).sample(token, amount, weth, 1, 24)[0]; // TODO: Get proper values!
             }
             Observation storage observation = pairObservations[pair];
             if (observation.timestamp > 0 && observation.timestampLast > 0) {
-                uint256 timeElapsedSinceObservation = uint256(observation.timestamp - observation.timestampLast);
-                return _computeAmountOut(
-                    observation.priceCumulativeLast,
-                    observation.priceCumulative,
-                    timeElapsedSinceObservation,
-                    amount
-                );
+                uint256 timeElapsedSinceObservation =
+                    uint256(observation.timestamp - observation.timestampLast);
+                return
+                    _computeAmountOut(
+                        observation.priceCumulativeLast,
+                        observation.priceCumulative,
+                        timeElapsedSinceObservation,
+                        amount
+                    );
             }
         }
         //NOTE: This means that no swap has been done this block or there are no
         // valid observations. So just get the current price
-        (address token0,) = UniswapV2Library.sortTokens(token, weth);
+        (address token0, ) = UniswapV2Library.sortTokens(token, weth);
         if (token0 == token) {
             return UniswapV2Library.quote(amount, reserve0, reserve1);
         } else {
@@ -174,22 +181,24 @@ contract UniswapLazyOracle is IOracle {
     }
 
     function _update(address token) private returns (bool) {
-        if (token != weth && chainlinkOracles[token] == address(0) && keep3rOracles[token] == address(0)) {
+        if (
+            token != weth &&
+            chainlinkOracles[token] == address(0) &&
+            keep3rOracles[token] == address(0)
+        ) {
             address pair = UniswapV2Library.pairFor(factory, token, weth);
-
 
             Observation storage observation = pairObservations[pair];
             (, , uint32 blockTimestampLast) = IUniswapV2Pair(pair).getReserves();
 
             if (blockTimestampLast > observation.timestamp) {
-
                 //Set last values
                 observation.timestampLast = observation.timestamp;
                 observation.priceCumulativeLast = observation.priceCumulative;
                 //Set new values
                 observation.timestamp = blockTimestampLast;
 
-                (address token0,) = UniswapV2Library.sortTokens(token, weth);
+                (address token0, ) = UniswapV2Library.sortTokens(token, weth);
                 observation.priceCumulative = token0 == token
                     ? IUniswapV2Pair(pair).price0CumulativeLast()
                     : IUniswapV2Pair(pair).price1CumulativeLast();
@@ -209,19 +218,21 @@ contract UniswapLazyOracle is IOracle {
         } else {
             return false;
         }
-
     }
 
     // given the cumulative prices of the start and end of a period, and the length of the period, compute the average
     // price in terms of how much amount out is received for the amount in
     function _computeAmountOut(
-        uint priceCumulativeStart, uint priceCumulativeEnd,
-        uint timeElapsed, uint amountIn
-    ) private pure returns (uint amountOut) {
+        uint256 priceCumulativeStart,
+        uint256 priceCumulativeEnd,
+        uint256 timeElapsed,
+        uint256 amountIn
+    ) private pure returns (uint256 amountOut) {
         // overflow is desired.
-        FixedPoint.uq112x112 memory priceAverage = FixedPoint.uq112x112(
-            uint224((priceCumulativeEnd - priceCumulativeStart) / timeElapsed)
-        );
+        FixedPoint.uq112x112 memory priceAverage =
+            FixedPoint.uq112x112(
+                uint224((priceCumulativeEnd - priceCumulativeStart) / timeElapsed)
+            );
         amountOut = priceAverage.mul(amountIn).decode144();
     }
 }
