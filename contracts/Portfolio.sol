@@ -37,8 +37,8 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         _name = name_;
         _symbol = symbol_;
         _decimals = 18;
-        // keccak256("Permit(address holder,address spender,uint256 nonce,uint256 expiry,bool allowed)");
-        PERMIT_TYPEHASH = 0xea2aa0a1be11a07ed86d755c93467f4f82362b452371d1ba94d1715123511acb;
+        PERMIT_TYPEHASH =
+            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256(
@@ -117,34 +117,6 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         _manager = newManager;
     }
 
-    // Approve with signature
-    function permit(
-        address holder,
-        address spender,
-        uint256 nonce,
-        uint256 expiry,
-        bool allowed,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external override {
-        bytes32 digest =
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    DOMAIN_SEPARATOR,
-                    keccak256(abi.encode(PERMIT_TYPEHASH, holder, spender, nonce, expiry, allowed))
-                )
-            );
-
-        require(holder != address(0), "P.permit: No null address");
-        require(holder == ecrecover(digest, v, r, s), "P.permit: Invalid permit");
-        require(expiry == 0 || block.timestamp <= expiry, "P.permit: Expired");
-        require(nonce == _nonces[holder]++, "P.permit: Invalid nonce");
-        uint256 amount = allowed ? uint256(-1) : 0;
-        _approve(holder, spender, amount);
-    }
-
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
      * the total supply.
      *
@@ -181,6 +153,10 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         return _tokenPercentages[token];
     }
 
+    function nonces(address owner) external view override returns (uint256) {
+        return _nonces[owner];
+    }
+
     function isWhitelisted(address account) external view override returns (bool) {
         return IWhitelist(whitelist()).approved(account);
     }
@@ -205,5 +181,32 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         assembly {
             id := chainid()
         }
+    }
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public override {
+        // solhint-disable-next-line not-rely-on-time
+        require(block.timestamp <= deadline, "Portfolio.permit: expired deadline");
+
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR,
+                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, _nonces[owner], deadline))
+            )
+        );
+
+        address signer = ecrecover(digest, v, r, s);
+        require(signer != address(0) && signer == owner, "Portfolio.permit: invalid signature");
+
+        _nonces[owner]++;
+        _approve(owner, spender, value);
     }
 }

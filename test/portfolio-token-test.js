@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { constants, getContractFactory, getSigners } = ethers
+const { constants, getContractFactory, getSigners, utils } = ethers
 const { AddressZero, WeiPerEther } = constants
 const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
 const { preparePortfolio } = require('./helpers/utils.js')
@@ -142,4 +142,54 @@ describe('PortfolioToken', function() {
     expect(await portfolio.owner()).to.equal(AddressZero)
   })
   */
+
+  it('Should permit', async function() {
+    amount = ethers.BigNumber.from('10000000000000000')
+    const owner = accounts[2].address
+    const spender = accounts[1].address
+
+    const name = await portfolio.name()
+    const chainId = await portfolio.chainId()
+
+    const nonce = await portfolio.nonces(accounts[2].address)
+    const deadline = constants.MaxUint256
+
+    const typedData = {
+      types: {
+        EIP712Domain: [
+          { name: "name", type: "string" },
+          { name: "version", type: "uint256" },
+          { name: "chainId", type: "uint256" },
+          { name: "verifyingContract", type: "address" },
+        ],
+        Permit: [
+          { name: "owner", type: "address" },
+          { name: "spender", type: "address" },
+          { name: "value", type: "uint256" },
+          { name: "nonce", type: "uint256" },
+          { name: "deadline", type: "uint256" },
+        ]
+      },
+      primaryType: 'Permit',
+      domain: {
+        name: name,
+        version: 1,
+        chainId: chainId.toString(),
+        verifyingContract: portfolio.address
+      },
+      message: {
+        owner: owner,
+        spender: spender,
+        value: amount.toString(),
+        nonce: nonce.toString(),
+        deadline: deadline.toString()
+      }
+    }
+    const { v, r, s } = ethers.utils.splitSignature(await accounts[2].provider.send('eth_signTypedData', [
+      owner,
+      typedData
+    ]))
+    await portfolio.connect(accounts[2]).permit(accounts[2].address, accounts[1].address, amount, deadline, v, r, s)
+    expect(amount.eq(await portfolio.allowance(owner, spender))).to.equal(true)
+  })
 });
