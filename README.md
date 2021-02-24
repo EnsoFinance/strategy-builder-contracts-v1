@@ -162,18 +162,18 @@ Or- [1. Asset Management Solidity V1](#1-asset-management-solidity-v1)
 - [7. Kovan Deployment](#7-kovan-deployment)
 
 
-Oracle deployed to:  0x3B754015007FCFe78C3C6b8dD938360cF29F18A5
+Oracle deployed to:  0x53e8Fb14D23F503f3342BEb92FBbCeb535e3d3E4
 
-Whitelist deployed to:  0x9b843b28D0A4dD0BC26cf416913ef5171f42740E
+Whitelist deployed to:  0xC2A58e1298bAac77D0D11E1C6B549d2F7c919136
 
-UniswapAdapter deployed to:  0x65B310CC4993C38A602EBd687f1Ee125eF550f54
+UniswapAdapter deployed to:  0x5a9C320b94a173C7514eEAed9041dfDeBE4Db238
 
-PortfolioControllerDeployer deployed to:  0x1689fEe425609c7d373C619F6E96dF9d7bA8Ef1F
+PortfolioControllerDeployer deployed to:  0x09D8De0d435a5F3936645991aaF776caef70d58b
 
-PortfolioController deployed to:  0xa13c9738348D4af4d8B026B5796704edF35aB3B2
+PortfolioController deployed to:  0xEF72ab0A4F94ba88c82b3076f62626095F1A55ED
 
-LoopRouter deployed to:  0x7d4cD71aab0ad545f5FDe570D912c9c707D6c07e
+LoopRouter deployed to:  0x14134D2bB172A177fD9935F9B261c19454Be2827
 
-GenericRouter deployed to:  0xa799aA30D37841aca46F92495f77Da2111906c06
+GenericRouter deployed to:  0xC868fb80eF8b0FE2BE8ae33859De1CFA062efeBa
 
-PortfolioProxyFactory deployed to: 0xf1E4B29DDfBC599A90b5094D8F828524e11c2e51
+PortfolioProxyFactory deployed to: 0x1bDD78519b7849f5fC6875F5c6c2A983ab50F115
