@@ -137,7 +137,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             IERC20 token = IERC20(tokens[i]);
             uint256 currentBalance = token.balanceOf(address(portfolio));
             uint256 tokenAmount = currentBalance.mul(percentage).div(10**18);
-            portfolio.transferToken(token, msg.sender, amount);
+            portfolio.transferToken(token, msg.sender, tokenAmount);
             amounts[i] = tokenAmount;
         }
         emit Withdraw(address(portfolio), amount, amounts);

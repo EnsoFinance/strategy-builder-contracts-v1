@@ -211,16 +211,16 @@ describe('PortfolioController', function () {
 
   it('Should withdraw', async function () {
     const amount = ethers.BigNumber.from('10000000000000')
-    const supplyBefore = await portfolio.totalSupply()
-    const tokenBalanceBefore = await tokens[1].balanceOf(portfolio.address)
+    const supplyBefore = BigNumber((await portfolio.totalSupply()).toString())
+    const tokenBalanceBefore = BigNumber((await tokens[1].balanceOf(portfolio.address)).toString())
     const tx = await controller.connect(accounts[1]).withdrawAssets(portfolio.address, amount)
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
-    const supplyAfter = await portfolio.totalSupply()
-    const tokenBalanceAfter = await tokens[1].balanceOf(portfolio.address)
-    expect(supplyBefore.sub(amount).eq(supplyAfter)).to.equal(true)
-    expect(supplyBefore.div(supplyAfter).eq(tokenBalanceBefore.div(tokenBalanceAfter))).to.equal(true)
-    expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
+    const supplyAfter = BigNumber((await portfolio.totalSupply()).toString())
+    const tokenBalanceAfter = BigNumber((await tokens[1].balanceOf(portfolio.address)).toString())
+    expect(supplyBefore.minus(amount.toString()).isEqualTo(supplyAfter)).to.equal(true)
+    expect(supplyBefore.dividedBy(supplyAfter).decimalPlaces(10).isEqualTo(tokenBalanceBefore.dividedBy(tokenBalanceAfter).decimalPlaces(10))).to.equal(true)
+    expect(tokenBalanceBefore.isGreaterThan(tokenBalanceAfter)).to.equal(true)
   })
 
   it('Should fail to restructure: wrong array length', async function () {
