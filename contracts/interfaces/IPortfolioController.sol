@@ -11,6 +11,8 @@ interface IPortfolioController {
         address[] memory adapters_,
         address[] memory tokens_,
         uint256[] memory percentages_,
+        bool social_,
+        uint256 fee_,
         uint256 threshold_,
         uint256 slippage_,
         uint256 timelock_

@@ -48,6 +48,8 @@ describe('PortfolioProxyFactory', function() {
       portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
+      false,
+      0,
       REBALANCE_THRESHOLD,
       SLIPPAGE,
       TIMELOCK,

@@ -41,6 +41,8 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         address[] memory adapters_,
         address[] memory tokens_,
         uint256[] memory percentages_,
+        bool social_,
+        uint256 fee_,
         uint256 threshold_,
         uint256 slippage_,
         uint256 timelock_
@@ -62,6 +64,9 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         if (msg.value > 0) {
             _buyTokens(IPortfolio(portfolio_), tokens_, adapters_);
             IPortfolio(portfolio_).mint(creator_, msg.value);
+        }
+        if (social_) {
+          _openPortfolio(IPortfolio(portfolio_), fee_);
         }
         _removeLock();
     }
@@ -278,14 +283,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
     function openPortfolio(IPortfolio portfolio, uint256 fee) external override {
         _setLock();
         _onlyManager(portfolio);
-        require(fee > DIVISOR, "PC.oP: Fee too high");
-        (uint256 total, ) =
-            IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
-        //As token value increase compared to the _tokenValueLast value, performance fees may be extracted
-        _lastTokenValues[address(portfolio)] = total.mul(10**18).div(portfolio.totalSupply());
-        PortfolioState storage portfolioState = _portfolioStates[address(portfolio)];
-        portfolioState.performanceFee = fee;
-        portfolioState.social = true;
+        _openPortfolio(portfolio, fee);
         _removeLock();
     }
 
@@ -379,6 +377,17 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             }
         }
         require(address(this).balance == uint256(0), "PC._bT: Leftover ETH");
+    }
+
+    function _openPortfolio(IPortfolio portfolio, uint256 fee) internal {
+        require(fee < DIVISOR, "PC._oP: Fee too high");
+        (uint256 total, ) =
+            IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
+        //As token value increase compared to the _tokenValueLast value, performance fees may be extracted
+        _lastTokenValues[address(portfolio)] = total.mul(10**18).div(portfolio.totalSupply());
+        PortfolioState storage portfolioState = _portfolioStates[address(portfolio)];
+        portfolioState.performanceFee = fee;
+        portfolioState.social = true;
     }
 
     /**

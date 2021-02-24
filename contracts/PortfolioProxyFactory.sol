@@ -35,6 +35,8 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         string symbol,
         address[] tokens,
         uint256[] percentages,
+        bool social,
+        uint256 fee,
         uint256 threshold,
         uint256 slippage,
         uint256 timelock
@@ -78,6 +80,8 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         address[] memory routers,
         address[] memory tokens,
         uint256[] memory percentages,
+        bool social,
+        uint256 fee,
         uint256 threshold,
         uint256 slippage,
         uint256 timelock
@@ -106,6 +110,8 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             routers,
             tokens,
             percentages,
+            social,
+            fee,
             threshold,
             slippage,
             timelock
@@ -117,6 +123,8 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             symbol,
             tokens,
             percentages,
+            social,
+            fee,
             threshold,
             slippage,
             timelock
