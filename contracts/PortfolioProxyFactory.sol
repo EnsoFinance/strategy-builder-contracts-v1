@@ -91,12 +91,14 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
                 implementation,
                 address(this),
                 abi.encodeWithSelector(
-                    bytes4(keccak256("initialize(string,string,uint256,address,address)")), // solhint-disable-line
+                    bytes4(keccak256("initialize(string,string,uint256,address,address,address[],uint256[])")),
                     name,
                     symbol,
                     version,
                     controller,
-                    msg.sender
+                    msg.sender,
+                    tokens,
+                    percentages
                 )
             );
         /*
@@ -104,12 +106,10 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             new TransparentUpgradeableProxy(implementation, address(this), new bytes(0));
         */
 
-        IPortfolioController(controller).setupPortfolio{value: msg.value}( // solhint-disable-line
+        IPortfolioController(controller).setupPortfolio{value: msg.value}(
             msg.sender,
             address(proxy),
             routers,
-            tokens,
-            percentages,
             social,
             fee,
             threshold,
@@ -215,9 +215,9 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
      * - This contract must be the admin of `proxy`.
      */
     function upgradeAndCall(
-        TransparentUpgradeableProxy proxy, //solhint-disable-line
+        TransparentUpgradeableProxy proxy,
         bytes memory data
     ) public payable onlyManager(address(proxy)) {
-        proxy.upgradeToAndCall{value: msg.value}(implementation, data); //solhint-disable-line
+        proxy.upgradeToAndCall{value: msg.value}(implementation, data);
     }
 }

@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { displayBalances } = require('./helpers/logging.js')
 const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployGenericRouter } = require('./helpers/deploy.js')
-const { preparePortfolio, prepareRebalanceMulticall, prepareDepositMulticall } = require('./helpers/utils.js')
+const { preparePortfolio, prepareRebalanceMulticall, prepareDepositMulticall } = require('./helpers/encode.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
@@ -75,7 +75,7 @@ describe('GenericRouter', function () {
       await wrapper.deployed()
 
       const total = ethers.BigNumber.from('10000000000000000')
-      const calls = await prepareDepositMulticall(portfolio, genericRouter, adapter, uniswapFactory, WETH, total, portfolioTokens, portfolioPercentages)
+      const calls = await prepareDepositMulticall(portfolio, controller, genericRouter, adapter, uniswapFactory, WETH, total, portfolioTokens, portfolioPercentages)
       const data = await genericRouter.encodeCalls(calls);
       tx = await controller.connect(accounts[1]).deposit(portfolio.address, genericRouter.address, data, {value: total})
       receipt = await tx.wait()

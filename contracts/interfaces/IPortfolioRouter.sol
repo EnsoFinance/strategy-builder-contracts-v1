@@ -16,11 +16,11 @@ interface IPortfolioRouter {
         address portfolio,
         address[] memory tokens,
         address[] memory routers
-    ) external payable;
+    ) external;
 
     function rebalance(address portfolio, bytes calldata data) external;
 
-    function deposit(address portfolio, bytes calldata data) external payable;
+    function deposit(address portfolio, bytes calldata data) external;
 
     function controller() external view returns (address);
 

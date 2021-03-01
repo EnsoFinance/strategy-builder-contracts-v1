@@ -14,7 +14,7 @@ contract GenericRouter is PortfolioRouter, Multicall {
     /**
      * @notice Setup PortfolioRouter with the weth address
      */
-    constructor(address controller_, address weth_) public PortfolioRouter(controller_, weth_) {} //solhint-disable-line
+    constructor(address controller_, address weth_) public PortfolioRouter(controller_, weth_) {}
 
     /**
      * @notice Executes provided calldata to achieve a deposit for the Portfolio
@@ -22,12 +22,11 @@ contract GenericRouter is PortfolioRouter, Multicall {
     // Receive call from controller
     function deposit(address portfolio, bytes memory data)
         external
-        payable
         override
         onlyController
     {
         (portfolio);
-        Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
+        Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
         require(address(this).balance == uint256(0), "GR.deposit: Leftover funds");
     }
@@ -38,7 +37,7 @@ contract GenericRouter is PortfolioRouter, Multicall {
     // Receive call from controller
     function rebalance(address portfolio, bytes memory data) external override onlyController {
         (portfolio);
-        Call[] memory callStructs = abi.decode(data, (Call[])); //solhint-disable-line
+        Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
     }
 

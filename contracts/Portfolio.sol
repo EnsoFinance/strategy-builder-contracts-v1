@@ -13,8 +13,10 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    uint256 private constant DIVISOR = 1000;
+
     // Initialize constructor to disable implementation
-    constructor() public initializer {} // solhint-disable-line
+    constructor() public initializer {}
 
     /**
      * @dev Throws if called by any account other than the controller.
@@ -29,7 +31,9 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         string memory symbol_,
         uint256 version_,
         address controller_,
-        address manager_
+        address manager_,
+        address[] memory tokens_,
+        uint256[] memory percentages_
     ) external initializer returns (bool) {
         _controller = controller_;
         _manager = manager_;
@@ -50,6 +54,11 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
                 address(this)
             )
         );
+        // Set structure
+        if (tokens_.length > 0) {
+            verifyStructure(tokens_, percentages_);
+            _setStructure(tokens_, percentages_);
+        }
         return true;
     }
 
@@ -85,14 +94,7 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         override
         onlyController
     {
-        // Remove old percentages
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            delete _tokenPercentages[_tokens[i]];
-        }
-        for (uint256 i = 0; i < newTokens.length; i++) {
-            _tokenPercentages[newTokens[i]] = newPercentages[i];
-        }
-        _tokens = newTokens;
+        _setStructure(newTokens, newPercentages);
     }
 
     /**
@@ -192,7 +194,6 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         bytes32 r,
         bytes32 s
     ) public override {
-        // solhint-disable-next-line not-rely-on-time
         require(block.timestamp <= deadline, "Portfolio.permit: expired deadline");
 
         bytes32 digest = keccak256(
@@ -208,5 +209,46 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
 
         _nonces[owner]++;
         _approve(owner, spender, value);
+    }
+
+    /**
+     * @notice This function verifies that the structure passed in parameters is valid
+     * @dev We check that the array lengths match, that the percentages add 100%,
+     *      no zero addresses, and no duplicates
+     * @dev Token addresses must be passed in, according to increasing byte value
+     */
+    function verifyStructure(address[] memory newTokens, uint256[] memory newPercentages)
+        public
+        pure
+        override
+        returns (bool)
+    {
+        require(newTokens.length == newPercentages.length, "P.vS: invalid input lengths");
+        require(newTokens[0] != address(0), "P.vS: invalid weth addr"); //Everything else will caught be the ordering requirement below
+        uint256 total = 0;
+        for (uint256 i = 0; i < newTokens.length; i++) {
+            require(i == 0 || newTokens[i] > newTokens[i - 1], "P.vS: token ordering");
+            require(newPercentages[i] > 0, "P.vS: bad percentage");
+            total = total.add(newPercentages[i]);
+        }
+        require(total == DIVISOR, "P.vS: total percentage wrong");
+    }
+
+    /**
+     * @notice Set the structure of the portfolio
+     * @param newTokens An array of token addresses that will comprise the portfolio
+     * @param newPercentages An array of percentages for each token in the above array. Must total 100%
+     */
+    function _setStructure(
+        address[] memory newTokens, uint256[] memory newPercentages
+    ) internal {
+        // Remove old percentages
+        for (uint256 i = 0; i < _tokens.length; i++) {
+            delete _tokenPercentages[_tokens[i]];
+        }
+        for (uint256 i = 0; i < newTokens.length; i++) {
+            _tokenPercentages[newTokens[i]] = newPercentages[i];
+        }
+        _tokens = newTokens;
     }
 }

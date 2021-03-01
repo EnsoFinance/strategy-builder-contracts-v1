@@ -23,7 +23,6 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
     event Withdraw(address indexed portfolio, uint256 amount, uint256[] amounts);
     event NewStructure(address indexed portfolio, address[] tokens, uint256[] percentages);
     event NewValue(address indexed portfolio, TimelockCategory category, uint256 newValue);
-    event FundsReceived(uint256 amount, address account);
 
     /*
      * @param creator_ The address that created the portfolio
@@ -39,8 +38,6 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         address creator_,
         address portfolio_,
         address[] memory adapters_,
-        address[] memory tokens_,
-        uint256[] memory percentages_,
         bool social_,
         uint256 fee_,
         uint256 threshold_,
@@ -56,17 +53,13 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         portfolioState.rebalanceThreshold = threshold_;
         portfolioState.slippage = slippage_;
         portfolioState.timelock = timelock_;
-        // Set structure
-        if (tokens_.length > 0) {
-            _verifyStructure(tokens_, percentages_);
-            IPortfolio(portfolio_).setStructure(tokens_, percentages_);
-        }
+        IPortfolio portfolio = IPortfolio(portfolio_);
         if (msg.value > 0) {
-            _buyTokens(IPortfolio(portfolio_), tokens_, adapters_);
-            IPortfolio(portfolio_).mint(creator_, msg.value);
+            _buyTokens(portfolio, portfolio.tokens(), adapters_);
+            portfolio.mint(creator_, msg.value);
         }
         if (social_) {
-          _openPortfolio(IPortfolio(portfolio_), fee_);
+          _openPortfolio(portfolio, fee_);
         }
         _removeLock();
     }
@@ -110,7 +103,12 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         require(msg.value > 0, "PC.deposit: No ether sent");
         (uint256 totalBefore, ) =
             IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
-        router.deposit{value: msg.value}(address(portfolio), data); // solhint-disable-line
+
+        address weth = IOracle(portfolio.oracle()).weth();
+        IWETH(weth).deposit{value: msg.value}();
+        IERC20(weth).approve(address(router), msg.value);
+        router.deposit(address(portfolio), data);
+        IERC20(weth).approve(address(router), 0);
 
         // Recheck total
         (uint256 totalAfter, ) =
@@ -156,13 +154,12 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             IOracle(portfolio.oracle()).estimateTotal(address(portfolio), portfolio.tokens());
         uint256 totalSupply = portfolio.totalSupply();
         uint256 tokenValue = total.mul(10**18).div(totalSupply);
-        if (tokenValue > _lastTokenValues[address(portfolio)]) {
-            uint256 diff = tokenValue.sub(_lastTokenValues[address(portfolio)]);
-            uint256 performanceFee = _portfolioStates[address(portfolio)].performanceFee;
-            uint256 reward = totalSupply.mul(diff).mul(performanceFee).div(DIVISOR).div(10**18);
-            _lastTokenValues[address(portfolio)] = tokenValue;
-            portfolio.mint(msg.sender, reward); // _onlyManager() ensures that msg.sender == manager
-        }
+        require(tokenValue > _lastTokenValues[address(portfolio)], "PC.wPF: No earnings");
+        uint256 diff = tokenValue.sub(_lastTokenValues[address(portfolio)]);
+        uint256 performanceFee = _portfolioStates[address(portfolio)].performanceFee;
+        uint256 reward = totalSupply.mul(diff).mul(performanceFee).div(DIVISOR).div(10**18);
+        _lastTokenValues[address(portfolio)] = tokenValue;
+        portfolio.mint(msg.sender, reward); // _onlyManager() ensures that msg.sender == manager
         _removeLock();
     }
 
@@ -187,7 +184,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
                 timelock.timestamp.add(_portfolioStates[address(portfolio)].timelock),
             "PC.restructure: Timelock active"
         );
-        _verifyStructure(tokens, percentages);
+        portfolio.verifyStructure(tokens, percentages);
         timelock.category = TimelockCategory.RESTRUCTURE;
         timelock.timestamp = block.timestamp;
         timelock.data = abi.encode(tokens, percentages);
@@ -204,21 +201,22 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @param router The address of the router that will be doing the handling the trading logic
      */
     function finalizeStructure(
-        address payable portfolio,
+        IPortfolio portfolio,
         address router,
         address[] memory sellAdapters,
         address[] memory buyAdapters
     ) external override {
         _setLock();
-        PortfolioState storage portfolioState = _portfolioStates[portfolio];
-        Timelock storage timelock = _timelocks[portfolio];
+        PortfolioState storage portfolioState = _portfolioStates[address(portfolio)];
+        Timelock storage timelock = _timelocks[address(portfolio)];
         require(
             !portfolioState.social ||
                 block.timestamp > timelock.timestamp.add(portfolioState.timelock),
             "PC.fS: Timelock active"
         );
+        require(timelock.category == TimelockCategory.RESTRUCTURE, "PC.fS: Wrong category");
         (address[] memory tokens, uint256[] memory percentages) =
-            abi.decode(timelock.data, (address[], uint256[])); //solhint-disable-line
+            abi.decode(timelock.data, (address[], uint256[]));
         _finalizeStructure(portfolio, router, tokens, percentages, sellAdapters, buyAdapters);
         delete timelock.category;
         delete timelock.timestamp;
@@ -256,13 +254,13 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         _setLock();
         PortfolioState storage portfolioState = _portfolioStates[portfolio];
         Timelock storage timelock = _timelocks[portfolio];
-        require(timelock.category != TimelockCategory.RESTRUCTURE);
+        require(timelock.category != TimelockCategory.RESTRUCTURE, "PC.fV: Wrong category");
         require(
             !portfolioState.social ||
                 block.timestamp > timelock.timestamp.add(portfolioState.timelock),
             "PC.fV: Timelock active"
         );
-        uint256 newValue = abi.decode(timelock.data, (uint256)); //solhint-disable-line
+        uint256 newValue = abi.decode(timelock.data, (uint256));
         if (timelock.category == TimelockCategory.THRESHOLD) {
             portfolioState.rebalanceThreshold = newValue;
         } else if (timelock.category == TimelockCategory.SLIPPAGE) {
@@ -359,12 +357,12 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             if (tokenAddress == IOracle(portfolio.oracle()).weth()) {
                 // Wrap ETH to WETH
                 IWETH weth = IWETH(tokenAddress);
-                weth.deposit{value: amount}(); // solhint-disable-line
+                weth.deposit{value: amount}();
                 // Transfer weth back to sender
                 weth.transfer(address(portfolio), amount);
             } else {
                 // Convert ETH to Token
-                IExchangeAdapter(adapters[i]).swap{value: amount}( // solhint-disable-line
+                IExchangeAdapter(adapters[i]).swap{value: amount}(
                     amount,
                     0,
                     address(0),
@@ -419,28 +417,6 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
     }
 
     /**
-     * @notice This function verifies that the structure passed in parameters is valid
-     * @dev We check that the array lengths match, that the percentages add 100%,
-     *      no zero addresses, and no duplicates
-     * @dev Token addresses must be passed in, according to increasing byte value
-     */
-    function _verifyStructure(address[] memory tokens, uint256[] memory percentages)
-        internal
-        pure
-        returns (bool)
-    {
-        require(tokens.length == percentages.length, "PC._vS: invalid input lengths");
-        uint256 total = 0;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            require(tokens[i] != address(0), "PC._vS: invalid weth addr");
-            require(i == 0 || tokens[i] > tokens[i - 1], "PC._vS: token ordering");
-            require(percentages[i] > 0, "PC._vS: bad percentage");
-            total = total.add(percentages[i]);
-        }
-        require(total == DIVISOR, "PC._vS: total percentage wrong");
-    }
-
-    /**
      * @notice Finalize the structure by selling current posiition, setting new structure, and buying new position
      * @param tokens An array of token addresses that will comprise the portfolio
      * @param percentages An array of percentages for each token in the above array. Must total 100%
@@ -449,28 +425,31 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      * @param router The address of the router that will be doing the handling the trading logic
      */
     function _finalizeStructure(
-        address payable portfolio,
+        IPortfolio portfolio,
         address router,
         address[] memory tokens,
         uint256[] memory percentages,
         address[] memory sellAdapters,
         address[] memory buyAdapters
     ) internal {
-        address[] memory oldTokens = IPortfolio(portfolio).tokens();
+        address[] memory oldTokens = portfolio.tokens();
         require(sellAdapters.length == oldTokens.length, "PC._fS: Sell adapters length");
         require(buyAdapters.length == tokens.length, "PC._fS: Buy adapters length");
-        _approveTokens(IPortfolio(portfolio), router, uint256(-1));
+        _approveTokens(portfolio, router, uint256(-1));
         // Reset all values and return tokens to ETH
-        IPortfolioRouter(router).sellTokens(portfolio, oldTokens, sellAdapters);
-        _approveTokens(IPortfolio(portfolio), router, uint256(0));
+        IPortfolioRouter(router).sellTokens(address(portfolio), oldTokens, sellAdapters);
+        _approveTokens(portfolio, router, uint256(0));
         // Set new structure
-        IPortfolio(portfolio).setStructure(tokens, percentages);
+        portfolio.setStructure(tokens, percentages);
         // Since tokens have already been minted we don"t do router.deposit, instead use router.convert
-        IPortfolioRouter(router).buyTokens{value: address(this).balance}(
-            portfolio,
+        IERC20 weth = IERC20(IOracle(portfolio.oracle()).weth());
+        weth.approve(router, uint(-1));
+        IPortfolioRouter(router).buyTokens(
+            address(portfolio),
             tokens,
             buyAdapters
-        ); //solhint-disable-line
+        );
+        weth.approve(router, 0);
     }
 
     /**
@@ -525,13 +504,5 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
      */
     function _removeLock() internal {
         _locked = false;
-    }
-
-    /**
-     * @notice Receive ether sent to this address
-     * @dev We must allow this contract to receive funds for when tokens get sold
-     */
-    receive() external payable {
-        emit FundsReceived(msg.value, msg.sender);
     }
 }

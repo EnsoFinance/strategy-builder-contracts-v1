@@ -67,7 +67,7 @@ contract UniswapAdapter is ExchangeAdapter {
             //require(amount == msg.value, "UniswapRouter.swap: Not enough ETH sent");
             path[0] = wethAddress;
             path[1] = tokenOut;
-            IWETH(wethAddress).deposit{value: amount}(); // solhint-disable
+            IWETH(wethAddress).deposit{value: amount}();
             assert(
                 IWETH(wethAddress).transfer(
                     UniswapV2Library.pairFor(factoryAddress, path[0], path[1]),

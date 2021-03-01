@@ -28,17 +28,16 @@ contract LoopRouter is PortfolioRouter {
 
     function deposit(address portfolio, bytes calldata data)
         external
-        payable
         override
         onlyController
     {
         (address[] memory tokens, address[] memory routers) =
-            abi.decode(data, (address[], address[])); //solhint-disable-line
+            abi.decode(data, (address[], address[]));
         buyTokens(portfolio, tokens, routers);
     }
 
     function rebalance(address portfolio, bytes calldata data) external override onlyController {
-        (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[])); //solhint-disable-line
+        (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[]));
         address[] memory tokens = IPortfolio(portfolio).tokens();
 
         address[] memory buyTokens = new address[](tokens.length);
@@ -57,7 +56,6 @@ contract LoopRouter is PortfolioRouter {
         }
         bool wethInPortfolio = IPortfolio(portfolio).tokenPercentage(weth) != 0;
         // Buy loop
-        IERC20(weth).safeApprove(address(adapter), uint256(-1));
         for (uint256 i = 0; i < buyCount; i++) {
             _buyToken(
                 portfolio,
@@ -67,13 +65,6 @@ contract LoopRouter is PortfolioRouter {
                 i == buyCount - 1 && !wethInPortfolio // If the last token use up remainder of WETH
             );
         }
-        if (wethInPortfolio) {
-            uint256 balance = IERC20(weth).balanceOf(address(this));
-            if (balance > 0) {
-                IERC20(weth).safeTransfer(portfolio, balance);
-            }
-        }
-        IERC20(weth).safeApprove(address(adapter), uint256(0));
     }
 
     function _sellToken(
@@ -103,7 +94,7 @@ contract LoopRouter is PortfolioRouter {
                     tokenAddress,
                     weth,
                     portfolio,
-                    address(this),
+                    portfolio,
                     new bytes(0)
                 ),
                 "LR._sT: Swap failed"
@@ -124,11 +115,11 @@ contract LoopRouter is PortfolioRouter {
             require(
                 _delegateSwap(
                     address(adapter),
-                    IERC20(weth).balanceOf(address(this)),
+                    IERC20(weth).balanceOf(portfolio),
                     0,
                     weth,
                     tokenAddress,
-                    address(this),
+                    portfolio,
                     portfolio,
                     new bytes(0)
                 ),
@@ -151,7 +142,7 @@ contract LoopRouter is PortfolioRouter {
                         0,
                         weth,
                         tokenAddress,
-                        address(this),
+                        portfolio,
                         portfolio,
                         new bytes(0)
                     ),

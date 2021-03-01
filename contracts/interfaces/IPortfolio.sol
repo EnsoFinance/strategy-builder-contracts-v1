@@ -53,4 +53,9 @@ interface IPortfolio is IERC20 {
     function oracle() external view returns (address);
 
     function whitelist() external view returns (address);
+
+    function verifyStructure(
+        address[] memory newTokens,
+        uint256[] memory newPercentages
+    ) external pure returns (bool);
 }

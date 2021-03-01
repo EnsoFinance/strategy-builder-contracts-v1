@@ -3,14 +3,14 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+//import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "../interfaces/IPortfolioRouter.sol";
 import "../interfaces/IPortfolio.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "../libraries/PortfolioLibrary.sol";
 
 abstract contract PortfolioRouter is
-    IPortfolioRouter //solhint-disable-line
+    IPortfolioRouter
 {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -32,7 +32,7 @@ abstract contract PortfolioRouter is
     }
 
     // Abstract external functions to be defined by inheritor
-    function deposit(address portfolio, bytes calldata data) external payable virtual override;
+    function deposit(address portfolio, bytes calldata data) external virtual override;
 
     function rebalance(address portfolio, bytes calldata data) external virtual override;
 
@@ -47,9 +47,7 @@ abstract contract PortfolioRouter is
             address tokenAddress = tokens[i];
             uint256 amount = IERC20(tokenAddress).balanceOf(portfolio);
             if (tokenAddress == weth) {
-                IERC20(tokenAddress).safeTransferFrom(portfolio, address(this), amount);
-                IWETH(weth).withdraw(amount);
-                msg.sender.transfer(amount);
+                IERC20(tokenAddress).safeTransferFrom(portfolio, msg.sender, amount);
             } else {
                 require(
                     _delegateSwap(
@@ -57,7 +55,7 @@ abstract contract PortfolioRouter is
                         amount,
                         0,
                         tokenAddress,
-                        address(0),
+                        weth,
                         portfolio,
                         msg.sender,
                         new bytes(0)
@@ -72,23 +70,20 @@ abstract contract PortfolioRouter is
         address portfolio,
         address[] memory tokens,
         address[] memory adapters
-    ) public payable override onlyController {
+    ) public override onlyController {
         require(tokens.length > 0, "PR.convert: Tokens not yet set");
         require(adapters.length == tokens.length, "PR.convert: Routers/tokens mismatch");
+        uint256 total = IERC20(weth).balanceOf(msg.sender);
         for (uint256 i = 0; i < tokens.length; i++) {
             address tokenAddress = tokens[i];
             uint256 amount =
                 i == tokens.length - 1
-                    ? address(this).balance
-                    : PortfolioLibrary.getExpectedTokenValue(msg.value, portfolio, tokenAddress); // solhint-disable-line
+                    ? IERC20(weth).balanceOf(msg.sender)
+                    : PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
             if (tokenAddress == weth) {
-                // Wrap ETH to WETH
-                IWETH(weth).deposit{value: amount}(); // solhint-disable-line
-                // Transfer weth back to sender
-                IWETH(weth).transfer(portfolio, amount);
+                IERC20(tokenAddress).safeTransferFrom(msg.sender, portfolio, amount);
             } else {
-                // Convert ETH to Token
-                /*
+                // Convert WETH to Token
                 require(
                     _delegateSwap(
                         adapters[i],
@@ -96,22 +91,11 @@ abstract contract PortfolioRouter is
                         0,
                         weth,
                         tokenAddress,
-                        portfolio,
+                        msg.sender,
                         portfolio,
                         new bytes(0)
                     ),
                     "PR.buyTokens: Swap failed"
-                );
-                */
-                IExchangeAdapter(adapters[i]).swap{value: amount}( // solhint-disable-line
-                    amount,
-                    0,
-                    address(0),
-                    tokenAddress,
-                    msg.sender,
-                    portfolio,
-                    new bytes(0),
-                    new bytes(0)
                 );
             }
         }
@@ -133,7 +117,7 @@ abstract contract PortfolioRouter is
             abi.encodeWithSelector(
                 bytes4(
                     keccak256("swap(uint256,uint256,address,address,address,address,bytes,bytes)")
-                ), // solhint-disable-line
+                ),
                 amount,
                 expected,
                 tokenIn,

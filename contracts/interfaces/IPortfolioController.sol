@@ -9,8 +9,6 @@ interface IPortfolioController {
         address manager_,
         address portfolio_,
         address[] memory adapters_,
-        address[] memory tokens_,
-        uint256[] memory percentages_,
         bool social_,
         uint256 fee_,
         uint256 threshold_,
@@ -41,7 +39,7 @@ interface IPortfolioController {
     ) external;
 
     function finalizeStructure(
-        address payable portfolio,
+        IPortfolio portfolio,
         address router,
         address[] memory sellAdapters,
         address[] memory buyAdapters

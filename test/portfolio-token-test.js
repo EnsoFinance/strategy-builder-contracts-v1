@@ -1,9 +1,10 @@
+const BigNumber = require('bignumber.js')
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { constants, getContractFactory, getSigners, utils } = ethers
+const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
-const { preparePortfolio } = require('./helpers/utils.js')
+const { preparePortfolio } = require('./helpers/encode.js')
 
 const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
@@ -193,5 +194,35 @@ describe('PortfolioToken', function() {
     ]))
     await portfolio.connect(accounts[2]).permit(accounts[2].address, accounts[1].address, amount, deadline, v, r, s)
     expect(amount.eq(await portfolio.allowance(owner, spender))).to.equal(true)
+  })
+
+  it('Should transferFrom tokens', async function() {
+    portfolio.connect(accounts[1]).transferFrom(accounts[2].address, accounts[1].address, amount)
+    expect(ethers.BigNumber.from(await portfolio.balanceOf(accounts[1].address)).eq(amount)).to.equal(true)
+    expect(ethers.BigNumber.from(await portfolio.balanceOf(accounts[2].address)).eq(0)).to.equal(true)
+  })
+
+  it('Should fail to withdraw: no portfolio tokens', async function () {
+    await expect(portfolio.connect(accounts[0]).withdraw(1))
+      .to.be.revertedWith('ERC20: Amount exceeds balance')
+  })
+
+  it('Should fail to withdraw: no amount passed', async function () {
+    await expect(portfolio.connect(accounts[1]).withdraw(0))
+      .to.be.revertedWith('0 amount')
+  })
+
+  it('Should withdraw', async function () {
+    amount = ethers.BigNumber.from('10000000000000')
+    const supplyBefore = BigNumber((await portfolio.totalSupply()).toString())
+    const tokenBalanceBefore = BigNumber((await tokens[1].balanceOf(portfolio.address)).toString())
+    const tx = await portfolio.connect(accounts[1]).withdraw(amount)
+    const receipt = await tx.wait()
+    console.log('Gas Used: ', receipt.gasUsed.toString())
+    const supplyAfter = BigNumber((await portfolio.totalSupply()).toString())
+    const tokenBalanceAfter = BigNumber((await tokens[1].balanceOf(portfolio.address)).toString())
+    expect(supplyBefore.minus(amount.toString()).isEqualTo(supplyAfter)).to.equal(true)
+    expect(supplyBefore.dividedBy(supplyAfter).decimalPlaces(10).isEqualTo(tokenBalanceBefore.dividedBy(tokenBalanceAfter).decimalPlaces(10))).to.equal(true)
+    expect(tokenBalanceBefore.isGreaterThan(tokenBalanceAfter)).to.equal(true)
   })
 });

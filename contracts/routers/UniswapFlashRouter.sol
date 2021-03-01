@@ -30,17 +30,16 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
 
     function deposit(address portfolio, bytes calldata data)
         external
-        payable
         override
         onlyController
     {
         (address[] memory tokens, address[] memory routers) =
-            abi.decode(data, (address[], address[])); //solhint-disable-line
+            abi.decode(data, (address[], address[]));
         buyTokens(portfolio, tokens, routers);
     }
 
     function rebalance(address portfolio, bytes calldata data) external override onlyController {
-        (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[])); //solhint-disable-line
+        (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[]));
         // Flash swap to cover purchases, rebalance, and settle up
         // https://uniswap.org/docs/v2/core-concepts/flash-swaps/
         uint256 wethAmount = total.mul(FEE).div(DIVISOR);
@@ -49,7 +48,6 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
         uint256 index = IPortfolio(portfolio).tokens()[0] == weth ? 1 : 0;
         address pairToken = IPortfolio(portfolio).tokens()[index];
         {
-            // solhint-disable
             uint256 expectedPairValue =
                 PortfolioLibrary.getExpectedTokenValue(wethAmount, portfolio, pairToken);
             uint256 rebalanceRange =
@@ -96,15 +94,13 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
         uint256 amount1,
         bytes calldata data
     ) external override {
-        // solhint-disable-line
         assert(sender == address(this));
-        (address portfolio, ) = abi.decode(data, (address, uint256[])); // solhint-disable-line
+        (address portfolio, ) = abi.decode(data, (address, uint256[]));
         uint256 repay;
         uint256 total;
         address token0 = IUniswapV2Pair(msg.sender).token0();
         address token1 = IUniswapV2Pair(msg.sender).token1();
         {
-            // solhint-disable-line
             assert(msg.sender == UniswapV2Library.pairFor(factory, token0, token1));
             if (token0 == address(weth)) {
                 if (amount1 > 0) {
@@ -130,8 +126,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
         }
 
         {
-            // solhint-disable-line
-            (, uint256[] memory estimates) = abi.decode(data, (address, uint256[])); // solhint-disable-line
+            (, uint256[] memory estimates) = abi.decode(data, (address, uint256[]));
             address[] memory tokens = IPortfolio(portfolio).tokens();
             IERC20(weth).safeApprove(address(adapter), uint256(-1));
             for (uint256 i = 0; i < tokens.length; i++) {
@@ -143,7 +138,6 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
             }
         }
         {
-            // solhint-disable-line
             repay = repay.sub(
                 _settleFlashPair(portfolio, msg.sender, token0, token1, total, repay)
             );

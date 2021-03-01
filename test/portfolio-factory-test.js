@@ -3,7 +3,7 @@ const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther } = constants
 const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
-const { preparePortfolio } = require('./helpers/utils.js')
+const { preparePortfolio } = require('./helpers/encode.js')
 
 const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%

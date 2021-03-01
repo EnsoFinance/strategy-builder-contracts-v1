@@ -1,4 +1,4 @@
-const { encodeTransferFrom } = require('./utils.js')
+const { encodeTransferFrom } = require('./encode.js')
 
 
 async function prepareFlashLoan(portfolio, arbitrager, sellRouter, buyRouter, loanAmount, loanToken, pairToken) {
