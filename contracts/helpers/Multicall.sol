@@ -25,7 +25,7 @@ contract Multicall is RevertDebug {
                 "Multicall: Not enough wei"
             );
             (bool success, bytes memory ret) =
-                internalTx.target.call.value(internalTx.value)(internalTx.callData);
+                internalTx.target.call{value: internalTx.value}(internalTx.callData);
             if (!success) {
                 revert(_getPrefixedRevertMsg(ret));
             }

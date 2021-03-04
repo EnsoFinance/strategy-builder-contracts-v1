@@ -265,7 +265,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
             portfolioState.rebalanceThreshold = newValue;
         } else if (timelock.category == TimelockCategory.SLIPPAGE) {
             portfolioState.slippage = newValue;
-        } else if (timelock.category == TimelockCategory.TIMELOCK) {
+        } else { //Only possible option is TimelockCategory.TIMELOCK
             portfolioState.timelock = newValue;
         }
         delete timelock.category;

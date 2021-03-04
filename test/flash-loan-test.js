@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { displayBalances } = require('./helpers/logging.js')
+//const { displayBalances } = require('./helpers/logging.js')
 const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployGenericRouter } = require('./helpers/deploy.js')
 const { preparePortfolio, prepareRebalanceMulticall } = require('./helpers/encode.js')
 const { prepareFlashLoan } = require('./helpers/cookbook.js')
@@ -65,7 +65,7 @@ describe('Flash Loan', function () {
       )
       await wrapper.deployed()
 
-      await displayBalances(wrapper, portfolioTokens, WETH)
+      //await displayBalances(wrapper, portfolioTokens, WETH)
       //expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
       expect(await wrapper.isBalanced()).to.equal(true)
     })

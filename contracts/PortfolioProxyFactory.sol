@@ -101,10 +101,6 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
                     percentages
                 )
             );
-        /*
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy(implementation, address(this), new bytes(0));
-        */
 
         IPortfolioController(controller).setupPortfolio{value: msg.value}(
             msg.sender,

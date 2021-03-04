@@ -13,7 +13,6 @@ contract PortfolioProxyManagerRegistry {
     }
 
     function manager(address proxy) external view returns (address) {
-        require(msg.sender == proxyFactory, "PPA.admin: Only factory");
         return IPortfolioManager(proxy).manager();
     }
 }

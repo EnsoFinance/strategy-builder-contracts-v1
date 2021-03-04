@@ -57,7 +57,7 @@ contract UniswapAdapter is ExchangeAdapter {
         bytes memory data,
         bytes memory package
     ) public payable override returns (bool) {
-        require(tokenIn != tokenOut, "Error (swap): Input and tokenOut cannot match");
+        require(tokenIn != tokenOut, "Error (swap): tokenIn and tokenOut cannot match");
         // For delegate call must pass state in with 'package' parameters.
         // If package.length == 0 just rely on regular state
         (address factoryAddress, address wethAddress) =

@@ -4,9 +4,9 @@ const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
-const { displayBalances } = require('./helpers/logging.js')
+//const { displayBalances } = require('./helpers/logging.js')
 const { preparePortfolio } = require('./helpers/encode.js')
-const { increaseTime } = require('./helpers/utils.js')
+const { increaseTime, TIMELOCK_CATEGORY } = require('./helpers/utils.js')
 
 const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
@@ -63,7 +63,7 @@ describe('PortfolioController - Social', function () {
     )
     await wrapper.deployed()
 
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     //expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
     expect(await wrapper.isBalanced()).to.equal(true)
   })
@@ -97,7 +97,7 @@ describe('PortfolioController - Social', function () {
       [],
       { value: value }
     )
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(false)
   })
 
@@ -108,7 +108,7 @@ describe('PortfolioController - Social', function () {
     const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(true)
   })
 
@@ -119,7 +119,7 @@ describe('PortfolioController - Social', function () {
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
     const balanceAfter = await portfolio.balanceOf(accounts[2].address)
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(true)
     expect(balanceAfter.gt(balanceBefore)).to.equal(true)
   })
@@ -159,7 +159,15 @@ describe('PortfolioController - Social', function () {
     await controller.connect(accounts[1]).restructure(portfolio.address, portfolioTokens, portfolioPercentages)
   })
 
-  it('Should fail to finalize structure: time lock not passed', async function() {
+  it('Should fail to restructure: time lock active', async function () {
+    await expect(controller.connect(accounts[1]).restructure(portfolio.address, [], [])).to.be.revertedWith('Timelock active')
+  })
+
+  it('Should fail to update value: time lock active', async function () {
+    await expect(controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.TIMELOCK, 0)).to.be.revertedWith('Timelock active')
+  })
+
+  it('Should fail to finalize structure: time lock not passed', async function () {
     const currentTokens = await portfolio.tokens()
     const sellAdapters = currentTokens.map(() => adapter.address)
 
@@ -173,7 +181,7 @@ describe('PortfolioController - Social', function () {
     const sellAdapters = currentTokens.map(() => adapter.address)
 
     await controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, sellAdapters, portfolioAdapters)
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
   })
 
   it('Should purchase a token, requiring a rebalance', async function () {
@@ -189,7 +197,7 @@ describe('PortfolioController - Social', function () {
       [],
       { value: value }
     )
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(false)
   })
 
@@ -200,7 +208,12 @@ describe('PortfolioController - Social', function () {
     const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(true)
+  })
+
+  it('Should update timelock + fail to finalize: timelock active', async function () {
+    await controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.TIMELOCK, 0)
+    await expect( controller.connect(accounts[1]).finalizeValue(portfolio.address)).to.be.revertedWith('Timelock active')
   })
 });

@@ -36,33 +36,10 @@ library PortfolioLibrary {
         return balanced;
     }
 
-    function imbalanceMagnitude(address portfolio, address[] memory tokens)
-        internal
-        view
-        returns (uint256)
-    {
-        address oracle = IPortfolio(portfolio).oracle();
-        (uint256 total, uint256[] memory estimates) =
-            IOracle(oracle).estimateTotal(portfolio, tokens);
-        uint256 magnitude = 0;
-        for (uint256 i = 0; i < tokens.length; i++) {
-            address tokenAddress = tokens[i];
-            uint256 expectedValue = getExpectedTokenValue(total, portfolio, tokenAddress);
-            uint256 estimatedValue = estimates[i];
-            if (estimatedValue > expectedValue) {
-                magnitude = magnitude.add(estimatedValue.sub(expectedValue));
-            }
-            if (estimatedValue < expectedValue) {
-                magnitude = magnitude.add(expectedValue.sub(estimatedValue));
-            }
-        }
-        return magnitude;
-    }
-
     function getTokenValue(address portfolio, address token) internal view returns (uint256) {
         IOracle oracle = IOracle(IPortfolio(portfolio).oracle());
         if (token == address(0)) {
-            return address(this).balance;
+            return portfolio.balance;
         } else if (token == oracle.weth()) {
             return IERC20(token).balanceOf(portfolio);
         } else {

@@ -28,7 +28,7 @@ contract GenericRouter is PortfolioRouter, Multicall {
         (portfolio);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
-        require(address(this).balance == uint256(0), "GR.deposit: Leftover funds");
+        require(IERC20(weth).balanceOf(address(this)) == uint256(0), "GR.deposit: Leftover funds");
     }
 
     /**

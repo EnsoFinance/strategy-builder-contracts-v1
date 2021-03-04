@@ -12,7 +12,7 @@ const TIMELOCK = 60 // 1 minute
 let WETH;
 
 describe('PortfolioProxyFactory', function() {
-  let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, router, adapter, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, newFactory, newController, newOracle, newWhitelist, newRouter, newImplementationAddress
+  let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, router, adapter, portfolio, portfolio2, portfolioTokens, portfolioPercentages, portfolioAdapters, newFactory, newOracle, newWhitelist, newRouter, newImplementationAddress
 
   before('Setup Uniswap + Factory', async function() {
     accounts = await getSigners();
@@ -42,6 +42,8 @@ describe('PortfolioProxyFactory', function() {
     // duplicateTokens[0] = portfolioTokens[1]
     // TODO: portfolio is currently accepting duplicate tokens
     const amount = ethers.BigNumber.from('10000000000000000')
+    const Portfolio = await getContractFactory('Portfolio')
+    //First portfolio
     let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio',
       'TEST',
@@ -56,11 +58,26 @@ describe('PortfolioProxyFactory', function() {
       { value: amount }
     )
     let receipt = await tx.wait()
-    console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
     const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
-    const Portfolio = await getContractFactory('Portfolio')
     portfolio = Portfolio.attach(portfolioAddress)
+
+    //Second portolio
+    tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
+      'Test Portfolio 2',
+      'TEST2',
+      portfolioAdapters,
+      portfolioTokens,
+      portfolioPercentages,
+      false,
+      0,
+      REBALANCE_THRESHOLD,
+      SLIPPAGE,
+      TIMELOCK,
+      { value: amount }
+    )
+    receipt = await tx.wait()
+    const portfolioAddress2 = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
+    portfolio2 = Portfolio.attach(portfolioAddress2)
   })
 
   it('Should fail to update oracle: not owner', async function() {
@@ -107,6 +124,12 @@ describe('PortfolioProxyFactory', function() {
   it('Should upgrade portfolio proxy', async function() {
     await portfolioFactory.connect(accounts[1]).upgrade(portfolio.address)
     expect(await portfolioFactory.getProxyImplementation(portfolio.address)).to.equal(newImplementationAddress)
+  })
+
+  it('Should upgrade and call portfolio proxy', async function() {
+    const data = portfolio2.interface.encodeFunctionData("manager", [])
+    await portfolioFactory.connect(accounts[1]).upgradeAndCall(portfolio2.address, data)
+    expect(await portfolioFactory.getProxyImplementation(portfolio2.address)).to.equal(newImplementationAddress)
   })
 
   it('Should fail to change proxy admin: not admin', async function() {

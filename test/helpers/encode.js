@@ -3,9 +3,7 @@ const UniswapV2Pair = require('@uniswap/v2-core/build/UniswapV2Pair.json')
 const { ethers } = require('hardhat')
 const { constants, getContractAt } = ethers
 const { AddressZero } = constants
-
-const DIVISOR = 1000
-const FEE = 997
+const { FEE, DIVISOR } = require('./utils.js')
 
 function preparePortfolio(positions, adapter){
   let portfolioTokens = []
@@ -65,7 +63,7 @@ async function prepareRebalanceMulticall(portfolio, controller, router, adapter,
           ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, portfolio))
       const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, controller, portfolio))
       if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
-          console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
+          //console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
           if (token.address.toLowerCase() != weth.address.toLowerCase()) {
             const diff = ethers.BigNumber.from(
                 await adapter.spotPrice(
@@ -95,7 +93,7 @@ async function prepareRebalanceMulticall(portfolio, controller, router, adapter,
       const estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate)
       if (token.address.toLowerCase() != weth.address.toLowerCase()) {
           if (!wethInPortfolio && i == buyLoop.length-1) {
-              console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
+              //console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
               // The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
               calls.push(await encodeSettleSwap(router, adapter.address, weth.address, token.address, router.address, portfolio.address))
           } else {
@@ -103,7 +101,7 @@ async function prepareRebalanceMulticall(portfolio, controller, router, adapter,
                   ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, portfolio))
               const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, controller, portfolio))
               if (estimatedValue.lt(expectedValue.sub(rebalanceRange))) {
-                  console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
+                  //console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
                   const diff = expectedValue.sub(estimatedValue).mul(FEE).div(DIVISOR);
                   const swapCalls = await prepareUniswapSwap(router, adapter, factory, router.address, portfolio.address, diff, weth, token)
                   calls.push(...swapCalls)
@@ -131,7 +129,7 @@ async function prepareDepositMulticall(portfolio, controller, router, adapter, f
         } else {
           const expectedValue =
               ethers.BigNumber.from(total).mul(percentages[i]).div(DIVISOR)
-          console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', expectedValue.toString())
+          //console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', expectedValue.toString())
           const swapCalls = await prepareUniswapSwap(router, adapter, factory, router.address, portfolio.address, expectedValue, weth, token)
           calls.push(...swapCalls)
         }
@@ -143,6 +141,49 @@ async function prepareDepositMulticall(portfolio, controller, router, adapter, f
     calls.push(await encodeSettleTransfer(router, weth.address, portfolio.address))
   }
   return calls
+}
+
+async function preparePermit(portfolio, owner, spender, value, deadline) {
+  const [name, chainId, nonce] = await Promise.all([
+    portfolio.name(),
+    portfolio.chainId(),
+    portfolio.nonces(owner.address)
+  ])
+  const typedData = {
+    types: {
+      EIP712Domain: [
+        { name: "name", type: "string" },
+        { name: "version", type: "uint256" },
+        { name: "chainId", type: "uint256" },
+        { name: "verifyingContract", type: "address" },
+      ],
+      Permit: [
+        { name: "owner", type: "address" },
+        { name: "spender", type: "address" },
+        { name: "value", type: "uint256" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+      ]
+    },
+    primaryType: 'Permit',
+    domain: {
+      name: name,
+      version: 1,
+      chainId: chainId.toString(),
+      verifyingContract: portfolio.address
+    },
+    message: {
+      owner: owner.address,
+      spender: spender.address,
+      value: value,
+      nonce: nonce.toString(),
+      deadline: deadline
+    }
+  }
+  return ethers.utils.splitSignature(await owner.provider.send('eth_signTypedData', [
+    owner.address,
+    typedData
+  ]))
 }
 
 async function getExpectedTokenValue(total, token, portfolio) {
@@ -206,10 +247,16 @@ module.exports = {
   preparePortfolio,
   prepareRebalanceMulticall,
   prepareDepositMulticall,
+  preparePermit,
+  prepareUniswapSwap,
   encodeSwap,
   encodeDelegateSwap,
   encodeTransfer,
   encodeTransferFrom,
   encodeApprove,
-  encodeWethDeposit
+  encodeWethDeposit,
+  encodeSettleSwap,
+  encodeSettleTransfer,
+  getExpectedTokenValue,
+  getRebalanceRange
 }

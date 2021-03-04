@@ -10,7 +10,7 @@ const { WeiPerEther } = constants
 module.exports = {
   deployUniswap: async (owner, tokens) => {
     const uniswapFactory = await deployContract(owner, UniswapV2Factory, [owner.address])
-    console.log('Uniswap factory: ', uniswapFactory.address)
+    //console.log('Uniswap factory: ', uniswapFactory.address)
     for(let i = 0; i < tokens.length; i++) {
       if (i !== 0) { //tokens[0] is used as the trading pair (WETH)
         await uniswapFactory.createPair(tokens[0].address, tokens[i].address)
@@ -46,7 +46,7 @@ module.exports = {
       weth.address
     )
     await adapter.deployed()
-    console.log('Uniswap adapter: ', adapter.address)
+    //console.log('Uniswap adapter: ', adapter.address)
     return adapter
   },
   deployPlatform: async (owner, uniswapFactory, weth) => {
@@ -56,12 +56,12 @@ module.exports = {
         weth.address
     )
     await oracle.deployed()
-    console.log("Oracle: ", oracle.address)
+    //console.log("Oracle: ", oracle.address)
 
     const Whitelist = await getContractFactory('TestWhitelist')
     const whitelist = await Whitelist.connect(owner).deploy()
     await whitelist.deployed()
-    console.log("Whitelist: ", whitelist.address)
+    //console.log("Whitelist: ", whitelist.address)
 
     const PortfolioControllerDeployer = await getContractFactory('PortfolioControllerDeployer')
     const deployer = await PortfolioControllerDeployer.connect(owner).deploy()
@@ -83,13 +83,13 @@ module.exports = {
       whitelist.address
     )
     await portfolioFactory.deployed()
-    console.log("Portfolio Factory: ", portfolioFactory.address)
+    //console.log("Portfolio Factory: ", portfolioFactory.address)
 
     return [portfolioFactory, controller, oracle, whitelist]
   },
   deployLoopRouter: async (owner, controller, uniswapFactory, weth) => {
-    console.log('Controller: ', controller.address);
-    console.log('WETH: ', weth.address);
+    //console.log('Controller: ', controller.address);
+    //console.log('WETH: ', weth.address);
     const UniswapAdapter = await getContractFactory('UniswapAdapter')
     const adapter = await UniswapAdapter.connect(owner).deploy(
       uniswapFactory.address,

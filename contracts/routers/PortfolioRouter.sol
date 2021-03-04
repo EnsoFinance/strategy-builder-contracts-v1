@@ -99,7 +99,7 @@ abstract contract PortfolioRouter is
                 );
             }
         }
-        require(address(this).balance == uint256(0), "PR.convert: Leftover funds");
+        require(IERC20(weth).balanceOf(address(this)) == uint256(0), "PR.convert: Leftover funds");
     }
 
     function _delegateSwap(

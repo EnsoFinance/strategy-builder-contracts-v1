@@ -4,7 +4,7 @@ const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
-const { displayBalances } = require('./helpers/logging.js')
+//const { displayBalances } = require('./helpers/logging.js')
 const { preparePortfolio } = require('./helpers/encode.js')
 const { TIMELOCK_CATEGORY } = require('./helpers/utils.js')
 
@@ -25,6 +25,36 @@ describe('PortfolioController', function () {
     [portfolioFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH);
     [router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH);
     await whitelist.connect(accounts[0]).approve(router.address);
+  })
+
+  it('Should fail to deploy portfolio: threshold too high', async function () {
+    await expect(portfolioFactory.connect(accounts[1]).createPortfolio(
+      'Fail Portfolio',
+      'FAIL',
+      [],
+      [],
+      [],
+      false,
+      0,
+      10001,
+      SLIPPAGE,
+      TIMELOCK
+    )).to.be.revertedWith('slippage/threshold high');
+  })
+
+  it('Should fail to deploy portfolio: slippage too high', async function () {
+    await expect(portfolioFactory.connect(accounts[1]).createPortfolio(
+      'Fail Portfolio',
+      'FAIL',
+      [],
+      [],
+      [],
+      false,
+      0,
+      REBALANCE_THRESHOLD,
+      1001,
+      TIMELOCK
+    )).to.be.revertedWith('slippage/threshold high');
   })
 
   it('Should deploy portfolio', async function () {
@@ -65,11 +95,7 @@ describe('PortfolioController', function () {
     const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
     const Portfolio = await getContractFactory('Portfolio')
     portfolio = await Portfolio.attach(portfolioAddress)
-    /*
-    tx = await portfolio.connect(accounts[1]).deposit(portfolioAdapters, [], router.address, { value: ethers.BigNumber.from('10000000000000000')})
-    receipt = await tx.wait()
-    console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
-    */
+
     const LibraryWrapper = await getContractFactory('LibraryWrapper')
     wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
       oracle.address,
@@ -77,9 +103,21 @@ describe('PortfolioController', function () {
     )
     await wrapper.deployed()
 
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     //expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
     expect(await wrapper.isBalanced()).to.equal(true)
+  })
+
+  it('Should fail to setup portfolio: initialized', async function () {
+    await expect(controller.setupPortfolio(accounts[1].address, portfolio.address, [], false, 0, 0, 0, 0)).to.be.revertedWith('already setup')
+  })
+
+  it('Should fail to update value: restructure is invalid option', async function () {
+    await expect(controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.RESTRUCTURE, 0)).to.be.revertedWith('')
+  })
+
+  it('Should fail to update value: option out of bounds', async function () {
+    await expect(controller.connect(accounts[1]).updateValue(portfolio.address, 5, 0)).to.be.revertedWith('')
   })
 
   it('Should fail to update threshold: not manager', async function () {
@@ -147,14 +185,14 @@ describe('PortfolioController', function () {
       value,
       0,
       AddressZero,
-      tokens[1].address,
+      portfolioTokens[0],
       accounts[2].address,
       accounts[2].address,
       [],
       [],
       { value: value }
     )
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(false)
   })
 
@@ -173,7 +211,7 @@ describe('PortfolioController', function () {
     const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(true)
   })
 
@@ -210,7 +248,7 @@ describe('PortfolioController', function () {
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
     const balanceAfter = await portfolio.balanceOf(accounts[1].address)
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(true)
     expect(balanceAfter.gt(balanceBefore)).to.equal(true)
   })
@@ -311,7 +349,7 @@ describe('PortfolioController', function () {
     const sellAdapters = currentTokens.map(() => adapter.address)
 
     await controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, sellAdapters, portfolioAdapters)
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
   })
 
   it('Should purchase a token, requiring a rebalance', async function () {
@@ -327,7 +365,7 @@ describe('PortfolioController', function () {
       [],
       { value: value }
     )
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(false)
   })
 
@@ -338,7 +376,7 @@ describe('PortfolioController', function () {
     const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
-    await displayBalances(wrapper, portfolioTokens, WETH)
+    //await displayBalances(wrapper, portfolioTokens, WETH)
     expect(await wrapper.isBalanced()).to.equal(true)
   })
 
@@ -353,5 +391,29 @@ describe('PortfolioController', function () {
   it('Should open portfolio', async function () {
     await controller.connect(accounts[1]).openPortfolio(portfolio.address, 10)
     expect(await controller.social(portfolio.address)).to.equal(true)
+  })
+
+  it('Should call update on oracle', async function() {
+    const tx = await oracle.update(tokens[1].address)
+    const receipt = await tx.wait()
+    const newPriceEvent = receipt.events.find(ev => ev.event === 'NewPrice').args
+    expect(newPriceEvent.token.toLowerCase()).to.equal(tokens[1].address.toLowerCase())
+    expect(newPriceEvent.price.gt(0)).to.equal(true)
+  })
+
+  it('Should return 0 when passing 0 to consult', async function() {
+    const value = await oracle.consult(0, tokens[1].address)
+    expect(value.eq(0)).to.equal(true)
+  })
+
+  it('Should return value when consult oracle about weth price', async function() {
+    const value = await oracle.consult(1, tokens[0].address)
+    expect(value.eq(1)).to.equal(true)
+  })
+
+  it('Should return 0 when estimating total of ETH in portfolio', async function() {
+    const [total, estimates] = await oracle.estimateTotal(portfolio.address, [AddressZero])
+    expect(total.eq(0)).to.equal(true)
+    expect(estimates[0].eq(0)).to.equal(true)
   })
 });

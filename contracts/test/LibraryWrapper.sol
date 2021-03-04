@@ -30,6 +30,10 @@ contract LibraryWrapper {
         return !balanced;
     }
 
+    function getRange(uint256 total, uint256 range) external view returns (uint256) {
+        return PortfolioLibrary.getRange(total, range);
+    }
+
     function getRebalanceRange(uint256 total) external view returns (uint256) {
         uint256 range =
             IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio));

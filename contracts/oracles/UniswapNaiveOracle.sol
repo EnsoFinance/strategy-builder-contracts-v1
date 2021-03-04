@@ -56,6 +56,7 @@ contract UniswapNaiveOracle is IOracle {
     }
 
     function consult(uint256 amount, address input) public view override returns (uint256) {
+        if (input == weth) return amount;
         (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, input, weth);
         if (amount > 0) {
             return UniswapV2Library.quote(amount, reserveA, reserveB);

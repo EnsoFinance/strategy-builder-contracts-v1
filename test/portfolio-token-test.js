@@ -4,7 +4,7 @@ const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
-const { preparePortfolio } = require('./helpers/encode.js')
+const { preparePortfolio, preparePermit } = require('./helpers/encode.js')
 
 const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
@@ -72,6 +72,27 @@ describe('PortfolioToken', function() {
     expect(ethers.BigNumber.from(await portfolio.balanceOf(accounts[1].address)).eq(amount)).to.equal(true)
   })
 
+  it('Should fail to verify structure: 0 address', async function() {
+    const failTokens = [AddressZero, tokens[1].address]
+    const failPercentages = [500, 500]
+    await expect(portfolio.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('invalid weth addr')
+  })
+
+  it('Should fail to verify structure: out of order', async function() {
+    const failTokens = [tokens[1].address, AddressZero]
+    const failPercentages = [500, 500]
+    await expect(portfolio.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('token ordering')
+  })
+
+  it('Should fail to verify structure: no percentage', async function() {
+    const positions = [
+      {token: tokens[1].address, percentage: 1000},
+      {token: tokens[2].address, percentage: 0},
+    ];
+    const [failTokens, failPercentages] = preparePortfolio(positions, adapter.address);
+    await expect(portfolio.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('bad percentage')
+  })
+
   it('Should get name', async function() {
     expect(await portfolio.name()).to.equal('Test Portfolio')
   })
@@ -122,6 +143,10 @@ describe('PortfolioToken', function() {
     expect(ethers.BigNumber.from(await portfolio.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
   })
 
+  it('Should fail to mint tokens: not controller', async function() {
+    await expect(portfolio.connect(accounts[3]).mint(accounts[3].address, 1)).to.be.revertedWith('controller only')
+  })
+
   it('Should fail to update manager: not manager', async function() {
     await expect(portfolio.connect(accounts[2]).updateManager(accounts[2].address)).to.be.revertedWith()
   })
@@ -146,17 +171,16 @@ describe('PortfolioToken', function() {
   })
   */
 
-  it('Should permit', async function() {
-    amount = ethers.BigNumber.from('10000000000000000')
-    const owner = accounts[2].address
-    const spender = accounts[1].address
-
-    const name = await portfolio.name()
-    const chainId = await portfolio.chainId()
-
-    const nonce = await portfolio.nonces(accounts[2].address)
+  it('Should fail to permit: signer not owner', async function() {
+    const owner = accounts[2]
+    const spender = accounts[1]
     const deadline = constants.MaxUint256
 
+    const [name, chainId, nonce] = await Promise.all([
+      portfolio.name(),
+      portfolio.chainId(),
+      portfolio.nonces(owner.address)
+    ])
     const typedData = {
       types: {
         EIP712Domain: [
@@ -181,19 +205,38 @@ describe('PortfolioToken', function() {
         verifyingContract: portfolio.address
       },
       message: {
-        owner: owner,
-        spender: spender,
-        value: amount.toString(),
+        owner: owner.address,
+        spender: spender.address,
+        value: 1,
         nonce: nonce.toString(),
         deadline: deadline.toString()
       }
     }
-    const { v, r, s } = ethers.utils.splitSignature(await accounts[2].provider.send('eth_signTypedData', [
-      owner,
+    //Spender tries to sign transaction instead of owner
+    const { v, r, s} = ethers.utils.splitSignature(await spender.provider.send('eth_signTypedData', [
+      spender.address,
       typedData
     ]))
-    await portfolio.connect(accounts[2]).permit(accounts[2].address, accounts[1].address, amount, deadline, v, r, s)
-    expect(amount.eq(await portfolio.allowance(owner, spender))).to.equal(true)
+
+    await expect(portfolio.connect(spender).permit(owner.address, spender.address, 1, deadline, v, r, s)).to.be.revertedWith('invalid signature')
+  })
+
+  it('Should fail to permit: past deadline', async function() {
+    const owner = accounts[2]
+    const spender = accounts[1]
+    const { v, r, s} = await preparePermit(portfolio, owner, spender, 1, 0)
+    await expect(portfolio.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)).to.be.revertedWith('expired deadline')
+  })
+
+  it('Should permit', async function() {
+    amount = ethers.BigNumber.from('10000000000000000')
+    const owner = accounts[2]
+    const spender = accounts[1]
+    const deadline = constants.MaxUint256
+
+    const { v, r, s} = await preparePermit(portfolio, owner, spender, amount.toString(), deadline.toString())
+    await portfolio.connect(owner).permit(owner.address, spender.address, amount, deadline, v, r, s)
+    expect(amount.eq(await portfolio.allowance(owner.address, spender.address))).to.equal(true)
   })
 
   it('Should transferFrom tokens', async function() {
