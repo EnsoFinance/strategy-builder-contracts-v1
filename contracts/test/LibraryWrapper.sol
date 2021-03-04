@@ -30,7 +30,7 @@ contract LibraryWrapper {
         return !balanced;
     }
 
-    function getRange(uint256 total, uint256 range) external view returns (uint256) {
+    function getRange(uint256 total, uint256 range) external pure returns (uint256) {
         return PortfolioLibrary.getRange(total, range);
     }
 

@@ -1,7 +1,7 @@
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
 const UniswapV2Pair = require('@uniswap/v2-core/build/UniswapV2Pair.json')
 const { ethers } = require('hardhat')
-const { constants, getContractAt } = ethers
+const { constants, getContractAt, getContractFactory } = ethers
 const { AddressZero } = constants
 const { FEE, DIVISOR } = require('./utils.js')
 
@@ -186,6 +186,25 @@ async function preparePermit(portfolio, owner, spender, value, deadline) {
   ]))
 }
 
+async function calculateAddress(portfolioFactory, creator, name, symbol, tokens, percentages) {
+  const [salt, implementation, version, controller] = await Promise.all([
+    portfolioFactory.salt(creator, name, symbol),
+    portfolioFactory.implementation(),
+    portfolioFactory.version(),
+    portfolioFactory.controller()
+  ])
+
+  const Proxy = await getContractFactory('TransparentUpgradeableProxy')
+  const Portfolio = await getContractFactory('Portfolio')
+
+  const deployTx = Proxy.getDeployTransaction(
+    implementation,
+    portfolioFactory.address,
+    Portfolio.interface.encodeFunctionData("initialize", [name, symbol, version, controller, creator, tokens, percentages])
+  )
+  return ethers.utils.getCreate2Address(portfolioFactory.address, salt, ethers.utils.keccak256(deployTx.data))
+}
+
 async function getExpectedTokenValue(total, token, portfolio) {
   const percentage = await portfolio.tokenPercentage(token)
   return ethers.BigNumber.from(total).mul(percentage).div(DIVISOR);
@@ -195,7 +214,6 @@ async function getRebalanceRange(expectedValue, controller, portfolio) {
   const threshold = await controller.rebalanceThreshold(portfolio.address)
   return ethers.BigNumber.from(expectedValue).mul(threshold).div(DIVISOR);
 }
-
 
 async function encodeSwap(adapter, amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo) {
   const swapEncoded = await adapter.interface.encodeFunctionData("swap", [amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo, '0x', '0x'])
@@ -249,6 +267,7 @@ module.exports = {
   prepareDepositMulticall,
   preparePermit,
   prepareUniswapSwap,
+  calculateAddress,
   encodeSwap,
   encodeDelegateSwap,
   encodeTransfer,

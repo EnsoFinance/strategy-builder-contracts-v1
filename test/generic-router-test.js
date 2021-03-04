@@ -8,6 +8,7 @@ const {
   prepareRebalanceMulticall,
   prepareDepositMulticall,
   prepareUniswapSwap,
+  calculateAddress,
   getRebalanceRange,
   getExpectedTokenValue,
   encodeSettleSwap,
@@ -26,7 +27,7 @@ const SLIPPAGE = 995 // 995/1000 = 99.5%
 const TIMELOCK = 1209600 // Two weeks
 
 describe('GenericRouter', function () {
-    let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, genericRouter, adapter, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper
+    let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, genericRouter, adapter, portfolio, portfolioTokens, portfolioPercentages, wrapper
 
     before('Setup Uniswap, Factory, GenericRouter', async function() {
       accounts = await getSigners();
@@ -40,7 +41,8 @@ describe('GenericRouter', function () {
     })
 
     it('Should deploy portfolio', async function() {
-      console.log('Portfolio factory: ', portfolioFactory.address)
+      const name = 'Test Portfolio'
+      const symbol = 'TEST'
       const positions = [
         {token: tokens[1].address, percentage: 200},
         {token: tokens[2].address, percentage: 200},
@@ -57,42 +59,39 @@ describe('GenericRouter', function () {
         {token: tokens[13].address, percentage: 50},
         {token: tokens[14].address, percentage: 50},
       ];
-      [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
-      // let duplicateTokens = portfolioTokens
-      // duplicateTokens[0] = portfolioTokens[1]
-      // TODO: portfolio is currently accepting duplicate tokens
+      [portfolioTokens, portfolioPercentages] = preparePortfolio(positions, adapter.address);
+
+      const create2Address = await calculateAddress(portfolioFactory, accounts[1].address, name, symbol, portfolioTokens, portfolioPercentages)
+      const Portfolio = await getContractFactory('Portfolio')
+      portfolio = await Portfolio.attach(create2Address)
+
+      const total = ethers.BigNumber.from('10000000000000000')
+      const calls = await prepareDepositMulticall(portfolio, controller, genericRouter, adapter, uniswapFactory, WETH, total, portfolioTokens, portfolioPercentages)
+      const data = await genericRouter.encodeCalls(calls);
+
       let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
-        'Test Portfolio',
-        'TEST',
-        portfolioAdapters,
+        name,
+        symbol,
         portfolioTokens,
         portfolioPercentages,
         false,
         0,
         REBALANCE_THRESHOLD,
         SLIPPAGE,
-        TIMELOCK
+        TIMELOCK,
+        genericRouter.address,
+        data,
+        {value: total}
       )
       let receipt = await tx.wait()
       console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-      const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
-      const Portfolio = await getContractFactory('Portfolio')
-      portfolio = await Portfolio.attach(portfolioAddress)
-
       const LibraryWrapper = await getContractFactory('LibraryWrapper')
       wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
           oracle.address,
-          portfolioAddress
+          portfolio.address
       )
       await wrapper.deployed()
-
-      const total = ethers.BigNumber.from('10000000000000000')
-      const calls = await prepareDepositMulticall(portfolio, controller, genericRouter, adapter, uniswapFactory, WETH, total, portfolioTokens, portfolioPercentages)
-      const data = await genericRouter.encodeCalls(calls);
-      tx = await controller.connect(accounts[1]).deposit(portfolio.address, genericRouter.address, data, {value: total})
-      receipt = await tx.wait()
-      console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 
       //await displayBalances(wrapper, portfolioTokens, WETH)
       //expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees

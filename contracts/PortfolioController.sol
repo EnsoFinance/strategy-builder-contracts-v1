@@ -4,7 +4,6 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./interfaces/IPortfolioController.sol";
-import "./interfaces/IExchangeAdapter.sol";
 import "./interfaces/IOracle.sol";
 import "./PortfolioControllerStorage.sol";
 
@@ -37,12 +36,13 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
     function setupPortfolio(
         address creator_,
         address portfolio_,
-        address[] memory adapters_,
         bool social_,
         uint256 fee_,
         uint256 threshold_,
         uint256 slippage_,
-        uint256 timelock_
+        uint256 timelock_,
+        address router_,
+        bytes memory data_
     ) external payable override {
         _setLock();
         require(_initialized[portfolio_] == false, "PC.sP: already setup");
@@ -55,8 +55,13 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         portfolioState.timelock = timelock_;
         IPortfolio portfolio = IPortfolio(portfolio_);
         if (msg.value > 0) {
-            _buyTokens(portfolio, portfolio.tokens(), adapters_);
+            address weth = IOracle(portfolio.oracle()).weth();
+            IWETH(weth).deposit{value: msg.value}();
+            IERC20(weth).approve(router_, msg.value);
+            IPortfolioRouter(router_).deposit(portfolio_, data_);
+            IERC20(weth).approve(router_, 0);
             portfolio.mint(creator_, msg.value);
+
         }
         if (social_) {
           _openPortfolio(portfolio, fee_);
@@ -339,42 +344,6 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         );
         emit RebalanceCalled(address(portfolio), totalAfter, msg.sender);
         return totalAfter;
-    }
-
-    function _buyTokens(
-        IPortfolio portfolio,
-        address[] memory tokens,
-        address[] memory adapters
-    ) internal {
-        require(tokens.length > 0, "PC._bT: not initialized");
-        require(adapters.length == tokens.length, "PC._bT: invalid param lengths");
-        for (uint256 i = 0; i < tokens.length; i++) {
-            address tokenAddress = tokens[i];
-            uint256 amount =
-                i == tokens.length - 1
-                    ? address(this).balance
-                    : msg.value.mul(portfolio.tokenPercentage(tokenAddress)).div(DIVISOR);
-            if (tokenAddress == IOracle(portfolio.oracle()).weth()) {
-                // Wrap ETH to WETH
-                IWETH weth = IWETH(tokenAddress);
-                weth.deposit{value: amount}();
-                // Transfer weth back to sender
-                weth.transfer(address(portfolio), amount);
-            } else {
-                // Convert ETH to Token
-                IExchangeAdapter(adapters[i]).swap{value: amount}(
-                    amount,
-                    0,
-                    address(0),
-                    tokenAddress,
-                    address(this),
-                    address(portfolio),
-                    new bytes(0),
-                    new bytes(0)
-                );
-            }
-        }
-        require(address(this).balance == uint256(0), "PC._bT: Leftover ETH");
     }
 
     function _openPortfolio(IPortfolio portfolio, uint256 fee) internal {

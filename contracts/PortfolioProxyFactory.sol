@@ -77,43 +77,30 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     function createPortfolio(
         string memory name,
         string memory symbol,
-        address[] memory routers,
         address[] memory tokens,
         uint256[] memory percentages,
         bool social,
         uint256 fee,
         uint256 threshold,
         uint256 slippage,
-        uint256 timelock
+        uint256 timelock,
+        address router,
+        bytes memory data
     ) external payable {
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy(
-                implementation,
-                address(this),
-                abi.encodeWithSelector(
-                    bytes4(keccak256("initialize(string,string,uint256,address,address,address[],uint256[])")),
-                    name,
-                    symbol,
-                    version,
-                    controller,
-                    msg.sender,
-                    tokens,
-                    percentages
-                )
-            );
-
+        address portfolio = _createProxy(name, symbol, tokens, percentages);
         IPortfolioController(controller).setupPortfolio{value: msg.value}(
             msg.sender,
-            address(proxy),
-            routers,
+            portfolio,
             social,
             fee,
             threshold,
             slippage,
-            timelock
+            timelock,
+            router,
+            data
         );
         emit NewPortfolio(
-            address(proxy),
+            portfolio,
             msg.sender,
             name,
             symbol,
@@ -141,6 +128,10 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     function updateWhitelist(address newWhitelist) external onlyOwner {
         whitelist = newWhitelist;
         emit NewWhitelist(newWhitelist);
+    }
+
+    function salt(address creator, string memory name, string memory symbol) public pure returns (bytes32) {
+      return keccak256(abi.encodePacked(creator, name, symbol));
     }
 
     /**
@@ -215,5 +206,26 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         bytes memory data
     ) public payable onlyManager(address(proxy)) {
         proxy.upgradeToAndCall{value: msg.value}(implementation, data);
+    }
+
+    function _createProxy(
+        string memory name, string memory symbol, address[] memory tokens, uint256[] memory percentages
+    ) internal returns (address) {
+        TransparentUpgradeableProxy proxy =
+            new TransparentUpgradeableProxy{salt: salt(msg.sender, name, symbol)}(
+                    implementation,
+                    address(this),
+                    abi.encodeWithSelector(
+                        bytes4(keccak256("initialize(string,string,uint256,address,address,address[],uint256[])")),
+                        name,
+                        symbol,
+                        version,
+                        controller,
+                        msg.sender,
+                        tokens,
+                        percentages
+                    )
+                  );
+      return address(proxy);
     }
 }

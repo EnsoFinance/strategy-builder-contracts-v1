@@ -44,6 +44,7 @@ describe('PortfolioToken', function() {
       {token: tokens[14].address, percentage: 50},
     ];
     [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
+    const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
     // let duplicateTokens = portfolioTokens
     // duplicateTokens[0] = portfolioTokens[1]
     // TODO: portfolio is currently accepting duplicate tokens
@@ -51,7 +52,6 @@ describe('PortfolioToken', function() {
     let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio',
       'TEST',
-      portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
       false,
@@ -59,6 +59,8 @@ describe('PortfolioToken', function() {
       REBALANCE_THRESHOLD,
       SLIPPAGE,
       TIMELOCK,
+      router.address,
+      data,
       { value: amount }
     )
     let receipt = await tx.wait()

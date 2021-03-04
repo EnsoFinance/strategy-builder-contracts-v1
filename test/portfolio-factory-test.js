@@ -44,10 +44,10 @@ describe('PortfolioProxyFactory', function() {
     const amount = ethers.BigNumber.from('10000000000000000')
     const Portfolio = await getContractFactory('Portfolio')
     //First portfolio
+    const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
     let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio',
       'TEST',
-      portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
       false,
@@ -55,6 +55,8 @@ describe('PortfolioProxyFactory', function() {
       REBALANCE_THRESHOLD,
       SLIPPAGE,
       TIMELOCK,
+      router.address,
+      data,
       { value: amount }
     )
     let receipt = await tx.wait()
@@ -65,7 +67,6 @@ describe('PortfolioProxyFactory', function() {
     tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio 2',
       'TEST2',
-      portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
       false,
@@ -73,7 +74,8 @@ describe('PortfolioProxyFactory', function() {
       REBALANCE_THRESHOLD,
       SLIPPAGE,
       TIMELOCK,
-      { value: amount }
+      router.address,
+      '0x'
     )
     receipt = await tx.wait()
     const portfolioAddress2 = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio

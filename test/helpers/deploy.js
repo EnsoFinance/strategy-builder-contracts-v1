@@ -31,7 +31,7 @@ module.exports = {
         const token = await deployContract(owner, WETH9)
         token.deposit({ value: value})
         tokens.push(token)
-        console.log("Weth: ", token.address)
+        //console.log("Weth: ", token.address)
       } else {
         const token = await deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
         tokens.push(token)

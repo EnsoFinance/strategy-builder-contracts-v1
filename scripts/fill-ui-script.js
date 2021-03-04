@@ -24,6 +24,7 @@ async function main() {
     "PortfolioProxyFactory",
     deployedContracts[process.env.HARDHAT_NETWORK].PortfolioProxyFactory
   )
+  const routerAddress = deployedContracts[process.env.HARDHAT_NETWORK].LoopRouter
   const amount = hre.ethers.BigNumber.from("100000000000000000")
 
   for (const pkey of wallets) {
@@ -39,7 +40,7 @@ async function main() {
         position,
         deployedContracts[process.env.HARDHAT_NETWORK].UniswapAdapter
       )
-
+      const data = hre.ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
       const isSocial = Math.round(Math.random())
       let fee = isSocial ? 100 : 0
 
@@ -48,7 +49,6 @@ async function main() {
         .createPortfolio(
           portfolioName,
           portfolioName.substring(0, 3),
-          portfolioAdapters,
           portfolioTokens,
           portfolioPercentages,
           isSocial,
@@ -56,6 +56,8 @@ async function main() {
           REBALANCE_THRESHOLD,
           SLIPPAGE,
           TIMELOCK,
+          routerAddress,
+          data,
           { value: amount, gasLimit: 3100000 }
         )
       let receipt = await tx.wait()

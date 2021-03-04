@@ -1,3 +1,4 @@
+
 const BigNumber = require('bignumber.js')
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
@@ -33,12 +34,13 @@ describe('PortfolioController', function () {
       'FAIL',
       [],
       [],
-      [],
       false,
       0,
       10001,
       SLIPPAGE,
-      TIMELOCK
+      TIMELOCK,
+      router.address,
+      '0x',
     )).to.be.revertedWith('slippage/threshold high');
   })
 
@@ -48,17 +50,19 @@ describe('PortfolioController', function () {
       'FAIL',
       [],
       [],
-      [],
       false,
       0,
       REBALANCE_THRESHOLD,
       1001,
-      TIMELOCK
+      TIMELOCK,
+      router.address,
+      '0x',
     )).to.be.revertedWith('slippage/threshold high');
   })
 
   it('Should deploy portfolio', async function () {
-    console.log('Portfolio factory: ', portfolioFactory.address)
+    const name = 'Test Portfolio'
+    const symbol = 'TEST'
     const positions = [
       { token: tokens[1].address, percentage: 200 },
       { token: tokens[2].address, percentage: 200 },
@@ -76,10 +80,10 @@ describe('PortfolioController', function () {
       { token: tokens[14].address, percentage: 50 },
     ];
     [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
-    let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
-      'Test Portfolio',
-      'TEST',
-      portfolioAdapters,
+    const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
+    const tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
+      name,
+      symbol,
       portfolioTokens,
       portfolioPercentages,
       false,
@@ -87,9 +91,11 @@ describe('PortfolioController', function () {
       REBALANCE_THRESHOLD,
       SLIPPAGE,
       TIMELOCK,
+      router.address,
+      data,
       { value: ethers.BigNumber.from('10000000000000000') }
     )
-    let receipt = await tx.wait()
+    const receipt = await tx.wait()
     console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
     const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
@@ -104,12 +110,11 @@ describe('PortfolioController', function () {
     await wrapper.deployed()
 
     //await displayBalances(wrapper, portfolioTokens, WETH)
-    //expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
     expect(await wrapper.isBalanced()).to.equal(true)
   })
 
   it('Should fail to setup portfolio: initialized', async function () {
-    await expect(controller.setupPortfolio(accounts[1].address, portfolio.address, [], false, 0, 0, 0, 0)).to.be.revertedWith('already setup')
+    await expect(controller.setupPortfolio(accounts[1].address, portfolio.address, false, 0, 0, 0, 0, router.address, '0x')).to.be.revertedWith('already setup')
   })
 
   it('Should fail to update value: restructure is invalid option', async function () {

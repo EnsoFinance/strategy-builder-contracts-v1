@@ -1,6 +1,6 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployGenericRouter } = require('./helpers/deploy.js')
+const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployLoopRouter } = require('./helpers/deploy.js')
 const { preparePortfolio } = require('./helpers/encode.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -12,7 +12,7 @@ const SLIPPAGE = 995 // 995/1000 = 99.5%
 const TIMELOCK = 1209600 // Two weeks
 
 describe('PortfolioLibrary', function () {
-    let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, genericRouter, adapter, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper
+    let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, router, adapter, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper
 
     before('Setup LibraryWrapper', async function() {
       accounts = await getSigners();
@@ -21,8 +21,8 @@ describe('PortfolioLibrary', function () {
       uniswapFactory = await deployUniswap(accounts[0], tokens);
       adapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH);
       [portfolioFactory, controller, oracle, whitelist ] = await deployPlatform(accounts[0], uniswapFactory, WETH);
-      genericRouter = await deployGenericRouter(accounts[0], controller, WETH);
-      await whitelist.connect(accounts[0]).approve(genericRouter.address)
+      [router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH);
+      await whitelist.connect(accounts[0]).approve(router.address);
 
       const positions = [
         {token: tokens[1].address, percentage: 200},
@@ -41,12 +41,12 @@ describe('PortfolioLibrary', function () {
         {token: tokens[14].address, percentage: 50},
       ];
       [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
+      const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
 
       const total = ethers.BigNumber.from('10000000000000000')
       let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
         'Test Portfolio',
         'TEST',
-        portfolioAdapters,
         portfolioTokens,
         portfolioPercentages,
         false,
@@ -54,6 +54,8 @@ describe('PortfolioLibrary', function () {
         REBALANCE_THRESHOLD,
         SLIPPAGE,
         TIMELOCK,
+        router.address,
+        data,
         {value: total}
       )
       let receipt = await tx.wait()

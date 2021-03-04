@@ -72,8 +72,6 @@ async function main() {
   let tx = await whitelist.approve(loopRouter.address)
   await tx.wait()
 
-  console.log('LoopRouter approved in Whitelist')
-
   const GenericRouter = await hre.ethers.getContractFactory('GenericRouter')
   const genericRouter = await GenericRouter.deploy(
     controllerAddress,
@@ -85,8 +83,6 @@ async function main() {
 
   tx = await whitelist.approve(genericRouter.address)
   await tx.wait()
-
-  console.log('GenericRouter approved in Whitelist')
 
   const Portfolio = await hre.ethers.getContractFactory('Portfolio')
   const portfolioImplementation = await Portfolio.deploy()

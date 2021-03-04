@@ -36,10 +36,10 @@ describe('PortfolioController - Social', function () {
       { token: tokens[3].address, percentage: 200 }
     ];
     [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
+    const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
     let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
       'Test Portfolio',
       'TEST',
-      portfolioAdapters,
       portfolioTokens,
       portfolioPercentages,
       true,
@@ -47,6 +47,8 @@ describe('PortfolioController - Social', function () {
       REBALANCE_THRESHOLD,
       SLIPPAGE,
       TIMELOCK,
+      router.address,
+      data,
       { value: ethers.BigNumber.from('10000000000000000') }
     )
     let receipt = await tx.wait()

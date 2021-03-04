@@ -8,12 +8,13 @@ interface IPortfolioController {
     function setupPortfolio(
         address manager_,
         address portfolio_,
-        address[] memory adapters_,
         bool social_,
         uint256 fee_,
         uint256 threshold_,
         uint256 slippage_,
-        uint256 timelock_
+        uint256 timelock_,
+        address router_,
+        bytes memory data_
     ) external payable;
 
     function rebalance(

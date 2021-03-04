@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 //const { displayBalances } = require('./helpers/logging.js')
 const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployGenericRouter } = require('./helpers/deploy.js')
-const { preparePortfolio, prepareRebalanceMulticall } = require('./helpers/encode.js')
+const { preparePortfolio, prepareRebalanceMulticall, prepareDepositMulticall, calculateAddress } = require('./helpers/encode.js')
 const { prepareFlashLoan } = require('./helpers/cookbook.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -14,7 +14,7 @@ const TIMELOCK = 1209600 // Two weeks
 let WETH;
 
 describe('Flash Loan', function () {
-    let tokens, accounts, uniswapFactory, sushiFactory, portfolioFactory, controller, oracle, whitelist, genericRouter, uniswapAdapter, sushiAdapter, arbitrager, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper
+    let tokens, accounts, uniswapFactory, sushiFactory, portfolioFactory, controller, oracle, whitelist, genericRouter, uniswapAdapter, sushiAdapter, arbitrager, portfolio, portfolioTokens, portfolioPercentages, wrapper
 
     it('Setup Uniswap, Sushiswap, Factory, GenericRouter', async function() {
       accounts = await getSigners();
@@ -30,18 +30,27 @@ describe('Flash Loan', function () {
     })
 
     it('Should deploy portfolio', async function() {
-      console.log('Portfolio factory: ', portfolioFactory.address)
+      const name = 'Test Portfolio'
+      const symbol = 'TEST'
       const positions = [
         {token: tokens[1].address, percentage: 500},
         {token: tokens[2].address, percentage: 300},
         {token: tokens[3].address, percentage: 200}
       ];
-      [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, uniswapAdapter.address);
-      // TODO: portfolio is currently accepting duplicate tokens
-      let tx = await portfolioFactory.connect(accounts[1]).createPortfolio(
-        'Test Portfolio',
-        'TEST',
-        portfolioAdapters,
+
+      [portfolioTokens, portfolioPercentages] = preparePortfolio(positions, uniswapAdapter.address);
+
+      const create2Address = await calculateAddress(portfolioFactory, accounts[1].address, name, symbol, portfolioTokens, portfolioPercentages)
+      const Portfolio = await getContractFactory('Portfolio')
+      portfolio = await Portfolio.attach(create2Address)
+
+      const total = ethers.BigNumber.from('10000000000000000')
+      const calls = await prepareDepositMulticall(portfolio, controller, genericRouter, uniswapAdapter, uniswapFactory, WETH, total, portfolioTokens, portfolioPercentages)
+      const data = await genericRouter.encodeCalls(calls);
+
+      await portfolioFactory.connect(accounts[1]).createPortfolio(
+        name,
+        symbol,
         portfolioTokens,
         portfolioPercentages,
         false,
@@ -49,19 +58,15 @@ describe('Flash Loan', function () {
         REBALANCE_THRESHOLD,
         SLIPPAGE,
         TIMELOCK,
+        genericRouter.address,
+        data,
         { value: ethers.BigNumber.from('10000000000000000')}
       )
-      let receipt = await tx.wait()
-      console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
-      const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
-      const Portfolio = await getContractFactory('Portfolio')
-      portfolio = await Portfolio.attach(portfolioAddress)
 
       const LibraryWrapper = await getContractFactory('LibraryWrapper')
       wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
           oracle.address,
-          portfolioAddress
+          portfolio.address
       )
       await wrapper.deployed()
 
