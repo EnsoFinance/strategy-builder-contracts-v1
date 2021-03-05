@@ -5,7 +5,6 @@ pragma experimental ABIEncoderV2;
 import "./RevertDebug.sol";
 
 /// @title Multicall - Aggregate internal calls + show revert message
-/// @author Kyle Dewhurst
 contract Multicall is RevertDebug {
     struct Call {
         address payable target;

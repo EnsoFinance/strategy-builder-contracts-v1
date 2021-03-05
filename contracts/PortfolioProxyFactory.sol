@@ -201,10 +201,11 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
      *
      * - This contract must be the admin of `proxy`.
      */
-    function upgradeAndCall(
-        TransparentUpgradeableProxy proxy,
-        bytes memory data
-    ) public payable onlyManager(address(proxy)) {
+    function upgradeAndCall(TransparentUpgradeableProxy proxy, bytes memory data)
+        public
+        payable
+        onlyManager(address(proxy))
+    {
         proxy.upgradeToAndCall{value: msg.value}(implementation, data);
     }
 

@@ -41,8 +41,9 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         _name = name_;
         _symbol = symbol_;
         _decimals = 18;
-        PERMIT_TYPEHASH =
-            keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+        PERMIT_TYPEHASH = keccak256(
+            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+        );
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 keccak256(
@@ -196,13 +197,23 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     ) public override {
         require(block.timestamp <= deadline, "Portfolio.permit: expired deadline");
 
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                DOMAIN_SEPARATOR,
-                keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, _nonces[owner], deadline))
-            )
-        );
+        bytes32 digest =
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    DOMAIN_SEPARATOR,
+                    keccak256(
+                        abi.encode(
+                            PERMIT_TYPEHASH,
+                            owner,
+                            spender,
+                            value,
+                            _nonces[owner],
+                            deadline
+                        )
+                    )
+                )
+            );
 
         address signer = ecrecover(digest, v, r, s);
         require(signer != address(0) && signer == owner, "Portfolio.permit: invalid signature");
@@ -239,9 +250,7 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
      * @param newTokens An array of token addresses that will comprise the portfolio
      * @param newPercentages An array of percentages for each token in the above array. Must total 100%
      */
-    function _setStructure(
-        address[] memory newTokens, uint256[] memory newPercentages
-    ) internal {
+    function _setStructure(address[] memory newTokens, uint256[] memory newPercentages) internal {
         // Remove old percentages
         for (uint256 i = 0; i < _tokens.length; i++) {
             delete _tokenPercentages[_tokens[i]];

@@ -26,11 +26,7 @@ contract LoopRouter is PortfolioRouter {
         adapter = IExchangeAdapter(adapter_);
     }
 
-    function deposit(address portfolio, bytes calldata data)
-        external
-        override
-        onlyController
-    {
+    function deposit(address portfolio, bytes calldata data) external override onlyController {
         (address[] memory tokens, address[] memory routers) =
             abi.decode(data, (address[], address[]));
         buyTokens(portfolio, tokens, routers);

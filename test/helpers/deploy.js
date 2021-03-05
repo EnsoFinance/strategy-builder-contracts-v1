@@ -26,10 +26,10 @@ module.exports = {
   },
   deployTokens: async (owner, numTokens, value) => {
     const tokens = []
-    for(let i = 0; i < numTokens; i++) {
+    for (let i = 0; i < numTokens; i++) {
       if (i === 0) {
         const token = await deployContract(owner, WETH9)
-        token.deposit({ value: value})
+        token.deposit({ value: value })
         tokens.push(token)
         //console.log("Weth: ", token.address)
       } else {
@@ -41,20 +41,14 @@ module.exports = {
   },
   deployUniswapAdapter: async (owner, uniswapFactory, weth) => {
     const UniswapAdapter = await getContractFactory('UniswapAdapter')
-    const adapter = await UniswapAdapter.connect(owner).deploy(
-      uniswapFactory.address,
-      weth.address
-    )
+    const adapter = await UniswapAdapter.connect(owner).deploy(uniswapFactory.address, weth.address)
     await adapter.deployed()
     //console.log('Uniswap adapter: ', adapter.address)
     return adapter
   },
   deployPlatform: async (owner, uniswapFactory, weth) => {
     const Oracle = await getContractFactory('UniswapNaiveOracle')
-    const oracle = await Oracle.connect(owner).deploy(
-        uniswapFactory.address,
-        weth.address
-    )
+    const oracle = await Oracle.connect(owner).deploy(uniswapFactory.address, weth.address)
     await oracle.deployed()
     //console.log("Oracle: ", oracle.address)
 
@@ -113,5 +107,21 @@ module.exports = {
     const router = await GenericRouter.connect(owner).deploy(controller.address, weth.address)
     await router.deployed()
     return router
-  }
+  },
+  deployDsProxyFactory: async (owner) => {
+    const DsProxyFactory = await ethers.getContractFactory('DSProxyFactory')
+    const dsProxyFactory = await DsProxyFactory.connect(owner).deploy()
+    await dsProxyFactory.deployed()
+    console.log('DsProxyFactory: ', dsProxyFactory.address)
+    return dsProxyFactory
+  },
+  deployDsProxy: async (dsProxyFactory, owner) => {
+    const tx = await dsProxyFactory.build(owner.address)
+    const receipt = await tx.wait()
+    const proxyAddress = receipt.events.find((ev) => ev.event === 'Created').args.proxy
+    const DsProxy = await getContractFactory('DSProxy')
+    const dsProxy = DsProxy.attach(proxyAddress)
+    console.log('DsProxy: ', dsProxy.address)
+    return dsProxy
+  },
 }

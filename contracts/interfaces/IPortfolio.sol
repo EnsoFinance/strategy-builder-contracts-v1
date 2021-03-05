@@ -54,8 +54,8 @@ interface IPortfolio is IERC20 {
 
     function whitelist() external view returns (address);
 
-    function verifyStructure(
-        address[] memory newTokens,
-        uint256[] memory newPercentages
-    ) external pure returns (bool);
+    function verifyStructure(address[] memory newTokens, uint256[] memory newPercentages)
+        external
+        pure
+        returns (bool);
 }

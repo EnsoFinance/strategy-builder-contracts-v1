@@ -20,11 +20,7 @@ contract GenericRouter is PortfolioRouter, Multicall {
      * @notice Executes provided calldata to achieve a deposit for the Portfolio
      */
     // Receive call from controller
-    function deposit(address portfolio, bytes memory data)
-        external
-        override
-        onlyController
-    {
+    function deposit(address portfolio, bytes memory data) external override onlyController {
         (portfolio);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);

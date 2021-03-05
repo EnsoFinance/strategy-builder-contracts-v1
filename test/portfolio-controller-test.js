@@ -13,19 +13,33 @@ const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
 const SLIPPAGE = 995 // 995/1000 = 99.5%
 const TIMELOCK = 60 // 1 minute
-let WETH;
+let WETH
 
 describe('PortfolioController', function () {
-  let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, router, adapter, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper, newThreshold
+  let tokens,
+    accounts,
+    uniswapFactory,
+    portfolioFactory,
+    controller,
+    oracle,
+    whitelist,
+    router,
+    adapter,
+    portfolio,
+    portfolioTokens,
+    portfolioPercentages,
+    portfolioAdapters,
+    wrapper,
+    newThreshold
 
   before('Setup Uniswap + Factory', async function () {
-    accounts = await getSigners();
-    tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)));
-    WETH = tokens[0];
-    uniswapFactory = await deployUniswap(accounts[0], tokens);
-    [portfolioFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH);
-    [router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH);
-    await whitelist.connect(accounts[0]).approve(router.address);
+    accounts = await getSigners()
+    tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
+    WETH = tokens[0]
+    uniswapFactory = await deployUniswap(accounts[0], tokens)
+    ;[portfolioFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
+    ;[router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH)
+    await whitelist.connect(accounts[0]).approve(router.address)
   })
 
   it('Should fail to deploy portfolio: threshold too high', async function () {
@@ -98,15 +112,12 @@ describe('PortfolioController', function () {
     const receipt = await tx.wait()
     console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-    const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
+    const portfolioAddress = receipt.events.find((ev) => ev.event === 'NewPortfolio').args.portfolio
     const Portfolio = await getContractFactory('Portfolio')
     portfolio = await Portfolio.attach(portfolioAddress)
 
     const LibraryWrapper = await getContractFactory('LibraryWrapper')
-    wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
-      oracle.address,
-      portfolioAddress
-    )
+    wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, portfolioAddress)
     await wrapper.deployed()
 
     //await displayBalances(wrapper, portfolioTokens, WETH)
@@ -126,11 +137,15 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to update threshold: not manager', async function () {
-    await expect(controller.connect(accounts[0]).updateValue(portfolio.address, TIMELOCK_CATEGORY.THRESHOLD, 1)).to.be.revertedWith('Not manager')
+    await expect(
+      controller.connect(accounts[0]).updateValue(portfolio.address, TIMELOCK_CATEGORY.THRESHOLD, 1)
+    ).to.be.revertedWith('Not manager')
   })
 
   it('Should fail to update threshold: value too large', async function () {
-    await expect(controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.THRESHOLD, 1001)).to.be.revertedWith('PC.uV: Value too high')
+    await expect(
+      controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.THRESHOLD, 1001)
+    ).to.be.revertedWith('PC.uV: Value too high')
   })
 
   it('Should update threshold', async function () {
@@ -139,21 +154,31 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to finalize restrucuture: timelock not set for restructure', async function () {
-    await expect(controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, [], [])).to.be.revertedWith('Wrong category')
+    await expect(
+      controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, [], [])
+    ).to.be.revertedWith('Wrong category')
   })
 
   it('Should finalize value', async function () {
-    expect(ethers.BigNumber.from(await controller.rebalanceThreshold(portfolio.address)).eq(REBALANCE_THRESHOLD)).to.equal(true)
+    expect(
+      ethers.BigNumber.from(await controller.rebalanceThreshold(portfolio.address)).eq(REBALANCE_THRESHOLD)
+    ).to.equal(true)
     await controller.finalizeValue(portfolio.address)
-    expect(ethers.BigNumber.from(await controller.rebalanceThreshold(portfolio.address)).eq(newThreshold)).to.equal(true)
+    expect(ethers.BigNumber.from(await controller.rebalanceThreshold(portfolio.address)).eq(newThreshold)).to.equal(
+      true
+    )
   })
 
   it('Should fail to update slippage: not manager', async function () {
-    await expect(controller.connect(accounts[0]).updateValue(portfolio.address, TIMELOCK_CATEGORY.SLIPPAGE, 1)).to.be.revertedWith('Not manager')
+    await expect(
+      controller.connect(accounts[0]).updateValue(portfolio.address, TIMELOCK_CATEGORY.SLIPPAGE, 1)
+    ).to.be.revertedWith('Not manager')
   })
 
   it('Should fail to update slippage: value too large', async function () {
-    await expect(controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.SLIPPAGE, 1001)).to.be.revertedWith('PC.uV: Value too high')
+    await expect(
+      controller.connect(accounts[1]).updateValue(portfolio.address, TIMELOCK_CATEGORY.SLIPPAGE, 1001)
+    ).to.be.revertedWith('PC.uV: Value too high')
   })
 
   it('Should update slippage', async function () {
@@ -164,7 +189,9 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to update timelock: not manager', async function () {
-    await expect(controller.connect(accounts[0]).updateValue(portfolio.address, TIMELOCK_CATEGORY.TIMELOCK, 1)).to.be.revertedWith('Not manager')
+    await expect(
+      controller.connect(accounts[0]).updateValue(portfolio.address, TIMELOCK_CATEGORY.TIMELOCK, 1)
+    ).to.be.revertedWith('Not manager')
   })
 
   it('Should update timelock', async function () {
@@ -175,12 +202,14 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to rebalance, already balanced', async function () {
-    const estimates = await Promise.all(portfolioTokens.map(async token => (await wrapper.getTokenValue(token)).toString()))
+    const estimates = await Promise.all(
+      portfolioTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+    )
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-    await expect(controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data))
-      .to.be.revertedWith('PC.rebalance: balanced'
-      )
+    await expect(controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)).to.be.revertedWith(
+      'PC.rebalance: balanced'
+    )
   })
 
   it('Should purchase a token, requiring a rebalance', async function () {
@@ -202,15 +231,20 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to rebalance, router not approved', async function () {
-    const estimates = await Promise.all(portfolioTokens.map(async token => (await wrapper.getTokenValue(token)).toString()))
+    const estimates = await Promise.all(
+      portfolioTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+    )
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-    await expect(controller.connect(accounts[1]).rebalance(portfolio.address, AddressZero, data))
-      .to.be.revertedWith('Router not approved')
+    await expect(controller.connect(accounts[1]).rebalance(portfolio.address, AddressZero, data)).to.be.revertedWith(
+      'Router not approved'
+    )
   })
 
   it('Should rebalance portfolio', async function () {
-    const estimates = await Promise.all(portfolioTokens.map(async token => (await wrapper.getTokenValue(token)).toString()))
+    const estimates = await Promise.all(
+      portfolioTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+    )
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
     const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)
@@ -221,35 +255,47 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to rebalance, only manager may rebalance', async function () {
-    const estimates = await Promise.all(portfolioTokens.map(async token => (await wrapper.getTokenValue(token)).toString()))
+    const estimates = await Promise.all(
+      portfolioTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+    )
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-    await expect(controller.connect(accounts[2]).rebalance(portfolio.address, router.address, data))
-      .to.be.revertedWith('Not manager')
+    await expect(controller.connect(accounts[2]).rebalance(portfolio.address, router.address, data)).to.be.revertedWith(
+      'Not manager'
+    )
   })
 
   it('Should fail to deposit: not manager', async function () {
     const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
-    await expect(controller.connect(accounts[0]).deposit(portfolio.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') }))
-      .to.be.revertedWith('Not manager')
+    await expect(
+      controller
+        .connect(accounts[0])
+        .deposit(portfolio.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') })
+    ).to.be.revertedWith('Not manager')
   })
 
   it('Should fail to deposit: no funds deposited', async function () {
     const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
-    await expect(controller.connect(accounts[1]).deposit(portfolio.address, router.address, data))
-      .to.be.revertedWith('PC.deposit: No ether sent')
+    await expect(controller.connect(accounts[1]).deposit(portfolio.address, router.address, data)).to.be.revertedWith(
+      'PC.deposit: No ether sent'
+    )
   })
 
   it('Should fail to deposit: incorrect adapters', async function () {
     const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, []])
-    await expect(controller.connect(accounts[1]).deposit(portfolio.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') }))
-      .to.be.revertedWith('Routers/tokens mismatch')
+    await expect(
+      controller
+        .connect(accounts[1])
+        .deposit(portfolio.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') })
+    ).to.be.revertedWith('Routers/tokens mismatch')
   })
 
   it('Should deposit more', async function () {
     const balanceBefore = await portfolio.balanceOf(accounts[1].address)
     const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
-    const tx = await controller.connect(accounts[1]).deposit(portfolio.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') })
+    const tx = await controller
+      .connect(accounts[1])
+      .deposit(portfolio.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') })
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
     const balanceAfter = await portfolio.balanceOf(accounts[1].address)
@@ -259,13 +305,15 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to withdraw: no portfolio tokens', async function () {
-    await expect(controller.connect(accounts[0]).withdrawAssets(portfolio.address, 1))
-      .to.be.revertedWith('ERC20: Amount exceeds balance')
+    await expect(controller.connect(accounts[0]).withdrawAssets(portfolio.address, 1)).to.be.revertedWith(
+      'ERC20: Amount exceeds balance'
+    )
   })
 
   it('Should fail to withdraw: no amount passed', async function () {
-    await expect(controller.connect(accounts[1]).withdrawAssets(portfolio.address, 0))
-      .to.be.revertedWith('PC.withdraw: No amount')
+    await expect(controller.connect(accounts[1]).withdrawAssets(portfolio.address, 0)).to.be.revertedWith(
+      'PC.withdraw: No amount'
+    )
   })
 
   it('Should withdraw', async function () {
@@ -278,7 +326,12 @@ describe('PortfolioController', function () {
     const supplyAfter = BigNumber((await portfolio.totalSupply()).toString())
     const tokenBalanceAfter = BigNumber((await tokens[1].balanceOf(portfolio.address)).toString())
     expect(supplyBefore.minus(amount.toString()).isEqualTo(supplyAfter)).to.equal(true)
-    expect(supplyBefore.dividedBy(supplyAfter).decimalPlaces(10).isEqualTo(tokenBalanceBefore.dividedBy(tokenBalanceAfter).decimalPlaces(10))).to.equal(true)
+    expect(
+      supplyBefore
+        .dividedBy(supplyAfter)
+        .decimalPlaces(10)
+        .isEqualTo(tokenBalanceBefore.dividedBy(tokenBalanceAfter).decimalPlaces(10))
+    ).to.equal(true)
     expect(tokenBalanceBefore.isGreaterThan(tokenBalanceAfter)).to.equal(true)
   })
 
@@ -286,60 +339,67 @@ describe('PortfolioController', function () {
     const positions = [
       { token: tokens[0].address, percentage: 500 },
       { token: tokens[1].address, percentage: 500 },
-      { token: tokens[2].address, percentage: 0 }
-    ];
-    [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
-    await expect(controller.connect(accounts[1]).restructure(portfolio.address, portfolioTokens, [500, 500]))
-      .to.be.revertedWith('invalid input lengths')
+      { token: tokens[2].address, percentage: 0 },
+    ]
+    ;[portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address)
+    await expect(
+      controller.connect(accounts[1]).restructure(portfolio.address, portfolioTokens, [500, 500])
+    ).to.be.revertedWith('invalid input lengths')
   })
 
   it('Should fail to restructure: wrong percentages', async function () {
     const positions = [
       { token: tokens[0].address, percentage: 300 },
       { token: tokens[1].address, percentage: 300 },
-      { token: tokens[2].address, percentage: 300 }
-    ];
-    [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
-    await expect(controller.connect(accounts[1]).restructure(portfolio.address, portfolioTokens, portfolioPercentages))
-      .to.be.revertedWith('total percentage wrong')
+      { token: tokens[2].address, percentage: 300 },
+    ]
+    ;[portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address)
+    await expect(
+      controller.connect(accounts[1]).restructure(portfolio.address, portfolioTokens, portfolioPercentages)
+    ).to.be.revertedWith('total percentage wrong')
   })
 
   it('Should fail to restructure: not manager', async function () {
     const positions = [
       { token: tokens[0].address, percentage: 300 },
       { token: tokens[1].address, percentage: 300 },
-      { token: tokens[2].address, percentage: 400 }
-    ];
-    [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
-    await expect(controller.connect(accounts[2]).restructure(portfolio.address, portfolioTokens, portfolioPercentages))
-      .to.be.revertedWith('Not manager')
+      { token: tokens[2].address, percentage: 400 },
+    ]
+    ;[portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address)
+    await expect(
+      controller.connect(accounts[2]).restructure(portfolio.address, portfolioTokens, portfolioPercentages)
+    ).to.be.revertedWith('Not manager')
   })
 
   it('Should restructure', async function () {
     const positions = [
       { token: tokens[0].address, percentage: 300 },
       { token: tokens[1].address, percentage: 300 },
-      { token: tokens[2].address, percentage: 400 }
-    ];
-    [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address);
+      { token: tokens[2].address, percentage: 400 },
+    ]
+    ;[portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(positions, adapter.address)
     await controller.connect(accounts[1]).restructure(portfolio.address, portfolioTokens, portfolioPercentages)
   })
 
   it('Should fail to finalize value: wrong category', async function () {
-    await expect(controller.finalizeValue(portfolio.address)).to.be.revertedWith("Wrong category")
+    await expect(controller.finalizeValue(portfolio.address)).to.be.revertedWith('Wrong category')
   })
 
   it('Should fail to finalize structure: sell adapters mismatch', async function () {
-    await expect(controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, portfolioAdapters, portfolioAdapters))
-      .to.be.revertedWith('PC._fS: Sell adapters length')
+    await expect(
+      controller
+        .connect(accounts[1])
+        .finalizeStructure(portfolio.address, router.address, portfolioAdapters, portfolioAdapters)
+    ).to.be.revertedWith('PC._fS: Sell adapters length')
   })
 
   it('Should fail to finalize structure: buy adapters mismatch', async function () {
     const currentTokens = await portfolio.tokens()
     const sellAdapters = currentTokens.map(() => adapter.address)
 
-    await expect(controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, sellAdapters, sellAdapters))
-      .to.be.revertedWith('PC._fS: Buy adapters length')
+    await expect(
+      controller.connect(accounts[1]).finalizeStructure(portfolio.address, router.address, sellAdapters, sellAdapters)
+    ).to.be.revertedWith('PC._fS: Buy adapters length')
   })
 
   /* Not social
@@ -375,7 +435,9 @@ describe('PortfolioController', function () {
   })
 
   it('Should rebalance portfolio', async function () {
-    const estimates = await Promise.all(portfolioTokens.map(async token => (await wrapper.getTokenValue(token)).toString()))
+    const estimates = await Promise.all(
+      portfolioTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+    )
     const total = estimates.reduce((total, value) => BigNumber(total.toString()).plus(value)).toString()
     const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
     const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, router.address, data)
@@ -390,7 +452,9 @@ describe('PortfolioController', function () {
   })
 
   it('Should fail to open portfolio: fee too high', async function () {
-    await expect(controller.connect(accounts[1]).openPortfolio(portfolio.address, 1000)).to.be.revertedWith('Fee too high')
+    await expect(controller.connect(accounts[1]).openPortfolio(portfolio.address, 1000)).to.be.revertedWith(
+      'Fee too high'
+    )
   })
 
   it('Should open portfolio', async function () {

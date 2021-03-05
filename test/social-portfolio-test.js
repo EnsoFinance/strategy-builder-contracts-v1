@@ -12,7 +12,7 @@ const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
 const SLIPPAGE = 995 // 995/1000 = 99.5%
 const TIMELOCK = 60 // 1 minute
-let WETH;
+let WETH
 
 describe('PortfolioController - Social', function () {
   let tokens, accounts, uniswapFactory, portfolioFactory, controller, oracle, whitelist, router, adapter, portfolio, portfolioTokens, portfolioPercentages, portfolioAdapters, wrapper

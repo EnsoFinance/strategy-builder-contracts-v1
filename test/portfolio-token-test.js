@@ -158,11 +158,11 @@ describe('PortfolioToken', function() {
   })
   */
 
-  it('Should update manager', async function() {
-    await portfolio.connect(accounts[1]).updateManager(accounts[2].address)
-    expect(await portfolio.manager()).to.equal(accounts[2].address)
-  })
-  /*
+	it('Should update manager', async function () {
+		await portfolio.connect(accounts[1]).updateManager(accounts[2].address)
+		expect(await portfolio.manager()).to.equal(accounts[2].address)
+	})
+	/*
   it('Should fail to renounce ownership: not owner', async function() {
     await expect(portfolio.connect(accounts[1]).renounceOwnership()).to.be.revertedWith()
   })

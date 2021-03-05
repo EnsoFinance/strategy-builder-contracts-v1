@@ -23,25 +23,25 @@ module.exports = {
     }
   },
   colorLog: (message, defaultColor) => {
-      let color = defaultColor || "black";
+    let color = defaultColor || 'black'
 
-      switch (color) {
-          case "success":
-              color = "Green";
-              break;
-          case "info":
-              color = "DodgerBlue";
-              break;
-          case "error":
-              color = "Red";
-              break;
-          case "warning":
-              color = "Orange";
-              break;
-          default:
-              color = defaultColor;
-      }
+    switch (color) {
+      case 'success':
+        color = 'Green'
+        break
+      case 'info':
+        color = 'DodgerBlue'
+        break
+      case 'error':
+        color = 'Red'
+        break
+      case 'warning':
+        color = 'Orange'
+        break
+      default:
+        color = defaultColor
+    }
 
-      console.log("%c" + message, "color:" + color);
-  }
+    console.log('%c' + message, 'color:' + color)
+  },
 }

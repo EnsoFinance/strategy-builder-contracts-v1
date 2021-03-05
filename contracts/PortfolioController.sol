@@ -64,7 +64,7 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
 
         }
         if (social_) {
-          _openPortfolio(portfolio, fee_);
+            _openPortfolio(IPortfolio(portfolio_), fee_);
         }
         _removeLock();
     }
@@ -412,12 +412,8 @@ contract PortfolioController is IPortfolioController, PortfolioControllerStorage
         portfolio.setStructure(tokens, percentages);
         // Since tokens have already been minted we don"t do router.deposit, instead use router.convert
         IERC20 weth = IERC20(IOracle(portfolio.oracle()).weth());
-        weth.approve(router, uint(-1));
-        IPortfolioRouter(router).buyTokens(
-            address(portfolio),
-            tokens,
-            buyAdapters
-        );
+        weth.approve(router, uint256(-1));
+        IPortfolioRouter(router).buyTokens(address(portfolio), tokens, buyAdapters);
         weth.approve(router, 0);
     }
 

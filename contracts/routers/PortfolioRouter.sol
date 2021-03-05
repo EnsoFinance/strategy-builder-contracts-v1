@@ -9,9 +9,7 @@ import "../interfaces/IPortfolio.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "../libraries/PortfolioLibrary.sol";
 
-abstract contract PortfolioRouter is
-    IPortfolioRouter
-{
+abstract contract PortfolioRouter is IPortfolioRouter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
