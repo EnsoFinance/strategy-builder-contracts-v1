@@ -1,8 +1,19 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 //const { displayBalances } = require('./helpers/logging.js')
-const { deployUniswap, deployTokens, deployPlatform, deployUniswapAdapter, deployGenericRouter } = require('./helpers/deploy.js')
-const { preparePortfolio, prepareRebalanceMulticall, prepareDepositMulticall, calculateAddress } = require('./helpers/encode.js')
+const {
+	deployUniswap,
+	deployTokens,
+	deployPlatform,
+	deployUniswapAdapter,
+	deployGenericRouter,
+} = require('./helpers/deploy.js')
+const {
+	prepareStrategy,
+	prepareRebalanceMulticall,
+	prepareDepositMulticall,
+	calculateAddress,
+} = require('./helpers/encode.js')
 const { prepareFlashLoan } = require('./helpers/cookbook.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -18,7 +29,7 @@ describe('Flash Loan', function () {
 		accounts,
 		uniswapFactory,
 		sushiFactory,
-		portfolioFactory,
+		strategyFactory,
 		controller,
 		oracle,
 		whitelist,
@@ -26,10 +37,9 @@ describe('Flash Loan', function () {
 		uniswapAdapter,
 		sushiAdapter,
 		arbitrager,
-		portfolio,
-		portfolioTokens,
-		portfolioPercentages,
-		portfolioAdapters,
+		strategy,
+		strategyTokens,
+		strategyPercentages,
 		wrapper
 
 	it('Setup Uniswap, Sushiswap, Factory, GenericRouter', async function () {
@@ -40,56 +50,72 @@ describe('Flash Loan', function () {
 		sushiFactory = await deployUniswap(accounts[0], tokens)
 		uniswapAdapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
 		sushiAdapter = await deployUniswapAdapter(accounts[0], sushiFactory, WETH)
-		;[portfolioFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
+		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
 		genericRouter = await deployGenericRouter(accounts[0], controller, WETH)
 		await whitelist.connect(accounts[0]).approve(genericRouter.address)
 	})
 
-    it('Should deploy portfolio', async function() {
-      const name = 'Test Portfolio'
-      const symbol = 'TEST'
-      const positions = [
-        {token: tokens[1].address, percentage: 500},
-        {token: tokens[2].address, percentage: 300},
-        {token: tokens[3].address, percentage: 200}
-      ];
+	it('Should deploy strategy', async function () {
+		const name = 'Test Strategy'
+		const symbol = 'TEST'
+		const positions = [
+			{ token: tokens[1].address, percentage: 500 },
+			{ token: tokens[2].address, percentage: 300 },
+			{ token: tokens[3].address, percentage: 200 },
+		]
 
-      [portfolioTokens, portfolioPercentages] = preparePortfolio(positions, uniswapAdapter.address);
+		;[strategyTokens, strategyPercentages] = prepareStrategy(positions, uniswapAdapter.address)
 
-      const create2Address = await calculateAddress(portfolioFactory, accounts[1].address, name, symbol, portfolioTokens, portfolioPercentages)
-      const Portfolio = await getContractFactory('Portfolio')
-      portfolio = await Portfolio.attach(create2Address)
+		const create2Address = await calculateAddress(
+			strategyFactory,
+			accounts[1].address,
+			name,
+			symbol,
+			strategyTokens,
+			strategyPercentages
+		)
+		const Strategy = await getContractFactory('Strategy')
+		strategy = await Strategy.attach(create2Address)
 
-      const total = ethers.BigNumber.from('10000000000000000')
-      const calls = await prepareDepositMulticall(portfolio, controller, genericRouter, uniswapAdapter, uniswapFactory, WETH, total, portfolioTokens, portfolioPercentages)
-      const data = await genericRouter.encodeCalls(calls);
+		const total = ethers.BigNumber.from('10000000000000000')
+		const calls = await prepareDepositMulticall(
+			strategy,
+			controller,
+			genericRouter,
+			uniswapAdapter,
+			uniswapFactory,
+			WETH,
+			total,
+			strategyTokens,
+			strategyPercentages
+		)
+		const data = await genericRouter.encodeCalls(calls)
 
-      await portfolioFactory.connect(accounts[1]).createPortfolio(
-        name,
-        symbol,
-        portfolioTokens,
-        portfolioPercentages,
-        false,
-        0,
-        REBALANCE_THRESHOLD,
-        SLIPPAGE,
-        TIMELOCK,
-        genericRouter.address,
-        data,
-        { value: ethers.BigNumber.from('10000000000000000')}
-      )
+		await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				name,
+				symbol,
+				strategyTokens,
+				strategyPercentages,
+				false,
+				0,
+				REBALANCE_THRESHOLD,
+				SLIPPAGE,
+				TIMELOCK,
+				genericRouter.address,
+				data,
+				{ value: ethers.BigNumber.from('10000000000000000') }
+			)
 
-      const LibraryWrapper = await getContractFactory('LibraryWrapper')
-      wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
-          oracle.address,
-          portfolio.address
-      )
-      await wrapper.deployed()
+		const LibraryWrapper = await getContractFactory('LibraryWrapper')
+		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategy.address)
+		await wrapper.deployed()
 
-      //await displayBalances(wrapper, portfolioTokens, WETH)
-      //expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
-      expect(await wrapper.isBalanced()).to.equal(true)
-    })
+		//await displayBalances(wrapper, strategyTokens, WETH)
+		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
 
 	it('Should deploy arbitrager contract', async function () {
 		const Arbitrager = await getContractFactory('Arbitrager')
@@ -113,12 +139,12 @@ describe('Flash Loan', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
-	it('Should rebalance portfolio with multicall + flash loan', async function () {
-		console.log('Rebalancing portfolio....')
+	it('Should rebalance strategy with multicall + flash loan', async function () {
+		console.log('Rebalancing strategy....')
 		const balanceBefore = await tokens[1].balanceOf(accounts[1].address)
 		// Multicall gets initial tokens from uniswap
 		const rebalanceCalls = await prepareRebalanceMulticall(
-			portfolio,
+			strategy,
 			controller,
 			genericRouter,
 			uniswapAdapter,
@@ -127,7 +153,7 @@ describe('Flash Loan', function () {
 			WETH
 		)
 		const flashLoanCalls = await prepareFlashLoan(
-			portfolio,
+			strategy,
 			arbitrager,
 			uniswapAdapter,
 			sushiAdapter,
@@ -137,7 +163,7 @@ describe('Flash Loan', function () {
 		)
 		const calls = [...rebalanceCalls, ...flashLoanCalls]
 		const data = await genericRouter.encodeCalls(calls)
-		const tx = await controller.connect(accounts[1]).rebalance(portfolio.address, genericRouter.address, data)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, genericRouter.address, data)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await tokens[1].balanceOf(accounts[1].address)

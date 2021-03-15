@@ -4,12 +4,12 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
-import "./PortfolioToken.sol";
-import "./interfaces/IPortfolio.sol";
-import "./interfaces/IPortfolioProxyFactory.sol";
+import "./StrategyToken.sol";
+import "./interfaces/IStrategy.sol";
+import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IWhitelist.sol";
 
-contract Portfolio is IPortfolio, PortfolioToken, Initializable {
+contract Strategy is IStrategy, StrategyToken, Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -32,7 +32,7 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         uint256 version_,
         address controller_,
         address manager_,
-        address[] memory tokens_,
+        address[] memory strategyItems_,
         uint256[] memory percentages_
     ) external initializer returns (bool) {
         _controller = controller_;
@@ -56,9 +56,9 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
             )
         );
         // Set structure
-        if (tokens_.length > 0) {
-            verifyStructure(tokens_, percentages_);
-            _setStructure(tokens_, percentages_);
+        if (strategyItems_.length > 0) {
+            verifyStructure(strategyItems_, percentages_);
+            _setStructure(strategyItems_, percentages_);
         }
         return true;
     }
@@ -72,8 +72,8 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     }
 
     function approveTokens(address account, uint256 amount) external override onlyController {
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            IERC20(_tokens[i]).safeApprove(account, amount);
+        for (uint256 i = 0; i < _strategyItems.length; i++) {
+            IERC20(_strategyItems[i]).safeApprove(account, amount);
         }
     }
 
@@ -86,29 +86,29 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     }
 
     /**
-     * @notice Set the structure of the portfolio
-     * @param newTokens An array of token addresses that will comprise the portfolio
+     * @notice Set the structure of the strategy
+     * @param newItems An array of token addresses that will comprise the strategy
      * @param newPercentages An array of percentages for each token in the above array. Must total 100%
      */
-    function setStructure(address[] memory newTokens, uint256[] memory newPercentages)
+    function setStructure(address[] memory newItems, uint256[] memory newPercentages)
         external
         override
         onlyController
     {
-        _setStructure(newTokens, newPercentages);
+        _setStructure(newItems, newPercentages);
     }
 
     /**
-     * @notice Withdraw the underlying assets and burn the equivalent amount of portfolio token
-     * @param amount The amount of portfolio tokens to burn to recover the equivalent underlying assets
+     * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
+     * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
      */
     function withdraw(uint256 amount) external override {
         require(amount > 0, "P.withdraw: 0 amount");
         uint256 percentage = amount.mul(10**18).div(_totalSupply);
         _burn(msg.sender, amount);
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            // Should not be possible to have address(0) since the Portfolio will check for it
-            IERC20 token = IERC20(_tokens[i]);
+        for (uint256 i = 0; i < _strategyItems.length; i++) {
+            // Should not be possible to have address(0) since the Strategy will check for it
+            IERC20 token = IERC20(_strategyItems[i]);
             uint256 currentBalance = token.balanceOf(address(this));
             uint256 tokenAmount = currentBalance.mul(percentage).div(10**18);
             token.safeTransfer(msg.sender, tokenAmount);
@@ -148,12 +148,12 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         _burn(account, amount);
     }
 
-    function tokens() external view override returns (address[] memory) {
-        return _tokens;
+    function items() external view override returns (address[] memory) {
+        return _strategyItems;
     }
 
-    function tokenPercentage(address token) external view override returns (uint256) {
-        return _tokenPercentages[token];
+    function percentage(address strategyItem) external view override returns (uint256) {
+        return _percentages[strategyItem];
     }
 
     function nonces(address owner) external view override returns (uint256) {
@@ -173,11 +173,11 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     }
 
     function oracle() external view override returns (address) {
-        return IPortfolioProxyFactory(_factory).oracle();
+        return IStrategyProxyFactory(_factory).oracle();
     }
 
     function whitelist() public view override returns (address) {
-        return IPortfolioProxyFactory(_factory).whitelist();
+        return IStrategyProxyFactory(_factory).whitelist();
     }
 
     function chainId() public pure returns (uint256 id) {
@@ -195,7 +195,7 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
         bytes32 r,
         bytes32 s
     ) public override {
-        require(block.timestamp <= deadline, "Portfolio.permit: expired deadline");
+        require(block.timestamp <= deadline, "Strategy.permit: expired deadline");
 
         bytes32 digest =
             keccak256(
@@ -216,7 +216,7 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
             );
 
         address signer = ecrecover(digest, v, r, s);
-        require(signer != address(0) && signer == owner, "Portfolio.permit: invalid signature");
+        require(signer != address(0) && signer == owner, "Strategy.permit: invalid signature");
 
         _nonces[owner]++;
         _approve(owner, spender, value);
@@ -228,17 +228,17 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
      *      no zero addresses, and no duplicates
      * @dev Token addresses must be passed in, according to increasing byte value
      */
-    function verifyStructure(address[] memory newTokens, uint256[] memory newPercentages)
+    function verifyStructure(address[] memory newItems, uint256[] memory newPercentages)
         public
         pure
         override
         returns (bool)
     {
-        require(newTokens.length == newPercentages.length, "P.vS: invalid input lengths");
-        require(newTokens[0] != address(0), "P.vS: invalid weth addr"); //Everything else will caught be the ordering requirement below
+        require(newItems.length == newPercentages.length, "P.vS: invalid input lengths");
+        require(newItems[0] != address(0), "P.vS: invalid weth addr"); //Everything else will caught be the ordering requirement below
         uint256 total = 0;
-        for (uint256 i = 0; i < newTokens.length; i++) {
-            require(i == 0 || newTokens[i] > newTokens[i - 1], "P.vS: token ordering");
+        for (uint256 i = 0; i < newItems.length; i++) {
+            require(i == 0 || newItems[i] > newItems[i - 1], "P.vS: item ordering");
             require(newPercentages[i] > 0, "P.vS: bad percentage");
             total = total.add(newPercentages[i]);
         }
@@ -246,18 +246,20 @@ contract Portfolio is IPortfolio, PortfolioToken, Initializable {
     }
 
     /**
-     * @notice Set the structure of the portfolio
-     * @param newTokens An array of token addresses that will comprise the portfolio
+     * @notice Set the structure of the strategy
+     * @param newItems An array of token addresses that will comprise the strategy
      * @param newPercentages An array of percentages for each token in the above array. Must total 100%
      */
-    function _setStructure(address[] memory newTokens, uint256[] memory newPercentages) internal {
+    function _setStructure(
+        address[] memory newItems, uint256[] memory newPercentages
+    ) internal {
         // Remove old percentages
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            delete _tokenPercentages[_tokens[i]];
+        for (uint256 i = 0; i < _strategyItems.length; i++) {
+            delete _percentages[_strategyItems[i]];
         }
-        for (uint256 i = 0; i < newTokens.length; i++) {
-            _tokenPercentages[newTokens[i]] = newPercentages[i];
+        for (uint256 i = 0; i < newItems.length; i++) {
+            _percentages[newItems[i]] = newPercentages[i];
         }
-        _tokens = newTokens;
+        _strategyItems = newItems;
     }
 }

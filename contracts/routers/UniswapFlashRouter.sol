@@ -5,11 +5,11 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./PortfolioRouter.sol";
-import "../interfaces/IPortfolioController.sol";
+import "./StrategyRouter.sol";
+import "../interfaces/IStrategyController.sol";
 import "../libraries/UniswapV2Library.sol";
 
-contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
+contract UniswapFlashRouter is StrategyRouter, IUniswapV2Callee {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -23,33 +23,37 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
         address factory_,
         address controller_,
         address weth_
-    ) public PortfolioRouter(controller_, weth_) {
+    ) public StrategyRouter(controller_, weth_) {
         factory = factory_;
         adapter = IExchangeAdapter(adapter_);
     }
 
-    function deposit(address portfolio, bytes calldata data) external override onlyController {
-        (address[] memory tokens, address[] memory routers) =
+    function deposit(address strategy, bytes calldata data)
+        external
+        override
+        onlyController
+    {
+        (address[] memory strategyItems, address[] memory adapters) =
             abi.decode(data, (address[], address[]));
-        buyTokens(portfolio, tokens, routers);
+        buyTokens(strategy, strategyItems, adapters);
     }
 
-    function rebalance(address portfolio, bytes calldata data) external override onlyController {
+    function rebalance(address strategy, bytes calldata data) external override onlyController {
         (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[]));
         // Flash swap to cover purchases, rebalance, and settle up
         // https://uniswap.org/docs/v2/core-concepts/flash-swaps/
         uint256 wethAmount = total.mul(FEE).div(DIVISOR);
         uint256 pairAmount = 0;
         // Get pair token
-        uint256 index = IPortfolio(portfolio).tokens()[0] == weth ? 1 : 0;
-        address pairToken = IPortfolio(portfolio).tokens()[index];
+        uint256 index = IStrategy(strategy).items()[0] == weth ? 1 : 0;
+        address pairToken = IStrategy(strategy).items()[index];
         {
             uint256 expectedPairValue =
-                PortfolioLibrary.getExpectedTokenValue(wethAmount, portfolio, pairToken);
+                StrategyLibrary.getExpectedTokenValue(wethAmount, strategy, pairToken);
             uint256 rebalanceRange =
-                PortfolioLibrary.getRange(
+                StrategyLibrary.getRange(
                     expectedPairValue,
-                    IPortfolioController(msg.sender).rebalanceThreshold(portfolio)
+                    IStrategyController(msg.sender).rebalanceThreshold(strategy)
                 );
             if (estimates[index] < expectedPairValue.add(rebalanceRange)) {
                 uint256 diff = expectedPairValue.sub(estimates[index]).mul(FEE).div(DIVISOR);
@@ -64,20 +68,20 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
             pairToken,
             weth,
             address(this),
-            abi.encode(portfolio, estimates)
+            abi.encode(strategy, estimates)
         );
         // Hate this, but need to sort out extra weth if there is any
         if (
-            IPortfolio(portfolio).tokenPercentage(weth) == 0 &&
-            IERC20(weth).balanceOf(portfolio) > 0
+            IStrategy(strategy).percentage(weth) == 0 &&
+            IERC20(weth).balanceOf(strategy) > 0
         ) {
             adapter.swap(
-                IERC20(weth).balanceOf(portfolio),
+                IERC20(weth).balanceOf(strategy),
                 0,
                 weth,
                 pairToken,
-                portfolio,
-                portfolio,
+                strategy,
+                strategy,
                 new bytes(0),
                 new bytes(0)
             );
@@ -91,7 +95,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
         bytes calldata data
     ) external override {
         assert(sender == address(this));
-        (address portfolio, ) = abi.decode(data, (address, uint256[]));
+        (address strategy, ) = abi.decode(data, (address, uint256[]));
         uint256 repay;
         uint256 total;
         address token0 = IUniswapV2Pair(msg.sender).token0();
@@ -103,7 +107,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
                     repay = amount0.add(
                         adapter.spotPrice(amount1, token1, token0).mul(DIVISOR).div(FEE)
                     );
-                    IERC20(token1).safeTransfer(portfolio, amount1);
+                    IERC20(token1).safeTransfer(strategy, amount1);
                 } else {
                     repay = amount0;
                 }
@@ -112,7 +116,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
                     repay = amount1.add(
                         adapter.spotPrice(amount0, token0, token1).mul(DIVISOR).div(FEE)
                     );
-                    IERC20(token0).safeTransfer(portfolio, amount0);
+                    IERC20(token0).safeTransfer(strategy, amount0);
                 } else {
                     repay = amount1;
                 }
@@ -123,19 +127,19 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
 
         {
             (, uint256[] memory estimates) = abi.decode(data, (address, uint256[]));
-            address[] memory tokens = IPortfolio(portfolio).tokens();
+            address[] memory strategyItems = IStrategy(strategy).items();
             IERC20(weth).safeApprove(address(adapter), uint256(-1));
-            for (uint256 i = 0; i < tokens.length; i++) {
-                if (tokens[i] != token0 && tokens[i] != token1) {
-                    _rebalanceToken(portfolio, tokens[i], estimates[i], total);
+            for (uint256 i = 0; i < strategyItems.length; i++) {
+                if (strategyItems[i] != token0 && strategyItems[i] != token1) {
+                    _rebalanceToken(strategy, strategyItems[i], estimates[i], total);
                 } else {
-                    repay = repay.sub(_getDiffValue(portfolio, tokens[i], estimates[i], total));
+                    repay = repay.sub(_getDiffValue(strategy, strategyItems[i], estimates[i], total));
                 }
             }
         }
         {
             repay = repay.sub(
-                _settleFlashPair(portfolio, msg.sender, token0, token1, total, repay)
+                _settleFlashPair(strategy, msg.sender, token0, token1, total, repay)
             );
             IERC20 wethToken = IERC20(weth);
             wethToken.safeTransfer(msg.sender, repay);
@@ -166,17 +170,17 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
     }
 
     function _rebalanceToken(
-        address portfolioAddress,
+        address strategyAddress,
         address tokenAddress,
         uint256 estimatedValue,
         uint256 total
     ) internal {
         uint256 expectedValue =
-            PortfolioLibrary.getExpectedTokenValue(total, portfolioAddress, tokenAddress);
+            StrategyLibrary.getExpectedTokenValue(total, strategyAddress, tokenAddress);
         uint256 rebalanceRange =
-            PortfolioLibrary.getRange(
+            StrategyLibrary.getRange(
                 expectedValue,
-                IPortfolio(portfolioAddress).tokenPercentage(tokenAddress)
+                IStrategy(strategyAddress).percentage(tokenAddress)
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             /*
@@ -191,7 +195,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
                     .spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress)
                     .mul(DIVISOR)
                     .div(FEE);
-            IERC20(tokenAddress).safeTransferFrom(portfolioAddress, address(this), diff);
+            IERC20(tokenAddress).safeTransferFrom(strategyAddress, address(this), diff);
             IERC20(tokenAddress).safeApprove(address(adapter), diff);
             adapter.swap(
                 diff,
@@ -212,7 +216,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
                 weth,
                 tokenAddress,
                 address(this),
-                portfolioAddress,
+                strategyAddress,
                 new bytes(0),
                 new bytes(0)
             );
@@ -220,7 +224,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
     }
 
     function _settleFlashPair(
-        address portfolioAddress,
+        address strategyAddress,
         address uniswapAddress,
         address token0,
         address token1,
@@ -228,29 +232,29 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
         uint256 repay
     ) internal returns (uint256) {
         uint256 excessWeth = IERC20(weth).balanceOf(address(this));
-        if (IPortfolio(portfolioAddress).tokenPercentage(weth) > 0) {
+        if (IStrategy(strategyAddress).percentage(weth) > 0) {
             //Settle weth
-            uint256 wethValue = IERC20(weth).balanceOf(portfolioAddress);
+            uint256 wethValue = IERC20(weth).balanceOf(strategyAddress);
             uint256 expectedWethValue =
-                PortfolioLibrary.getExpectedTokenValue(total, portfolioAddress, weth);
+                StrategyLibrary.getExpectedTokenValue(total, strategyAddress, weth);
             if (wethValue > expectedWethValue) {
                 uint256 wethRemoved = wethValue.sub(expectedWethValue);
-                IERC20(weth).safeTransferFrom(portfolioAddress, address(this), wethRemoved);
+                IERC20(weth).safeTransferFrom(strategyAddress, address(this), wethRemoved);
                 excessWeth = excessWeth.add(wethRemoved);
             } else {
                 uint256 wethNeeded = expectedWethValue.sub(wethValue);
                 // There should never be a scenario where excess weth is less than weth needed
                 assert(excessWeth >= wethNeeded);
-                IERC20(weth).safeTransferFrom(address(this), portfolioAddress, wethNeeded);
+                IERC20(weth).safeTransferFrom(address(this), strategyAddress, wethNeeded);
                 excessWeth = excessWeth.sub(wethNeeded);
             }
         }
         IERC20 pairToken = IERC20(token0 == weth ? token1 : token0);
         //Settle pair token
         uint256 estimatedValue =
-            adapter.spotPrice(pairToken.balanceOf(portfolioAddress), address(pairToken), weth);
+            adapter.spotPrice(pairToken.balanceOf(strategyAddress), address(pairToken), weth);
         uint256 expectedValue =
-            PortfolioLibrary.getExpectedTokenValue(total, portfolioAddress, address(pairToken));
+            StrategyLibrary.getExpectedTokenValue(total, strategyAddress, address(pairToken));
         if (estimatedValue > expectedValue) {
             uint256 diff;
             {
@@ -267,7 +271,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
                     adapter.spotPrice(excessWeth, weth, address(pairToken));
                 if (excessTokenEquivalent < diff) {
                     diff = diff.sub(excessTokenEquivalent);
-                    pairToken.safeTransferFrom(portfolioAddress, uniswapAddress, diff);
+                    pairToken.safeTransferFrom(strategyAddress, uniswapAddress, diff);
                 }
                 //Potentially paying to0 much here if excessTokenEquivalent > diff!
                 IERC20(weth).safeTransfer(uniswapAddress, excessWeth);
@@ -277,7 +281,7 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
                 if (repayDiff > 0) {
                     diff = diff.add(adapter.spotPrice(repayDiff, weth, address(pairToken)));
                 }
-                pairToken.safeTransferFrom(portfolioAddress, uniswapAddress, diff);
+                pairToken.safeTransferFrom(strategyAddress, uniswapAddress, diff);
                 return repayDiff;
             }
         } else {
@@ -288,13 +292,13 @@ contract UniswapFlashRouter is PortfolioRouter, IUniswapV2Callee {
     }
 
     function _getDiffValue(
-        address portfolioAddress,
+        address strategyAddress,
         address tokenAddress,
         uint256 estimatedValue,
         uint256 total
     ) internal view returns (uint256) {
         uint256 expectedValue =
-            PortfolioLibrary.getExpectedTokenValue(total, portfolioAddress, tokenAddress);
+            StrategyLibrary.getExpectedTokenValue(total, strategyAddress, tokenAddress);
         if (estimatedValue > expectedValue) {
             return estimatedValue.sub(expectedValue);
         } else {

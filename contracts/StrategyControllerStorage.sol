@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-contract PortfolioControllerStorage {
+contract StrategyControllerStorage {
     // ALERT: Do not reorder variables on upgrades! Append only
     enum TimelockCategory {RESTRUCTURE, THRESHOLD, SLIPPAGE, TIMELOCK}
 
-    struct PortfolioState {
+    struct StrategyState {
         bool social;
         uint256 performanceFee;
         uint256 rebalanceThreshold;
@@ -19,12 +19,12 @@ contract PortfolioControllerStorage {
         bytes data;
     }
 
-    // Portfolio
+    // Strategy
     bool internal _locked;
 
     mapping(address => bool) internal _initialized;
     mapping(address => uint256) internal _lastTokenValues;
-    mapping(address => PortfolioState) internal _portfolioStates;
+    mapping(address => StrategyState) internal _strategyStates;
     mapping(address => Timelock) internal _timelocks;
 
     // Reserved storage space to allow for layout changes in the future.

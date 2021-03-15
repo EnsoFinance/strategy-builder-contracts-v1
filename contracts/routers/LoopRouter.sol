@@ -3,11 +3,11 @@ pragma solidity 0.6.12;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "../interfaces/IPortfolioController.sol";
+import "../interfaces/IStrategyController.sol";
 import "../libraries/UniswapV2Library.sol";
-import "./PortfolioRouter.sol";
+import "./StrategyRouter.sol";
 
-contract LoopRouter is PortfolioRouter {
+contract LoopRouter is StrategyRouter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -21,60 +21,64 @@ contract LoopRouter is PortfolioRouter {
         address factory_,
         address controller_,
         address weth_
-    ) public PortfolioRouter(controller_, weth_) {
+    ) public StrategyRouter(controller_, weth_) {
         factory = factory_;
         adapter = IExchangeAdapter(adapter_);
     }
 
-    function deposit(address portfolio, bytes calldata data) external override onlyController {
-        (address[] memory tokens, address[] memory routers) =
+    function deposit(address strategy, bytes calldata data)
+        external
+        override
+        onlyController
+    {
+        (address[] memory strategyItems, address[] memory adapters) =
             abi.decode(data, (address[], address[]));
-        buyTokens(portfolio, tokens, routers);
+        buyTokens(strategy, strategyItems, adapters);
     }
 
-    function rebalance(address portfolio, bytes calldata data) external override onlyController {
+    function rebalance(address strategy, bytes calldata data) external override onlyController {
         (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[]));
-        address[] memory tokens = IPortfolio(portfolio).tokens();
+        address[] memory strategyItems = IStrategy(strategy).items();
 
-        address[] memory buyTokens = new address[](tokens.length);
-        uint256[] memory buyEstimates = new uint256[](tokens.length);
+        address[] memory buyTokens = new address[](strategyItems.length);
+        uint256[] memory buyEstimates = new uint256[](strategyItems.length);
         uint256 buyCount = 0;
         // Sell loop
-        for (uint256 i = 0; i < tokens.length; i++) {
-            address tokenAddress = tokens[i];
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            address tokenAddress = strategyItems[i];
             if (tokenAddress != weth) {
-                if (!_sellToken(portfolio, tokenAddress, estimates[i], total)) {
-                    buyTokens[buyCount] = tokens[i];
+                if (!_sellToken(strategy, tokenAddress, estimates[i], total)) {
+                    buyTokens[buyCount] = strategyItems[i];
                     buyEstimates[buyCount] = estimates[i];
                     buyCount++;
                 }
             }
         }
-        bool wethInPortfolio = IPortfolio(portfolio).tokenPercentage(weth) != 0;
+        bool wethInStrategy = IStrategy(strategy).percentage(weth) != 0;
         // Buy loop
         for (uint256 i = 0; i < buyCount; i++) {
             _buyToken(
-                portfolio,
+                strategy,
                 buyTokens[i],
                 buyEstimates[i],
                 total,
-                i == buyCount - 1 && !wethInPortfolio // If the last token use up remainder of WETH
+                i == buyCount - 1 && !wethInStrategy // If the last token use up remainder of WETH
             );
         }
     }
 
     function _sellToken(
-        address portfolio,
+        address strategy,
         address tokenAddress,
         uint256 estimatedValue,
         uint256 total
     ) internal returns (bool) {
         uint256 expectedValue =
-            PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
+            StrategyLibrary.getExpectedTokenValue(total, strategy, tokenAddress);
         uint256 rebalanceRange =
-            PortfolioLibrary.getRange(
+            StrategyLibrary.getRange(
                 expectedValue,
-                IPortfolioController(msg.sender).rebalanceThreshold(portfolio)
+                IStrategyController(msg.sender).rebalanceThreshold(strategy)
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             uint256 diff =
@@ -89,8 +93,8 @@ contract LoopRouter is PortfolioRouter {
                     0,
                     tokenAddress,
                     weth,
-                    portfolio,
-                    portfolio,
+                    strategy,
+                    strategy,
                     new bytes(0)
                 ),
                 "LR._sT: Swap failed"
@@ -101,7 +105,7 @@ contract LoopRouter is PortfolioRouter {
     }
 
     function _buyToken(
-        address portfolio,
+        address strategy,
         address tokenAddress,
         uint256 estimatedValue,
         uint256 total,
@@ -111,23 +115,23 @@ contract LoopRouter is PortfolioRouter {
             require(
                 _delegateSwap(
                     address(adapter),
-                    IERC20(weth).balanceOf(portfolio),
+                    IERC20(weth).balanceOf(strategy),
                     0,
                     weth,
                     tokenAddress,
-                    portfolio,
-                    portfolio,
+                    strategy,
+                    strategy,
                     new bytes(0)
                 ),
                 "LR._bT: Swap failed"
             );
         } else {
             uint256 expectedValue =
-                PortfolioLibrary.getExpectedTokenValue(total, portfolio, tokenAddress);
+                StrategyLibrary.getExpectedTokenValue(total, strategy, tokenAddress);
             uint256 rebalanceRange =
-                PortfolioLibrary.getRange(
+                StrategyLibrary.getRange(
                     expectedValue,
-                    IPortfolioController(msg.sender).rebalanceThreshold(portfolio)
+                    IStrategyController(msg.sender).rebalanceThreshold(strategy)
                 );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
                 uint256 diff = expectedValue.sub(estimatedValue);
@@ -138,8 +142,8 @@ contract LoopRouter is PortfolioRouter {
                         0,
                         weth,
                         tokenAddress,
-                        portfolio,
-                        portfolio,
+                        strategy,
+                        strategy,
                         new bytes(0)
                     ),
                     "LR._bT: Swap failed"

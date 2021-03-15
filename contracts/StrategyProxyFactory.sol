@@ -3,17 +3,17 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
-import "./PortfolioProxyManagerRegistry.sol";
-import "./interfaces/IPortfolioProxyFactory.sol";
-import "./interfaces/IPortfolioController.sol";
+import "./StrategyProxyManagerRegistry.sol";
+import "./interfaces/IStrategyProxyFactory.sol";
+import "./interfaces/IStrategyController.sol";
 
 /**
- * @notice Deploys Proxy Portfolios
+ * @notice Deploys Proxy Strategys
  * @dev The contract implements a custom PrxoyAdmin
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
-contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
-    PortfolioProxyManagerRegistry private managerRegistry;
+contract StrategyProxyFactory is IStrategyProxyFactory, Ownable {
+    StrategyProxyManagerRegistry private managerRegistry;
     address public override controller;
     address public override whitelist;
     address public override oracle;
@@ -26,10 +26,10 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     event Update(address newImplementation, uint256 version);
 
     /**
-     * @notice Log the creation of a new portfolio
+     * @notice Log the creation of a new strategy
      */
-    event NewPortfolio(
-        address portfolio,
+    event NewStrategy(
+        address strategy,
         address manager,
         string name,
         string symbol,
@@ -43,7 +43,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
     );
 
     /**
-     * @notice Log the new Oracle for the portfolios
+     * @notice Log the new Oracle for the strategys
      */
     event NewOracle(address newOracle);
 
@@ -63,7 +63,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         oracle = oracle_;
         whitelist = whitelist_;
         version = 1;
-        managerRegistry = new PortfolioProxyManagerRegistry(address(this));
+        managerRegistry = new StrategyProxyManagerRegistry(address(this));
         emit Update(implementation, version);
         emit NewOracle(oracle);
         emit NewWhitelist(whitelist);
@@ -74,7 +74,7 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         _;
     }
 
-    function createPortfolio(
+    function createStrategy(
         string memory name,
         string memory symbol,
         address[] memory tokens,
@@ -87,10 +87,10 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
         address router,
         bytes memory data
     ) external payable {
-        address portfolio = _createProxy(name, symbol, tokens, percentages);
-        IPortfolioController(controller).setupPortfolio{value: msg.value}(
+        address strategy = _createProxy(name, symbol, tokens, percentages);
+        IStrategyController(controller).setupStrategy{value: msg.value}(
             msg.sender,
-            portfolio,
+            strategy,
             social,
             fee,
             threshold,
@@ -99,8 +99,8 @@ contract PortfolioProxyFactory is IPortfolioProxyFactory, Ownable {
             router,
             data
         );
-        emit NewPortfolio(
-            portfolio,
+        emit NewStrategy(
+            strategy,
             msg.sender,
             name,
             symbol,

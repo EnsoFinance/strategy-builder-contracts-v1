@@ -48,15 +48,15 @@ async function main() {
 
   console.log('UniswapAdapter deployed to: ', uniswapAdapter.address)
 
-  const PortfolioControllerDeployer = await hre.ethers.getContractFactory('PortfolioControllerDeployer')
-  const deployer = await PortfolioControllerDeployer.deploy()
+  const StrategyControllerDeployer = await hre.ethers.getContractFactory('StrategyControllerDeployer')
+  const deployer = await StrategyControllerDeployer.deploy()
   await deployer.deployed()
 
-  console.log('PortfolioControllerDeployer deployed to: ', deployer.address)
+  console.log('StrategyControllerDeployer deployed to: ', deployer.address)
 
   const controllerAddress = await deployer.controller()
 
-  console.log('PortfolioController deployed to: ', controllerAddress)
+  console.log('StrategyController deployed to: ', controllerAddress)
 
   const LoopRouter = await hre.ethers.getContractFactory('LoopRouter')
   const loopRouter = await LoopRouter.deploy(
@@ -84,20 +84,20 @@ async function main() {
   tx = await whitelist.approve(genericRouter.address)
   await tx.wait()
 
-  const Portfolio = await hre.ethers.getContractFactory('Portfolio')
-  const portfolioImplementation = await Portfolio.deploy()
-  await portfolioImplementation.deployed()
+  const Strategy = await hre.ethers.getContractFactory('Strategy')
+  const strategyImplementation = await Strategy.deploy()
+  await strategyImplementation.deployed()
 
-  const PortfolioProxyFactory = await hre.ethers.getContractFactory('PortfolioProxyFactory')
-  const portfolioFactory = await PortfolioProxyFactory.deploy(
-    portfolioImplementation.address,
+  const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
+  const strategyFactory = await StrategyProxyFactory.deploy(
+    strategyImplementation.address,
     controllerAddress,
     oracle.address,
     whitelist.address
   )
-  await portfolioFactory.deployed()
+  await strategyFactory.deployed()
 
-  console.log('PortfolioProxyFactory deployed to:', portfolioFactory.address)
+  console.log('StrategyProxyFactory deployed to:', strategyFactory.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -8,15 +8,15 @@ yarn hardhat flatten contracts/routers/GenericRouter.sol > /tmp/solidity/Generic
 grep -v "SPDX\|experimental" /tmp/solidity/GenericRouter.flat.sol > /tmp/solidity/GenericRouter.flat.clean.sol && echo "pragma experimental ABIEncoderV2;" >> /tmp/solidity/GenericRouter.flat.clean.sol
 rm /tmp/solidity/GenericRouter.flat.sol
 
-# Portfolio Proxy Factory
-yarn hardhat flatten contracts/PortfolioProxyFactory.sol > /tmp/solidity/PortfolioProxyFactory.flat.sol
-grep -v "SPDX" /tmp/solidity/PortfolioProxyFactory.flat.sol > /tmp/solidity/PortfolioProxyFactory.flat.clean.sol
-rm /tmp/solidity/PortfolioProxyFactory.flat.sol
+# Strategy Proxy Factory
+yarn hardhat flatten contracts/StrategyProxyFactory.sol > /tmp/solidity/StrategyProxyFactory.flat.sol
+grep -v "SPDX" /tmp/solidity/StrategyProxyFactory.flat.sol > /tmp/solidity/StrategyProxyFactory.flat.clean.sol
+rm /tmp/solidity/StrategyProxyFactory.flat.sol
 
-# Portfolio
-yarn hardhat flatten contracts/Portfolio.sol > /tmp/solidity/Portfolio.flat.sol
-grep -v "SPDX" /tmp/solidity/Portfolio.flat.sol > /tmp/solidity/Portfolio.flat.clean.sol
-rm /tmp/solidity/Portfolio.flat.sol
+# Strategy
+yarn hardhat flatten contracts/Strategy.sol > /tmp/solidity/Strategy.flat.sol
+grep -v "SPDX" /tmp/solidity/Strategy.flat.sol > /tmp/solidity/Strategy.flat.clean.sol
+rm /tmp/solidity/Strategy.flat.sol
 
 # generate docs
 yarn solidity-docgen -i /tmp/solidity/ -o ./docs/markdown/ --exclude helpers,mocks
@@ -26,8 +26,8 @@ yarn sol2uml contracts -c -o docs/contract_diagram.png -f png
 
 # yarn solidity-docgen -i /tmp/solidity/ -o ./docs/ 
 # remove cleaned contract
-rm /tmp/solidity/Portfolio.flat.clean.sol
+rm /tmp/solidity/Strategy.flat.clean.sol
 rm /tmp/solidity/GenericRouter.flat.clean.sol
-rm /tmp/solidity/PortfolioProxyFactory.flat.clean.sol
+rm /tmp/solidity/StrategyProxyFactory.flat.clean.sol
 
 echo "Success!"

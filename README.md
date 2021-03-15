@@ -9,8 +9,8 @@ Template Solidity environment based on Hardhat, Waffle, and Ethers
   - [2.4. Documentation](#24-documentation)
   - [2.5. Deploy](#25-deploy)
 - [3. Contract Overview](#3-contract-overview)
-  - [3.1. PortfolioProxyFactory](#31-portfolioproxyfactory)
-  - [3.2. Portfolio](#32-portfolio)
+  - [3.1. StrategyProxyFactory](#31-strategyproxyfactory)
+  - [3.2. Strategy](#32-strategy)
   - [3.3. Routers](#33-routers)
   - [3.4. Controllers](#34-controllers)
 - [4. Concepts](#4-concepts)
@@ -54,40 +54,40 @@ For example, to deploy on Kovan network run `npm run deploy kovan`
 
 # 3. Contract Overview
 
-The asset management contracts allows users to create a rebalancing portfolio of erc20 tokens, by depositing ETH, which is swapped for the requested erc20's using decentralized exchanges and on chain time-weighted oracles.
+The asset management contracts allows users to create a rebalancing strategy of erc20 tokens, by depositing ETH, which is swapped for the requested erc20's using decentralized exchanges and on chain time-weighted oracles.
 
-If the eth value of any asset in the portfolio falls outside of a provided threshold range, the contract will allow rebalances, which will swap the over/under represented assets on a dex.
+If the eth value of any asset in the strategy falls outside of a provided threshold range, the contract will allow rebalances, which will swap the over/under represented assets on a dex.
 
 [Contract Documentation](https://app.gitbook.com/@ensofinance/s/enso-finance/architecture/contracts/)
 
-## 3.1. [PortfolioProxyFactory](https://app.gitbook.com/@ensofinance/s/enso-finance/architecture/contracts/portfolioproxyfactory.sol)
-- The portfolio factory deploys a proxy for all new portfolios. This contract is where protocol admin values can be set/updated.
+## 3.1. [StrategyProxyFactory](https://app.gitbook.com/@ensofinance/s/enso-finance/architecture/contracts/strategyproxyfactory.sol)
+- The strategy factory deploys a proxy for all new strategys. This contract is where protocol admin values can be set/updated.
 
-## 3.2. [Portfolio](https://app.gitbook.com/@ensofinance/s/enso-finance/architecture/contracts/portfolio.sol)
-  - Portfolios take deposits of ETH and swap it atomically for a basket of tokens, which are stored and rebalanced within the portfolio. Depositers are minted erc20 liquidity tokens redeemable for the underlying tokens of the portfolio. Portfolios can be private or public/social. If social, the creator of the portfolio has the authority to issue a restructure, with a timelock set at the creation of the portfolio, giving people time to withdraw from the portfolio.
+## 3.2. [Strategy](https://app.gitbook.com/@ensofinance/s/enso-finance/architecture/contracts/strategy.sol)
+  - Strategys take deposits of ETH and swap it atomically for a basket of tokens, which are stored and rebalanced within the strategy. Depositers are minted erc20 liquidity tokens redeemable for the underlying tokens of the strategy. Strategys can be private or public/social. If social, the creator of the strategy has the authority to issue a restructure, with a timelock set at the creation of the strategy, giving people time to withdraw from the strategy.
 
 ## 3.3. Routers
   - Interface to swap tokens on different dexes
 
 
 ## 3.4. Controllers
-  - Using the routers, the controller implements a trading strategy provided by the portfolio manager.
+  - Using the routers, the controller implements a trading strategy provided by the strategy manager.
 
 
 # 4. Concepts
 
 ## 4.1. Imbalance
 
-The portfolio checks for an imbalance in an asset by:
+The strategy checks for an imbalance in an asset by:
 ```javascript
-const expectedValueOfToken = portfolioValue * tokenPercentage
+const expectedValueOfToken = strategyValue * tokenPercentage
 const estimatedValueOfToken = tokenPriceInWeth * tokenBalance
 const rebalanceThreshold = expectedValueOfToken * rebalanceSlippagePercent
 const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToken) - rebalanceThreshold)
 ```
 
 # 5. Roadmap
-- [x] Rebalance portfolio through DEX router
+- [x] Rebalance strategy through DEX router
 - [x] DEX Routers
   - [x] Uniswap
   - [ ] 1Inch
@@ -99,7 +99,7 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
 - [ ] Withdraw tokens into ETH
 - [ ] Generic Router: Provide optional Flash loans to depositers/withdrawls
 - [ ] Yield Farming
-- [ ] Alternative Portfolios
+- [ ] Alternative Strategys
   - [ ] Prediction market outcome tokens
   - [ ] NFTs
 - [ ] Gas Tokens
@@ -107,23 +107,23 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
 
 # 6. Examples
 
-`Create Portfolio`
+`Create Strategy`
 
 ```javascript
     const { ethers } = require('hardhat')
     const { constants, getContractAt } = ether
 
     // Porfolio interface
-    const Portfolio = await getContractFactory('Portfolio')
-    const PortfolioProxyFactory = await getContractFactory('PortfolioProxyFactory')
-    const portfolioFactory = await getContractAt(PortfolioProxyFactory.abi, "0xEF7B263C46343713848Db0233aCC06E5C475d85c")
+    const Strategy = await getContractFactory('Strategy')
+    const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')
+    const strategyFactory = await getContractAt(StrategyProxyFactory.abi, "0xEF7B263C46343713848Db0233aCC06E5C475d85c")
 
-    // Create new portfolio
-    let tx = await portfolioFactory.createPortfolio(
-      'My Portfolio',
+    // Create new strategy
+    let tx = await strategyFactory.createStrategy(
+      'My Strategy',
       'Symbol',
       ["0x68f9FfF89A247a3578ABFc8d8B62584725D031d2"],  // Routers (Uni/Sushi/Kyber)
-      ["0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "0x6b175474e89094c44da98b954eedeac495271d0f"], // tokens to be in portfolio UNI, DAI
+      ["0x1f9840a85d5af5bf1d1762f925bdaddc4201f984", "0x6b175474e89094c44da98b954eedeac495271d0f"], // tokens to be in strategy UNI, DAI
       [500, 500],  // Allocation of each token 500/1000 = 50%
       10, // Percentage imbalance until rebalance is allowed: 10/1000 = 1%
       995, // Slippage percent allowed during rebalance
@@ -132,12 +132,12 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
     )
     let receipt = await tx.wait()
 
-    // Get portfolio address from NewPortfolio event
-    const portfolioAddress = receipt.events.find(ev => ev.event === 'NewPortfolio').args.portfolio
-    portfolio = Portfolio.attach(portfolioAddress)
+    // Get strategy address from NewStrategy event
+    const strategyAddress = receipt.events.find(ev => ev.event === 'NewStrategy').args.strategy
+    strategy = Strategy.attach(strategyAddress)
 
-    // transfer portfolio tokens representing underlying assets
-    await portfolio.transfer(accounts[2].address, amount)
+    // transfer strategy tokens representing underlying assets
+    await strategy.transfer(accounts[2].address, amount)
 
 ```
 
@@ -151,8 +151,8 @@ Or- [1. Asset Management Solidity V1](#1-asset-management-solidity-v1)
   - [2.4. Documentation](#24-documentation)
   - [2.5. Deploy](#25-deploy)
 - [3. Contract Overview](#3-contract-overview)
-  - [3.1. PortfolioProxyFactory](#31-portfolioproxyfactory)
-  - [3.2. Portfolio](#32-portfolio)
+  - [3.1. StrategyProxyFactory](#31-strategyproxyfactory)
+  - [3.2. Strategy](#32-strategy)
   - [3.3. Routers](#33-routers)
   - [3.4. Controllers](#34-controllers)
 - [4. Concepts](#4-concepts)
@@ -162,18 +162,18 @@ Or- [1. Asset Management Solidity V1](#1-asset-management-solidity-v1)
 - [7. Kovan Deployment](#7-kovan-deployment)
 
 
-Oracle deployed to:  0x42632C32014dCBb19F117a41a13c0890534D8Ea7
+Oracle deployed to:  0x7f9c80381c0952FF728E3aE12e2FBa3dbee7B9DD
 
-Whitelist deployed to:  0x950FB52c8a08f1A63ce7956cfF7afe441c3A37fc
+Whitelist deployed to:  0x97AfB1d76CDa54518Cb06338f1323188de847993
 
-UniswapAdapter deployed to:  0x2BE017808890b4581EB510b234aca15e8EAec3A4
+UniswapAdapter deployed to:  0x8B0D03bf10e8AC672FA624956772F38C9837E8C8
 
-PortfolioControllerDeployer deployed to:  0x78CC6262E33d9fc292905c0306F21c40e09a3fcE
+StrategyControllerDeployer deployed to:  0x6175F799614b6362A2370E47d1901e3C4622F04C
 
-PortfolioController deployed to:  0x75354f6696d767a4718519aBe07FEF3fb9363A8A
+StrategyController deployed to:  0x19439964E40079c82eD7b2dB764c45c8baD05834
 
-LoopRouter deployed to:  0x235a86339f79A84015f8eDD38f936Db0b688Cd9F
+LoopRouter deployed to:  0xd5D9b512b7a71cc7b660D11d4c73c034b492E806
 
-GenericRouter deployed to:  0x6a8CF2740003547264BE30eeED54e53352220f13
+GenericRouter deployed to:  0x0c717F79Ce26DC3bd142Fef1bf220Cc7D1C42e48
 
-PortfolioProxyFactory deployed to: 0x04915AB280570cE410eA49b797Fb67e6190975a7
+StrategyProxyFactory deployed to: 0x8A80a0B247EE00A7033e131ebe6c4c10E920c8ad

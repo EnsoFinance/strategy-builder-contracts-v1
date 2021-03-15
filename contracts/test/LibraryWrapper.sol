@@ -2,54 +2,54 @@
 pragma solidity 0.6.12;
 
 import "../interfaces/IOracle.sol";
-import "../interfaces/IPortfolio.sol";
-import "../interfaces/IPortfolioController.sol";
-import "../libraries/PortfolioLibrary.sol";
+import "../interfaces/IStrategy.sol";
+import "../interfaces/IStrategyController.sol";
+import "../libraries/StrategyLibrary.sol";
 
 contract LibraryWrapper {
     IOracle public oracle;
-    IPortfolio public portfolio;
+    IStrategy public strategy;
 
-    constructor(address oracle_, address portfolio_) public {
+    constructor(address oracle_, address strategy_) public {
         oracle = IOracle(oracle_);
-        portfolio = IPortfolio(portfolio_);
+        strategy = IStrategy(strategy_);
     }
 
     function isBalanced() external view returns (bool) {
         return
-            PortfolioLibrary.checkBalance(
-                address(portfolio),
-                portfolio.tokens(),
-                IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio))
+            StrategyLibrary.checkBalance(
+                address(strategy),
+                strategy.items(),
+                IStrategyController(strategy.controller()).rebalanceThreshold(address(strategy))
             );
     }
 
     function isRebalanceNeeded(uint256 alertThreshold) external view returns (bool) {
         bool balanced =
-            PortfolioLibrary.checkBalance(address(portfolio), portfolio.tokens(), alertThreshold);
+            StrategyLibrary.checkBalance(address(strategy), strategy.items(), alertThreshold);
         return !balanced;
     }
 
     function getRange(uint256 total, uint256 range) external pure returns (uint256) {
-        return PortfolioLibrary.getRange(total, range);
+        return StrategyLibrary.getRange(total, range);
     }
 
     function getRebalanceRange(uint256 total) external view returns (uint256) {
         uint256 range =
-            IPortfolioController(portfolio.controller()).rebalanceThreshold(address(portfolio));
-        return PortfolioLibrary.getRange(total, range);
+            IStrategyController(strategy.controller()).rebalanceThreshold(address(strategy));
+        return StrategyLibrary.getRange(total, range);
     }
 
-    function getPortfolioValue() external view returns (uint256) {
-        (uint256 total, ) = oracle.estimateTotal(address(portfolio), portfolio.tokens());
+    function getStrategyValue() external view returns (uint256) {
+        (uint256 total, ) = oracle.estimateTotal(address(strategy), strategy.items());
         return total;
     }
 
     function getTokenValue(address token) external view returns (uint256) {
-        return PortfolioLibrary.getTokenValue(address(portfolio), token);
+        return StrategyLibrary.getTokenValue(address(strategy), token);
     }
 
     function getExpectedTokenValue(uint256 total, address token) external view returns (uint256) {
-        return PortfolioLibrary.getExpectedTokenValue(total, address(portfolio), token);
+        return StrategyLibrary.getExpectedTokenValue(total, address(strategy), token);
     }
 }

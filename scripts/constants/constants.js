@@ -8,7 +8,7 @@ const wallets = [
   "1bc6e32873900d8747606ba2e96186e124b2f1f6f3ea0819b6677a99644b1463",
 ]
 
-const portfolioNames = [
+const strategyNames = [
   "AMM's",
   "Derivatives",
   "Options",
@@ -73,7 +73,7 @@ const positions = [
 ]
 
 module.exports = {
-  portfolioNames,
+  strategyNames,
   wallets,
   positions,
 }

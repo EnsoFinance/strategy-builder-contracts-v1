@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-interface IPortfolioManager {
+interface IStrategyManager {
     function manager() external view returns (address);
 }
 
-contract PortfolioProxyManagerRegistry {
+contract StrategyProxyManagerRegistry {
     address private immutable proxyFactory;
 
     constructor(address proxyFactory_) public {
@@ -13,6 +13,6 @@ contract PortfolioProxyManagerRegistry {
     }
 
     function manager(address proxy) external view returns (address) {
-        return IPortfolioManager(proxy).manager();
+        return IStrategyManager(proxy).manager();
     }
 }

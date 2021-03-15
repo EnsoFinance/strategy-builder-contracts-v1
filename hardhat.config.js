@@ -44,15 +44,6 @@ if (process.env.RINKEBY_URL)
 
 module.exports = {
   networks: networks,
-  solidity: "0.6.12",
-  settings: {
-    optimizer: {
-      enabled: true,
-      runs: 200,
-    },
-  },
-}
-module.exports = {
   solidity: {
     compilers: [
       {

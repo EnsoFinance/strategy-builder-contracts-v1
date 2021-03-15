@@ -58,7 +58,7 @@
 <g id="node1" class="node">
 <title>0</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="1708.109,-58.1 1708.109,-485.3 2412.3112,-485.3 2412.3112,-58.1 1708.109,-58.1"/>
-<text text-anchor="middle" x="2060.2101" y="-468.7" font-family="Times,serif" font-size="14.00" fill="#000000">Portfolio</text>
+<text text-anchor="middle" x="2060.2101" y="-468.7" font-family="Times,serif" font-size="14.00" fill="#000000">Strategy</text>
 <polyline fill="none" stroke="#000000" points="1708.109,-460.5 2412.3112,-460.5 "/>
 <text text-anchor="middle" x="2060.2101" y="-443.9" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="1708.109,-435.7 2412.3112,-435.7 "/>
@@ -73,8 +73,8 @@
 <text text-anchor="start" x="1716.109" y="-284.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;permit(holder: address, spender: address, nonce: uint256, expiry: uint256, allowed: bool, v: uint8, r: bytes32, s: bytes32)</text>
 <text text-anchor="start" x="1716.109" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;approveToken(token: IERC20, account: address, amount: uint256)</text>
 <text text-anchor="start" x="1716.109" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;burn(account: address, amount: uint256)</text>
-<text text-anchor="start" x="1716.109" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;tokens(): address[]</text>
-<text text-anchor="start" x="1716.109" y="-217.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;tokenPercentage(token: address): uint256</text>
+<text text-anchor="start" x="1716.109" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;items(): address[]</text>
+<text text-anchor="start" x="1716.109" y="-217.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;percentage(token: address): uint256</text>
 <text text-anchor="start" x="1716.109" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;isWhitelisted(account: address): bool</text>
 <text text-anchor="start" x="1716.109" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;controller(): address</text>
 <text text-anchor="start" x="1716.109" y="-167.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;manager(): address</text>
@@ -89,7 +89,7 @@
 <g id="node11" class="node">
 <title>7</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="1976.6602,-715.5 1976.6602,-1025.1 2411.76,-1025.1 2411.76,-715.5 1976.6602,-715.5"/>
-<text text-anchor="middle" x="2194.2101" y="-1008.5" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioToken</text>
+<text text-anchor="middle" x="2194.2101" y="-1008.5" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyToken</text>
 <polyline fill="none" stroke="#000000" points="1976.6602,-1000.3 2411.76,-1000.3 "/>
 <text text-anchor="middle" x="2194.2101" y="-983.7" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="1976.6602,-975.5 2411.76,-975.5 "/>
@@ -120,7 +120,7 @@
 <title>16</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="3055.359,-1744.7 3055.359,-2104.7 3763.0612,-2104.7 3763.0612,-1744.7 3055.359,-1744.7"/>
 <text text-anchor="middle" x="3409.2101" y="-2088.1" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="3409.2101" y="-2071.3" font-family="Times,serif" font-size="14.00" fill="#000000">IPortfolio</text>
+<text text-anchor="middle" x="3409.2101" y="-2071.3" font-family="Times,serif" font-size="14.00" fill="#000000">IStrategy</text>
 <polyline fill="none" stroke="#000000" points="3055.359,-2063.1 3763.0612,-2063.1 "/>
 <text text-anchor="middle" x="3409.2101" y="-2046.5" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="3055.359,-2038.3 3763.0612,-2038.3 "/>
@@ -134,8 +134,8 @@
 <text text-anchor="start" x="3063.359" y="-1904.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;permit(holder: address, spender: address, nonce: uint256, expiry: uint256, allowed: bool, v: uint8, r: bytes32, s: bytes32)</text>
 <text text-anchor="start" x="3063.359" y="-1887.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;mint(account: address, amount: uint256)</text>
 <text text-anchor="start" x="3063.359" y="-1870.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;approveTokens(account: address, amount: uint256)</text>
-<text text-anchor="start" x="3063.359" y="-1853.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;tokens(): address[]</text>
-<text text-anchor="start" x="3063.359" y="-1836.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;tokenPercentage(token: address): uint256</text>
+<text text-anchor="start" x="3063.359" y="-1853.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;items(): address[]</text>
+<text text-anchor="start" x="3063.359" y="-1836.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;percentage(token: address): uint256</text>
 <text text-anchor="start" x="3063.359" y="-1820.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;isWhitelisted(account: address): bool</text>
 <text text-anchor="start" x="3063.359" y="-1803.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;controller(): address</text>
 <text text-anchor="start" x="3063.359" y="-1786.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;manager(): address</text>
@@ -153,7 +153,7 @@
 <title>18</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="2527.1757,-1339.3 2527.1757,-1514.5 2707.2445,-1514.5 2707.2445,-1339.3 2527.1757,-1339.3"/>
 <text text-anchor="middle" x="2617.2101" y="-1497.9" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="2617.2101" y="-1481.1" font-family="Times,serif" font-size="14.00" fill="#000000">IPortfolioProxyFactory</text>
+<text text-anchor="middle" x="2617.2101" y="-1481.1" font-family="Times,serif" font-size="14.00" fill="#000000">IStrategyProxyFactory</text>
 <polyline fill="none" stroke="#000000" points="2527.1757,-1472.9 2707.2445,-1472.9 "/>
 <text text-anchor="middle" x="2617.2101" y="-1456.3" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="2527.1757,-1448.1 2707.2445,-1448.1 "/>
@@ -194,52 +194,52 @@
 <g id="node2" class="node">
 <title>1</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="845.5886,-539.1 845.5886,-1201.5 1958.8316,-1201.5 1958.8316,-539.1 845.5886,-539.1"/>
-<text text-anchor="middle" x="1402.2101" y="-1184.9" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioController</text>
+<text text-anchor="middle" x="1402.2101" y="-1184.9" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyController</text>
 <polyline fill="none" stroke="#000000" points="845.5886,-1176.7 1958.8316,-1176.7 "/>
 <text text-anchor="start" x="853.5886" y="-1160.1" font-family="Times,serif" font-size="14.00" fill="#000000">Private:</text>
 <text text-anchor="start" x="853.5886" y="-1143.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;DIVISOR: uint256</text>
 <polyline fill="none" stroke="#000000" points="845.5886,-1135.1 1958.8316,-1135.1 "/>
 <text text-anchor="start" x="853.5886" y="-1118.5" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
-<text text-anchor="start" x="853.5886" y="-1101.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_approveTokens(portfolio: IPortfolio, spender: address, amount: uint256)</text>
-<text text-anchor="start" x="853.5886" y="-1084.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_rebalance(portfolio: IPortfolio, router: IPortfolioRouter, totalBefore: uint256, data: bytes): uint256</text>
-<text text-anchor="start" x="853.5886" y="-1068.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_verifyBalance(portfolio: IPortfolio): (uint256, bool)</text>
+<text text-anchor="start" x="853.5886" y="-1101.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_approveTokens(strategy: IStrategy, spender: address, amount: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-1084.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_rebalance(strategy: IStrategy, router: IStrategyRouter, totalBefore: uint256, data: bytes): uint256</text>
+<text text-anchor="start" x="853.5886" y="-1068.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_verifyBalance(strategy: IStrategy): (uint256, bool)</text>
 <text text-anchor="start" x="853.5886" y="-1051.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_verifyStructure(tokens: address[], percentages: uint256[]): bool</text>
-<text text-anchor="start" x="853.5886" y="-1034.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_finalizeStructure(portfolio: address, router: address, tokens: address[], percentages: uint256[], sellAdapters: address[], buyAdapters: address[])</text>
-<text text-anchor="start" x="853.5886" y="-1017.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_buyTokens(portfolio: IPortfolio, tokens: address[], adapters: address[])</text>
-<text text-anchor="start" x="853.5886" y="-1000.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_onlyApproved(portfolio: IPortfolio, router: address)</text>
-<text text-anchor="start" x="853.5886" y="-984.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_onlyManager(portfolio: IPortfolio)</text>
-<text text-anchor="start" x="853.5886" y="-967.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_socialOrManager(portfolio: IPortfolio)</text>
+<text text-anchor="start" x="853.5886" y="-1034.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_finalizeStructure(strategy: address, router: address, tokens: address[], percentages: uint256[], sellAdapters: address[], buyAdapters: address[])</text>
+<text text-anchor="start" x="853.5886" y="-1017.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_buyTokens(strategy: IStrategy, tokens: address[], adapters: address[])</text>
+<text text-anchor="start" x="853.5886" y="-1000.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_onlyApproved(strategy: IStrategy, router: address)</text>
+<text text-anchor="start" x="853.5886" y="-984.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_onlyManager(strategy: IStrategy)</text>
+<text text-anchor="start" x="853.5886" y="-967.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_socialOrManager(strategy: IStrategy)</text>
 <text text-anchor="start" x="853.5886" y="-950.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_setLock()</text>
 <text text-anchor="start" x="853.5886" y="-933.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_removeLock()</text>
 <text text-anchor="start" x="853.5886" y="-916.9" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="853.5886" y="-900.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; setupPortfolio(creator_: address, portfolio_: address, adapters_: address[], tokens_: address[], percentages_: uint256[], threshold_: uint256, slippage_: uint256, timelock_: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-900.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; setupStrategy(creator_: address, strategy_: address, adapters_: address[], tokens_: address[], percentages_: uint256[], threshold_: uint256, slippage_: uint256, timelock_: uint256)</text>
 <text text-anchor="start" x="853.5886" y="-883.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; null()</text>
-<text text-anchor="start" x="853.5886" y="-866.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(portfolio: IPortfolio, router: IPortfolioRouter, data: bytes)</text>
-<text text-anchor="start" x="853.5886" y="-849.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;openPortfolio(portfolio: IPortfolio, fee: uint256)</text>
-<text text-anchor="start" x="853.5886" y="-832.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;withdrawAssets(portfolio: IPortfolio, amount: uint256)</text>
-<text text-anchor="start" x="853.5886" y="-816.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;restructure(portfolio: IPortfolio, tokens: address[], percentages: uint256[])</text>
-<text text-anchor="start" x="853.5886" y="-799.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;finalizeStructure(portfolio: address, router: address, sellAdapters: address[], buyAdapters: address[])</text>
-<text text-anchor="start" x="853.5886" y="-782.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(portfolio: IPortfolio, router: IPortfolioRouter, data: bytes)</text>
-<text text-anchor="start" x="853.5886" y="-765.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;finalizeValue(portfolio: address)</text>
-<text text-anchor="start" x="853.5886" y="-748.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;withdrawPerformanceFee(portfolio: IPortfolio)</text>
-<text text-anchor="start" x="853.5886" y="-732.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;social(portfolio: address): bool</text>
-<text text-anchor="start" x="853.5886" y="-715.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalanceThreshold(portfolio: address): uint256</text>
-<text text-anchor="start" x="853.5886" y="-698.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;slippage(portfolio: address): uint256</text>
-<text text-anchor="start" x="853.5886" y="-681.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;timelock(portfolio: address): uint256</text>
-<text text-anchor="start" x="853.5886" y="-664.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateValue(portfolio: IPortfolio, categoryIndex: uint256, newValue: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-866.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(strategy: IStrategy, router: IStrategyRouter, data: bytes)</text>
+<text text-anchor="start" x="853.5886" y="-849.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;openStrategy(strategy: IStrategy, fee: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-832.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;withdrawAssets(strategy: IStrategy, amount: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-816.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;restructure(strategy: IStrategy, tokens: address[], percentages: uint256[])</text>
+<text text-anchor="start" x="853.5886" y="-799.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;finalizeStructure(strategy: address, router: address, sellAdapters: address[], buyAdapters: address[])</text>
+<text text-anchor="start" x="853.5886" y="-782.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(strategy: IStrategy, router: IStrategyRouter, data: bytes)</text>
+<text text-anchor="start" x="853.5886" y="-765.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;finalizeValue(strategy: address)</text>
+<text text-anchor="start" x="853.5886" y="-748.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;withdrawPerformanceFee(strategy: IStrategy)</text>
+<text text-anchor="start" x="853.5886" y="-732.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;social(strategy: address): bool</text>
+<text text-anchor="start" x="853.5886" y="-715.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalanceThreshold(strategy: address): uint256</text>
+<text text-anchor="start" x="853.5886" y="-698.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;slippage(strategy: address): uint256</text>
+<text text-anchor="start" x="853.5886" y="-681.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;timelock(strategy: address): uint256</text>
+<text text-anchor="start" x="853.5886" y="-664.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateValue(strategy: IStrategy, categoryIndex: uint256, newValue: uint256)</text>
 <text text-anchor="start" x="853.5886" y="-648.1" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
-<text text-anchor="start" x="853.5886" y="-631.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; RebalanceCalled(portfolio: address, total: uint256, caller: address)</text>
-<text text-anchor="start" x="853.5886" y="-614.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; Deposit(portfolio: address, value: uint256, amount: uint256)</text>
-<text text-anchor="start" x="853.5886" y="-597.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; Withdraw(portfolio: address, amount: uint256, amounts: uint256[])</text>
-<text text-anchor="start" x="853.5886" y="-580.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewStructure(portfolio: address, tokens: address[], percentages: uint256[])</text>
-<text text-anchor="start" x="853.5886" y="-564.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewValue(portfolio: address, category: TimelockCategory, newValue: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-631.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; RebalanceCalled(strategy: address, total: uint256, caller: address)</text>
+<text text-anchor="start" x="853.5886" y="-614.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; Deposit(strategy: address, value: uint256, amount: uint256)</text>
+<text text-anchor="start" x="853.5886" y="-597.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; Withdraw(strategy: address, amount: uint256, amounts: uint256[])</text>
+<text text-anchor="start" x="853.5886" y="-580.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewStructure(strategy: address, tokens: address[], percentages: uint256[])</text>
+<text text-anchor="start" x="853.5886" y="-564.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewValue(strategy: address, category: TimelockCategory, newValue: uint256)</text>
 <text text-anchor="start" x="853.5886" y="-547.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; FundsReceived(amount: uint256, account: address)</text>
 </g>
 <!-- 3 -->
 <g id="node4" class="node">
 <title>3</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="316.6226,-1330.9 316.6226,-1522.9 633.7976,-1522.9 633.7976,-1330.9 316.6226,-1330.9"/>
-<text text-anchor="middle" x="475.2101" y="-1506.3" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioControllerStorage</text>
+<text text-anchor="middle" x="475.2101" y="-1506.3" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyControllerStorage</text>
 <polyline fill="none" stroke="#000000" points="316.6226,-1498.1 633.7976,-1498.1 "/>
 <text text-anchor="start" x="324.6226" y="-1481.5" font-family="Times,serif" font-size="14.00" fill="#000000">Private:</text>
 <text text-anchor="start" x="324.6226" y="-1464.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;__gap: uint256[]</text>
@@ -247,7 +247,7 @@
 <text text-anchor="start" x="324.6226" y="-1431.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_locked: bool</text>
 <text text-anchor="start" x="324.6226" y="-1414.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_initialized: mapping(address=&gt;bool)</text>
 <text text-anchor="start" x="324.6226" y="-1397.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_lastTokenValues: mapping(address=&gt;uint256)</text>
-<text text-anchor="start" x="324.6226" y="-1380.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_portfolioStates: mapping(address=&gt;PortfolioState)</text>
+<text text-anchor="start" x="324.6226" y="-1380.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_strategyStates: mapping(address=&gt;StrategyState)</text>
 <text text-anchor="start" x="324.6226" y="-1363.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_timelocks: mapping(address=&gt;Timelock)</text>
 <polyline fill="none" stroke="#000000" points="316.6226,-1355.7 633.7976,-1355.7 "/>
 <text text-anchor="middle" x="475.2101" y="-1339.1" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
@@ -284,25 +284,25 @@
 <title>17</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="3413.4753,-1263.7 3413.4753,-1590.1 4460.9449,-1590.1 4460.9449,-1263.7 3413.4753,-1263.7"/>
 <text text-anchor="middle" x="3937.2101" y="-1573.5" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="3937.2101" y="-1556.7" font-family="Times,serif" font-size="14.00" fill="#000000">IPortfolioController</text>
+<text text-anchor="middle" x="3937.2101" y="-1556.7" font-family="Times,serif" font-size="14.00" fill="#000000">IStrategyController</text>
 <polyline fill="none" stroke="#000000" points="3413.4753,-1548.5 4460.9449,-1548.5 "/>
 <text text-anchor="middle" x="3937.2101" y="-1531.9" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="3413.4753,-1523.7 4460.9449,-1523.7 "/>
 <text text-anchor="start" x="3421.4753" y="-1507.1" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="3421.4753" y="-1490.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;updateValue(portfolio: IPortfolio, categoryIndex: uint256, newValue: uint256)</text>
-<text text-anchor="start" x="3421.4753" y="-1473.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;setupPortfolio(manager_: address, portfolio_: address, adapters_: address[], tokens_: address[], percentages_: uint256[], threshold_: uint256, slippage_: uint256, timelock_: uint256)</text>
-<text text-anchor="start" x="3421.4753" y="-1456.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;deposit(portfolio: IPortfolio, router: IPortfolioRouter, data: bytes)</text>
-<text text-anchor="start" x="3421.4753" y="-1439.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;withdrawAssets(portfolio: IPortfolio, amount: uint256)</text>
-<text text-anchor="start" x="3421.4753" y="-1423.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;withdrawPerformanceFee(portfolio: IPortfolio)</text>
-<text text-anchor="start" x="3421.4753" y="-1406.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;restructure(portfolio: IPortfolio, tokens: address[], percentages: uint256[])</text>
-<text text-anchor="start" x="3421.4753" y="-1389.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;finalizeStructure(portfolio: address, router: address, sellAdapters: address[], buyAdapters: address[])</text>
-<text text-anchor="start" x="3421.4753" y="-1372.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;rebalance(portfolio: IPortfolio, router: IPortfolioRouter, data: bytes)</text>
-<text text-anchor="start" x="3421.4753" y="-1355.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;finalizeValue(portfolio: address)</text>
-<text text-anchor="start" x="3421.4753" y="-1339.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;openPortfolio(portfolio: IPortfolio, fee: uint256)</text>
-<text text-anchor="start" x="3421.4753" y="-1322.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;social(portfolio: address): bool</text>
-<text text-anchor="start" x="3421.4753" y="-1305.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;rebalanceThreshold(portfolio: address): uint256</text>
-<text text-anchor="start" x="3421.4753" y="-1288.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;slippage(portfolio: address): uint256</text>
-<text text-anchor="start" x="3421.4753" y="-1271.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;timelock(portfolio: address): uint256</text>
+<text text-anchor="start" x="3421.4753" y="-1490.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;updateValue(strategy: IStrategy, categoryIndex: uint256, newValue: uint256)</text>
+<text text-anchor="start" x="3421.4753" y="-1473.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;setupStrategy(manager_: address, strategy_: address, adapters_: address[], tokens_: address[], percentages_: uint256[], threshold_: uint256, slippage_: uint256, timelock_: uint256)</text>
+<text text-anchor="start" x="3421.4753" y="-1456.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;deposit(strategy: IStrategy, router: IStrategyRouter, data: bytes)</text>
+<text text-anchor="start" x="3421.4753" y="-1439.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;withdrawAssets(strategy: IStrategy, amount: uint256)</text>
+<text text-anchor="start" x="3421.4753" y="-1423.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;withdrawPerformanceFee(strategy: IStrategy)</text>
+<text text-anchor="start" x="3421.4753" y="-1406.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;restructure(strategy: IStrategy, tokens: address[], percentages: uint256[])</text>
+<text text-anchor="start" x="3421.4753" y="-1389.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;finalizeStructure(strategy: address, router: address, sellAdapters: address[], buyAdapters: address[])</text>
+<text text-anchor="start" x="3421.4753" y="-1372.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;rebalance(strategy: IStrategy, router: IStrategyRouter, data: bytes)</text>
+<text text-anchor="start" x="3421.4753" y="-1355.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;finalizeValue(strategy: address)</text>
+<text text-anchor="start" x="3421.4753" y="-1339.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;openStrategy(strategy: IStrategy, fee: uint256)</text>
+<text text-anchor="start" x="3421.4753" y="-1322.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;social(strategy: address): bool</text>
+<text text-anchor="start" x="3421.4753" y="-1305.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;rebalanceThreshold(strategy: address): uint256</text>
+<text text-anchor="start" x="3421.4753" y="-1288.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;slippage(strategy: address): uint256</text>
+<text text-anchor="start" x="3421.4753" y="-1271.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;timelock(strategy: address): uint256</text>
 </g>
 <!-- 1&#45;&gt;17 -->
 <g id="edge12" class="edge">
@@ -314,7 +314,7 @@
 <g id="node3" class="node">
 <title>2</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="394.5067,-217.7 394.5067,-325.7 569.9135,-325.7 569.9135,-217.7 394.5067,-217.7"/>
-<text text-anchor="middle" x="482.2101" y="-309.1" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioControllerDeployer</text>
+<text text-anchor="middle" x="482.2101" y="-309.1" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyControllerDeployer</text>
 <polyline fill="none" stroke="#000000" points="394.5067,-300.9 569.9135,-300.9 "/>
 <text text-anchor="start" x="402.5067" y="-284.3" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="402.5067" y="-267.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;controller: address</text>
@@ -333,7 +333,7 @@
 <title>3struct0</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="398.9306,-803.5 398.9306,-937.1 575.4896,-937.1 575.4896,-803.5 398.9306,-803.5"/>
 <text text-anchor="middle" x="487.2101" y="-920.5" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;struct&gt;&gt;</text>
-<text text-anchor="middle" x="487.2101" y="-903.7" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioState</text>
+<text text-anchor="middle" x="487.2101" y="-903.7" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyState</text>
 <polyline fill="none" stroke="#000000" points="398.9306,-895.5 575.4896,-895.5 "/>
 <text text-anchor="start" x="406.9306" y="-878.9" font-family="Times,serif" font-size="14.00" fill="#000000">social: bool</text>
 <text text-anchor="start" x="406.9306" y="-862.1" font-family="Times,serif" font-size="14.00" fill="#000000">performanceFee: uint256</text>
@@ -386,10 +386,10 @@
 <g id="node8" class="node">
 <title>4</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="588.2026,-41.3 588.2026,-502.1 1690.2176,-502.1 1690.2176,-41.3 588.2026,-41.3"/>
-<text text-anchor="middle" x="1139.2101" y="-485.5" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioProxyFactory</text>
+<text text-anchor="middle" x="1139.2101" y="-485.5" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyProxyFactory</text>
 <polyline fill="none" stroke="#000000" points="588.2026,-477.3 1690.2176,-477.3 "/>
 <text text-anchor="start" x="596.2026" y="-460.7" font-family="Times,serif" font-size="14.00" fill="#000000">Private:</text>
-<text text-anchor="start" x="596.2026" y="-443.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;managerRegistry: PortfolioProxyManagerRegistry</text>
+<text text-anchor="start" x="596.2026" y="-443.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;managerRegistry: StrategyProxyManagerRegistry</text>
 <text text-anchor="start" x="596.2026" y="-427.1" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="596.2026" y="-410.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;controller: address</text>
 <text text-anchor="start" x="596.2026" y="-393.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;whitelist: address</text>
@@ -398,7 +398,7 @@
 <text text-anchor="start" x="596.2026" y="-343.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;version: uint256</text>
 <polyline fill="none" stroke="#000000" points="588.2026,-334.9 1690.2176,-334.9 "/>
 <text text-anchor="start" x="596.2026" y="-318.3" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="596.2026" y="-301.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; createPortfolio(name: string, symbol: string, routers: address[], tokens: address[], percentages: uint256[], threshold: uint256, slippage: uint256, timelock: uint256)</text>
+<text text-anchor="start" x="596.2026" y="-301.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; createStrategy(name: string, symbol: string, routers: address[], tokens: address[], percentages: uint256[], threshold: uint256, slippage: uint256, timelock: uint256)</text>
 <text text-anchor="start" x="596.2026" y="-284.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateImplementation(newImplementation: address)</text>
 <text text-anchor="start" x="596.2026" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateOracle(newOracle: address)</text>
 <text text-anchor="start" x="596.2026" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateWhitelist(newWhitelist: address)</text>
@@ -407,7 +407,7 @@
 <text text-anchor="start" x="596.2026" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; Update(newImplementation: address, version: uint256)</text>
 <text text-anchor="start" x="596.2026" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewOracle(newOracle: address)</text>
 <text text-anchor="start" x="596.2026" y="-167.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewWhitelist(newWhitelist: address)</text>
-<text text-anchor="start" x="596.2026" y="-150.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewPortfolio(portfolio: address, manager: address, name: string, symbol: string, tokens: address[], percentages: uint256[], threshold: uint256, slippage: uint256, timelock: uint256)</text>
+<text text-anchor="start" x="596.2026" y="-150.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewStrategy(strategy: address, manager: address, name: string, symbol: string, tokens: address[], percentages: uint256[], threshold: uint256, slippage: uint256, timelock: uint256)</text>
 <text text-anchor="start" x="596.2026" y="-133.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;modifier&gt;&gt; onlyManager(proxy: address)</text>
 <text text-anchor="start" x="596.2026" y="-116.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(implementation_: address, controller_: address, oracle_: address, whitelist_: address)</text>
 <text text-anchor="start" x="596.2026" y="-99.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getProxyImplementation(proxy: TransparentUpgradeableProxy): address</text>
@@ -419,7 +419,7 @@
 <g id="node10" class="node">
 <title>6</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="593.1648,-799.5 593.1648,-941.1 827.2554,-941.1 827.2554,-799.5 593.1648,-799.5"/>
-<text text-anchor="middle" x="710.2101" y="-924.5" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioProxyManagerRegistry</text>
+<text text-anchor="middle" x="710.2101" y="-924.5" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyProxyManagerRegistry</text>
 <polyline fill="none" stroke="#000000" points="593.1648,-916.3 827.2554,-916.3 "/>
 <text text-anchor="start" x="601.1648" y="-899.7" font-family="Times,serif" font-size="14.00" fill="#000000">Private:</text>
 <text text-anchor="start" x="601.1648" y="-882.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;proxyFactory: address</text>
@@ -446,7 +446,7 @@
 <title>5</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="652.0172,-1372.9 652.0172,-1480.9 792.403,-1480.9 792.403,-1372.9 652.0172,-1372.9"/>
 <text text-anchor="middle" x="722.2101" y="-1464.3" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="722.2101" y="-1447.5" font-family="Times,serif" font-size="14.00" fill="#000000">IPortfolioManager</text>
+<text text-anchor="middle" x="722.2101" y="-1447.5" font-family="Times,serif" font-size="14.00" fill="#000000">IStrategyManager</text>
 <polyline fill="none" stroke="#000000" points="652.0172,-1439.3 792.403,-1439.3 "/>
 <text text-anchor="middle" x="722.2101" y="-1422.7" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="652.0172,-1414.5 792.403,-1414.5 "/>
@@ -463,7 +463,7 @@
 <g id="node12" class="node">
 <title>8</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="2005.1936,-1238.5 2005.1936,-1615.3 2383.2266,-1615.3 2383.2266,-1238.5 2005.1936,-1238.5"/>
-<text text-anchor="middle" x="2194.2101" y="-1598.7" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioTokenStorage</text>
+<text text-anchor="middle" x="2194.2101" y="-1598.7" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyTokenStorage</text>
 <polyline fill="none" stroke="#000000" points="2005.1936,-1590.5 2383.2266,-1590.5 "/>
 <text text-anchor="start" x="2013.1936" y="-1573.9" font-family="Times,serif" font-size="14.00" fill="#000000">Private:</text>
 <text text-anchor="start" x="2013.1936" y="-1557.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;__gap: uint256[]</text>
@@ -698,15 +698,15 @@
 <title>19</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="5051.1111,-1828.7 5051.1111,-2020.7 5461.3091,-2020.7 5461.3091,-1828.7 5051.1111,-1828.7"/>
 <text text-anchor="middle" x="5256.2101" y="-2004.1" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="5256.2101" y="-1987.3" font-family="Times,serif" font-size="14.00" fill="#000000">IPortfolioRouter</text>
+<text text-anchor="middle" x="5256.2101" y="-1987.3" font-family="Times,serif" font-size="14.00" fill="#000000">IStrategyRouter</text>
 <polyline fill="none" stroke="#000000" points="5051.1111,-1979.1 5461.3091,-1979.1 "/>
 <text text-anchor="middle" x="5256.2101" y="-1962.5" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="5051.1111,-1954.3 5461.3091,-1954.3 "/>
 <text text-anchor="start" x="5059.1111" y="-1937.7" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="5059.1111" y="-1920.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;sellTokens(portfolio: address, tokens: address[], routers: address[])</text>
-<text text-anchor="start" x="5059.1111" y="-1904.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;buyTokens(portfolio: address, tokens: address[], routers: address[])</text>
-<text text-anchor="start" x="5059.1111" y="-1887.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;rebalance(portfolio: address, data: bytes)</text>
-<text text-anchor="start" x="5059.1111" y="-1870.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;deposit(portfolio: address, data: bytes)</text>
+<text text-anchor="start" x="5059.1111" y="-1920.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;sellTokens(strategy: address, tokens: address[], routers: address[])</text>
+<text text-anchor="start" x="5059.1111" y="-1904.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;buyTokens(strategy: address, tokens: address[], routers: address[])</text>
+<text text-anchor="start" x="5059.1111" y="-1887.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;rebalance(strategy: address, data: bytes)</text>
+<text text-anchor="start" x="5059.1111" y="-1870.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;deposit(strategy: address, data: bytes)</text>
 <text text-anchor="start" x="5059.1111" y="-1853.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;controller(): address</text>
 <text text-anchor="start" x="5059.1111" y="-1836.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;weth(): address</text>
 </g>
@@ -721,16 +721,16 @@
 <title>21</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="5517.3229,-1330.9 5517.3229,-1522.9 6013.0973,-1522.9 6013.0973,-1330.9 5517.3229,-1330.9"/>
 <text text-anchor="middle" x="5765.2101" y="-1506.3" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Library&gt;&gt;</text>
-<text text-anchor="middle" x="5765.2101" y="-1489.5" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioLibrary</text>
+<text text-anchor="middle" x="5765.2101" y="-1489.5" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyLibrary</text>
 <polyline fill="none" stroke="#000000" points="5517.3229,-1481.3 6013.0973,-1481.3 "/>
 <text text-anchor="start" x="5525.3229" y="-1464.7" font-family="Times,serif" font-size="14.00" fill="#000000">Private:</text>
 <text text-anchor="start" x="5525.3229" y="-1447.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;DIVISOR: uint256</text>
 <polyline fill="none" stroke="#000000" points="5517.3229,-1439.7 6013.0973,-1439.7 "/>
 <text text-anchor="start" x="5525.3229" y="-1423.1" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
-<text text-anchor="start" x="5525.3229" y="-1406.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;checkBalance(portfolio: address, tokens: address[], threshold: uint256): bool</text>
-<text text-anchor="start" x="5525.3229" y="-1389.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;imbalanceMagnitude(portfolio: address, tokens: address[]): uint256</text>
-<text text-anchor="start" x="5525.3229" y="-1372.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getTokenValue(portfolio: address, token: address): uint256</text>
-<text text-anchor="start" x="5525.3229" y="-1355.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getExpectedTokenValue(total: uint256, portfolio: address, token: address): uint256</text>
+<text text-anchor="start" x="5525.3229" y="-1406.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;checkBalance(strategy: address, tokens: address[], threshold: uint256): bool</text>
+<text text-anchor="start" x="5525.3229" y="-1389.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;imbalanceMagnitude(strategy: address, tokens: address[]): uint256</text>
+<text text-anchor="start" x="5525.3229" y="-1372.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getTokenValue(strategy: address, token: address): uint256</text>
+<text text-anchor="start" x="5525.3229" y="-1355.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getExpectedTokenValue(total: uint256, strategy: address, token: address): uint256</text>
 <text text-anchor="start" x="5525.3229" y="-1339.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getRange(expectedValue: uint256, threshold: uint256): uint256</text>
 </g>
 <!-- 21&#45;&gt;15 -->
@@ -927,12 +927,12 @@
 <text text-anchor="middle" x="8689.2101" y="-326.3" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="8292.2362,-318.1 9086.184,-318.1 "/>
 <text text-anchor="start" x="8300.2362" y="-301.5" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="8300.2362" y="-284.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(portfolio: address, data: bytes)</text>
-<text text-anchor="start" x="8300.2362" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(portfolio: address, data: bytes)</text>
+<text text-anchor="start" x="8300.2362" y="-284.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(strategy: address, data: bytes)</text>
+<text text-anchor="start" x="8300.2362" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(strategy: address, data: bytes)</text>
 <text text-anchor="start" x="8300.2362" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;encodeCalls(calls: Call[]): (data: bytes)</text>
 <text text-anchor="start" x="8300.2362" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="8300.2362" y="-217.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(controller_: address, weth_: address)</text>
-<text text-anchor="start" x="8300.2362" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;delegateSwap(portfolio: address, adapter: address, amount: uint256, expected: uint256, tokenIn: address, tokenOut: address, data: bytes)</text>
+<text text-anchor="start" x="8300.2362" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;delegateSwap(strategy: address, adapter: address, amount: uint256, expected: uint256, tokenIn: address, tokenOut: address, data: bytes)</text>
 <text text-anchor="start" x="8300.2362" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;settleSwap(adapter: address, tokenIn: address, tokenOut: address, from: address, to: address, data: bytes)</text>
 </g>
 <!-- 27&#45;&gt;11 -->
@@ -946,7 +946,7 @@
 <title>29</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="6809.5114,-723.9 6809.5114,-1016.7 7746.9088,-1016.7 7746.9088,-723.9 6809.5114,-723.9"/>
 <text text-anchor="middle" x="7278.2101" y="-1000.1" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="7278.2101" y="-983.3" font-family="Times,serif" font-size="14.00" fill="#000000">PortfolioRouter</text>
+<text text-anchor="middle" x="7278.2101" y="-983.3" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyRouter</text>
 <polyline fill="none" stroke="#000000" points="6809.5114,-975.1 7746.9088,-975.1 "/>
 <text text-anchor="start" x="6817.5114" y="-958.5" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="6817.5114" y="-941.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;controller: address</text>
@@ -955,14 +955,14 @@
 <text text-anchor="start" x="6817.5114" y="-900.1" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="6817.5114" y="-883.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_delegateSwap(adapter: address, amount: uint256, expected: uint256, tokenIn: address, tokenOut: address, from: address, to: address, data: bytes): (success: bool)</text>
 <text text-anchor="start" x="6817.5114" y="-866.5" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="6817.5114" y="-849.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;abstract&gt;&gt; deposit(portfolio: address, data: bytes)</text>
-<text text-anchor="start" x="6817.5114" y="-832.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;abstract&gt;&gt; rebalance(portfolio: address, data: bytes)</text>
+<text text-anchor="start" x="6817.5114" y="-849.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;abstract&gt;&gt; deposit(strategy: address, data: bytes)</text>
+<text text-anchor="start" x="6817.5114" y="-832.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;abstract&gt;&gt; rebalance(strategy: address, data: bytes)</text>
 <text text-anchor="start" x="6817.5114" y="-816.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; null()</text>
 <text text-anchor="start" x="6817.5114" y="-799.3" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
-<text text-anchor="start" x="6817.5114" y="-782.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; buyTokens(portfolio: address, tokens: address[], adapters: address[])</text>
+<text text-anchor="start" x="6817.5114" y="-782.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; buyTokens(strategy: address, tokens: address[], adapters: address[])</text>
 <text text-anchor="start" x="6817.5114" y="-765.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;modifier&gt;&gt; onlyController()</text>
 <text text-anchor="start" x="6817.5114" y="-748.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(controller_: address, weth_: address)</text>
-<text text-anchor="start" x="6817.5114" y="-732.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;sellTokens(portfolio: address, tokens: address[], adapters: address[])</text>
+<text text-anchor="start" x="6817.5114" y="-732.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;sellTokens(strategy: address, tokens: address[], adapters: address[])</text>
 </g>
 <!-- 27&#45;&gt;29 -->
 <g id="edge35" class="edge">
@@ -983,11 +983,11 @@
 <text text-anchor="start" x="6777.4137" y="-292.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;adapter: IExchangeAdapter</text>
 <polyline fill="none" stroke="#000000" points="6769.4137,-284.5 7425.0065,-284.5 "/>
 <text text-anchor="start" x="6777.4137" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
-<text text-anchor="start" x="6777.4137" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_sellToken(portfolio: address, tokenAddress: address, estimatedValue: uint256, total: uint256): bool</text>
-<text text-anchor="start" x="6777.4137" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_buyToken(portfolio: address, tokenAddress: address, estimatedValue: uint256, total: uint256, lastToken: bool)</text>
+<text text-anchor="start" x="6777.4137" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_sellToken(strategy: address, tokenAddress: address, estimatedValue: uint256, total: uint256): bool</text>
+<text text-anchor="start" x="6777.4137" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_buyToken(strategy: address, tokenAddress: address, estimatedValue: uint256, total: uint256, lastToken: bool)</text>
 <text text-anchor="start" x="6777.4137" y="-217.5" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="6777.4137" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(portfolio: address, data: bytes)</text>
-<text text-anchor="start" x="6777.4137" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(portfolio: address, data: bytes)</text>
+<text text-anchor="start" x="6777.4137" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(strategy: address, data: bytes)</text>
+<text text-anchor="start" x="6777.4137" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(strategy: address, data: bytes)</text>
 <text text-anchor="start" x="6777.4137" y="-167.1" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="6777.4137" y="-150.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(adapter_: address, factory_: address, controller_: address, weth_: address)</text>
 </g>
@@ -1029,12 +1029,12 @@
 <polyline fill="none" stroke="#000000" points="7442.5504,-309.7 8273.8698,-309.7 "/>
 <text text-anchor="start" x="7450.5504" y="-293.1" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="7450.5504" y="-276.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_pairSwap(tokenAOut: uint256, tokenBOut: uint256, tokenA: address, tokenB: address, to: address, data: bytes)</text>
-<text text-anchor="start" x="7450.5504" y="-259.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_rebalanceToken(portfolioAddress: address, tokenAddress: address, estimatedValue: uint256, total: uint256)</text>
-<text text-anchor="start" x="7450.5504" y="-242.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_settleFlashPair(portfolioAddress: address, uniswapAddress: address, token0: address, token1: address, total: uint256, repay: uint256): uint256</text>
-<text text-anchor="start" x="7450.5504" y="-225.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_getDiffValue(portfolioAddress: address, tokenAddress: address, estimatedValue: uint256, total: uint256): uint256</text>
+<text text-anchor="start" x="7450.5504" y="-259.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_rebalanceToken(strategyAddress: address, tokenAddress: address, estimatedValue: uint256, total: uint256)</text>
+<text text-anchor="start" x="7450.5504" y="-242.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_settleFlashPair(strategyAddress: address, uniswapAddress: address, token0: address, token1: address, total: uint256, repay: uint256): uint256</text>
+<text text-anchor="start" x="7450.5504" y="-225.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_getDiffValue(strategyAddress: address, tokenAddress: address, estimatedValue: uint256, total: uint256): uint256</text>
 <text text-anchor="start" x="7450.5504" y="-209.1" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="7450.5504" y="-192.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(portfolio: address, data: bytes)</text>
-<text text-anchor="start" x="7450.5504" y="-175.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(portfolio: address, data: bytes)</text>
+<text text-anchor="start" x="7450.5504" y="-192.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; deposit(strategy: address, data: bytes)</text>
+<text text-anchor="start" x="7450.5504" y="-175.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;rebalance(strategy: address, data: bytes)</text>
 <text text-anchor="start" x="7450.5504" y="-158.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;uniswapV2Call(sender: address, amount0: uint256, amount1: uint256, data: bytes)</text>
 <text text-anchor="start" x="7450.5504" y="-141.9" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="7450.5504" y="-125.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(adapter_: address, factory_: address, controller_: address, weth_: address)</text>
@@ -1087,17 +1087,17 @@
 <polyline fill="none" stroke="#000000" points="3786.0042,-966.7 4176.416,-966.7 "/>
 <text text-anchor="start" x="3794.0042" y="-950.1" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="3794.0042" y="-933.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;oracle: IOracle</text>
-<text text-anchor="start" x="3794.0042" y="-916.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;portfolio: IPortfolio</text>
+<text text-anchor="start" x="3794.0042" y="-916.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;strategy: IStrategy</text>
 <polyline fill="none" stroke="#000000" points="3786.0042,-908.3 4176.416,-908.3 "/>
 <text text-anchor="start" x="3794.0042" y="-891.7" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
 <text text-anchor="start" x="3794.0042" y="-874.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;isBalanced(): bool</text>
 <text text-anchor="start" x="3794.0042" y="-858.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;isRebalanceNeeded(alertThreshold: uint256): bool</text>
 <text text-anchor="start" x="3794.0042" y="-841.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getRebalanceRange(total: uint256): uint256</text>
-<text text-anchor="start" x="3794.0042" y="-824.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getPortfolioValue(): uint256</text>
+<text text-anchor="start" x="3794.0042" y="-824.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getStrategyValue(): uint256</text>
 <text text-anchor="start" x="3794.0042" y="-807.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getTokenValue(token: address): uint256</text>
 <text text-anchor="start" x="3794.0042" y="-790.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getExpectedTokenValue(total: uint256, token: address): uint256</text>
 <text text-anchor="start" x="3794.0042" y="-774.1" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
-<text text-anchor="start" x="3794.0042" y="-757.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(oracle_: address, portfolio_: address)</text>
+<text text-anchor="start" x="3794.0042" y="-757.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(oracle_: address, strategy_: address)</text>
 </g>
 <!-- 32&#45;&gt;15 -->
 <g id="edge45" class="edge">

@@ -2,7 +2,7 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./PortfolioRouter.sol";
+import "./StrategyRouter.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "../helpers/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -10,29 +10,33 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /**
  * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
  */
-contract GenericRouter is PortfolioRouter, Multicall {
+contract GenericRouter is StrategyRouter, Multicall {
     /**
-     * @notice Setup PortfolioRouter with the weth address
+     * @notice Setup StrategyRouter with the weth address
      */
-    constructor(address controller_, address weth_) public PortfolioRouter(controller_, weth_) {}
+    constructor(address controller_, address weth_) public StrategyRouter(controller_, weth_) {}
 
     /**
-     * @notice Executes provided calldata to achieve a deposit for the Portfolio
+     * @notice Executes provided calldata to achieve a deposit for the Strategy
      */
     // Receive call from controller
-    function deposit(address portfolio, bytes memory data) external override onlyController {
-        (portfolio);
+    function deposit(address strategy, bytes memory data)
+        external
+        override
+        onlyController
+    {
+        (strategy);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
         require(IERC20(weth).balanceOf(address(this)) == uint256(0), "GR.deposit: Leftover funds");
     }
 
     /**
-     * @notice Executes provided calldata to achieve a rebalance for the Portfolio
+     * @notice Executes provided calldata to achieve a rebalance for the Strategy
      */
     // Receive call from controller
-    function rebalance(address portfolio, bytes memory data) external override onlyController {
-        (portfolio);
+    function rebalance(address strategy, bytes memory data) external override onlyController {
+        (strategy);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
     }
@@ -49,7 +53,7 @@ contract GenericRouter is PortfolioRouter, Multicall {
      * @dev Delegate call to avoid redundant token transfers
      */
     function delegateSwap(
-        address portfolio,
+        address strategy,
         address adapter,
         uint256 amount,
         uint256 expected,
@@ -65,8 +69,8 @@ contract GenericRouter is PortfolioRouter, Multicall {
                 expected,
                 tokenIn,
                 tokenOut,
-                portfolio,
-                portfolio,
+                strategy,
+                strategy,
                 data
             ),
             "GR.delegateSwap: Swap failed"

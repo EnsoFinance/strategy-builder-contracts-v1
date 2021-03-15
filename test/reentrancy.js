@@ -10,18 +10,7 @@ const {
 	deployDsProxyFactory,
 	deployDsProxy,
 } = require('./helpers/deploy.js')
-const {
-	preparePortfolio,
-	prepareDepositMulticall,
-	calculateAddress,
-	prepareUniswapSwap,
-	getExpectedTokenValue,
-	getRebalanceRange,
-	encodeTransferFrom,
-	encodeEthTransfer,
-	encodeDelegateSwap,
-	encodeSettleSwap,
-} = require('./helpers/encode.js')
+const { prepareStrategy, prepareDepositMulticall, calculateAddress, encodeSettleSwap } = require('./helpers/encode.js')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
@@ -35,16 +24,16 @@ describe('Reentrancy    ', function () {
 	let tokens,
 		accounts,
 		uniswapFactory,
-		portfolioFactory,
+		strategyFactory,
 		controller,
 		oracle,
 		whitelist,
 		genericRouter,
 		adapter,
-		portfolio,
-		portfolioTokens,
-		portfolioPercentages,
-		portfolioAdapters,
+		strategy,
+		strategyTokens,
+		strategyPercentages,
+		strategyAdapters,
 		wrapper,
 		dsProxyFactory,
 		dsProxy
@@ -55,53 +44,53 @@ describe('Reentrancy    ', function () {
 		WETH = tokens[0]
 		uniswapFactory = await deployUniswap(accounts[0], tokens)
 		adapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
-		;[portfolioFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
+		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
 		genericRouter = await deployGenericRouter(accounts[0], controller, WETH)
 		await whitelist.connect(accounts[0]).approve(genericRouter.address)
 		dsProxyFactory = await deployDsProxyFactory(accounts[0])
 		dsProxy = await deployDsProxy(dsProxyFactory, accounts[1])
 	})
-	it('Should deploy portfolio', async function () {
-		const name = 'Test Portfolio'
+	it('Should deploy strategy', async function () {
+		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
 			{ token: tokens[1].address, percentage: 500 },
 			{ token: tokens[2].address, percentage: 500 },
 		]
-		;[portfolioTokens, portfolioPercentages] = preparePortfolio(positions, adapter.address)
+		;[strategyTokens, strategyPercentages] = prepareStrategy(positions, adapter.address)
 
 		const create2Address = await calculateAddress(
-			portfolioFactory,
+			strategyFactory,
 			accounts[1].address,
 			name,
 			symbol,
-			portfolioTokens,
-			portfolioPercentages
+			strategyTokens,
+			strategyPercentages
 		)
-		const Portfolio = await getContractFactory('Portfolio')
-		portfolio = await Portfolio.attach(create2Address)
+		const Strategy = await getContractFactory('Strategy')
+		strategy = await Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')
 		const calls = await prepareDepositMulticall(
-			portfolio,
+			strategy,
 			controller,
 			genericRouter,
 			adapter,
 			uniswapFactory,
 			WETH,
 			total,
-			portfolioTokens,
-			portfolioPercentages
+			strategyTokens,
+			strategyPercentages
 		)
 		const data = await genericRouter.encodeCalls(calls)
 
-		let tx = await portfolioFactory
+		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createPortfolio(
+			.createStrategy(
 				name,
 				symbol,
-				portfolioTokens,
-				portfolioPercentages,
+				strategyTokens,
+				strategyPercentages,
 				false,
 				0,
 				REBALANCE_THRESHOLD,
@@ -115,11 +104,11 @@ describe('Reentrancy    ', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, portfolio.address)
+		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
 
-		//await displayBalances(wrapper, portfolioTokens, WETH)
-		//expect(await portfolio.getPortfolioValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
+		//await displayBalances(wrapper, strategyTokens, WETH)
+		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -131,7 +120,7 @@ describe('Reentrancy    ', function () {
 			.swap(value, 0, AddressZero, tokens[1].address, accounts[2].address, accounts[2].address, [], [], {
 				value: value,
 			})
-		await displayBalances(wrapper, portfolioTokens, WETH)
+		await displayBalances(wrapper, strategyTokens, WETH)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
@@ -139,27 +128,27 @@ describe('Reentrancy    ', function () {
 		const total = ethers.BigNumber.from('10000000000000000')
 		const calls = []
 		const depositCalls = await prepareDepositMulticall(
-			portfolio,
+			strategy,
 			controller,
 			genericRouter,
 			adapter,
 			uniswapFactory,
 			WETH,
 			total,
-			portfolioTokens,
-			portfolioPercentages
+			strategyTokens,
+			strategyPercentages
 		)
 		calls.push(...depositCalls)
 		let secondDeposit = await genericRouter.encodeCalls(calls)
 		let depositCalldata = await controller.interface.encodeFunctionData('deposit', [
-			portfolio.address,
+			strategy.address,
 			genericRouter.address,
 			secondDeposit,
 		])
 		calls.push({ target: controller.address, callData: depositCalldata, value: 0 })
 		let data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(portfolio.address, genericRouter.address, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, data, { value: total })
 		).to.be.revertedWith()
 	})
 
@@ -169,15 +158,15 @@ describe('Reentrancy    ', function () {
 		const token2Balance = await tokens[2].balanceOf(accounts[1].address)
 		const calls = []
 		const depositCalls = await prepareDepositMulticall(
-			portfolio,
+			strategy,
 			controller,
 			genericRouter,
 			adapter,
 			uniswapFactory,
 			WETH,
 			total,
-			portfolioTokens,
-			portfolioPercentages
+			strategyTokens,
+			strategyPercentages
 		)
 		calls.push(...depositCalls)
 
@@ -187,14 +176,14 @@ describe('Reentrancy    ', function () {
 				adapter.address,
 				tokens[2].address,
 				tokens[1].address,
-				portfolio.address,
+				strategy.address,
 				accounts[1].address
 			)
 		)
 
 		let data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(portfolio.address, genericRouter.address, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, data, { value: total })
 		).to.be.revertedWith()
 
 		// Remove last call
@@ -204,11 +193,11 @@ describe('Reentrancy    ', function () {
 		// Deposit should work now
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(portfolio.address, genericRouter.address, data, { value: total })
-		receipt = await tx.wait()
+			.deposit(strategy.address, genericRouter.address, data, { value: total })
+		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 
-		await displayBalances(wrapper, portfolioTokens, WETH)
+		await displayBalances(wrapper, strategyTokens, WETH)
 		expect(await tokens[1].balanceOf(accounts[1].address)).to.equal(token1Balance)
 		expect(await tokens[2].balanceOf(accounts[1].address)).to.equal(token2Balance)
 	})

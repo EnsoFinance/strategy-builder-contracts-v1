@@ -1,12 +1,12 @@
 {
   "kovan": {
-    "Oracle" : "0x42632C32014dCBb19F117a41a13c0890534D8Ea7",
-    "Whitelist" : "0x950FB52c8a08f1A63ce7956cfF7afe441c3A37fc",
-    "UniswapAdapter" : "0x2BE017808890b4581EB510b234aca15e8EAec3A4",
-    "PortfolioControllerDeployer" : "0x78CC6262E33d9fc292905c0306F21c40e09a3fcE",
-    "PortfolioController" : "0x75354f6696d767a4718519aBe07FEF3fb9363A8A",
-    "LoopRouter" : "0x235a86339f79A84015f8eDD38f936Db0b688Cd9F",
-    "GenericRouter" : "0x6a8CF2740003547264BE30eeED54e53352220f13",
-    "PortfolioProxyFactory" : "0x04915AB280570cE410eA49b797Fb67e6190975a7"
+    "Oracle" : "0x7f9c80381c0952FF728E3aE12e2FBa3dbee7B9DD",
+    "Whitelist" : "0x97AfB1d76CDa54518Cb06338f1323188de847993",
+    "UniswapAdapter" : "0x8B0D03bf10e8AC672FA624956772F38C9837E8C8",
+    "StrategyControllerDeployer" : "0x6175F799614b6362A2370E47d1901e3C4622F04C",
+    "StrategyController" : "0x19439964E40079c82eD7b2dB764c45c8baD05834",
+    "LoopRouter" : "0xd5D9b512b7a71cc7b660D11d4c73c034b492E806",
+    "GenericRouter" : "0x0c717F79Ce26DC3bd142Fef1bf220Cc7D1C42e48",
+    "StrategyProxyFactory" : "0x8A80a0B247EE00A7033e131ebe6c4c10E920c8ad"
   }
 }

@@ -3,9 +3,9 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./PortfolioTokenStorage.sol";
+import "./StrategyTokenStorage.sol";
 
-contract PortfolioToken is IERC20, PortfolioTokenStorage {
+contract StrategyToken is IERC20, StrategyTokenStorage {
     using SafeMath for uint256;
 
     string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";

@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface IPortfolio is IERC20 {
+interface IStrategy is IERC20 {
     function approveToken(
         IERC20 token,
         address account,
@@ -18,7 +18,7 @@ interface IPortfolio is IERC20 {
         uint256 amount
     ) external;
 
-    function setStructure(address[] memory newTokens, uint256[] memory newPercentages) external;
+    function setStructure(address[] memory newItems, uint256[] memory newPercentages) external;
 
     function withdraw(uint256 amount) external;
 
@@ -38,9 +38,9 @@ interface IPortfolio is IERC20 {
 
     function burn(address account, uint256 amount) external;
 
-    function tokens() external view returns (address[] memory);
+    function items() external view returns (address[] memory);
 
-    function tokenPercentage(address token) external view returns (uint256);
+    function percentage(address token) external view returns (uint256);
 
     function nonces(address owner) external view returns (uint256);
 

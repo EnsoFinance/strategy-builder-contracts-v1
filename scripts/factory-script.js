@@ -6,8 +6,8 @@
 const hre = require("hardhat");
 
 // MUST SET VALUES!
-const portfolioImplementation = ''
-const portfolioController = ''
+const strategyImplementation = ''
+const strategyController = ''
 const oracle = ''
 const whitelist = ''
 
@@ -20,16 +20,16 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const PortfolioProxyFactory = await hre.ethers.getContractFactory('PortfolioProxyFactory')
-  const portfolioFactory = await PortfolioProxyFactory.deploy(
-    portfolioImplementation,
-    portfolioController,
+  const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
+  const strategyFactory = await StrategyProxyFactory.deploy(
+    strategyImplementation,
+    strategyController,
     oracle,
     whitelist
   )
-  await portfolioFactory.deployed()
+  await strategyFactory.deployed()
 
-  console.log("Factory deployed to:", portfolioFactory.address);
+  console.log("Factory deployed to:", strategyFactory.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

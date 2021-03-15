@@ -1,14 +1,14 @@
-const hre = require("hardhat")
-const deployedContracts = require("../deployments.json")
-const { preparePortfolio } = require("../test/helpers/encode")
-const { wallets, portfolioNames, positions } = require("./constants/constants")
+const hre = require('hardhat')
+const deployedContracts = require('../deployments.json')
+const { prepareStrategy } = require('../test/helpers/encode')
+const { wallets, strategyNames, positions } = require('./constants/constants')
 
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
 const SLIPPAGE = 995 // 995/1000 = 99.5%
 const TIMELOCK = 60 // 1 minute
 
 function getRandomName() {
-  return portfolioNames[Math.floor(Math.random() * portfolioNames.length)]
+  return strategyNames[Math.floor(Math.random() * strategyNames.length)]
 }
 
 function getRandomArbitrary(min, max) {
@@ -20,37 +20,37 @@ function getRandomPosition() {
 }
 
 async function main() {
-  const portfolioFactory = await hre.ethers.getContractAt(
-    "PortfolioProxyFactory",
-    deployedContracts[process.env.HARDHAT_NETWORK].PortfolioProxyFactory
+  const strategyFactory = await hre.ethers.getContractAt(
+    'StrategyProxyFactory',
+    deployedContracts[process.env.HARDHAT_NETWORK].StrategyProxyFactory
   )
   const routerAddress = deployedContracts[process.env.HARDHAT_NETWORK].LoopRouter
-  const amount = hre.ethers.BigNumber.from("100000000000000000")
+  const amount = hre.ethers.BigNumber.from('100000000000000000')
 
   for (const pkey of wallets) {
     let wallet = new hre.ethers.Wallet(pkey, hre.ethers.provider)
 
-    let numberOfPortfolios = getRandomArbitrary(1, 4)
+    let numberOfStrategys = getRandomArbitrary(1, 4)
 
-    for (let i = 0; i < numberOfPortfolios; i++) {
-      const portfolioName = getRandomName()
+    for (let i = 0; i < numberOfStrategys; i++) {
+      const strategyName = getRandomName()
       const position = getRandomPosition()
 
-      let [portfolioTokens, portfolioPercentages, portfolioAdapters] = preparePortfolio(
+      let [strategyTokens, strategyPercentages, strategyAdapters] = prepareStrategy(
         position,
         deployedContracts[process.env.HARDHAT_NETWORK].UniswapAdapter
       )
-      const data = hre.ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [portfolioTokens, portfolioAdapters])
+      const data = hre.ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
       const isSocial = Math.round(Math.random())
       let fee = isSocial ? 100 : 0
 
-      let tx = await portfolioFactory
+      let tx = await strategyFactory
         .connect(wallet)
-        .createPortfolio(
-          portfolioName,
-          portfolioName.substring(0, 3),
-          portfolioTokens,
-          portfolioPercentages,
+        .createStrategy(
+          strategyName,
+          strategyName.substring(0, 3),
+          strategyTokens,
+          strategyPercentages,
           isSocial,
           fee,
           REBALANCE_THRESHOLD,
@@ -61,7 +61,7 @@ async function main() {
           { value: amount, gasLimit: 3100000 }
         )
       let receipt = await tx.wait()
-      console.log("Deployment Gas Used: ", receipt.gasUsed.toString())
+      console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
     }
   }
 }

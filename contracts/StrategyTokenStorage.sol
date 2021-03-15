@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-contract PortfolioTokenStorage {
+contract StrategyTokenStorage {
     bytes32 public DOMAIN_SEPARATOR;
     bytes32 public PERMIT_TYPEHASH;
 
@@ -17,8 +17,8 @@ contract PortfolioTokenStorage {
     address internal _controller;
     address internal _factory;
     address internal _manager;
-    address[] internal _tokens;
-    mapping(address => uint256) internal _tokenPercentages;
+    address[] internal _strategyItems;
+    mapping(address => uint256) internal _percentages;
 
     // Reserved storage space to allow for layout changes in the future.
     uint256[50] private __gap;

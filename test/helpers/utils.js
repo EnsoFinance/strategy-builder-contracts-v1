@@ -16,8 +16,8 @@ function increaseTime(seconds) {
 }
 
 module.exports = {
-  increaseTime,
-  TIMELOCK_CATEGORY,
-  FEE,
-  DIVISOR
+	increaseTime,
+	TIMELOCK_CATEGORY,
+	FEE,
+	DIVISOR,
 }
