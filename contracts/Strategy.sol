@@ -9,6 +9,10 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IWhitelist.sol";
 
+/**
+ * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
+ * @dev Strategy token holders can withdraw their assets here or in StrategyController
+ */
 contract Strategy is IStrategy, StrategyToken, Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -22,10 +26,14 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(_controller == msg.sender, "P.oC: controller only");
+        require(_controller == msg.sender, "S.oC: controller only");
         _;
     }
 
+    /**
+     * @notice Initializes new Strategy
+     * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
+     */
     function initialize(
         string memory name_,
         string memory symbol_,
@@ -103,7 +111,7 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
      * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
      */
     function withdraw(uint256 amount) external override {
-        require(amount > 0, "P.withdraw: 0 amount");
+        require(amount > 0, "S.withdraw: 0 amount");
         uint256 percentage = amount.mul(10**18).div(_totalSupply);
         _burn(msg.sender, amount);
         for (uint256 i = 0; i < _strategyItems.length; i++) {
@@ -115,8 +123,11 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
         }
     }
 
+    /**
+        @notice Update the manager of this Strategy
+     */
     function updateManager(address newManager) external override {
-        require(msg.sender == _manager, "P.uM: Not manager");
+        require(msg.sender == _manager, "S.uM: Not manager");
         _manager = newManager;
     }
 
@@ -186,6 +197,9 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
         }
     }
 
+    /**
+        @notice Allows tokens to be approved + transfered atomically, if owner has signed the permit hash
+     */
     function permit(
         address owner,
         address spender,
@@ -234,15 +248,15 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
         override
         returns (bool)
     {
-        require(newItems.length == newPercentages.length, "P.vS: invalid input lengths");
-        require(newItems[0] != address(0), "P.vS: invalid weth addr"); //Everything else will caught be the ordering requirement below
+        require(newItems.length == newPercentages.length, "S.vS: invalid input lengths");
+        require(newItems[0] != address(0), "S.vS: invalid item addr"); //Everything else will caught be the ordering requirement below
         uint256 total = 0;
         for (uint256 i = 0; i < newItems.length; i++) {
-            require(i == 0 || newItems[i] > newItems[i - 1], "P.vS: item ordering");
-            require(newPercentages[i] > 0, "P.vS: bad percentage");
+            require(i == 0 || newItems[i] > newItems[i - 1], "S.vS: item ordering");
+            require(newPercentages[i] > 0, "S.vS: 0 percentage provided");
             total = total.add(newPercentages[i]);
         }
-        require(total == DIVISOR, "P.vS: total percentage wrong");
+        require(total == DIVISOR, "S.vS: total percentage wrong");
     }
 
     /**

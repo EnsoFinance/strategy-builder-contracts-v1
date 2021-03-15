@@ -91,7 +91,7 @@ describe('StrategyToken', function () {
 	it('Should fail to verify structure: 0 address', async function () {
 		const failTokens = [AddressZero, tokens[1].address]
 		const failPercentages = [500, 500]
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('invalid weth addr')
+		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('invalid item addr')
 	})
 
 	it('Should fail to verify structure: out of order', async function () {
@@ -106,7 +106,7 @@ describe('StrategyToken', function () {
 			{ token: tokens[2].address, percentage: 0 },
 		]
 		const [failTokens, failPercentages] = prepareStrategy(positions, adapter.address)
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('bad percentage')
+		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('0 percentage provided')
 	})
 
 	it('Should get name', async function () {

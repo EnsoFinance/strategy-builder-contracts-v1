@@ -13,13 +13,17 @@ contract StrategyControllerStorage {
         uint256 timelock;
     }
 
+    /**
+        @notice A time lock requirement for changing the state of this Strategy
+        @dev WARNING: Only one TimelockCategory can be pending at a time
+    */
     struct Timelock {
         TimelockCategory category;
         uint256 timestamp;
         bytes data;
     }
 
-    // Strategy
+    // Reentrancy guard
     bool internal _locked;
 
     mapping(address => bool) internal _initialized;

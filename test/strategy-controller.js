@@ -158,7 +158,7 @@ describe('StrategyController', function () {
 	it('Should fail to update threshold: value too large', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1001)
-		).to.be.revertedWith('PC.uV: Value too high')
+		).to.be.revertedWith('SC.uV: Value too high')
 	})
 
 	it('Should update threshold', async function () {
@@ -191,7 +191,7 @@ describe('StrategyController', function () {
 	it('Should fail to update slippage: value too large', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.SLIPPAGE, 1001)
-		).to.be.revertedWith('PC.uV: Value too high')
+		).to.be.revertedWith('SC.uV: Value too high')
 	})
 
 	it('Should update slippage', async function () {
@@ -222,7 +222,7 @@ describe('StrategyController', function () {
 		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
-		).to.be.revertedWith('PC.rebalance: balanced')
+		).to.be.revertedWith('SC.rebalance: balanced')
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -285,7 +285,7 @@ describe('StrategyController', function () {
 		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
 		await expect(
 			controller.connect(accounts[1]).deposit(strategy.address, router.address, data)
-		).to.be.revertedWith('PC.deposit: No ether sent')
+		).to.be.revertedWith('SC.deposit: No ether sent')
 	})
 
 	it('Should fail to deposit: incorrect adapters', async function () {
@@ -319,7 +319,7 @@ describe('StrategyController', function () {
 
 	it('Should fail to withdraw: no amount passed', async function () {
 		await expect(controller.connect(accounts[1]).withdrawAssets(strategy.address, 0)).to.be.revertedWith(
-			'PC.withdraw: No amount'
+			'SC.withdraw: No amount'
 		)
 	})
 
@@ -397,7 +397,7 @@ describe('StrategyController', function () {
 			controller
 				.connect(accounts[1])
 				.finalizeStructure(strategy.address, router.address, strategyAdapters, strategyAdapters)
-		).to.be.revertedWith('PC._fS: Sell adapters length')
+		).to.be.revertedWith('SC._fS: Sell adapters length')
 	})
 
 	it('Should fail to finalize structure: buy adapters mismatch', async function () {
@@ -408,7 +408,7 @@ describe('StrategyController', function () {
 			controller
 				.connect(accounts[1])
 				.finalizeStructure(strategy.address, router.address, sellAdapters, sellAdapters)
-		).to.be.revertedWith('PC._fS: Buy adapters length')
+		).to.be.revertedWith('SC._fS: Buy adapters length')
 	})
 
 	/* Not social

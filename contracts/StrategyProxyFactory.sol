@@ -74,6 +74,11 @@ contract StrategyProxyFactory is IStrategyProxyFactory, Ownable {
         _;
     }
 
+    /**
+        @notice Entry point for creating new Strategies. 
+        @notice Creates a new proxy for the current implementation and initializes the strategy with the provided input
+        @dev Can send ETH with this call to automatically deposit items into the strategy
+    */
     function createStrategy(
         string memory name,
         string memory symbol,
@@ -209,6 +214,9 @@ contract StrategyProxyFactory is IStrategyProxyFactory, Ownable {
         proxy.upgradeToAndCall{value: msg.value}(implementation, data);
     }
 
+    /**
+        @notice Creates a Strategy proxy and makes a delegate call to initialize items + percentages on the proxy
+    */
     function _createProxy(
         string memory name, string memory symbol, address[] memory tokens, uint256[] memory percentages
     ) internal returns (address) {
