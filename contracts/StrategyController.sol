@@ -20,7 +20,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
     event RebalanceCalled(address indexed strategy, uint256 total, address caller);
     event Deposit(address indexed strategy, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, uint256 amount, uint256[] amounts);
-    event NewStructure(address indexed strategy, address[] tokens, uint256[] percentages);
+    event NewStructure(address indexed strategy, address[] tokens, uint256[] percentages, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue);
 
     /**
@@ -200,7 +200,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         timelock.timestamp = block.timestamp;
         timelock.data = abi.encode(strategyItems, percentages);
 
-        emit NewStructure(address(strategy), strategyItems, percentages);
+        emit NewStructure(address(strategy), strategyItems, percentages, false);
         _removeLock();
     }
 
@@ -232,6 +232,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         delete timelock.category;
         delete timelock.timestamp;
         delete timelock.data;
+        emit NewStructure(address(strategy), strategyItems, percentages, true);
         _removeLock();
     }
 
