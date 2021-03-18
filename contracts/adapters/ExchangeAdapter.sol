@@ -37,5 +37,5 @@ abstract contract ExchangeAdapter is IExchangeAdapter {
         address to,
         bytes memory data,
         bytes memory package
-    ) public payable virtual override returns (bool);
+    ) public virtual override returns (bool);
 }

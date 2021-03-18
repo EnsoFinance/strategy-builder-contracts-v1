@@ -21,7 +21,7 @@ contract Multicall is RevertDebug {
             Call memory internalTx = calls[i];
             require(
                 msg.value >= internalTx.value || address(this).balance >= internalTx.value,
-                "Multicall: Not enough wei"
+                "Not enough wei"
             );
             (bool success, bytes memory ret) =
                 internalTx.target.call{value: internalTx.value}(internalTx.callData);

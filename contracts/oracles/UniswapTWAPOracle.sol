@@ -52,10 +52,10 @@ contract UniswapTWAPOracle is IOracle {
         uint256 windowSize_,
         uint8 granularity_
     ) public {
-        require(granularity_ > 1, "WethOracle (constructor): GRANULARITY");
+        require(granularity_ > 1, "GRANULARITY");
         require(
             (periodSize = windowSize_ / granularity_) * granularity_ == windowSize_,
-            "WethOracle (constructor): WINDOW_NOT_EVENLY_DIVISIBLE"
+            "WINDOW_NOT_EVENLY_DIVISIBLE"
         );
         factory = factory_;
         weth = weth_;
@@ -130,12 +130,12 @@ contract UniswapTWAPOracle is IOracle {
         Observation storage firstObservation = _getFirstObservationInWindow(pair);
 
         uint256 timeElapsed = block.timestamp - firstObservation.timestamp;
-        //require(timeElapsed <= windowSize, "WethOracle (consult): MISSING_HISTORICAL_OBSERVATION");
+        //require(timeElapsed <= windowSize, "MISSING_HISTORICAL_OBSERVATION");
         if (timeElapsed <= windowSize) {
             // should never happen.
             require(
                 timeElapsed >= windowSize - periodSize * 2,
-                "WethOracle (consult): UNEXPECTED_TIME_ELAPSED"
+                "UNEXPECTED_TIME_ELAPSED"
             );
 
             (uint256 price0Cumulative, uint256 price1Cumulative, ) =

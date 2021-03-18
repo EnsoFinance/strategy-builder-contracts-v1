@@ -47,6 +47,7 @@ async function main() {
       let tx = await strategyFactory
         .connect(wallet)
         .createStrategy(
+          wallet.address,
           strategyName,
           strategyName.substring(0, 3),
           strategyTokens,

@@ -9,7 +9,7 @@ import "./StrategyController.sol";
  * @dev The contract implements a custom PrxoyAdmin
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
-contract StrategyControllerDeployer is ProxyAdmin {
+contract StrategyControllerAdmin is ProxyAdmin {
     address public controller;
 
     constructor() public {

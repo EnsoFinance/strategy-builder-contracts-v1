@@ -16,7 +16,7 @@ const {
 } = require('./helpers/encode.js')
 const { prepareFlashLoan } = require('./helpers/cookbook.js')
 const { constants, getContractFactory, getSigners } = ethers
-const { AddressZero, WeiPerEther } = constants
+const { WeiPerEther } = constants
 
 const NUM_TOKENS = 4
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
@@ -94,6 +94,7 @@ describe('Flash Loan', function () {
 		await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
+				accounts[1].address,
 				name,
 				symbol,
 				strategyTokens,
@@ -121,26 +122,24 @@ describe('Flash Loan', function () {
 		const Arbitrager = await getContractFactory('Arbitrager')
 		arbitrager = await Arbitrager.connect(accounts[1]).deploy()
 		await arbitrager.deployed()
-		console.log('Arbitrager: ', arbitrager.address)
 	})
 
 	it('Should purchase a token, requiring a rebalance and create arbitrage opportunity', async function () {
 		const value = WeiPerEther.mul(50)
+		await WETH.connect(accounts[2]).deposit({value: value})
+		await WETH.connect(accounts[2]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[2])
-			.swap(value, 0, AddressZero, tokens[1].address, accounts[2].address, accounts[2].address, [], [], {
-				value: value,
-			})
+			.swap(value, 0, WETH.address, tokens[1].address, accounts[2].address, accounts[2].address, [], [])
 		const tokenBalance = await tokens[1].balanceOf(accounts[2].address)
 		await tokens[1].connect(accounts[2]).approve(sushiAdapter.address, tokenBalance)
 		await sushiAdapter
 			.connect(accounts[2])
-			.swap(tokenBalance, 0, tokens[1].address, AddressZero, accounts[2].address, accounts[2].address, [], [])
+			.swap(tokenBalance, 0, tokens[1].address, WETH.address, accounts[2].address, accounts[2].address, [], [])
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should rebalance strategy with multicall + flash loan', async function () {
-		console.log('Rebalancing strategy....')
 		const balanceBefore = await tokens[1].balanceOf(accounts[1].address)
 		// Multicall gets initial tokens from uniswap
 		const rebalanceCalls = await prepareRebalanceMulticall(

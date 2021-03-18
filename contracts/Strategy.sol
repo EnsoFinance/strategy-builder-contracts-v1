@@ -20,13 +20,13 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
     uint256 private constant DIVISOR = 1000;
 
     // Initialize constructor to disable implementation
-    constructor() public initializer {}
+    constructor() public initializer {} //solhint-disable-line
 
     /**
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(_controller == msg.sender, "S.oC: controller only");
+        require(_controller == msg.sender, "Controller only");
         _;
     }
 
@@ -111,7 +111,7 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
      * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
      */
     function withdraw(uint256 amount) external override {
-        require(amount > 0, "S.withdraw: 0 amount");
+        require(amount > 0, "0 amount");
         uint256 percentage = amount.mul(10**18).div(_totalSupply);
         _burn(msg.sender, amount);
         for (uint256 i = 0; i < _strategyItems.length; i++) {
@@ -121,14 +121,6 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
             uint256 tokenAmount = currentBalance.mul(percentage).div(10**18);
             token.safeTransfer(msg.sender, tokenAmount);
         }
-    }
-
-    /**
-        @notice Update the manager of this Strategy
-     */
-    function updateManager(address newManager) external override {
-        require(msg.sender == _manager, "S.uM: Not manager");
-        _manager = newManager;
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -159,16 +151,20 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
         _burn(account, amount);
     }
 
+    /**
+        @notice Update the manager of this Strategy
+     */
+    function updateManager(address newManager) external override {
+        require(msg.sender == _manager, "Not manager");
+        _manager = newManager;
+    }
+
     function items() external view override returns (address[] memory) {
         return _strategyItems;
     }
 
     function percentage(address strategyItem) external view override returns (uint256) {
         return _percentages[strategyItem];
-    }
-
-    function nonces(address owner) external view override returns (uint256) {
-        return _nonces[owner];
     }
 
     function isWhitelisted(address account) external view override returns (bool) {
@@ -191,51 +187,6 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
         return IStrategyProxyFactory(_factory).whitelist();
     }
 
-    function chainId() public pure returns (uint256 id) {
-        assembly {
-            id := chainid()
-        }
-    }
-
-    /**
-        @notice Allows tokens to be approved + transfered atomically, if owner has signed the permit hash
-     */
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public override {
-        require(block.timestamp <= deadline, "Strategy.permit: expired deadline");
-
-        bytes32 digest =
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    DOMAIN_SEPARATOR,
-                    keccak256(
-                        abi.encode(
-                            PERMIT_TYPEHASH,
-                            owner,
-                            spender,
-                            value,
-                            _nonces[owner],
-                            deadline
-                        )
-                    )
-                )
-            );
-
-        address signer = ecrecover(digest, v, r, s);
-        require(signer != address(0) && signer == owner, "Strategy.permit: invalid signature");
-
-        _nonces[owner]++;
-        _approve(owner, spender, value);
-    }
-
     /**
      * @notice This function verifies that the structure passed in parameters is valid
      * @dev We check that the array lengths match, that the percentages add 100%,
@@ -248,15 +199,16 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
         override
         returns (bool)
     {
-        require(newItems.length == newPercentages.length, "S.vS: invalid input lengths");
-        require(newItems[0] != address(0), "S.vS: invalid item addr"); //Everything else will caught be the ordering requirement below
+        require(newItems.length > 0, "Cannot set empty structure");
+        require(newItems.length == newPercentages.length, "Invalid input lengths");
+        require(newItems[0] != address(0), "Invalid item addr"); //Everything else will caught be the ordering requirement below
         uint256 total = 0;
         for (uint256 i = 0; i < newItems.length; i++) {
-            require(i == 0 || newItems[i] > newItems[i - 1], "S.vS: item ordering");
-            require(newPercentages[i] > 0, "S.vS: 0 percentage provided");
+            require(i == 0 || newItems[i] > newItems[i - 1], "Item ordering");
+            require(newPercentages[i] > 0, "0 percentage provided");
             total = total.add(newPercentages[i]);
         }
-        require(total == DIVISOR, "S.vS: total percentage wrong");
+        require(total == DIVISOR, "Total percentage wrong");
     }
 
     /**

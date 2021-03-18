@@ -45,6 +45,7 @@
     "solidity-docgen": "~0.5.11"
   },
   "dependencies": {
+    "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
     "@chainlink/contracts": "~0.1.6",
     "@openzeppelin/contracts": "~3.3.0",
     "@uniswap/lib": "~4.0.1-alpha",

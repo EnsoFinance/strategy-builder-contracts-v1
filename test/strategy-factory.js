@@ -1,8 +1,8 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
-const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
+const { AddressZero, WeiPerEther } = constants
+const { deployTokens, deployUniswap, deployUniswapAdapter, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
 const { prepareStrategy } = require('./helpers/encode.js')
 
 const NUM_TOKENS = 15
@@ -38,13 +38,14 @@ describe('StrategyProxyFactory', function () {
 		WETH = tokens[0]
 		uniswapFactory = await deployUniswap(accounts[0], tokens)
 		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH)
+		adapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
+		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
 	before('Setup new implementation, oracle, whitelist', async function () {
-		;[newFactory, , newOracle, newWhitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[newRouter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH)
+		[newFactory, , newOracle, newWhitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
+		newRouter = await deployLoopRouter(accounts[0], controller, adapter, WETH)
 		await newWhitelist.connect(accounts[0]).approve(newRouter.address)
 		newImplementationAddress = await newFactory.implementation()
 	})
@@ -65,6 +66,7 @@ describe('StrategyProxyFactory', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
+				accounts[1].address,
 				'Test Strategy',
 				'TEST',
 				strategyTokens,
@@ -86,6 +88,7 @@ describe('StrategyProxyFactory', function () {
 		tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
+				accounts[1].address,
 				'Test Strategy 2',
 				'TEST2',
 				strategyTokens,
@@ -105,7 +108,7 @@ describe('StrategyProxyFactory', function () {
 
 	it('Should fail to update oracle: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[1]).updateOracle(newOracle.address)).to.be.revertedWith(
-			'caller is not the owner'
+			'Not owner'
 		)
 	})
 
@@ -118,7 +121,7 @@ describe('StrategyProxyFactory', function () {
 
 	it('Should fail to update whitelist: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[1]).updateWhitelist(newWhitelist.address)).to.be.revertedWith(
-			'caller is not the owner'
+			'Not owner'
 		)
 	})
 
@@ -142,7 +145,7 @@ describe('StrategyProxyFactory', function () {
 	it('Should fail to update implementation: not owner', async function () {
 		await expect(
 			strategyFactory.connect(accounts[1]).updateImplementation(newImplementationAddress)
-		).to.be.revertedWith('caller is not the owner')
+		).to.be.revertedWith('Not owner')
 	})
 
 	it('Should update implementation', async function () {
@@ -152,9 +155,9 @@ describe('StrategyProxyFactory', function () {
 		expect(await strategyFactory.getProxyImplementation(strategy.address)).to.not.equal(newImplementationAddress)
 	})
 
-	it('Should fail to upgrade strategy proxy: not admin', async function () {
+	it('Should fail to upgrade strategy proxy: not manager', async function () {
 		await expect(strategyFactory.connect(accounts[0]).upgrade(strategy.address)).to.be.revertedWith(
-			'PPF.onlyManager: Not manager'
+			'Not manager'
 		)
 	})
 
@@ -169,10 +172,10 @@ describe('StrategyProxyFactory', function () {
 		expect(await strategyFactory.getProxyImplementation(strategy2.address)).to.equal(newImplementationAddress)
 	})
 
-	it('Should fail to change proxy admin: not admin', async function () {
+	it('Should fail to change proxy admin: not manager', async function () {
 		await expect(
 			strategyFactory.connect(accounts[2]).changeProxyAdmin(strategy.address, newFactory.address)
-		).to.be.revertedWith('PPF.onlyManager: Not manager')
+		).to.be.revertedWith('Not manager')
 	})
 
 	it('Should change proxy admin', async function () {
@@ -186,5 +189,27 @@ describe('StrategyProxyFactory', function () {
 
 	it('Should fail to get proxy admin: not proxy admin', async function () {
 		await expect(strategyFactory.getProxyAdmin(strategy.address)).to.be.revertedWith()
+	})
+
+	it('Should fail to transfer ownership: not owner', async function() {
+		await expect(strategyFactory.connect(accounts[2]).transferOwnership(accounts[2].address)).to.be.revertedWith('Not owner')
+	})
+
+	it('Should fail to transfer ownership: zero address', async function() {
+		await expect(strategyFactory.connect(accounts[0]).transferOwnership(AddressZero)).to.be.revertedWith('New owner is the zero address')
+	})
+
+	it('Should transfer ownership', async function(){
+		await strategyFactory.connect(accounts[0]).transferOwnership(accounts[2].address)
+		expect(await strategyFactory.owner()).to.equal(accounts[2].address)
+	})
+
+	it('Should fail to renounce ownership: not owner', async function() {
+		await expect(strategyFactory.connect(accounts[1]).renounceOwnership()).to.be.revertedWith('Not owner')
+	})
+
+	it('Should transfer ownership', async function(){
+		await strategyFactory.connect(accounts[2]).renounceOwnership()
+		expect(await strategyFactory.owner()).to.equal(AddressZero)
 	})
 })

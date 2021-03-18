@@ -1,18 +1,16 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { displayBalances } = require('./helpers/logging.js')
+//const { displayBalances } = require('./helpers/logging.js')
 const {
 	deployUniswap,
 	deployTokens,
 	deployPlatform,
 	deployUniswapAdapter,
 	deployGenericRouter,
-	deployDsProxyFactory,
-	deployDsProxy,
 } = require('./helpers/deploy.js')
 const { prepareStrategy, prepareDepositMulticall, calculateAddress, encodeSettleSwap } = require('./helpers/encode.js')
 const { constants, getContractFactory, getSigners } = ethers
-const { AddressZero, WeiPerEther } = constants
+const { WeiPerEther } = constants
 
 const NUM_TOKENS = 3
 let WETH
@@ -33,10 +31,7 @@ describe('Reentrancy    ', function () {
 		strategy,
 		strategyTokens,
 		strategyPercentages,
-		strategyAdapters,
-		wrapper,
-		dsProxyFactory,
-		dsProxy
+		wrapper
 
 	before('Setup Uniswap, Factory, GenericRouter, DSProxy', async function () {
 		accounts = await getSigners()
@@ -47,8 +42,6 @@ describe('Reentrancy    ', function () {
 		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
 		genericRouter = await deployGenericRouter(accounts[0], controller, WETH)
 		await whitelist.connect(accounts[0]).approve(genericRouter.address)
-		dsProxyFactory = await deployDsProxyFactory(accounts[0])
-		dsProxy = await deployDsProxy(dsProxyFactory, accounts[1])
 	})
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
@@ -87,6 +80,7 @@ describe('Reentrancy    ', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
+				accounts[1].address,
 				name,
 				symbol,
 				strategyTokens,
@@ -115,12 +109,12 @@ describe('Reentrancy    ', function () {
 	it('Should purchase a token, requiring a rebalance', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(50)
+		await WETH.connect(accounts[2]).deposit({value: value})
+		await WETH.connect(accounts[2]).approve(adapter.address, value)
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, AddressZero, tokens[1].address, accounts[2].address, accounts[2].address, [], [], {
-				value: value,
-			})
-		await displayBalances(wrapper, strategyTokens, WETH)
+			.swap(value, 0, WETH.address, tokens[1].address, accounts[2].address, accounts[2].address, [], [])
+		//await displayBalances(wrapper, strategyTokens, WETH)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
@@ -197,7 +191,7 @@ describe('Reentrancy    ', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 
-		await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyTokens, WETH)
 		expect(await tokens[1].balanceOf(accounts[1].address)).to.equal(token1Balance)
 		expect(await tokens[2].balanceOf(accounts[1].address)).to.equal(token2Balance)
 	})

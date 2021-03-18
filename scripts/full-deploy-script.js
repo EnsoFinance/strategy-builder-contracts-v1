@@ -48,11 +48,11 @@ async function main() {
 
   console.log('UniswapAdapter deployed to: ', uniswapAdapter.address)
 
-  const StrategyControllerDeployer = await hre.ethers.getContractFactory('StrategyControllerDeployer')
-  const deployer = await StrategyControllerDeployer.deploy()
+  const StrategyControllerAdmin = await hre.ethers.getContractFactory('StrategyControllerAdmin')
+  const deployer = await StrategyControllerAdmin.deploy()
   await deployer.deployed()
 
-  console.log('StrategyControllerDeployer deployed to: ', deployer.address)
+  console.log('StrategyControllerAdmin deployed to: ', deployer.address)
 
   const controllerAddress = await deployer.controller()
 
@@ -61,7 +61,6 @@ async function main() {
   const LoopRouter = await hre.ethers.getContractFactory('LoopRouter')
   const loopRouter = await LoopRouter.deploy(
     uniswapAdapter.address,
-    deployedContracts[process.env.HARDHAT_NETWORK].uniswapFactory,
     controllerAddress,
     deployedContracts[process.env.HARDHAT_NETWORK].weth
   )
@@ -88,16 +87,20 @@ async function main() {
   const strategyImplementation = await Strategy.deploy()
   await strategyImplementation.deployed()
 
-  const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
-  const strategyFactory = await StrategyProxyFactory.deploy(
+  const StrategyProxyFactoryAdmin = await hre.ethers.getContractFactory('StrategyProxyFactoryAdmin')
+  const factoryAdmin = await StrategyProxyFactoryAdmin.deploy(
     strategyImplementation.address,
     controllerAddress,
     oracle.address,
     whitelist.address
   )
-  await strategyFactory.deployed()
+  await factoryAdmin.deployed()
 
-  console.log('StrategyProxyFactory deployed to:', strategyFactory.address)
+  console.log('StrategyProxyFactoryAdmin deployed to:', factoryAdmin.address)
+
+  const factoryAddress = await factoryAdmin.factory()
+
+  console.log('StrategyProxyFactory deployed to:', factoryAddress)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

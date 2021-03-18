@@ -3,7 +3,7 @@ const UniswapV2Pair = require('@uniswap/v2-core/build/UniswapV2Pair.json')
 const { ethers } = require('hardhat')
 const { constants, getContractAt, getContractFactory } = ethers
 const { AddressZero } = constants
-const { FEE, DIVISOR } = require('./utils.js')
+const { DIVISOR } = require('./utils.js')
 
 function prepareStrategy(positions, adapter) {
 	let strategyTokens = []
@@ -63,34 +63,20 @@ async function prepareRebalanceMulticall(strategy, controller, router, adapter, 
 		const estimatedValue = ethers.BigNumber.from(estimates[i])
 		const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
 		const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, controller, strategy))
-		if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
-			//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
-			if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-				const diff = ethers.BigNumber.from(
-					await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
-				)
-				//calls.push(await encodeDelegateSwap(router, strategy.address, adapter.address, diff, 0, token.address, weth.address))
-				const swapCalls = await prepareUniswapSwap(
-					router,
-					adapter,
-					factory,
-					strategy.address,
-					router.address,
-					diff,
-					token,
-					weth
-				)
-				calls.push(...swapCalls)
+		if (token.address.toLowerCase() != weth.address.toLowerCase()) {
+			if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
+				//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
+				const diff = await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
+				const expected = await adapter.swapPrice(diff, token.address, weth.address)
+				calls.push(await encodeDelegateSwap(router, adapter.address, diff, expected, token.address, weth.address, strategy.address, strategy.address))
 			} else {
-				const diff = estimatedValue.sub(expectedValue)
-				calls.push(await encodeTransferFrom(token, strategy.address, controller.address, diff))
-				wethInStrategy = true
+				buyLoop.push({
+					token: tokens[i],
+					estimate: estimates[i],
+				})
 			}
 		} else {
-			buyLoop.push({
-				token: tokens[i],
-				estimate: estimates[i],
-			})
+			wethInStrategy = true
 		}
 	}
 	// Buy loop
@@ -107,7 +93,7 @@ async function prepareRebalanceMulticall(strategy, controller, router, adapter, 
 						adapter.address,
 						weth.address,
 						token.address,
-						router.address,
+						strategy.address,
 						strategy.address
 					)
 				)
@@ -118,24 +104,12 @@ async function prepareRebalanceMulticall(strategy, controller, router, adapter, 
 				)
 				if (estimatedValue.lt(expectedValue.sub(rebalanceRange))) {
 					//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
-					const diff = expectedValue.sub(estimatedValue).mul(FEE).div(DIVISOR)
-					const swapCalls = await prepareUniswapSwap(
-						router,
-						adapter,
-						factory,
-						router.address,
-						strategy.address,
-						diff,
-						weth,
-						token
-					)
-					calls.push(...swapCalls)
+					const diff = expectedValue.sub(estimatedValue)
+					const expected = await adapter.swapPrice(diff, weth.address, token.address)
+					calls.push(await encodeDelegateSwap(router, adapter.address, diff, expected, weth.address, token.address, strategy.address, strategy.address))
 				}
 			}
 		}
-	}
-	if (wethInStrategy) {
-		calls.push(await encodeSettleTransfer(controller, weth.address, strategy.address))
 	}
 	return calls
 }
@@ -153,7 +127,7 @@ async function prepareDepositMulticall(
 ) {
 	const calls = []
 	//calls.push(await encodeWethDeposit(weth, total))
-	calls.push(await encodeTransferFrom(weth, controller.address, router.address, total))
+	//calls.push(await encodeTransferFrom(weth, controller.address, router.address, total))
 	let wethInStrategy = false
 	for (let i = 0; i < tokens.length; i++) {
 		const token = await getContractAt(ERC20.abi, tokens[i])
@@ -166,31 +140,35 @@ async function prepareDepositMulticall(
 						adapter.address,
 						weth.address,
 						token.address,
-						router.address,
+						controller.address,
 						strategy.address
 					)
 				)
 			} else {
-				const expectedValue = ethers.BigNumber.from(total).mul(percentages[i]).div(DIVISOR)
-				//console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', expectedValue.toString())
+				const amount = ethers.BigNumber.from(total).mul(percentages[i]).div(DIVISOR)
+				const expected = await adapter.swapPrice(amount, weth.address, token.address)
+				//console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
+				calls.push(await encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, controller.address, strategy.address))
+				/*
 				const swapCalls = await prepareUniswapSwap(
 					router,
 					adapter,
 					factory,
 					router.address,
 					strategy.address,
-					expectedValue,
+					amount,
 					weth,
 					token
 				)
 				calls.push(...swapCalls)
+				*/
 			}
 		} else {
 			wethInStrategy = true
 		}
 	}
 	if (wethInStrategy) {
-		calls.push(await encodeSettleTransfer(router, weth.address, strategy.address))
+		calls.push(await encodeSettleTransferFrom(router, weth.address, controller.address, strategy.address))
 	}
 	return calls
 }
@@ -287,14 +265,15 @@ async function encodeSwap(adapter, amountTokens, minTokens, tokenIn, tokenOut, a
 	return { target: adapter.address, callData: swapEncoded, value: msgValue }
 }
 
-async function encodeDelegateSwap(router, strategy, adapter, amount, minTokens, tokenIn, tokenOut) {
+async function encodeDelegateSwap(router, adapter, amount, minTokens, tokenIn, tokenOut, accountFrom, accountTo) {
 	const delegateSwapEncoded = await router.interface.encodeFunctionData('delegateSwap', [
-		strategy,
 		adapter,
 		amount,
 		minTokens,
 		tokenIn,
 		tokenOut,
+		accountFrom,
+		accountTo,
 		'0x',
 	])
 	return { target: router.address, callData: delegateSwapEncoded, value: 0 }
@@ -317,9 +296,14 @@ async function encodeSettleSwap(router, adapter, tokenIn, tokenOut, accountFrom,
 	return { target: router.address, callData: settleSwapEncoded, value: 0 }
 }
 
-async function encodeSettleTransfer(router, token, to) {
-	const settleTransferEncoded = await router.interface.encodeFunctionData('settleTransfer', [token, to])
+async function encodeSettleTransfer(router, token, accountTo) {
+	const settleTransferEncoded = await router.interface.encodeFunctionData('settleTransfer', [token, accountTo])
 	return { target: router.address, callData: settleTransferEncoded, value: 0 }
+}
+
+async function encodeSettleTransferFrom(router, token, accountFrom, accountTo) {
+	const settleTransferFromEncoded = await router.interface.encodeFunctionData('settleTransferFrom', [token, accountFrom, accountTo])
+	return { target: router.address, callData: settleTransferFromEncoded, value: 0 }
 }
 
 async function encodeTransfer(token, to, amount) {
@@ -357,6 +341,8 @@ module.exports = {
 	calculateAddress,
 	encodeSwap,
 	encodeSettleSwap,
+	encodeSettleTransfer,
+	encodeSettleTransferFrom,
 	encodeDelegateSwap,
 	encodeTransfer,
 	encodeTransferFrom,

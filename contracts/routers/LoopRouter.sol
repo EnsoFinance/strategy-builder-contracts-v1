@@ -1,28 +1,21 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IStrategyController.sol";
-import "../libraries/UniswapV2Library.sol";
 import "./StrategyRouter.sol";
 
 contract LoopRouter is StrategyRouter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    uint256 private constant FEE = 997;
-    uint256 private constant DIVISOR = 1000;
-    address private factory;
+
     IExchangeAdapter private adapter;
 
     constructor(
         address adapter_,
-        address factory_,
         address controller_,
         address weth_
     ) public StrategyRouter(controller_, weth_) {
-        factory = factory_;
         adapter = IExchangeAdapter(adapter_);
     }
 
@@ -82,10 +75,7 @@ contract LoopRouter is StrategyRouter {
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             uint256 diff =
-                adapter
-                    .spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress)
-                    .mul(DIVISOR)
-                    .div(FEE);
+                adapter.spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress);
             require(
                 _delegateSwap(
                     address(adapter),
@@ -97,7 +87,7 @@ contract LoopRouter is StrategyRouter {
                     strategy,
                     new bytes(0)
                 ),
-                "LR._sT: Swap failed"
+                "Swap failed"
             );
             return true;
         }
@@ -123,7 +113,7 @@ contract LoopRouter is StrategyRouter {
                     strategy,
                     new bytes(0)
                 ),
-                "LR._bT: Swap failed"
+                "Swap failed"
             );
         } else {
             uint256 expectedValue =
@@ -146,7 +136,7 @@ contract LoopRouter is StrategyRouter {
                         strategy,
                         new bytes(0)
                     ),
-                    "LR._bT: Swap failed"
+                    "Swap failed"
                 );
             }
         }

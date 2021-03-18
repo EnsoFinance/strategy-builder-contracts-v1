@@ -55,7 +55,7 @@ For example, to deploy on Kovan network run `npm run deploy kovan`
 
 [Contract Documentation](https://app.gitbook.com/@ensofinance/s/enso-finance/architecture/contracts/)
 
-The Enso Strategy contracts allow users to create rebalancing erc20 pools, for themselves or for others to join also. Accounts can deposit ETH, which is swapped for the requested erc20's using decentralized exchanges and on chain time-weighted oracles. Each strategy has a manager, who is authorized to rebalance, restructure, or configure the strategy. 
+The Enso Strategy contracts allow users to create rebalancing erc20 pools, for themselves or for others to join also. Accounts can deposit ETH, which is swapped for the requested erc20's using decentralized exchanges and on chain time-weighted oracles. Each strategy has a manager, who is authorized to rebalance, restructure, or configure the strategy.
 
 
 If a strategy is created with the `social` flag, other accounts will be authorized to deposit and withdraw from the strategy. All changes made by the manager are time-locked to allow other accounts enough time to withdraw from the strategy if they do not like the new configuration.  
@@ -72,7 +72,7 @@ If a strategy is created with the `social` flag, other accounts will be authoriz
 
 
 ## [∞](#strategy-controllerhttpsensofinancegitbookioenso-financearchitectureprotocolcontrollers) 3.4. [Strategy Controller](https://ensofinance.gitbook.io/enso-finance/architecture/protocol/controllers)
-  - The strategy controller is the main entry point to already deployed strategies. 
+  - The strategy controller is the main entry point to already deployed strategies.
 
 ## [∞](#35-adapters) 3.5 [Adapters](https://ensofinance.gitbook.io/enso-finance/architecture/protocol)
   - Adapters provide a common interface to different Dex's
@@ -156,21 +156,23 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
 
 # 8. Kovan Deployment
 
-Oracle deployed to:  0x7f9c80381c0952FF728E3aE12e2FBa3dbee7B9DD
+Oracle deployed to:  0x5fa520BEBC1948DeE7F5b18E54fba6eB7CD2CF4B
 
-Whitelist deployed to:  0x97AfB1d76CDa54518Cb06338f1323188de847993
+Whitelist deployed to:  0xB27E43ACe8A3Ce268f878DFEBA5c5d99CcD1c6Da
 
-UniswapAdapter deployed to:  0x8B0D03bf10e8AC672FA624956772F38C9837E8C8
+UniswapAdapter deployed to:  0x6f12d21dcCF3B42d7e53D1547148E6D88cE47221
 
-StrategyControllerDeployer deployed to:  0x6175F799614b6362A2370E47d1901e3C4622F04C
+StrategyControllerAdmin deployed to:  0x1F9DE752d8Ed5005a8DEB80bf7f7fF55Ed25aeb9
 
-StrategyController deployed to:  0x19439964E40079c82eD7b2dB764c45c8baD05834
+StrategyController deployed to:  0x332FFdD57D88e87Ac6E92163Fddf853067c2466a
 
-LoopRouter deployed to:  0xd5D9b512b7a71cc7b660D11d4c73c034b492E806
+LoopRouter deployed to:  0x807feFDe300eaE8Ce8C3D38A3F2D8B17Ef1B4639
 
-GenericRouter deployed to:  0x0c717F79Ce26DC3bd142Fef1bf220Cc7D1C42e48
+GenericRouter deployed to:  0xc969a157fCeAFf8A874068E3e524E29A2E986De8
 
-StrategyProxyFactory deployed to: 0x8A80a0B247EE00A7033e131ebe6c4c10E920c8ad
+StrategyProxyFactoryAdmin deployed to: 0xf1adA14856F782f26FA041E078D3e28B2A453758
+
+StrategyProxyFactory deployed to: 0x0148C5b2b25a91F354b9ca1DC46eb3a840740aFe
 
 # Security Considerations
 

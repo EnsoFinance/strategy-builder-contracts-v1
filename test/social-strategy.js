@@ -2,8 +2,8 @@ const BigNumber = require('bignumber.js')
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
-const { AddressZero, WeiPerEther } = constants
-const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
+const { WeiPerEther } = constants
+const { deployTokens, deployUniswap, deployUniswapAdapter, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
 //const { displayBalances } = require('./helpers/logging.js')
 const { prepareStrategy } = require('./helpers/encode.js')
 const { increaseTime, TIMELOCK_CATEGORY } = require('./helpers/utils.js')
@@ -36,12 +36,12 @@ describe('StrategyController - Social', function () {
 		WETH = tokens[0]
 		uniswapFactory = await deployUniswap(accounts[0], tokens)
 		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH)
+		adapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
+		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
 	it('Should deploy strategy', async function () {
-		console.log('Strategy factory: ', strategyFactory.address)
 		const positions = [
 			{ token: tokens[0].address, percentage: 400 },
 			{ token: tokens[1].address, percentage: 200 },
@@ -51,6 +51,7 @@ describe('StrategyController - Social', function () {
 		;[strategyTokens, strategyPercentages, strategyAdapters] = prepareStrategy(positions, adapter.address)
 		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
+			accounts[1].address,
 			'Test Strategy',
 			'TEST',
 			strategyTokens,
@@ -89,16 +90,14 @@ describe('StrategyController - Social', function () {
 	it('Should purchase tokens, requiring a rebalance', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(50)
+		await WETH.connect(accounts[2]).deposit({value: value.mul(2)})
+		await WETH.connect(accounts[2]).approve(adapter.address, value.mul(2))
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, AddressZero, tokens[1].address, accounts[2].address, accounts[2].address, [], [], {
-				value: value,
-			})
+			.swap(value, 0, WETH.address, tokens[1].address, accounts[2].address, accounts[2].address, [], [])
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, AddressZero, tokens[2].address, accounts[2].address, accounts[2].address, [], [], {
-				value: value,
-			})
+			.swap(value, 0, WETH.address, tokens[2].address, accounts[2].address, accounts[2].address, [], [])
 		//await displayBalances(wrapper, strategyTokens, WETH)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
@@ -208,11 +207,11 @@ describe('StrategyController - Social', function () {
 
 	it('Should purchase a token, requiring a rebalance', async function () {
 		const value = WeiPerEther.mul(100)
+		await WETH.connect(accounts[2]).deposit({value: value})
+		await WETH.connect(accounts[2]).approve(adapter.address, value)
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, AddressZero, tokens[2].address, accounts[2].address, accounts[2].address, [], [], {
-				value: value,
-			})
+			.swap(value, 0, WETH.address, tokens[2].address, accounts[2].address, accounts[2].address, [], [])
 		//await displayBalances(wrapper, strategyTokens, WETH)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})

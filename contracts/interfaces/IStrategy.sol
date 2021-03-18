@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./IStrategyToken.sol";
 
-interface IStrategy is IERC20 {
+interface IStrategy is IStrategyToken {
     function approveToken(
         IERC20 token,
         address account,
@@ -22,27 +22,15 @@ interface IStrategy is IERC20 {
 
     function withdraw(uint256 amount) external;
 
-    function updateManager(address newManager) external;
-
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
-
     function mint(address account, uint256 amount) external;
 
     function burn(address account, uint256 amount) external;
 
+    function updateManager(address newManager) external;
+
     function items() external view returns (address[] memory);
 
     function percentage(address token) external view returns (uint256);
-
-    function nonces(address owner) external view returns (uint256);
 
     function isWhitelisted(address account) external view returns (bool);
 

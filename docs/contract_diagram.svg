@@ -314,7 +314,7 @@
 <g id="node3" class="node">
 <title>2</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="394.5067,-217.7 394.5067,-325.7 569.9135,-325.7 569.9135,-217.7 394.5067,-217.7"/>
-<text text-anchor="middle" x="482.2101" y="-309.1" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyControllerDeployer</text>
+<text text-anchor="middle" x="482.2101" y="-309.1" font-family="Times,serif" font-size="14.00" fill="#000000">StrategyControllerAdmin</text>
 <polyline fill="none" stroke="#000000" points="394.5067,-300.9 569.9135,-300.9 "/>
 <text text-anchor="start" x="402.5067" y="-284.3" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="402.5067" y="-267.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;controller: address</text>

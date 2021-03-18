@@ -17,7 +17,7 @@ contract UniswapAdapter is ExchangeAdapter {
 
     constructor(address factory_, address weth_) public ExchangeAdapter(weth_) {
         _factory = factory_;
-        _package = abi.encode(factory_, weth_);
+        _package = abi.encode(factory_);
     }
 
     function spotPrice(
@@ -56,45 +56,23 @@ contract UniswapAdapter is ExchangeAdapter {
         address to,
         bytes memory data,
         bytes memory package
-    ) public payable override returns (bool) {
-        require(tokenIn != tokenOut, "Error (swap): tokenIn and tokenOut cannot match");
+    ) public override returns (bool) {
+        require(tokenIn != tokenOut, "Tokens cannot match");
         // For delegate call must pass state in with 'package' parameters.
         // If package.length == 0 just rely on regular state
-        (address factoryAddress, address wethAddress) =
-            package.length > 0 ? abi.decode(package, (address, address)) : (_factory, weth);
-        address[] memory path = new address[](2);
-        if (tokenIn == address(0)) {
-            //require(amount == msg.value, "UniswapRouter.swap: Not enough ETH sent");
-            path[0] = wethAddress;
-            path[1] = tokenOut;
-            IWETH(wethAddress).deposit{value: amount}();
-            assert(
-                IWETH(wethAddress).transfer(
-                    UniswapV2Library.pairFor(factoryAddress, path[0], path[1]),
-                    amount
-                )
-            );
-        } else {
-            require(msg.value == 0, "Error (swap): Cannot send value if tokenIn is not Ether");
-            path[0] = tokenIn;
-            path[1] = tokenOut == address(0) ? wethAddress : tokenOut;
-            TransferHelper.safeTransferFrom(
-                path[0],
-                from,
-                UniswapV2Library.pairFor(factoryAddress, path[0], path[1]),
-                amount
-            );
-        }
+        (address factoryAddress) =
+            package.length > 0 ? abi.decode(package, (address)) : (_factory);
 
-        uint256 received = UniswapV2Library.getAmountsOut(factoryAddress, amount, path)[1];
-        require(received >= expected, "Error (swap): Insufficient tokenOut amount");
-        if (tokenOut == address(0)) {
-            _pairSwap(factoryAddress, 0, received, path[0], path[1], address(this), data);
-            IWETH(wethAddress).withdraw(received);
-            TransferHelper.safeTransferETH(to, received);
-        } else {
-            _pairSwap(factoryAddress, 0, received, path[0], path[1], to, data);
-        }
+        TransferHelper.safeTransferFrom(
+            tokenIn,
+            from,
+            UniswapV2Library.pairFor(factoryAddress, tokenIn, tokenOut),
+            amount
+        );
+        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factoryAddress, tokenIn, tokenOut);
+        uint256 received = UniswapV2Library.getAmountOut(amount, reserveIn, reserveOut);
+        require(received >= expected, "Insufficient tokenOut amount");
+        _pairSwap(factoryAddress, 0, received, tokenIn, tokenOut, to, data);
         return true;
     }
 
@@ -116,9 +94,5 @@ contract UniswapAdapter is ExchangeAdapter {
             to,
             data
         );
-    }
-
-    receive() external payable {
-        assert(msg.sender == weth); // only accept ETH via fallback from the WETH contract
     }
 }

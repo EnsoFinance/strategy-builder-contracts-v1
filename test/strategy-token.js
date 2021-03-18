@@ -3,7 +3,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
-const { deployTokens, deployUniswap, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
+const { deployTokens, deployUniswap, deployUniswapAdapter, deployPlatform, deployLoopRouter } = require('./helpers/deploy.js')
 const { prepareStrategy, preparePermit } = require('./helpers/encode.js')
 
 const NUM_TOKENS = 15
@@ -33,12 +33,12 @@ describe('StrategyToken', function () {
 		WETH = tokens[0]
 		uniswapFactory = await deployUniswap(accounts[0], tokens)
 		;[strategyFactory, controller, , whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH)
+		adapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
+		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
 	it('Should deploy strategy', async function () {
-		console.log('Strategy factory: ', strategyFactory.address)
 		const positions = [
 			{ token: tokens[1].address, percentage: 200 },
 			{ token: tokens[2].address, percentage: 200 },
@@ -64,6 +64,7 @@ describe('StrategyToken', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
+				accounts[1].address,
 				'Test Strategy',
 				'TEST',
 				strategyTokens,
@@ -91,13 +92,13 @@ describe('StrategyToken', function () {
 	it('Should fail to verify structure: 0 address', async function () {
 		const failTokens = [AddressZero, tokens[1].address]
 		const failPercentages = [500, 500]
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('invalid item addr')
+		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('Invalid item addr')
 	})
 
 	it('Should fail to verify structure: out of order', async function () {
 		const failTokens = [tokens[1].address, AddressZero]
 		const failPercentages = [500, 500]
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('item ordering')
+		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('Item ordering')
 	})
 
 	it('Should fail to verify structure: no percentage', async function () {
@@ -166,7 +167,7 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to mint tokens: not controller', async function () {
-		await expect(strategy.connect(accounts[3]).mint(accounts[3].address, 1)).to.be.revertedWith('controller only')
+		await expect(strategy.connect(accounts[3]).mint(accounts[3].address, 1)).to.be.revertedWith('Controller only')
 	})
 
 	it('Should fail to update manager: not manager', async function () {
@@ -241,7 +242,7 @@ describe('StrategyToken', function () {
 
 		await expect(
 			strategy.connect(spender).permit(owner.address, spender.address, 1, deadline, v, r, s)
-		).to.be.revertedWith('invalid signature')
+		).to.be.revertedWith('Invalid signature')
 	})
 
 	it('Should fail to permit: past deadline', async function () {
@@ -249,7 +250,7 @@ describe('StrategyToken', function () {
 		const spender = accounts[1]
 		const { v, r, s } = await preparePermit(strategy, owner, spender, 1, 0)
 		await expect(strategy.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)).to.be.revertedWith(
-			'expired deadline'
+			'Expired deadline'
 		)
 	})
 
@@ -271,7 +272,7 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to withdraw: no strategy tokens', async function () {
-		await expect(strategy.connect(accounts[0]).withdraw(1)).to.be.revertedWith('ERC20: Amount exceeds balance')
+		await expect(strategy.connect(accounts[0]).withdraw(1)).to.be.revertedWith('Amount exceeds balance')
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {

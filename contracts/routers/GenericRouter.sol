@@ -28,7 +28,7 @@ contract GenericRouter is StrategyRouter, Multicall {
         (strategy);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
-        require(IERC20(weth).balanceOf(address(this)) == uint256(0), "GR.deposit: Leftover funds");
+        require(IERC20(weth).balanceOf(address(this)) == uint256(0), "Leftover funds");
     }
 
     /**
@@ -53,12 +53,13 @@ contract GenericRouter is StrategyRouter, Multicall {
      * @dev Delegate call to avoid redundant token transfers
      */
     function delegateSwap(
-        address strategy,
         address adapter,
         uint256 amount,
         uint256 expected,
         address tokenIn,
         address tokenOut,
+        address from,
+        address to,
         bytes memory data
     ) public {
         _onlyInternal();
@@ -69,11 +70,11 @@ contract GenericRouter is StrategyRouter, Multicall {
                 expected,
                 tokenIn,
                 tokenOut,
-                strategy,
-                strategy,
+                from,
+                to,
                 data
             ),
-            "GR.delegateSwap: Swap failed"
+            "Swap failed"
         );
     }
 
@@ -90,12 +91,33 @@ contract GenericRouter is StrategyRouter, Multicall {
         if (amount > 0) {
             require(
                 _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to, data),
-                "GR.delegateSwap: Swap failed"
+                "Swap failed"
             );
         }
     }
 
+    function settleTransfer(
+        address token,
+        address to
+    ) public {
+        _onlyInternal();
+        IERC20 erc20 = IERC20(token);
+        uint256 amount = erc20.balanceOf(address(this));
+        if (amount > 0) erc20.transfer(to, amount);
+    }
+
+    function settleTransferFrom(
+        address token,
+        address from,
+        address to
+    ) public {
+        _onlyInternal();
+        IERC20 erc20 = IERC20(token);
+        uint256 amount = erc20.balanceOf(from);
+        if (amount > 0) erc20.transferFrom(from, to, amount);
+    }
+
     function _onlyInternal() internal view {
-        require(msg.sender == address(this), "GR.settleSwap: Only internal");
+        require(msg.sender == address(this), "Only internal");
     }
 }

@@ -25,7 +25,7 @@ abstract contract StrategyRouter is IStrategyRouter {
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(controller == msg.sender, "PR.onlyController: only controller");
+        require(controller == msg.sender, "Only controller");
         _;
     }
 
@@ -58,7 +58,7 @@ abstract contract StrategyRouter is IStrategyRouter {
                         msg.sender,
                         new bytes(0)
                     ),
-                    "PR.sellTokens: Swap failed"
+                    "Swap failed"
                 );
             }
         }
@@ -69,8 +69,7 @@ abstract contract StrategyRouter is IStrategyRouter {
         address[] memory strategyItems,
         address[] memory adapters
     ) public override onlyController {
-        require(strategyItems.length > 0, "PR.convert: Items not yet set");
-        require(adapters.length == strategyItems.length, "PR.convert: Routers/items mismatch");
+        require(adapters.length == strategyItems.length, "Routers/items mismatch");
         uint256 total = IERC20(weth).balanceOf(msg.sender);
         for (uint256 i = 0; i < strategyItems.length; i++) {
             address tokenAddress = strategyItems[i];
@@ -93,11 +92,10 @@ abstract contract StrategyRouter is IStrategyRouter {
                         strategy,
                         new bytes(0)
                     ),
-                    "PR.buyTokens: Swap failed"
+                    "Swap failed"
                 );
             }
         }
-        require(IERC20(weth).balanceOf(address(this)) == uint256(0), "PR.convert: Leftover funds");
     }
 
     function _delegateSwap(

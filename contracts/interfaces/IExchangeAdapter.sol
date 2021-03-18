@@ -11,7 +11,7 @@ interface IExchangeAdapter {
         address to,
         bytes memory data,
         bytes memory package
-    ) external payable returns (bool);
+    ) external returns (bool);
 
     function weth() external view returns (address);
 

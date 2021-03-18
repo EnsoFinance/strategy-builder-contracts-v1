@@ -39,7 +39,7 @@ describe('StrategyLibrary', function () {
 		uniswapFactory = await deployUniswap(accounts[0], tokens)
 		adapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
 		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[router, adapter] = await deployLoopRouter(accounts[0], controller, uniswapFactory, WETH)
+		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
 		await whitelist.connect(accounts[0]).approve(router.address)
 
 		const positions = [
@@ -65,6 +65,7 @@ describe('StrategyLibrary', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
+				accounts[1].address,
 				'Test Strategy',
 				'TEST',
 				strategyTokens,

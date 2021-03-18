@@ -2,10 +2,10 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/IStrategyToken.sol";
 import "./StrategyTokenStorage.sol";
 
-contract StrategyToken is IERC20, StrategyTokenStorage {
+contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     using SafeMath for uint256;
 
     string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";
@@ -62,10 +62,46 @@ contract StrategyToken is IERC20, StrategyTokenStorage {
         return true;
     }
 
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) public override {
+        require(block.timestamp <= deadline, "Expired deadline");
+
+        bytes32 digest =
+            keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    DOMAIN_SEPARATOR,
+                    keccak256(
+                        abi.encode(
+                            PERMIT_TYPEHASH,
+                            owner,
+                            spender,
+                            value,
+                            _nonces[owner],
+                            deadline
+                        )
+                    )
+                )
+            );
+
+        address signer = ecrecover(digest, v, r, s);
+        require(signer != address(0) && signer == owner, "Invalid signature");
+
+        _nonces[owner]++;
+        _approve(owner, spender, value);
+    }
+
     /**
      * @dev Returns the name of the token.
      */
-    function name() external view returns (string memory) {
+    function name() external view override returns (string memory) {
         return _name;
     }
 
@@ -73,8 +109,15 @@ contract StrategyToken is IERC20, StrategyTokenStorage {
      * @dev Returns the symbol of the token, usually a shorter version of the
      * name.
      */
-    function symbol() external view returns (string memory) {
+    function symbol() external view override returns (string memory) {
         return _symbol;
+    }
+
+    /**
+     * @dev Returns the nonce of the token holder.
+     */
+    function nonces(address owner) external view override returns (uint256) {
+        return _nonces[owner];
     }
 
     /**
@@ -119,6 +162,12 @@ contract StrategyToken is IERC20, StrategyTokenStorage {
      */
     function balanceOf(address account) external view override returns (uint256) {
         return _balances[account];
+    }
+
+    function chainId() public pure returns (uint256 id) {
+        assembly {
+            id := chainid()
+        }
     }
 
     /**
