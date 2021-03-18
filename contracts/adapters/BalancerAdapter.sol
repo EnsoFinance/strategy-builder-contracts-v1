@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity 0.6.12;
 
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./ExchangeAdapter.sol";
@@ -117,9 +115,6 @@ contract BalancerAdapter is ExchangeAdapter {
             IERC20 SwapTokenIn = IERC20(swap.tokenIn);
             PoolInterface pool = PoolInterface(swap.pool);
 
-            if (SwapTokenIn.allowance(address(this), swap.pool) > 0) {
-                SwapTokenIn.approve(swap.pool, 0);
-            }
             SwapTokenIn.approve(swap.pool, swap.swapAmount);
 
             (uint tokenAmountOut,) = pool.swapExactAmountIn(

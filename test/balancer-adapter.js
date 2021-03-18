@@ -25,6 +25,7 @@ describe('BalancerAdapter', function () {
 	let tokens,
 		accounts,
 		uniswapFactory,
+		balancerFactory,
 		balancerRegistry,
 		strategyFactory,
 		controller,
@@ -43,7 +44,7 @@ describe('BalancerAdapter', function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200 * (NUM_TOKENS - 1)))
 		WETH = tokens[0]
-		;[ , balancerRegistry] = await deployBalancer(accounts[0], tokens)
+		;[balancerFactory , balancerRegistry] = await deployBalancer(accounts[0], tokens)
 		uniswapFactory = await deployUniswap(accounts[0], tokens)
 		;[strategyFactory, controller, oracle, whitelist] = await deployPlatform(accounts[0], uniswapFactory, WETH)
 		uniswapAdapter = await deployUniswapAdapter(accounts[0], uniswapFactory, WETH)
@@ -180,4 +181,38 @@ describe('BalancerAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	it('Should create a new pool', async function() {
+			const tx = await balancerFactory.newBPool()
+			const receipt = await tx.wait()
+			const poolAddress = receipt.events[0].args.pool
+			const Pool = await getContractFactory('BPool')
+			const pool = await Pool.attach(poolAddress)
+			await tokens[0].approve(poolAddress, WeiPerEther)
+			await tokens[1].approve(poolAddress, WeiPerEther)
+			await pool.bind(tokens[0].address, WeiPerEther, WeiPerEther.mul(5))
+			await pool.bind(tokens[1].address, WeiPerEther, WeiPerEther.mul(5))
+			await pool.finalize()
+			await balancerRegistry.addPoolPair(poolAddress, tokens[0].address, tokens[1].address)
+			await balancerRegistry.sortPools([tokens[0].address, tokens[1].address], 3);
+	})
+
+	it('Should swap with multiple pools', async function() {
+		const token0BalanceBefore = await tokens[0].balanceOf(accounts[0].address)
+		const token1BalanceBefore = await tokens[1].balanceOf(accounts[0].address)
+		await tokens[0].approve(balancerAdapter.address, token0BalanceBefore)
+		await balancerAdapter.swap(
+			ethers.BigNumber.from('10000000000000000000'),
+			0,
+			tokens[0].address,
+			tokens[1].address,
+			accounts[0].address,
+			accounts[0].address,
+			'0x',
+			'0x'
+		)
+		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
+		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
+		expect(token0BalanceBefore.gt(token0BalanceAfter)).to.equal(true)
+		expect(token1BalanceBefore.lt(token1BalanceAfter)).to.equal(true)
+	})
 })
