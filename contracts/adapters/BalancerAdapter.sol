@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -111,18 +111,18 @@ contract BalancerAdapter is ExchangeAdapter {
         tokenIn.safeTransferFrom(from, address(this), totalAmountIn);
 
         for (uint i = 0; i < swaps.length; i++) {
-            Swap memory swap = swaps[i];
-            IERC20 SwapTokenIn = IERC20(swap.tokenIn);
-            PoolInterface pool = PoolInterface(swap.pool);
+            Swap memory _swap = swaps[i];
+            IERC20 SwapTokenIn = IERC20(_swap.tokenIn);
+            PoolInterface pool = PoolInterface(_swap.pool);
 
-            SwapTokenIn.approve(swap.pool, swap.swapAmount);
+            SwapTokenIn.approve(_swap.pool, _swap.swapAmount);
 
             (uint tokenAmountOut,) = pool.swapExactAmountIn(
-                                        swap.tokenIn,
-                                        swap.swapAmount,
-                                        swap.tokenOut,
-                                        swap.limitReturnAmount,
-                                        swap.maxPrice
+                                        _swap.tokenIn,
+                                        _swap.swapAmount,
+                                        _swap.tokenOut,
+                                        _swap.limitReturnAmount,
+                                        _swap.maxPrice
                                     );
             totalAmountOut = tokenAmountOut.add(totalAmountOut);
         }

@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicense
+//SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
@@ -110,16 +110,16 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         bytes memory data
     ) external payable override returns (address){
         address strategy = _createProxy(manager, name, symbol, tokens, percentages);
-        IStrategyController(_controller).setupStrategy{value: msg.value}(
-            msg.sender,
-            strategy,
-            social,
-            fee,
-            threshold,
-            slippage,
-            timelock,
-            router,
-            data
+        _setupStrategy(
+           manager,
+           strategy,
+           social,
+           fee,
+           threshold,
+           slippage,
+           timelock,
+           router,
+           data
         );
         emit NewStrategy(
             strategy,
@@ -300,5 +300,30 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
                     )
                   );
       return address(proxy);
+    }
+
+    function _setupStrategy(
+        address manager,
+        address strategy,
+        bool social,
+        uint256 fee,
+        uint256 threshold,
+        uint256 slippage,
+        uint256 timelock,
+        address router,
+        bytes memory data
+    ) internal {
+        IStrategyController strategyController = IStrategyController(_controller);
+        strategyController.setupStrategy{value: msg.value}(
+            manager,
+            strategy,
+            social,
+            fee,
+            threshold,
+            slippage,
+            timelock,
+            router,
+            data
+        );
     }
 }

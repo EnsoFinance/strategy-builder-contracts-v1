@@ -1,5 +1,5 @@
 pragma solidity 0.6.12;
-
+//SPDX-License-Identifier: UNLICENSED
 // Original: https://github.com/authereum/contracts/blob/master/contracts/account/BaseAccount.sol
 // Author: Authereum Labs, Inc.
 contract RevertDebug {

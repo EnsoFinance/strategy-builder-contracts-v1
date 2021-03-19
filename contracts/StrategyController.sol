@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: Unlicensed
+//SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -21,7 +21,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
     event Deposit(address indexed strategy, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, uint256 amount, uint256[] amounts);
     event NewStructure(address indexed strategy, address[] tokens, uint256[] percentages, bool indexed finalized);
-    event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue);
+    event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
 
     /**
      * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
@@ -192,17 +192,17 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
     ) external override {
         _setLock();
         _onlyManager(strategy);
-        Timelock storage timelock = _timelocks[address(strategy)];
+        Timelock storage lock = _timelocks[address(strategy)];
         require(
-            timelock.timestamp == 0 ||
+            lock.timestamp == 0 ||
                 block.timestamp >
-                timelock.timestamp.add(_strategyStates[address(strategy)].timelock),
+                lock.timestamp.add(_strategyStates[address(strategy)].timelock),
             "Timelock active"
         );
         strategy.verifyStructure(strategyItems, percentages);
-        timelock.category = TimelockCategory.RESTRUCTURE;
-        timelock.timestamp = block.timestamp;
-        timelock.data = abi.encode(strategyItems, percentages);
+        lock.category = TimelockCategory.RESTRUCTURE;
+        lock.timestamp = block.timestamp;
+        lock.data = abi.encode(strategyItems, percentages);
 
         emit NewStructure(address(strategy), strategyItems, percentages, false);
         _removeLock();
@@ -223,19 +223,19 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
     ) external override {
         _setLock();
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        Timelock storage timelock = _timelocks[address(strategy)];
+        Timelock storage lock = _timelocks[address(strategy)];
         require(
             !strategyState.social ||
-                block.timestamp > timelock.timestamp.add(strategyState.timelock),
+                block.timestamp > lock.timestamp.add(strategyState.timelock),
             "Timelock active"
         );
-        require(timelock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
+        require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
         (address[] memory strategyItems, uint256[] memory percentages) =
-            abi.decode(timelock.data, (address[], uint256[]));
+            abi.decode(lock.data, (address[], uint256[]));
         _finalizeStructure(strategy, router, strategyItems, percentages, sellAdapters, buyAdapters);
-        delete timelock.category;
-        delete timelock.timestamp;
-        delete timelock.data;
+        delete lock.category;
+        delete lock.timestamp;
+        delete lock.data;
         emit NewStructure(address(strategy), strategyItems, percentages, true);
         _removeLock();
     }
@@ -247,46 +247,46 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
     ) external override {
         _setLock();
         _onlyManager(strategy);
-        Timelock storage timelock = _timelocks[address(strategy)];
+        Timelock storage lock = _timelocks[address(strategy)];
         require(
-            timelock.timestamp == 0 ||
+            lock.timestamp == 0 ||
                 block.timestamp >
-                timelock.timestamp.add(_strategyStates[address(strategy)].timelock),
+                lock.timestamp.add(_strategyStates[address(strategy)].timelock),
             "Timelock active"
         );
         TimelockCategory category = TimelockCategory(categoryIndex);
         require(category != TimelockCategory.RESTRUCTURE);
         if (category != TimelockCategory.TIMELOCK)
             require(newValue <= DIVISOR, "Value too high");
-
-        timelock.category = category;
-        timelock.timestamp = block.timestamp;
-        timelock.data = abi.encode(newValue);
-        emit NewValue(address(strategy), category, newValue);
+        lock.category = category;
+        lock.timestamp = block.timestamp;
+        lock.data = abi.encode(newValue);
+        emit NewValue(address(strategy), category, newValue, false);
         _removeLock();
     }
 
     function finalizeValue(address strategy) external override {
         _setLock();
         StrategyState storage strategyState = _strategyStates[strategy];
-        Timelock storage timelock = _timelocks[strategy];
-        require(timelock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
+        Timelock storage lock = _timelocks[strategy];
+        require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
         require(
             !strategyState.social ||
-                block.timestamp > timelock.timestamp.add(strategyState.timelock),
+                block.timestamp > lock.timestamp.add(strategyState.timelock),
             "Timelock active"
         );
-        uint256 newValue = abi.decode(timelock.data, (uint256));
-        if (timelock.category == TimelockCategory.THRESHOLD) {
+        uint256 newValue = abi.decode(lock.data, (uint256));
+        if (lock.category == TimelockCategory.THRESHOLD) {
             strategyState.rebalanceThreshold = newValue;
-        } else if (timelock.category == TimelockCategory.SLIPPAGE) {
+        } else if (lock.category == TimelockCategory.SLIPPAGE) {
             strategyState.slippage = newValue;
         } else { //Only possible option is TimelockCategory.TIMELOCK
             strategyState.timelock = newValue;
         }
-        delete timelock.category;
-        delete timelock.timestamp;
-        delete timelock.data;
+        emit NewValue(strategy, lock.category, newValue, true);
+        delete lock.category;
+        delete lock.timestamp;
+        delete lock.data;
         _removeLock();
     }
 
