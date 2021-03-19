@@ -252,12 +252,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
             timelock.timestamp == 0 ||
                 block.timestamp >
                 timelock.timestamp.add(_strategyStates[address(strategy)].timelock),
-            "SC.uV: Timelock active"
+            "Timelock active"
         );
         TimelockCategory category = TimelockCategory(categoryIndex);
         require(category != TimelockCategory.RESTRUCTURE);
         if (category != TimelockCategory.TIMELOCK)
-            require(newValue <= DIVISOR, "SC.uV: Value too high");
+            require(newValue <= DIVISOR, "Value too high");
 
         timelock.category = category;
         timelock.timestamp = block.timestamp;
