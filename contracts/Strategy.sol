@@ -4,6 +4,7 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "./ERC1271.sol";
 import "./StrategyToken.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
@@ -13,7 +14,7 @@ import "./interfaces/IWhitelist.sol";
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, StrategyToken, Initializable {
+contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -228,5 +229,14 @@ contract Strategy is IStrategy, StrategyToken, Initializable {
             _percentages[newItems[i]] = newPercentages[i];
         }
         _strategyItems = newItems;
+    }
+
+    /**
+     * @notice Confirm signer is permitted to sign on behalf of contract
+     * @param signer The address of the message signer
+     * @return Bool confirming whether signer is permitted
+     */
+    function _checkSigner(address signer) internal view override returns (bool) {
+        return signer == _manager;
     }
 }

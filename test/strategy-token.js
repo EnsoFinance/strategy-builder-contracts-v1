@@ -297,4 +297,25 @@ describe('StrategyToken', function () {
 		).to.equal(true)
 		expect(tokenBalanceBefore.isGreaterThan(tokenBalanceAfter)).to.equal(true)
 	})
+
+	it('Should check valid signature', async function() {
+		const message = 'TEST'
+		const signature = await accounts[2].signMessage(message) // Manager
+		const response = await strategy.isValidSignature(ethers.utils.toUtf8Bytes(message), signature)
+		expect(response).to.equal('0x20c13b0b') //Magic value
+	})
+
+	it('Should fail to check invalid signature', async function() {
+		const message = 'FAIL'
+		const signature = await accounts[1].signMessage(message) //Not manager
+		const response = await strategy.isValidSignature(ethers.utils.toUtf8Bytes(message), signature)
+		expect(response).to.equal('0xffffffff') //Invalid value
+	})
+
+	it('Should fail to check invalid message', async function() {
+		const message = 'FAIL'
+		const signature = await accounts[2].signMessage(message) //Mananger
+		const response = await strategy.isValidSignature('0x', signature) //Bad message
+		expect(response).to.equal('0xffffffff') //Invalid value
+	})
 })
