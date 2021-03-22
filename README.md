@@ -156,23 +156,23 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
 
 # 8. Kovan Deployment
 
-Oracle deployed to:  0x5fa520BEBC1948DeE7F5b18E54fba6eB7CD2CF4B
+Oracle deployed to:  0x9ff92fa0e33Fe3d88Ad74533170036B356922434
 
-Whitelist deployed to:  0xB27E43ACe8A3Ce268f878DFEBA5c5d99CcD1c6Da
+Whitelist deployed to:  0xb1974b39E162fA2Fc7ebb9AA828D244Fa539410B
 
-UniswapAdapter deployed to:  0x6f12d21dcCF3B42d7e53D1547148E6D88cE47221
+UniswapAdapter deployed to:  0x34Ce9cF2f655088775F70210d7892769049f2aC7
 
-StrategyControllerAdmin deployed to:  0x1F9DE752d8Ed5005a8DEB80bf7f7fF55Ed25aeb9
+StrategyControllerAdmin deployed to:  0xA089028e0be6Fdc181844DfB66D3695e05d4D789
 
-StrategyController deployed to:  0x332FFdD57D88e87Ac6E92163Fddf853067c2466a
+StrategyController deployed to:  0xaa83eB20ff0aa75Fb01cddC1c8e58DBAa08CECCa
 
-LoopRouter deployed to:  0x807feFDe300eaE8Ce8C3D38A3F2D8B17Ef1B4639
+LoopRouter deployed to:  0x4Aa41FDe1fFfD0D00D4C1c3A008c1453232De75C
 
-GenericRouter deployed to:  0xc969a157fCeAFf8A874068E3e524E29A2E986De8
+GenericRouter deployed to:  0xe1cAC21aE923b3b9F4c5BC89cD09757a0d9cbb4f
 
-StrategyProxyFactoryAdmin deployed to: 0xf1adA14856F782f26FA041E078D3e28B2A453758
+StrategyProxyFactoryAdmin deployed to: 0xF053393dEFF2f0A06ebE77E5679738Cba03a088c
 
-StrategyProxyFactory deployed to: 0x0148C5b2b25a91F354b9ca1DC46eb3a840740aFe
+StrategyProxyFactory deployed to: 0xa31Df44f3536c503F95f7e6DFB5e15468dF87C41
 
 # Security Considerations
 
