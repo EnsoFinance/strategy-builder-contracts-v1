@@ -1,10 +1,11 @@
 {
-  "name": "@bodhi/contracts",
-  "version": "0.1.0",
+  "name": "@enso/contracts",
+  "version": "0.1.3",
   "description": "Enso protocol smart contracts",
-  "main": "index.js",
+  "main": "./dist/lib/index.js",
+  "types": "dist/lib/index.d.ts",
   "scripts": {
-    "build": "yarn hardhat compile",
+    "build": "yarn hardhat compile && tsc --build",
     "coverage": "yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
     "fill-ui": "yarn hardhat run scripts/fill-ui-script.js --network",
@@ -27,29 +28,41 @@
     "url": "https://github.com/EnsoFinance/Monorepo/issues"
   },
   "homepage": "https://github.com/EnsoFinance/Monorepo/packages/contracts#readme",
-  "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "~2.0.1",
+  "dependencies": {
+    "@0xsequence/token-directory": "1.1.13",
+    "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
+    "@chainlink/contracts": "~0.1.6",
+    "@ethersproject/abstract-signer": "~5.0.6",
+    "@ethersproject/bignumber": "~5.0.8",
+    "@nomiclabs/hardhat-ethers": "2.0.2",
     "@nomiclabs/hardhat-waffle": "~2.0.0",
-    "bignumber.js": "~9.0.1",
-    "chai": "~4.2.0",
+    "@openzeppelin/contracts": "~3.3.0",
+    "@typechain/ethers-v5": "~6.0.5",
+    "@typechain/hardhat": "^1.0.1",
+    "@types/chai": "~4.2.16",
+    "@types/fs-extra": "~9.0.10",
+    "@types/mocha": "~8.2.2",
+    "@types/node": "~14.14.37",
+    "@uniswap/lib": "~4.0.1-alpha",
+    "@uniswap/v2-core": "~1.0.1",
+    "@uniswap/v2-periphery": "~1.1.0-beta.0",
+    "@uniswap/v3-core": "1.0.0-rc.1",
+    "@uniswap/v3-periphery": "1.0.0-beta.19",
+    "chai": "~4.3.4",
     "dotenv": "~8.2.0",
     "eslint": "~7.14.0",
     "ethereum-waffle": "~3.2.1",
-    "ethers": "~5.0.23",
+    "ethers": "~5.0.24",
     "hardhat": "~2.0.4",
     "prettier": "~2.2.1",
     "prettier-plugin-solidity": "~1.0.0-beta.5",
     "sol2uml": "~1.1.25",
     "solhint": "~3.3.2",
     "solidity-coverage": "~0.7.13",
-    "solidity-docgen": "~0.5.11"
+    "solidity-docgen": "~0.5.11",
+    "ts-node": "~9.1.1",
+    "typechain": "~3.0.0",
+    "typescript": "~4.2.3"
   },
-  "dependencies": {
-    "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
-    "@chainlink/contracts": "~0.1.6",
-    "@openzeppelin/contracts": "~3.3.0",
-    "@uniswap/lib": "~4.0.1-alpha",
-    "@uniswap/v2-core": "~1.0.1",
-    "@uniswap/v2-periphery": "~1.1.0-beta.0"
-  }
+  "devDependencies": {}
 }

@@ -10,3 +10,9 @@ coverage.json
 
 #Documenation
 docs/markdown
+
+#Typechain
+typechain/
+
+#Npm
+package-lock.json

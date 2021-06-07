@@ -2,6 +2,8 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IOracle.sol";
@@ -12,16 +14,24 @@ import "./StrategyControllerStorage.sol";
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
  * @dev To avoid someone from repeatedly skimming off this slippage value, threshold should be set sufficiently high
  */
-contract StrategyController is IStrategyController, StrategyControllerStorage {
+contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     uint256 private constant DIVISOR = 1000;
 
     event RebalanceCalled(address indexed strategy, uint256 total, address caller);
     event Deposit(address indexed strategy, uint256 value, uint256 amount);
-    event Withdraw(address indexed strategy, uint256 amount, uint256[] amounts);
     event NewStructure(address indexed strategy, address[] tokens, uint256[] percentages, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
+
+    /**
+     * @dev Called to initialize proxy
+     * @param factory The address of the StrategyProxyFactory
+     */
+    function initialize(address factory) external initializer returns (bool) {
+        _factory = factory;
+    }
 
     /**
      * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
@@ -47,23 +57,27 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         bytes memory data_
     ) external payable override {
         _setLock();
-        require(_initialized[strategy_] == false, "Already setup");
-        require(threshold_ <= DIVISOR && slippage_ <= DIVISOR, "Slippage/threshold high");
-        _initialized[strategy_] = true;
-        // Set globals
         StrategyState storage strategyState = _strategyStates[strategy_];
-        strategyState.rebalanceThreshold = threshold_;
-        strategyState.slippage = slippage_;
-        strategyState.timelock = timelock_;
+        require(strategyState.initialized == false, "Already setup");
+        require(msg.sender == _factory, "Not factory");
+        require(threshold_ <= DIVISOR && slippage_ <= DIVISOR, "Slippage/threshold high");
+        // Set globals
+        strategyState.initialized = true;
+        strategyState.rebalanceThreshold = uint16(threshold_);
+        strategyState.slippage = uint16(slippage_);
+        strategyState.timelock = uint32(timelock_);
+
         IStrategy strategy = IStrategy(strategy_);
         if (msg.value > 0) {
             address weth = IOracle(strategy.oracle()).weth();
             IWETH(weth).deposit{value: msg.value}();
-            IERC20(weth).approve(router_, msg.value);
+            IERC20(weth).safeApprove(router_, msg.value);
             IStrategyRouter(router_).deposit(strategy_, data_);
-            require(IERC20(weth).balanceOf(address(this)) == uint256(0), "Leftover funds");
             IERC20(weth).approve(router_, 0);
-            strategy.mint(creator_, msg.value);
+            (uint256 total, ) =
+                IOracle(strategy.oracle()).estimateTotal(strategy_, strategy.items());
+            require(total > 0, "No value");
+            strategy.mint(creator_, total);
         }
         if (social_) {
           _openStrategy(strategy, fee_);
@@ -113,9 +127,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         if (msg.value > 0) {
           address weth = IOracle(strategy.oracle()).weth();
           IWETH(weth).deposit{value: msg.value}();
-          IERC20(weth).approve(address(router), msg.value);
+          IERC20(weth).safeApprove(address(router), msg.value);
           router.deposit(address(strategy), data);
-          IERC20(weth).approve(address(router), 0);
+          IERC20(weth).safeApprove(address(router), 0);
           require(IERC20(weth).balanceOf(address(this)) == uint256(0), "Leftover funds");
         }  else {
           router.deposit(address(strategy), data);
@@ -128,33 +142,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         uint256 totalSupply = strategy.totalSupply();
         uint256 relativeTokens =
-            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalAfter) : totalAfter;
+            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         strategy.mint(msg.sender, relativeTokens);
         emit Deposit(address(strategy), msg.value, relativeTokens);
-        _removeLock();
-    }
-
-    /**
-     * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
-     * @param strategy The strategy that will be withdrawn from
-     * @param amount The amount of strategy items to burn to recover the equivalent underlying assets
-     */
-    function withdrawAssets(IStrategy strategy, uint256 amount) external override {
-        _setLock();
-        require(amount > 0, "0 amount");
-        uint256 percentage = amount.mul(10**18).div(strategy.totalSupply());
-        strategy.burn(msg.sender, amount);
-        address[] memory tokens = strategy.items();
-        uint256[] memory amounts = new uint256[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
-            // Should not be possible to have address(0) since the Strategy will check for it
-            IERC20 token = IERC20(tokens[i]);
-            uint256 currentBalance = token.balanceOf(address(strategy));
-            uint256 tokenAmount = currentBalance.mul(percentage).div(10**18);
-            strategy.transferToken(token, msg.sender, tokenAmount);
-            amounts[i] = tokenAmount;
-        }
-        emit Withdraw(address(strategy), amount, amounts);
         _removeLock();
     }
 
@@ -169,11 +159,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
             IOracle(strategy.oracle()).estimateTotal(address(strategy), strategy.items());
         uint256 totalSupply = strategy.totalSupply();
         uint256 tokenValue = total.mul(10**18).div(totalSupply);
-        require(tokenValue > _lastTokenValues[address(strategy)], "No earnings");
-        uint256 diff = tokenValue.sub(_lastTokenValues[address(strategy)]);
-        uint256 performanceFee = _strategyStates[address(strategy)].performanceFee;
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        require(tokenValue > strategyState.lastTokenValue, "No earnings");
+        uint256 diff = tokenValue.sub(strategyState.lastTokenValue);
+        uint256 performanceFee = uint256(strategyState.performanceFee);
         uint256 reward = totalSupply.mul(diff).mul(performanceFee).div(DIVISOR).div(10**18);
-        _lastTokenValues[address(strategy)] = tokenValue;
+        strategyState.lastTokenValue = tokenValue;
         strategy.mint(msg.sender, reward); // _onlyManager() ensures that msg.sender == manager
         _removeLock();
     }
@@ -196,10 +187,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         require(
             lock.timestamp == 0 ||
                 block.timestamp >
-                lock.timestamp.add(_strategyStates[address(strategy)].timelock),
+                lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
             "Timelock active"
         );
-        strategy.verifyStructure(strategyItems, percentages);
+        require(strategy.verifyStructure(strategyItems, percentages), "Invalid structure");
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems, percentages);
@@ -222,11 +213,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         address[] memory buyAdapters
     ) external override {
         _setLock();
+        _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
         require(
             !strategyState.social ||
-                block.timestamp > lock.timestamp.add(strategyState.timelock),
+                block.timestamp > lock.timestamp.add(uint256(strategyState.timelock)),
             "Timelock active"
         );
         require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
@@ -251,7 +243,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         require(
             lock.timestamp == 0 ||
                 block.timestamp >
-                lock.timestamp.add(_strategyStates[address(strategy)].timelock),
+                lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
             "Timelock active"
         );
         TimelockCategory category = TimelockCategory(categoryIndex);
@@ -272,16 +264,16 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
         require(
             !strategyState.social ||
-                block.timestamp > lock.timestamp.add(strategyState.timelock),
+                block.timestamp > lock.timestamp.add(uint256(strategyState.timelock)),
             "Timelock active"
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
         if (lock.category == TimelockCategory.THRESHOLD) {
-            strategyState.rebalanceThreshold = newValue;
+            strategyState.rebalanceThreshold = uint16(newValue);
         } else if (lock.category == TimelockCategory.SLIPPAGE) {
-            strategyState.slippage = newValue;
+            strategyState.slippage = uint16(newValue);
         } else { //Only possible option is TimelockCategory.TIMELOCK
-            strategyState.timelock = newValue;
+            strategyState.timelock = uint32(newValue);
         }
         emit NewValue(strategy, lock.category, newValue, true);
         delete lock.category;
@@ -302,6 +294,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
     }
 
     /**
+     * @notice Initialized getter
+     */
+     function initialized(address strategy) external view override returns (bool) {
+         return _strategyStates[strategy].initialized;
+     }
+
+    /**
      * @notice Social bool getter
      * @dev This value determines whether other account may deposit into this strategy
      */
@@ -313,21 +312,21 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
      * @notice Rebalance threshold getter
      */
     function rebalanceThreshold(address strategy) external view override returns (uint256) {
-        return _strategyStates[strategy].rebalanceThreshold;
+        return uint256(_strategyStates[strategy].rebalanceThreshold);
     }
 
     /**
      * @notice Slippage getter
      */
     function slippage(address strategy) external view override returns (uint256) {
-        return _strategyStates[strategy].slippage;
+        return uint256(_strategyStates[strategy].slippage);
     }
 
     /**
      * @notice Timelock getter
      */
     function timelock(address strategy) external view override returns (uint256) {
-        return _strategyStates[strategy].timelock;
+        return uint256(_strategyStates[strategy].timelock);
     }
 
     // Internal Strategy Functions
@@ -362,9 +361,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         (uint256 total, ) =
             IOracle(strategy.oracle()).estimateTotal(address(strategy), strategy.items());
         //As token value increase compared to the _tokenValueLast value, performance fees may be extracted
-        _lastTokenValues[address(strategy)] = total.mul(10**18).div(strategy.totalSupply());
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        strategyState.performanceFee = fee;
+        strategyState.lastTokenValue = total.mul(10**18).div(strategy.totalSupply());
+        strategyState.performanceFee = uint16(fee);
         strategyState.social = true;
     }
 
@@ -412,24 +411,32 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
         address[] memory sellAdapters,
         address[] memory buyAdapters
     ) internal {
-        address[] memory oldTokens = strategy.items();
-        require(sellAdapters.length == oldTokens.length, "Sell adapters length");
+        address[] memory currentItems = strategy.items();
+        require(sellAdapters.length == currentItems.length, "Sell adapters length");
         require(buyAdapters.length == strategyItems.length, "Buy adapters length");
+        IOracle oracle = IOracle(strategy.oracle());
+        (uint256 totalBefore, ) = oracle.estimateTotal(address(strategy), currentItems);
         _approveTokens(strategy, router, uint256(-1));
         // Reset all values and return items to ETH
-        IStrategyRouter(router).sellTokens(address(strategy), oldTokens, sellAdapters);
+        IStrategyRouter(router).sellTokens(address(strategy), currentItems, sellAdapters);
         _approveTokens(strategy, router, uint256(0));
         // Set new structure
         strategy.setStructure(strategyItems, percentages);
-        // Since tokens have already been minted we don"t do router.deposit, instead use router.convert
+        // Since tokens have already been minted we don't do router.deposit, instead use router.buyTokens
         IERC20 weth = IERC20(IOracle(strategy.oracle()).weth());
-        weth.approve(router, uint(-1));
+        weth.safeApprove(router, uint(-1));
         IStrategyRouter(router).buyTokens(
             address(strategy),
             strategyItems,
             buyAdapters
         );
-        weth.approve(router, 0);
+        weth.safeApprove(router, 0);
+        (uint256 totalAfter, ) = oracle.estimateTotal(address(strategy), strategyItems);
+        require(
+            totalAfter >=
+                totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+            "Value slipped"
+        );
     }
 
     /**
@@ -475,14 +482,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage {
      * @notice Sets Reentrancy guard
      */
     function _setLock() internal {
-        require(!_locked, "No Reentrancy");
-        _locked = true;
+        require(_locked == 0, "No Reentrancy");
+        _locked = 1;
     }
 
     /**
      * @notice Removes reentrancy guard.
      */
     function _removeLock() internal {
-        _locked = false;
+        _locked = 0;
     }
 }

@@ -115,7 +115,10 @@ contract BalancerAdapter is ExchangeAdapter {
             IERC20 SwapTokenIn = IERC20(_swap.tokenIn);
             PoolInterface pool = PoolInterface(_swap.pool);
 
-            SwapTokenIn.approve(_swap.pool, _swap.swapAmount);
+            if (SwapTokenIn.allowance(address(this), _swap.pool) != 0) {
+                SwapTokenIn.safeApprove(_swap.pool, 0);
+            }
+            SwapTokenIn.safeApprove(_swap.pool, _swap.swapAmount);
 
             (uint tokenAmountOut,) = pool.swapExactAmountIn(
                                         _swap.tokenIn,
@@ -131,6 +134,7 @@ contract BalancerAdapter is ExchangeAdapter {
 
         tokenOut.safeTransfer(to, totalAmountOut);
         tokenIn.safeTransfer(from, tokenIn.balanceOf(address(this))); //Return unused funds
+
     }
 
     function _viewSplitExactIn(

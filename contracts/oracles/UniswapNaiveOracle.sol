@@ -19,7 +19,7 @@ contract UniswapNaiveOracle is IOracle {
         weth = weth_;
     }
 
-    function update(address token) external override {
+    function update(address token) external {
         (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, token, weth);
         uint256 amount = 10**18; //Assuming that tokens are using 18 decimals, which isn't always the case in real world
         uint256 price = UniswapV2Library.quote(amount, reserveA, reserveB);

@@ -8,5 +8,5 @@ contract StrategyProxyFactoryStorage {
     address public _whitelist;
     address public _oracle;
     address public _implementation;
-    uint256 public _version;
+    string public _version;
 }

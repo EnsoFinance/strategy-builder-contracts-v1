@@ -10,12 +10,23 @@ import "./StrategyController.sol";
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
 contract StrategyControllerAdmin is ProxyAdmin {
-    address public controller;
+    address payable public controller;
 
-    constructor() public {
+    constructor(address factory) public {
         StrategyController implementation = new StrategyController();
         TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy(address(implementation), address(this), new bytes(0));
+            new TransparentUpgradeableProxy(
+              address(implementation),
+              address(this),
+              abi.encodeWithSelector(
+                  bytes4(keccak256("initialize(address)")),
+                  factory
+              )
+          );
         controller = address(proxy);
+    }
+
+    function implementation() external view returns (address) {
+        return getProxyImplementation(TransparentUpgradeableProxy(controller));
     }
 }

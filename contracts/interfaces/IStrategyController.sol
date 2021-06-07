@@ -29,8 +29,6 @@ interface IStrategyController {
         bytes memory data
     ) external payable;
 
-    function withdrawAssets(IStrategy strategy, uint256 amount) external;
-
     function withdrawPerformanceFee(IStrategy strategy) external;
 
     function restructure(
@@ -55,6 +53,8 @@ interface IStrategyController {
     function finalizeValue(address strategy) external;
 
     function openStrategy(IStrategy strategy, uint256 fee) external;
+
+    function initialized(address strategy) external view returns (bool);
 
     function social(address strategy) external view returns (bool);
 

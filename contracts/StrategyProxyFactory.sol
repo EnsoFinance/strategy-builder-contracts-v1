@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./StrategyProxyFactoryStorage.sol";
 import "./StrategyProxyManagerRegistry.sol";
+import "./helpers/AddressUtils.sol";
+import "./helpers/StringUtils.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyController.sol";
 
@@ -13,13 +15,13 @@ import "./interfaces/IStrategyController.sol";
  * @dev The contract implements a custom PrxoyAdmin
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
-contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable {
+contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils {
     StrategyProxyManagerRegistry private immutable managerRegistry;
 
     /**
      * @notice Log the address of an implementation contract update
      */
-    event Update(address newImplementation, uint256 version);
+    event Update(address newImplementation, string version);
 
     /**
      * @notice Log the creation of a new strategy
@@ -63,16 +65,20 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function initialize(
         address owner_,
         address implementation_,
-        address controller_,
         address oracle_,
         address whitelist_
-    ) external initializer returns (bool){
+    ) external
+        initializer
+        noZeroAddress(owner_)
+        noZeroAddress(implementation_)
+        noZeroAddress(oracle_)
+        noZeroAddress(whitelist_)
+        returns (bool){
         _owner = owner_;
         _implementation = implementation_;
-        _controller = controller_;
         _oracle = oracle_;
         _whitelist = whitelist_;
-        _version = 1;
+        _version = "1";
         emit Update(_implementation, _version);
         emit NewOracle(_oracle);
         emit NewWhitelist(_whitelist);
@@ -137,18 +143,24 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return strategy;
     }
 
-    function updateImplementation(address newImplementation) external onlyOwner {
+    function setController(address controller) external noZeroAddress(controller) onlyOwner {
+        require(_controller == address(0), "Cannot change controller");
+        _controller = controller;
+    }
+
+    function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
+        require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
-        _version++;
+        _version = newVersion;
         emit Update(newImplementation, _version);
     }
 
-    function updateOracle(address newOracle) external onlyOwner {
+    function updateOracle(address newOracle) external noZeroAddress(newOracle) onlyOwner {
         _oracle = newOracle;
         emit NewOracle(newOracle);
     }
 
-    function updateWhitelist(address newWhitelist) external onlyOwner {
+    function updateWhitelist(address newWhitelist) external noZeroAddress(newWhitelist) onlyOwner {
         _whitelist = newWhitelist;
         emit NewWhitelist(newWhitelist);
     }
@@ -192,45 +204,32 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     /**
-     * @dev Changes the admin of `proxy` to `newAdmin`.
-     *
-     * Requirements:
-     *
-     * - This contract must be the current admin of `proxy`.
-     */
-    function changeProxyAdmin(TransparentUpgradeableProxy proxy, address newAdmin)
-        public
-        onlyManager(address(proxy))
-    {
-        proxy.changeAdmin(newAdmin);
-    }
-
-    /**
      * @dev Upgrades `proxy` to `implementation`. See {TransparentUpgradeableProxy-upgradeTo}.
      *
      * Requirements:
      *
      * - This contract must be the admin of `proxy`.
      */
-    function upgrade(TransparentUpgradeableProxy proxy) public onlyManager(address(proxy)) {
-        proxy.upgradeTo(_implementation);
-    }
-
-    /**
-     * @dev Upgrades `proxy` to `implementation` and calls a function on the new implementation. See
-     * {TransparentUpgradeableProxy-upgradeToAndCall}.
-     *
-     * Requirements:
-     *
-     * - This contract must be the admin of `proxy`.
-     */
-    function upgradeAndCall(TransparentUpgradeableProxy proxy, bytes memory data)
-        public
-        payable
-        onlyManager(address(proxy))
-    {
+    function upgrade(TransparentUpgradeableProxy proxy) public payable onlyManager(address(proxy)) {
+        bytes memory data = abi.encodeWithSelector(bytes4(keccak256("updateVersion(string)")), _version);
         proxy.upgradeToAndCall{value: msg.value}(_implementation, data);
     }
+
+    // /**
+    //  * @dev Upgrades `proxy` to `implementation` and calls a function on the new implementation. See
+    //  * {TransparentUpgradeableProxy-upgradeToAndCall}.
+    //  *
+    //  * Requirements:
+    //  *
+    //  * - This contract must be the admin of `proxy`.
+    //  */
+    // function upgradeAndCall(TransparentUpgradeableProxy proxy, bytes memory data)
+    //     public
+    //     payable
+    //     onlyManager(address(proxy))
+    // {
+    //     proxy.upgradeToAndCall{value: msg.value}(_implementation, data);
+    // }
 
     /**
      * @dev Leaves the contract without owner. It will not be possible to call
@@ -248,8 +247,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public onlyOwner {
-        require(newOwner != address(0), "New owner is the zero address");
+    function transferOwnership(address newOwner) public noZeroAddress(newOwner) onlyOwner {
         emit OwnershipTransferred(_owner, newOwner);
         _owner = newOwner;
     }
@@ -274,7 +272,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return _implementation;
     }
 
-    function version() external view override returns (uint256) {
+    function version() external view override returns (string memory) {
         return _version;
     }
 
@@ -289,7 +287,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
                     _implementation,
                     address(this),
                     abi.encodeWithSelector(
-                        bytes4(keccak256("initialize(string,string,uint256,address,address,address[],uint256[])")),
+                        bytes4(keccak256("initialize(string,string,string,address,address,address[],uint256[])")),
                         name,
                         symbol,
                         _version,

@@ -20,6 +20,8 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
 
     uint256 private constant DIVISOR = 1000;
 
+    event Withdraw(uint256 amount, uint256[] amounts);
+
     // Initialize constructor to disable implementation
     constructor() public initializer {} //solhint-disable-line
 
@@ -38,7 +40,7 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
     function initialize(
         string memory name_,
         string memory symbol_,
-        uint256 version_,
+        string memory version_,
         address controller_,
         address manager_,
         address[] memory strategyItems_,
@@ -50,20 +52,11 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
         _name = name_;
         _symbol = symbol_;
         _decimals = 18;
+        _version = version_;
         PERMIT_TYPEHASH = keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
         );
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,uint256 version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes(name_)),
-                version_,
-                chainId(),
-                address(this)
-            )
-        );
+        _setDomainSeperator();
         // Set structure
         if (strategyItems_.length > 0) {
             verifyStructure(strategyItems_, percentages_);
@@ -86,14 +79,6 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
         }
     }
 
-    function transferToken(
-        IERC20 token,
-        address account,
-        uint256 amount
-    ) external override onlyController {
-        token.safeTransfer(account, amount);
-    }
-
     /**
      * @notice Set the structure of the strategy
      * @param newItems An array of token addresses that will comprise the strategy
@@ -112,16 +97,21 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
      * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
      */
     function withdraw(uint256 amount) external override {
+        _setLock();
         require(amount > 0, "0 amount");
         uint256 percentage = amount.mul(10**18).div(_totalSupply);
         _burn(msg.sender, amount);
+        uint256[] memory amounts = new uint256[](_strategyItems.length);
         for (uint256 i = 0; i < _strategyItems.length; i++) {
             // Should not be possible to have address(0) since the Strategy will check for it
             IERC20 token = IERC20(_strategyItems[i]);
             uint256 currentBalance = token.balanceOf(address(this));
             uint256 tokenAmount = currentBalance.mul(percentage).div(10**18);
             token.safeTransfer(msg.sender, tokenAmount);
+            amounts[i] = tokenAmount;
         }
+        emit Withdraw(amount, amounts);
+        _removeLock();
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -135,21 +125,6 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
      */
     function mint(address account, uint256 amount) external override onlyController {
         _mint(account, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     * - `account` must have at least `amount` tokens.
-     */
-    function burn(address account, uint256 amount) external override onlyController {
-        _burn(account, amount);
     }
 
     /**
@@ -189,6 +164,15 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
     }
 
     /**
+     * @dev Updates implementation version
+     */
+    function updateVersion(string memory newVersion) external {
+        require(msg.sender == _factory, "Only StrategyFactory");
+        _version = newVersion;
+        _setDomainSeperator();
+    }
+
+    /**
      * @notice This function verifies that the structure passed in parameters is valid
      * @dev We check that the array lengths match, that the percentages add 100%,
      *      no zero addresses, and no duplicates
@@ -213,14 +197,26 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
         return true;
     }
 
+    function _setDomainSeperator() internal {
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes(_name)),
+                keccak256(bytes(_version)),
+                chainId(),
+                address(this)
+            )
+        );
+    }
+
     /**
      * @notice Set the structure of the strategy
      * @param newItems An array of token addresses that will comprise the strategy
      * @param newPercentages An array of percentages for each token in the above array. Must total 100%
      */
-    function _setStructure(
-        address[] memory newItems, uint256[] memory newPercentages
-    ) internal {
+    function _setStructure(address[] memory newItems, uint256[] memory newPercentages) internal {
         // Remove old percentages
         for (uint256 i = 0; i < _strategyItems.length; i++) {
             delete _percentages[_strategyItems[i]];
@@ -238,5 +234,20 @@ contract Strategy is IStrategy, StrategyToken, ERC1271, Initializable {
      */
     function _checkSigner(address signer) internal view override returns (bool) {
         return signer == _manager;
+    }
+
+    /**
+     * @notice Sets Reentrancy guard
+     */
+    function _setLock() internal {
+        require(_locked == 0, "No Reentrancy");
+        _locked = 1;
+    }
+
+    /**
+     * @notice Removes reentrancy guard.
+     */
+    function _removeLock() internal {
+        _locked = 0;
     }
 }

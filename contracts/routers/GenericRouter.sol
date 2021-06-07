@@ -5,12 +5,14 @@ pragma experimental ABIEncoderV2;
 import "./StrategyRouter.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "../helpers/Multicall.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 /**
  * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
  */
 contract GenericRouter is StrategyRouter, Multicall {
+    using SafeERC20 for IERC20;
+
     /**
      * @notice Setup StrategyRouter with the weth address
      */
@@ -28,7 +30,6 @@ contract GenericRouter is StrategyRouter, Multicall {
         (strategy);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
-        require(IERC20(weth).balanceOf(address(this)) == uint256(0), "Leftover funds");
     }
 
     /**
@@ -103,7 +104,7 @@ contract GenericRouter is StrategyRouter, Multicall {
         _onlyInternal();
         IERC20 erc20 = IERC20(token);
         uint256 amount = erc20.balanceOf(address(this));
-        if (amount > 0) erc20.transfer(to, amount);
+        if (amount > 0) erc20.safeTransfer(to, amount);
     }
 
     function settleTransferFrom(
@@ -114,7 +115,7 @@ contract GenericRouter is StrategyRouter, Multicall {
         _onlyInternal();
         IERC20 erc20 = IERC20(token);
         uint256 amount = erc20.balanceOf(from);
-        if (amount > 0) erc20.transferFrom(from, to, amount);
+        if (amount > 0) erc20.safeTransferFrom(from, to, amount);
     }
 
     function _onlyInternal() internal view {

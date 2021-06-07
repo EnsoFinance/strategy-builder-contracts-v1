@@ -2,11 +2,13 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "hardhat/console.sol";
 
 contract Arbitrager is Ownable {
+    using SafeERC20 for IERC20;
+
     //Assumes a flash loan has already been sent to this contract
     function arbitrageLoan(
         address lender,
@@ -19,7 +21,7 @@ contract Arbitrager is Ownable {
         // Do arbitrage trades
         _arbitrage(amount, loanToken, pairToken, sellAdapter, buyAdapter);
         // Return loan
-        loanToken.transfer(lender, amount);
+        loanToken.safeTransfer(lender, amount);
         // Withdraw earnings
         _withdraw(loanToken);
     }
@@ -45,7 +47,7 @@ contract Arbitrager is Ownable {
         IExchangeAdapter sellAdapter,
         IExchangeAdapter buyAdapter
     ) internal {
-        arbToken.approve(address(sellAdapter), amount);
+        arbToken.safeApprove(address(sellAdapter), amount);
         sellAdapter.swap(
             amount,
             0,
@@ -57,7 +59,7 @@ contract Arbitrager is Ownable {
             new bytes(0)
         );
         uint256 balance = pairToken.balanceOf(address(this));
-        pairToken.approve(address(buyAdapter), balance);
+        pairToken.safeApprove(address(buyAdapter), balance);
         buyAdapter.swap(
             balance,
             0,
@@ -71,6 +73,6 @@ contract Arbitrager is Ownable {
     }
 
     function _withdraw(IERC20 token) internal {
-        token.transfer(owner(), token.balanceOf(address(this)));
+        token.safeTransfer(owner(), token.balanceOf(address(this)));
     }
 }

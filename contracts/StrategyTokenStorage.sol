@@ -11,9 +11,10 @@ contract StrategyTokenStorage {
     uint256 internal _totalSupply;
     string internal _name;
     string internal _symbol;
-    uint256 internal _version;
+    string internal _version;
     uint8 internal _decimals;
 
+    uint256 internal _locked;
     address internal _controller;
     address internal _factory;
     address internal _manager;

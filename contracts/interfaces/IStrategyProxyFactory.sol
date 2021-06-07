@@ -10,7 +10,7 @@ interface IStrategyProxyFactory {
 
     function whitelist() external view returns (address);
 
-    function version() external view returns (uint256);
+    function version() external view returns (string memory);
 
     function salt(address manager, string memory name, string memory symbol) external pure returns (bytes32);
 

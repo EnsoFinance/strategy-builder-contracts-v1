@@ -6,11 +6,13 @@ contract StrategyControllerStorage {
     enum TimelockCategory {RESTRUCTURE, THRESHOLD, SLIPPAGE, TIMELOCK}
 
     struct StrategyState {
+        uint256 lastTokenValue;
+        uint32 timelock;
+        uint16 rebalanceThreshold;
+        uint16 slippage;
+        uint16 performanceFee;
         bool social;
-        uint256 performanceFee;
-        uint256 rebalanceThreshold;
-        uint256 slippage;
-        uint256 timelock;
+        bool initialized;
     }
 
     /**
@@ -24,10 +26,9 @@ contract StrategyControllerStorage {
     }
 
     // Reentrancy guard
-    bool internal _locked;
+    uint256 internal _locked;
+    address internal _factory;
 
-    mapping(address => bool) internal _initialized;
-    mapping(address => uint256) internal _lastTokenValues;
     mapping(address => StrategyState) internal _strategyStates;
     mapping(address => Timelock) internal _timelocks;
 

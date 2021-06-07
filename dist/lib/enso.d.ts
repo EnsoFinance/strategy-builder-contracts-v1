@@ -1,0 +1,72 @@
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { BigNumber, Contract } from 'ethers';
+import { Platform } from './deploy';
+export declare const wethPerToken: (numTokens: number) => any;
+export declare type EnsoAdapters = {
+    uniswap: Adapter;
+    balancer: Adapter;
+};
+export declare class EnsoBuilder {
+    signer: SignerWithAddress;
+    defaults: Defaults;
+    tokens?: Contract[];
+    network?: Networks;
+    routers?: Router[];
+    adapters?: EnsoAdapters;
+    constructor(signer: SignerWithAddress);
+    mainnet(): this;
+    testnet(): this;
+    setDefaults(defaults: Defaults): void;
+    addRouter(type: string): this;
+    addAdapter(type: string): void;
+    private deployBalancer;
+    build(): Promise<EnsoEnvironment>;
+}
+export declare class EnsoEnvironment {
+    signer: SignerWithAddress;
+    defaults: Defaults;
+    enso: Platform;
+    adapters: EnsoAdapters;
+    routers: Router[];
+    uniswap: Contract;
+    tokens: Contract[];
+    balancer?: Balancer;
+    constructor(signer: SignerWithAddress, defaults: Defaults, enso: Platform, adapters: EnsoAdapters, routers: Router[], uniswap: Contract, tokens: Contract[], balancer?: Balancer);
+}
+export declare class Balancer {
+    factory: Contract;
+    registry: Contract;
+    constructor(factory: Contract, registry: Contract);
+}
+export declare enum Networks {
+    Mainnet = "Mainnet",
+    LocalTestnet = "LocalTestnet",
+    ExternalTestnet = "ExternalTestnet"
+}
+export declare type Defaults = {
+    threshold: number;
+    slippage: number;
+    timelock: number;
+    numTokens: number;
+    wethSupply: BigNumber;
+};
+export declare enum Adapters {
+    Uniswap = "uniswap",
+    Balancer = "balancer"
+}
+export declare class Adapter {
+    type: Adapters;
+    contract?: Contract;
+    constructor(adapterType: string);
+    deploy(signer: SignerWithAddress, adapterTargetFactory: Contract, weth: Contract): Promise<void>;
+}
+export declare enum Routers {
+    Generic = 0,
+    Loop = 1
+}
+export declare class Router {
+    type: Routers;
+    contract?: Contract;
+    constructor(routerType: string);
+    deploy(signer: SignerWithAddress, controller: Contract, weth: Contract, adapter?: Contract): Promise<void>;
+}

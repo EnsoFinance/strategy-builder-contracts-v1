@@ -8,8 +8,22 @@ import "@openzeppelin/contracts/cryptography/ECDSA.sol";
 abstract contract ERC1271 is IERC1271 {
     using ECDSA for bytes32;
 
-    bytes4 constant internal MAGICVALUE = 0x20c13b0b;
+    bytes4 constant internal MAGICVALUE_BYTES = 0x20c13b0b;
+    bytes4 constant internal MAGICVALUE_BYTES32 = 0x1626ba7e;
     bytes4 constant internal INVALID_SIGNATURE = 0xffffffff;
+
+    function isValidSignature(
+      bytes32 _hash,
+      bytes memory _signature
+    )
+      public
+      override
+      view
+      returns (bytes4 magicValue)
+    {
+      address signer = _hash.recover(_signature);
+      magicValue = _checkSigner(signer) ? MAGICVALUE_BYTES32 : INVALID_SIGNATURE;
+    }
 
     function isValidSignature(
       bytes memory _message,
@@ -21,7 +35,7 @@ abstract contract ERC1271 is IERC1271 {
       returns (bytes4 magicValue)
     {
       address signer = _getEthSignedMessageHash(_message).recover(_signature);
-      magicValue = _checkSigner(signer) ? MAGICVALUE : INVALID_SIGNATURE;
+      magicValue = _checkSigner(signer) ? MAGICVALUE_BYTES : INVALID_SIGNATURE;
     }
 
     // @dev Adds ETH signed message prefix to bytes message and hashes it

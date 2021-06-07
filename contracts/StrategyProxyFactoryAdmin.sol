@@ -14,7 +14,6 @@ contract StrategyProxyFactoryAdmin is ProxyAdmin {
 
     constructor(
         address strategyImplementation_,
-        address controller_,
         address oracle_,
         address whitelist_
     ) public {
@@ -24,10 +23,9 @@ contract StrategyProxyFactoryAdmin is ProxyAdmin {
                 address(factoryImplementation),
                 address(this),
                 abi.encodeWithSelector(
-                    bytes4(keccak256("initialize(address,address,address,address,address)")),
+                    bytes4(keccak256("initialize(address,address,address,address)")),
                     msg.sender,
                     strategyImplementation_,
-                    controller_,
                     oracle_,
                     whitelist_
                 )

@@ -12,19 +12,11 @@ interface IStrategy is IStrategyToken {
 
     function approveTokens(address account, uint256 amount) external;
 
-    function transferToken(
-        IERC20 token,
-        address account,
-        uint256 amount
-    ) external;
-
     function setStructure(address[] memory newItems, uint256[] memory newPercentages) external;
 
     function withdraw(uint256 amount) external;
 
     function mint(address account, uint256 amount) external;
-
-    function burn(address account, uint256 amount) external;
 
     function updateManager(address newManager) external;
 
