@@ -1,6 +1,6 @@
 const hre = require('hardhat')
 const deployedContracts = require('../deployments.json')
-const { prepareStrategy } = require('../test/helpers/encode')
+const { StrategyBuilder } = require('../lib/encode')
 const { wallets, strategyNames, positions } = require('./constants/constants')
 
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
@@ -36,10 +36,9 @@ async function main() {
       const strategyName = getRandomName()
       const position = getRandomPosition()
 
-      let [strategyTokens, strategyPercentages, strategyAdapters] = prepareStrategy(
-        position,
-        deployedContracts[process.env.HARDHAT_NETWORK].UniswapAdapter
-      )
+      const s = new StrategyBuilder(position, deployedContracts[process.env.HARDHAT_NETWORK].UniswapAdapter)
+      let [strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
+
       const data = hre.ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
       const isSocial = Math.round(Math.random())
       let fee = isSocial ? 100 : 0
