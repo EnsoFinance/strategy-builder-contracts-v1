@@ -1,6 +1,3 @@
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
 import { HardhatUserConfig } from 'hardhat/types';
 import '@nomiclabs/hardhat-waffle';
 import '@nomiclabs/hardhat-ethers';

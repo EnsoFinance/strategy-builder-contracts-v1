@@ -5,19 +5,19 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IWhitelist.sol";
 
 contract Whitelist is IWhitelist, Ownable {
-    mapping(address => bool) internal _approvals;
+   mapping(address => uint256) internal _approvals;
 
-    function approve(address account) external override onlyOwner {
-        require(!_approvals[account], "Already whitelisted");
-        _approvals[account] = true;
-    }
+   function approve(address account) external override onlyOwner {
+       require(_approvals[account] == 0, "Already whitelisted");
+       _approvals[account] = 1;
+   }
 
-    function revoke(address account) external override onlyOwner {
-        require(_approvals[account], "Not whitelisted");
-        delete _approvals[account];
-    }
+   function revoke(address account) external override onlyOwner {
+       require(_approvals[account] != 0, "Not whitelisted");
+       delete _approvals[account];
+   }
 
-    function approved(address account) external view override returns (bool) {
-        return _approvals[account];
-    }
+   function approved(address account) external view override returns (bool) {
+       return _approvals[account] > 0;
+   }
 }

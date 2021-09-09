@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-contract StrategyTokenStorage {
+import "./helpers/StrategyTypes.sol";
+
+contract StrategyTokenStorage is StrategyTypes {
     bytes32 public DOMAIN_SEPARATOR;
     bytes32 public PERMIT_TYPEHASH;
 
@@ -18,9 +20,9 @@ contract StrategyTokenStorage {
     address internal _controller;
     address internal _factory;
     address internal _manager;
-    address[] internal _strategyItems;
-    mapping(address => uint256) internal _percentages;
-
-    // Reserved storage space to allow for layout changes in the future.
-    uint256[50] private __gap;
+    address[] internal _items;
+    address[] internal _synths;
+    address[] internal _debt;
+    mapping(address => int256) internal _percentage;
+    mapping(address => TradeData) internal _tradeData;
 }

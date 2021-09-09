@@ -1,4 +1,5 @@
-pragma solidity =0.6.12;
+//SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity >=0.6.0 <0.9.0;
 
 contract StringUtils {
     function parseInt(string memory _value) public pure returns (uint256 _ret) {

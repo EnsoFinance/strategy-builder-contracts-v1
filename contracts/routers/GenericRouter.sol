@@ -3,7 +3,6 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./StrategyRouter.sol";
-import "../interfaces/IExchangeAdapter.sol";
 import "../helpers/Multicall.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
@@ -14,9 +13,9 @@ contract GenericRouter is StrategyRouter, Multicall {
     using SafeERC20 for IERC20;
 
     /**
-     * @notice Setup StrategyRouter with the weth address
+     * @notice Setup StrategyRouter
      */
-    constructor(address controller_, address weth_) public StrategyRouter(controller_, weth_) {}
+    constructor(address controller_) public StrategyRouter(RouterCategory.GENERIC, controller_) {}
 
     /**
      * @notice Executes provided calldata to achieve a deposit for the Strategy
@@ -25,9 +24,17 @@ contract GenericRouter is StrategyRouter, Multicall {
     function deposit(address strategy, bytes memory data)
         external
         override
-        onlyController
+        onlyStrategy(strategy)
     {
-        (strategy);
+        Call[] memory callStructs = abi.decode(data, (Call[]));
+        aggregate(callStructs);
+    }
+
+    function withdraw(address strategy, bytes calldata data)
+        external
+        override
+        onlyStrategy(strategy)
+    {
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
     }
@@ -37,6 +44,12 @@ contract GenericRouter is StrategyRouter, Multicall {
      */
     // Receive call from controller
     function rebalance(address strategy, bytes memory data) external override onlyController {
+        (strategy);
+        Call[] memory callStructs = abi.decode(data, (Call[]));
+        aggregate(callStructs);
+    }
+
+    function restructure(address strategy, bytes memory data) external override onlyController {
         (strategy);
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
@@ -60,8 +73,7 @@ contract GenericRouter is StrategyRouter, Multicall {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data
+        address to
     ) public {
         _onlyInternal();
         require(
@@ -72,8 +84,7 @@ contract GenericRouter is StrategyRouter, Multicall {
                 tokenIn,
                 tokenOut,
                 from,
-                to,
-                data
+                to
             ),
             "Swap failed"
         );
@@ -84,14 +95,13 @@ contract GenericRouter is StrategyRouter, Multicall {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data
+        address to
     ) public {
         _onlyInternal();
         uint256 amount = IERC20(tokenIn).balanceOf(from);
         if (amount > 0) {
             require(
-                _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to, data),
+                _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to),
                 "Swap failed"
             );
         }

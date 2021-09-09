@@ -2,8 +2,8 @@ const hre = require('hardhat')
 const { ethers } = hre
 // const { getContractFactory } = waffle
 const { getSigners} = ethers
-const { EnsoBuilder, EnsoEnvironment } = require('@enso/contracts')
-import * as utils from '@enso/contracts/lib/utils'
+const { EnsoBuilder, EnsoEnvironment } = require('../lib/index')
+import * as utils from '../lib/utils'
 // import { StrategyBuilder } from '@enso/contracts/lib/encode'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -73,7 +73,7 @@ describe('SDK', function () {
 	// 	// const strategy = await Strategy.attach(strategyAddress)
 	// 	const LibraryWrapper = await getContractFactory('LibraryWrapper')
 	// 	const wrapper = await LibraryWrapper.connect(accounts[0]).deploy(
-	// 		localTestnetEnso.oracle.address,
+	// 		localTestnetEnso.ensoOracle.address,
 	// 		strategyAddress
 	// 	)
 	// 	await wrapper.deployed()

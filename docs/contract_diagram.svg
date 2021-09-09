@@ -75,14 +75,14 @@
 <text text-anchor="start" x="1716.109" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;burn(account: address, amount: uint256)</text>
 <text text-anchor="start" x="1716.109" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;items(): address[]</text>
 <text text-anchor="start" x="1716.109" y="-217.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;percentage(token: address): uint256</text>
-<text text-anchor="start" x="1716.109" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;isWhitelisted(account: address): bool</text>
+<text text-anchor="start" x="1716.109" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;isRegistryed(account: address): bool</text>
 <text text-anchor="start" x="1716.109" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;controller(): address</text>
 <text text-anchor="start" x="1716.109" y="-167.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;manager(): address</text>
 <text text-anchor="start" x="1716.109" y="-150.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;oracle(): address</text>
 <text text-anchor="start" x="1716.109" y="-133.5" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="1716.109" y="-116.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;modifier&gt;&gt; onlyController()</text>
 <text text-anchor="start" x="1716.109" y="-99.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor()</text>
-<text text-anchor="start" x="1716.109" y="-83.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;whitelist(): address</text>
+<text text-anchor="start" x="1716.109" y="-83.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;registry(): address</text>
 <text text-anchor="start" x="1716.109" y="-66.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;chainId(): (id: uint256)</text>
 </g>
 <!-- 7 -->
@@ -136,11 +136,11 @@
 <text text-anchor="start" x="3063.359" y="-1870.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;approveTokens(account: address, amount: uint256)</text>
 <text text-anchor="start" x="3063.359" y="-1853.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;items(): address[]</text>
 <text text-anchor="start" x="3063.359" y="-1836.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;percentage(token: address): uint256</text>
-<text text-anchor="start" x="3063.359" y="-1820.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;isWhitelisted(account: address): bool</text>
+<text text-anchor="start" x="3063.359" y="-1820.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;isRegistryed(account: address): bool</text>
 <text text-anchor="start" x="3063.359" y="-1803.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;controller(): address</text>
 <text text-anchor="start" x="3063.359" y="-1786.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;manager(): address</text>
 <text text-anchor="start" x="3063.359" y="-1769.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;oracle(): address</text>
-<text text-anchor="start" x="3063.359" y="-1752.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;whitelist(): address</text>
+<text text-anchor="start" x="3063.359" y="-1752.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;registry(): address</text>
 </g>
 <!-- 0&#45;&gt;16 -->
 <g id="edge8" class="edge">
@@ -161,7 +161,7 @@
 <text text-anchor="start" x="2535.1757" y="-1414.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;implementation(): address</text>
 <text text-anchor="start" x="2535.1757" y="-1397.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;controller(): address</text>
 <text text-anchor="start" x="2535.1757" y="-1381.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;oracle(): address</text>
-<text text-anchor="start" x="2535.1757" y="-1364.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;whitelist(): address</text>
+<text text-anchor="start" x="2535.1757" y="-1364.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;registry(): address</text>
 <text text-anchor="start" x="2535.1757" y="-1347.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&#160;version(): uint256</text>
 </g>
 <!-- 0&#45;&gt;18 -->
@@ -175,7 +175,7 @@
 <title>20</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="2725.162,-1356.1 2725.162,-1497.7 2945.2582,-1497.7 2945.2582,-1356.1 2725.162,-1356.1"/>
 <text text-anchor="middle" x="2835.2101" y="-1481.1" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="2835.2101" y="-1464.3" font-family="Times,serif" font-size="14.00" fill="#000000">IWhitelist</text>
+<text text-anchor="middle" x="2835.2101" y="-1464.3" font-family="Times,serif" font-size="14.00" fill="#000000">IRegistry</text>
 <polyline fill="none" stroke="#000000" points="2725.162,-1456.1 2945.2582,-1456.1 "/>
 <text text-anchor="middle" x="2835.2101" y="-1439.5" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="2725.162,-1431.3 2945.2582,-1431.3 "/>
@@ -392,7 +392,7 @@
 <text text-anchor="start" x="596.2026" y="-443.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;managerRegistry: StrategyProxyManagerRegistry</text>
 <text text-anchor="start" x="596.2026" y="-427.1" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="596.2026" y="-410.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;controller: address</text>
-<text text-anchor="start" x="596.2026" y="-393.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;whitelist: address</text>
+<text text-anchor="start" x="596.2026" y="-393.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;registry: address</text>
 <text text-anchor="start" x="596.2026" y="-376.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;oracle: address</text>
 <text text-anchor="start" x="596.2026" y="-359.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;implementation: address</text>
 <text text-anchor="start" x="596.2026" y="-343.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;version: uint256</text>
@@ -401,15 +401,15 @@
 <text text-anchor="start" x="596.2026" y="-301.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; createStrategy(name: string, symbol: string, routers: address[], tokens: address[], percentages: uint256[], threshold: uint256, slippage: uint256, timelock: uint256)</text>
 <text text-anchor="start" x="596.2026" y="-284.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateImplementation(newImplementation: address)</text>
 <text text-anchor="start" x="596.2026" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateOracle(newOracle: address)</text>
-<text text-anchor="start" x="596.2026" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateWhitelist(newWhitelist: address)</text>
+<text text-anchor="start" x="596.2026" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;updateRegistry(newRegistry: address)</text>
 <text text-anchor="start" x="596.2026" y="-234.3" font-family="Times,serif" font-size="14.00" fill="#000000">Public:</text>
 <text text-anchor="start" x="596.2026" y="-217.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;payable&gt;&gt; upgradeAndCall(proxy: TransparentUpgradeableProxy, data: bytes)</text>
 <text text-anchor="start" x="596.2026" y="-200.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; Update(newImplementation: address, version: uint256)</text>
 <text text-anchor="start" x="596.2026" y="-183.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewOracle(newOracle: address)</text>
-<text text-anchor="start" x="596.2026" y="-167.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewWhitelist(newWhitelist: address)</text>
+<text text-anchor="start" x="596.2026" y="-167.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewRegistry(newRegistry: address)</text>
 <text text-anchor="start" x="596.2026" y="-150.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;event&gt;&gt; NewStrategy(strategy: address, manager: address, name: string, symbol: string, tokens: address[], percentages: uint256[], threshold: uint256, slippage: uint256, timelock: uint256)</text>
 <text text-anchor="start" x="596.2026" y="-133.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;&lt;&lt;modifier&gt;&gt; onlyManager(proxy: address)</text>
-<text text-anchor="start" x="596.2026" y="-116.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(implementation_: address, controller_: address, oracle_: address, whitelist_: address)</text>
+<text text-anchor="start" x="596.2026" y="-116.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;constructor(implementation_: address, controller_: address, oracle_: address, registry_: address)</text>
 <text text-anchor="start" x="596.2026" y="-99.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getProxyImplementation(proxy: TransparentUpgradeableProxy): address</text>
 <text text-anchor="start" x="596.2026" y="-83.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;getProxyAdmin(proxy: TransparentUpgradeableProxy): address</text>
 <text text-anchor="start" x="596.2026" y="-66.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;changeProxyAdmin(proxy: TransparentUpgradeableProxy, newAdmin: address)</text>
@@ -1127,7 +1127,7 @@
 <g id="node41" class="node">
 <title>33</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="3532.0644,-799.5 3532.0644,-941.1 3768.3558,-941.1 3768.3558,-799.5 3532.0644,-799.5"/>
-<text text-anchor="middle" x="3650.2101" y="-924.5" font-family="Times,serif" font-size="14.00" fill="#000000">Whitelist</text>
+<text text-anchor="middle" x="3650.2101" y="-924.5" font-family="Times,serif" font-size="14.00" fill="#000000">Registry</text>
 <polyline fill="none" stroke="#000000" points="3532.0644,-916.3 3768.3558,-916.3 "/>
 <text text-anchor="start" x="3540.0644" y="-899.7" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="3540.0644" y="-882.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_approvals: mapping(address=&gt;bool)</text>

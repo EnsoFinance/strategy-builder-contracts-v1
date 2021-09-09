@@ -8,21 +8,45 @@ export declare type Multicall = {
 };
 export declare type Position = {
     token: string;
-    percentage: BigNumber;
+    percentage?: BigNumber;
+    adapters?: string[];
+    path?: string[];
+    cache?: string;
 };
-export declare class StrategyBuilder {
-    tokens: string[];
-    percentages: BigNumber[];
+export declare type ItemData = {
+    category: BigNumber;
+    cache: string;
+};
+export declare type TradeData = {
     adapters: string[];
-    constructor(positions: Position[], adapter: string);
-}
+    path: string[];
+    cache: string;
+};
+export declare type Item = {
+    item: string;
+    data: ItemData;
+};
+export declare type StrategyItem = {
+    item: string;
+    percentage: BigNumber;
+    data: TradeData;
+};
+export declare type StrategyState = {
+    timelock: BigNumber;
+    rebalanceThreshold: BigNumber;
+    slippage: BigNumber;
+    performanceFee: BigNumber;
+    social: boolean;
+};
+export declare function prepareStrategy(positions: Position[], defaultAdapter: string): StrategyItem[];
 export declare function prepareUniswapSwap(router: Contract, adapter: Contract, factory: Contract, from: string, to: string, amount: BigNumber, tokenIn: Contract, tokenOut: Contract): Promise<Multicall[]>;
 export declare function prepareRebalanceMulticall(strategy: Contract, controller: Contract, router: Contract, adapter: Contract, oracle: Contract, weth: Contract): Promise<Multicall[]>;
-export declare function prepareDepositMulticall(strategy: Contract, controller: Contract, router: Contract, adapter: Contract, weth: Contract, total: BigNumber, tokens: string[], percentages: BigNumber[]): Promise<Multicall[]>;
+export declare function prepareDepositMulticall(strategy: Contract, controller: Contract, router: Contract, adapter: Contract, weth: Contract, total: BigNumber, strategyItems: StrategyItem[]): Promise<Multicall[]>;
 export declare function preparePermit(strategy: Contract, owner: SignerWithAddress, spender: SignerWithAddress, value: BigNumber, deadline: BigNumber): Promise<any>;
-export declare function calculateAddress(strategyFactory: Contract, creator: string, name: string, symbol: string, tokens: string[], percentages: BigNumber[]): Promise<any>;
+export declare function calculateAddress(strategyFactory: Contract, creator: string, name: string, symbol: string): Promise<any>;
 export declare function getExpectedTokenValue(total: BigNumber, token: string, strategy: Contract): Promise<any>;
 export declare function getRebalanceRange(expectedValue: BigNumber, controller: Contract, strategy: Contract): Promise<any>;
+export declare function encodeStrategyItem(position: Position): StrategyItem;
 export declare function encodeSwap(adapter: Contract, amountTokens: BigNumber, minTokens: BigNumber, tokenIn: string, tokenOut: string, accountFrom: string, accountTo: string): Multicall;
 export declare function encodeDelegateSwap(router: Contract, adapter: string, amount: BigNumber, minTokens: BigNumber, tokenIn: string, tokenOut: string, accountFrom: string, accountTo: string): Multicall;
 export declare function encodeUniswapPairSwap(pair: Contract, amount0Out: BigNumber, amount1Out: BigNumber, accountTo: string): Multicall;
@@ -33,5 +57,6 @@ export declare function encodeTransfer(token: Contract, to: string, amount: BigN
 export declare function encodeTransferFrom(token: Contract, from: string, to: string, amount: BigNumber): Multicall;
 export declare function encodeApprove(token: Contract, to: string, amount: BigNumber): Multicall;
 export declare function encodeWethDeposit(weth: Contract, amount: BigNumber): Multicall;
+export declare function encodeWethWithdraw(weth: Contract, amount: BigNumber): Multicall;
 export declare function encodeEthTransfer(to: string, amount: BigNumber): Multicall;
 export declare function encodePath(path: string[], fees: number[]): string;

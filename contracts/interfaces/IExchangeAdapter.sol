@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity >=0.6.0 <0.9.0;
 
 interface IExchangeAdapter {
     function swap(
@@ -8,22 +8,10 @@ interface IExchangeAdapter {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data,
-        bytes memory package
+        address to
     ) external returns (bool);
 
-    function weth() external view returns (address);
-
-    function getPackage() external view returns (bytes memory);
-
     function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view returns (uint256);
-
-    function swapPrice(
         uint256 amount,
         address tokenIn,
         address tokenOut

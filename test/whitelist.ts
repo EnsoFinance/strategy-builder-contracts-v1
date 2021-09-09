@@ -19,7 +19,7 @@ describe('Whitelist', function() {
     expect(await whitelist.approved(accounts[1].address)).to.equal(true)
 	})
 
-  it('Should fail to add to whitelist: already whitelisted', async function() {
+  it('Should fail to add to whitelist: already approved', async function() {
     await expect(whitelist.approve(accounts[1].address)).to.be.revertedWith('Already whitelisted')
   })
 
@@ -36,7 +36,7 @@ describe('Whitelist', function() {
     expect(await whitelist.approved(accounts[1].address)).to.equal(false)
 	})
 
-  it('Should fail to remove from whitelist: not whitelisted', async function() {
+  it('Should fail to remove from whitelist: not approved', async function() {
     await expect(whitelist.revoke(accounts[2].address)).to.be.revertedWith('Not whitelisted')
   })
 })

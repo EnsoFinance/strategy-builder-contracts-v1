@@ -1,12 +1,14 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity 0.7.6;
 
 
 contract StrategyProxyFactoryStorage {
-    address public _owner;
-    address public _controller;
-    address public _whitelist;
-    address public _oracle;
-    address public _implementation;
-    string public _version;
+    address public admin; //Not part of IStrategyProxyFactory, so can be public
+    address public owner; //Not part of IStrategyProxyFactory, so can be public
+    address internal _controller;
+    address internal _whitelist;
+    address internal _oracle;
+    address internal _registry;
+    address internal _implementation;
+    string internal _version;
 }

@@ -3,20 +3,17 @@ const hre = require('hardhat')
 const { ethers } = hre
 const { constants, getSigners } = ethers
 import * as deployer from '../lib/deploy'
-import { StrategyBuilder, Position } from '../lib/encode'
+import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const { WeiPerEther } = constants
 const NUM_TOKENS = 3
-const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
-const SLIPPAGE = 995 // 995/1000 = 99.5%
-const TIMELOCK = 60 // 1 minute
-let WETH: Contract
 
 
 describe('BalancerAdapter', function () {
 	let tokens: Contract[],
+		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		balancerFactory: Contract,
@@ -24,30 +21,29 @@ describe('BalancerAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		whitelist: Contract,
 		router: Contract,
 		balancerAdapter: Contract,
 		uniswapAdapter: Contract,
 		strategy: Contract,
-		strategyTokens: string[],
-		strategyPercentages: BigNumber[],
-		strategyAdapters: string[],
+		strategyItems: StrategyItem[],
 		wrapper: Contract
 
 	it('Setup Balancer, Factory', async function () {
 		accounts = await getSigners()
 		tokens = await deployer.deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200 * (NUM_TOKENS - 1)))
-		WETH = tokens[0]
+		weth = tokens[0]
 		;[balancerFactory, balancerRegistry] = await deployer.deployBalancer(accounts[0], tokens)
 		uniswapFactory = await deployer.deployUniswapV2(accounts[0], tokens)
-		const platform = await deployer.deployPlatform(accounts[0], uniswapFactory, WETH)
+		const platform = await deployer.deployPlatform(accounts[0], uniswapFactory, weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
-		oracle = platform.oracle
-		whitelist = platform.whitelist
-		uniswapAdapter = await deployer.deployUniswapV2Adapter(accounts[0], uniswapFactory, WETH)
-		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, WETH)
-		router = await deployer.deployLoopRouter(accounts[0], controller, balancerAdapter, WETH)
+		oracle = platform.oracles.ensoOracle
+		const whitelist = platform.administration.whitelist
+		uniswapAdapter = await deployer.deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, weth)
+		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
+		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
+		router = await deployer.deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -58,26 +54,24 @@ describe('BalancerAdapter', function () {
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
 			{ token: tokens[2].address, percentage: BigNumber.from(500) },
 		] as Position[];
-		const s = new StrategyBuilder(positions, balancerAdapter.address)
-		strategyTokens = s.tokens
-		strategyAdapters = s.adapters
-		strategyPercentages = s.percentages
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
+		strategyItems = prepareStrategy(positions, balancerAdapter.address)
+		const strategyState: StrategyState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			slippage: BigNumber.from(995),
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
 				accounts[1].address,
 				name,
 				symbol,
-				strategyTokens,
-				strategyPercentages,
-				false,
-				0,
-				REBALANCE_THRESHOLD,
-				SLIPPAGE,
-				TIMELOCK,
+				strategyItems,
+				strategyState,
 				router.address,
-				data,
+				'0x',
 				{ value: BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
@@ -91,7 +85,7 @@ describe('BalancerAdapter', function () {
 		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -103,18 +97,14 @@ describe('BalancerAdapter', function () {
 				tokens[0].address,
 				tokens[0].address,
 				accounts[0].address,
-				accounts[0].address,
-				'0x',
-				'0x'
+				accounts[0].address
 			)
 		).to.be.revertedWith('Tokens cannot match')
 	})
 
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
-		const expected = BigNumber.from(
-			await balancerAdapter.swapPrice(amount, tokens[1].address, tokens[0].address)
-		).add(1)
+		const expected = await balancerAdapter.spotPrice(amount, tokens[1].address, tokens[0].address) //Should fail since spot does not include fees
 		await tokens[1].approve(balancerAdapter.address, amount)
 		await expect(
 			balancerAdapter.swap(
@@ -123,9 +113,7 @@ describe('BalancerAdapter', function () {
 				tokens[1].address,
 				tokens[0].address,
 				accounts[0].address,
-				accounts[0].address,
-				'0x',
-				'0x'
+				accounts[0].address
 			)
 		).to.be.revertedWith('ERR_LIMIT_OUT')
 	})
@@ -141,9 +129,7 @@ describe('BalancerAdapter', function () {
 			tokens[1].address,
 			tokens[0].address,
 			accounts[0].address,
-			accounts[0].address,
-			'0x',
-			'0x'
+			accounts[0].address
 		)
 		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
@@ -162,9 +148,7 @@ describe('BalancerAdapter', function () {
 			tokens[1].address,
 			tokens[0].address,
 			accounts[0].address,
-			accounts[0].address,
-			'0x',
-			'0x'
+			accounts[0].address
 		)
 		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
@@ -173,15 +157,10 @@ describe('BalancerAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
-		const estimates: BigNumber[] = await Promise.all(
-			strategyTokens.map(async (token: string) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -210,9 +189,7 @@ describe('BalancerAdapter', function () {
 			tokens[0].address,
 			tokens[1].address,
 			accounts[0].address,
-			accounts[0].address,
-			'0x',
-			'0x'
+			accounts[0].address
 		)
 		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)

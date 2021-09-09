@@ -18,29 +18,57 @@ export type Multicall = {
 
 export type Position = {
 	token: string
-	percentage: BigNumber
+	percentage?: BigNumber
+	adapters?: string[]
+	path?: string[]
+	cache?: string
 }
-// TODO: make builder pattern
-export class StrategyBuilder {
-	tokens: string[]
-	percentages: BigNumber[]
+
+export type ItemData = {
+	category: BigNumber
+	cache: string
+}
+
+export type TradeData = {
 	adapters: string[]
-	constructor(positions: Position[], adapter: string) {
-		this.tokens = [] as string[]
-		this.percentages = [] as BigNumber[]
-		this.adapters = [] as string[]
+	path: string[]
+	cache: string
+}
+
+export type Item = {
+	item: string
+	data: ItemData
+}
+
+export type StrategyItem = {
+	item: string
+	percentage: BigNumber
+	data: TradeData
+}
+
+export type StrategyState = {
+	timelock: BigNumber
+	rebalanceThreshold: BigNumber
+	slippage: BigNumber
+	performanceFee: BigNumber
+	social: boolean
+}
+
+export function prepareStrategy(positions: Position[], defaultAdapter: string): StrategyItem[]  {
+		const items = [] as StrategyItem[]
 		positions
 			.sort((a, b) => {
-				const aNum = ethers.BigNumber.from(a.token)
-				const bNum = ethers.BigNumber.from(b.token)
-				return aNum.sub(bNum)
+				const aNum = BigNumber.from(a.token)
+				const bNum = BigNumber.from(b.token)
+				return aNum.gt(bNum) ? 1 : -1
 			})
-			.forEach((position) => {
-				this.tokens.push(position.token)
-				this.percentages.push(position.percentage)
-				this.adapters.push(adapter)
+			.forEach((position: Position) => {
+				if (!position.adapters) position.adapters = [defaultAdapter]
+				if (!position.path) position.path = [] // path.length is always 1 less than adapter.length
+				const item = encodeStrategyItem(position)
+				items.push(item)
 			})
-	}
+		return items
 }
 
 export async function prepareUniswapSwap(
@@ -65,7 +93,7 @@ export async function prepareUniswapSwap(
 			calls.push(encodeTransferFrom(tokenIn, from, pairAddress, amount))
 		}
 		//Swap tokens
-		const received = await adapter.swapPrice(amount, tokenIn.address, tokenOut.address)
+		const received = await adapter.spotPrice(amount, tokenIn.address, tokenOut.address)
 		const tokenInNum = ethers.BigNumber.from(tokenIn.address)
 		const tokenOutNum = ethers.BigNumber.from(tokenOut.address)
 		if (tokenInNum.lt(tokenOutNum)) {
@@ -88,7 +116,8 @@ export async function prepareRebalanceMulticall(
 	const calls = []
 	const buyLoop = []
 	const tokens = await strategy.items()
-	const [total, estimates] = await oracle.estimateTotal(strategy.address, tokens)
+	const [total, estimates] = await oracle.estimateStrategy(strategy.address)
+	const slippage = await controller.slippage(strategy.address)
 
 	let wethInStrategy = false
 	// Sell loop
@@ -96,12 +125,11 @@ export async function prepareRebalanceMulticall(
 		const token = await ethers.getContractAt(ERC20.abi, tokens[i])
 		const estimatedValue = ethers.BigNumber.from(estimates[i])
 		const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
-		const rebalanceRange = ethers.BigNumber.from(await getRebalanceRange(expectedValue, controller, strategy))
 		if (token.address.toLowerCase() != weth.address.toLowerCase()) {
-			if (estimatedValue.gt(expectedValue.add(rebalanceRange))) {
+			if (estimatedValue.gt(expectedValue)) {
 				//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 				const diff = await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
-				const expected = await adapter.swapPrice(diff, token.address, weth.address)
+				const expected = estimatedValue.sub(expectedValue).mul(slippage).div(DIVISOR)
 				calls.push(
 					encodeDelegateSwap(
 						router,
@@ -121,7 +149,7 @@ export async function prepareRebalanceMulticall(
 				})
 			}
 		} else {
-			wethInStrategy = true
+			if (expectedValue.gt(0)) wethInStrategy = true
 		}
 	}
 	// Buy loop
@@ -130,6 +158,7 @@ export async function prepareRebalanceMulticall(
 		const estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate)
 		if (token.address.toLowerCase() != weth.address.toLowerCase()) {
 			if (!wethInStrategy && i == buyLoop.length - 1) {
+				//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
 				// The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
 				calls.push(
 					encodeSettleSwap(
@@ -143,13 +172,10 @@ export async function prepareRebalanceMulticall(
 				)
 			} else {
 				const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
-				const rebalanceRange = ethers.BigNumber.from(
-					await getRebalanceRange(expectedValue, controller, strategy)
-				)
-				if (estimatedValue.lt(expectedValue.sub(rebalanceRange))) {
+				if (estimatedValue.lt(expectedValue)) {
 					//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 					const diff = expectedValue.sub(estimatedValue)
-					const expected = await adapter.swapPrice(diff, weth.address, token.address)
+					const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(slippage).div(DIVISOR)
 					calls.push(
 						encodeDelegateSwap(
 							router,
@@ -176,50 +202,60 @@ export async function prepareDepositMulticall(
 	adapter: Contract,
 	weth: Contract,
 	total: BigNumber,
-	tokens: string[],
-	percentages: BigNumber[]
+	strategyItems: StrategyItem[]
 ) {
 	const calls = []
+	const slippage = await controller.slippage(strategy.address)
 	let wethInStrategy = false
-	for (let i = 0; i < tokens.length; i++) {
-		const token = await ethers.getContractAt(ERC20.abi, tokens[i])
+	for (let i = 0; i < strategyItems.length; i++) {
+		//const category = strategyItems[i].category
+		const category = ethers.BigNumber.from(1);
+		if (category.eq(1)) { //BASIC
+			const token = await ethers.getContractAt(ERC20.abi, strategyItems[i].item)
+			const percentage = strategyItems[i].percentage
 
-		if (token.address.toLowerCase() !== weth.address.toLowerCase()) {
-			if (!wethInStrategy && i == tokens.length - 1) {
-				calls.push(
-					encodeSettleSwap(
-						router,
-						adapter.address,
-						weth.address,
-						token.address,
-						controller.address,
-						strategy.address
+			if (token.address.toLowerCase() !== weth.address.toLowerCase()) {
+				if (!wethInStrategy && i == strategyItems.length - 1) {
+					calls.push(
+						encodeSettleSwap(
+							router,
+							adapter.address,
+							weth.address,
+							token.address,
+							strategy.address,
+							strategy.address
+						)
 					)
-				)
+				} else {
+					const amount = BigNumber.from(total).mul(percentage).div(DIVISOR)
+					const expected = BigNumber.from(await adapter.spotPrice(amount, weth.address, token.address)).mul(slippage).div(DIVISOR)
+					//console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
+					calls.push(
+						encodeDelegateSwap(
+							router,
+							adapter.address,
+							amount,
+							expected,
+							weth.address,
+							token.address,
+							strategy.address,
+							strategy.address
+						)
+					)
+				}
 			} else {
-				const amount = BigNumber.from(total).mul(percentages[i]).div(DIVISOR)
-				const expected = await adapter.swapPrice(amount, weth.address, token.address)
-				//console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
-				calls.push(
-					encodeDelegateSwap(
-						router,
-						adapter.address,
-						amount,
-						expected,
-						weth.address,
-						token.address,
-						controller.address,
-						strategy.address
-					)
-				)
+				if (percentage.gt(0)) wethInStrategy = true
 			}
-		} else {
-			wethInStrategy = true
+		}
+		if (category.eq(2)) { //STRATEGY
+			// TODO: Lookup strategy items + item data, then call prepareDepositMulticall
 		}
 	}
+	/*
 	if (wethInStrategy) {
 		calls.push(encodeSettleTransferFrom(router, weth.address, controller.address, strategy.address))
 	}
+	*/
 	return calls
 }
 
@@ -269,51 +305,52 @@ export async function preparePermit(
 	}
 
 	if (owner.provider === undefined) return Error('Signer isnt connected to the network')
-	return ethers.utils.splitSignature(await ethers.provider.send('eth_signTypedData', [owner.address, typedData]))
+	return ethers.utils.splitSignature(await ethers.provider.send('eth_signTypedData_v4', [owner.address, typedData]))
 }
 
 export async function calculateAddress(
 	strategyFactory: Contract,
 	creator: string,
 	name: string,
-	symbol: string,
-	tokens: string[],
-	percentages: BigNumber[]
+	symbol: string
 ) {
-	const [salt, implementation, version, controller] = await Promise.all([
+	const [salt, implementation, admin] = await Promise.all([
 		strategyFactory.salt(creator, name, symbol),
 		strategyFactory.implementation(),
-		strategyFactory.version(),
-		strategyFactory.controller(),
+		strategyFactory.admin()
 	])
-
 	const Proxy = await getContractFactory('TransparentUpgradeableProxy')
-	const Strategy = await getContractFactory('Strategy')
 
 	const deployTx = Proxy.getDeployTransaction(
 		implementation,
-		strategyFactory.address,
-		Strategy.interface.encodeFunctionData('initialize', [
-			name,
-			symbol,
-			version,
-			controller,
-			creator,
-			tokens,
-			percentages,
-		])
+		admin,
+		'0x'
 	)
 	return ethers.utils.getCreate2Address(strategyFactory.address, salt, ethers.utils.keccak256(deployTx.data))
 }
 
 export async function getExpectedTokenValue(total: BigNumber, token: string, strategy: Contract) {
-	const percentage = await strategy.percentage(token)
+	const percentage = await strategy.getPercentage(token)
 	return ethers.BigNumber.from(total).mul(percentage).div(DIVISOR)
 }
 
 export async function getRebalanceRange(expectedValue: BigNumber, controller: Contract, strategy: Contract) {
 	const threshold = await controller.rebalanceThreshold(strategy.address)
 	return ethers.BigNumber.from(expectedValue).mul(threshold).div(DIVISOR)
+}
+
+export function encodeStrategyItem(position: Position): StrategyItem {
+	const data: TradeData = {
+		adapters: position.adapters || [],
+		path: position.path || [],
+		cache: position.cache || '0x',
+	}
+  const item = {
+    item: position.token,
+		percentage: position.percentage || BigNumber.from(0),
+		data: data
+  }
+  return item
 }
 
 export function encodeSwap(
@@ -331,9 +368,7 @@ export function encodeSwap(
 		tokenIn,
 		tokenOut,
 		accountFrom,
-		accountTo,
-		'0x',
-		'0x',
+		accountTo
 	])
 	const msgValue = tokenIn === AddressZero ? amountTokens : BigNumber.from(0)
 	return { target: adapter.address, callData: swapEncoded, value: msgValue }
@@ -356,8 +391,7 @@ export function encodeDelegateSwap(
 		tokenIn,
 		tokenOut,
 		accountFrom,
-		accountTo,
-		'0x',
+		accountTo
 	])
 	return { target: router.address, callData: delegateSwapEncoded, value: BigNumber.from(0) }
 }
@@ -385,8 +419,7 @@ export function encodeSettleSwap(
 		tokenIn,
 		tokenOut,
 		accountFrom,
-		accountTo,
-		'0x',
+		accountTo
 	])
 	return { target: router.address, callData: settleSwapEncoded, value: BigNumber.from(0) }
 }
@@ -430,6 +463,11 @@ export function encodeWethDeposit(weth: Contract, amount: BigNumber): Multicall 
 	return { target: weth.address, callData: depositEncoded, value: amount }
 }
 
+export function encodeWethWithdraw(weth: Contract, amount: BigNumber): Multicall {
+	const withdrawEncoded = weth.interface.encodeFunctionData('withdraw', [amount])
+	return { target: weth.address, callData: withdrawEncoded, value: BigNumber.from(0) }
+}
+
 export function encodeEthTransfer(to: string, amount: BigNumber): Multicall {
 	return { target: to, callData: '0x0', value: amount }
 }
@@ -438,7 +476,7 @@ export function encodePath(path: string[], fees: number[]) {
 	if (path.length != fees.length + 1) {
 	  throw new Error('path/fee lengths do not match')
 	}
-  
+
 	let encoded = '0x'
 	for (let i = 0; i < fees.length; i++) {
 	  // 20 byte encoding of the address
@@ -448,6 +486,6 @@ export function encodePath(path: string[], fees: number[]) {
 	}
 	// encode the final token
 	encoded += path[path.length - 1].slice(2)
-  
+
 	return encoded.toLowerCase()
   }

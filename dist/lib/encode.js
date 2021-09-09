@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.encodePath = exports.encodeEthTransfer = exports.encodeWethDeposit = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransferFrom = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeUniswapPairSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.getRebalanceRange = exports.getExpectedTokenValue = exports.calculateAddress = exports.preparePermit = exports.prepareDepositMulticall = exports.prepareRebalanceMulticall = exports.prepareUniswapSwap = exports.StrategyBuilder = exports.FEE_SIZE = void 0;
+exports.encodePath = exports.encodeEthTransfer = exports.encodeWethWithdraw = exports.encodeWethDeposit = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransferFrom = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeUniswapPairSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.getRebalanceRange = exports.getExpectedTokenValue = exports.calculateAddress = exports.preparePermit = exports.prepareDepositMulticall = exports.prepareRebalanceMulticall = exports.prepareUniswapSwap = exports.prepareStrategy = exports.FEE_SIZE = void 0;
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
 var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
@@ -49,28 +49,25 @@ var ethers = hre.ethers;
 var constants = ethers.constants, getContractFactory = ethers.getContractFactory;
 var AddressZero = constants.AddressZero;
 exports.FEE_SIZE = 3;
-// TODO: make builder pattern
-var StrategyBuilder = /** @class */ (function () {
-    function StrategyBuilder(positions, adapter) {
-        var _this = this;
-        this.tokens = [];
-        this.percentages = [];
-        this.adapters = [];
-        positions
-            .sort(function (a, b) {
-            var aNum = ethers.BigNumber.from(a.token);
-            var bNum = ethers.BigNumber.from(b.token);
-            return aNum.sub(bNum);
-        })
-            .forEach(function (position) {
-            _this.tokens.push(position.token);
-            _this.percentages.push(position.percentage);
-            _this.adapters.push(adapter);
-        });
-    }
-    return StrategyBuilder;
-}());
-exports.StrategyBuilder = StrategyBuilder;
+function prepareStrategy(positions, defaultAdapter) {
+    var items = [];
+    positions
+        .sort(function (a, b) {
+        var aNum = ethers_1.BigNumber.from(a.token);
+        var bNum = ethers_1.BigNumber.from(b.token);
+        return aNum.gt(bNum) ? 1 : -1;
+    })
+        .forEach(function (position) {
+        if (!position.adapters)
+            position.adapters = [defaultAdapter];
+        if (!position.path)
+            position.path = []; // path.length is always 1 less than adapter.length
+        var item = encodeStrategyItem(position);
+        items.push(item);
+    });
+    return items;
+}
+exports.prepareStrategy = prepareStrategy;
 function prepareUniswapSwap(router, adapter, factory, from, to, amount, tokenIn, tokenOut) {
     return __awaiter(this, void 0, void 0, function () {
         var calls, pairAddress, pair, received, tokenInNum, tokenOutNum;
@@ -94,7 +91,7 @@ function prepareUniswapSwap(router, adapter, factory, from, to, amount, tokenIn,
                     else {
                         calls.push(encodeTransferFrom(tokenIn, from, pairAddress, amount));
                     }
-                    return [4 /*yield*/, adapter.swapPrice(amount, tokenIn.address, tokenOut.address)];
+                    return [4 /*yield*/, adapter.spotPrice(amount, tokenIn.address, tokenOut.address)];
                 case 3:
                     received = _a.sent();
                     tokenInNum = ethers.BigNumber.from(tokenIn.address);
@@ -114,138 +111,147 @@ function prepareUniswapSwap(router, adapter, factory, from, to, amount, tokenIn,
 exports.prepareUniswapSwap = prepareUniswapSwap;
 function prepareRebalanceMulticall(strategy, controller, router, adapter, oracle, weth) {
     return __awaiter(this, void 0, void 0, function () {
-        var calls, buyLoop, tokens, _a, total, estimates, wethInStrategy, i, token, estimatedValue, expectedValue, _b, _c, rebalanceRange, _d, _e, diff, expected, i, token, estimatedValue, expectedValue, _f, _g, rebalanceRange, _h, _j, diff, expected;
-        return __generator(this, function (_k) {
-            switch (_k.label) {
+        var calls, buyLoop, tokens, _a, total, estimates, slippage, wethInStrategy, i, token, estimatedValue, expectedValue, _b, _c, diff, expected, i, token, estimatedValue, expectedValue, _d, _e, diff, expected, _f, _g;
+        return __generator(this, function (_h) {
+            switch (_h.label) {
                 case 0:
                     calls = [];
                     buyLoop = [];
                     return [4 /*yield*/, strategy.items()];
                 case 1:
-                    tokens = _k.sent();
-                    return [4 /*yield*/, oracle.estimateTotal(strategy.address, tokens)];
+                    tokens = _h.sent();
+                    return [4 /*yield*/, oracle.estimateStrategy(strategy.address)];
                 case 2:
-                    _a = _k.sent(), total = _a[0], estimates = _a[1];
+                    _a = _h.sent(), total = _a[0], estimates = _a[1];
+                    return [4 /*yield*/, controller.slippage(strategy.address)];
+                case 3:
+                    slippage = _h.sent();
                     wethInStrategy = false;
                     i = 0;
-                    _k.label = 3;
-                case 3:
-                    if (!(i < tokens.length)) return [3 /*break*/, 13];
-                    return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, tokens[i])];
+                    _h.label = 4;
                 case 4:
-                    token = _k.sent();
+                    if (!(i < tokens.length)) return [3 /*break*/, 12];
+                    return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, tokens[i])];
+                case 5:
+                    token = _h.sent();
                     estimatedValue = ethers.BigNumber.from(estimates[i]);
                     _c = (_b = ethers.BigNumber).from;
                     return [4 /*yield*/, getExpectedTokenValue(total, token.address, strategy)];
-                case 5:
-                    expectedValue = _c.apply(_b, [_k.sent()]);
-                    _e = (_d = ethers.BigNumber).from;
-                    return [4 /*yield*/, getRebalanceRange(expectedValue, controller, strategy)];
                 case 6:
-                    rebalanceRange = _e.apply(_d, [_k.sent()]);
-                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 11];
-                    if (!estimatedValue.gt(expectedValue.add(rebalanceRange))) return [3 /*break*/, 9];
+                    expectedValue = _c.apply(_b, [_h.sent()]);
+                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 10];
+                    if (!estimatedValue.gt(expectedValue)) return [3 /*break*/, 8];
                     return [4 /*yield*/, adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)];
                 case 7:
-                    diff = _k.sent();
-                    return [4 /*yield*/, adapter.swapPrice(diff, token.address, weth.address)];
-                case 8:
-                    expected = _k.sent();
+                    diff = _h.sent();
+                    expected = estimatedValue.sub(expectedValue).mul(slippage).div(utils_1.DIVISOR);
                     calls.push(encodeDelegateSwap(router, adapter.address, diff, expected, token.address, weth.address, strategy.address, strategy.address));
-                    return [3 /*break*/, 10];
-                case 9:
+                    return [3 /*break*/, 9];
+                case 8:
                     buyLoop.push({
                         token: tokens[i],
                         estimate: estimates[i],
                     });
-                    _k.label = 10;
-                case 10: return [3 /*break*/, 12];
+                    _h.label = 9;
+                case 9: return [3 /*break*/, 11];
+                case 10:
+                    if (expectedValue.gt(0))
+                        wethInStrategy = true;
+                    _h.label = 11;
                 case 11:
-                    wethInStrategy = true;
-                    _k.label = 12;
-                case 12:
                     i++;
-                    return [3 /*break*/, 3];
-                case 13:
+                    return [3 /*break*/, 4];
+                case 12:
                     i = 0;
-                    _k.label = 14;
-                case 14:
-                    if (!(i < buyLoop.length)) return [3 /*break*/, 21];
+                    _h.label = 13;
+                case 13:
+                    if (!(i < buyLoop.length)) return [3 /*break*/, 19];
                     return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, buyLoop[i].token)];
-                case 15:
-                    token = _k.sent();
+                case 14:
+                    token = _h.sent();
                     estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate);
-                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 20];
-                    if (!(!wethInStrategy && i == buyLoop.length - 1)) return [3 /*break*/, 16];
+                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 18];
+                    if (!(!wethInStrategy && i == buyLoop.length - 1)) return [3 /*break*/, 15];
+                    //console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
                     // The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
                     calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, strategy.address, strategy.address));
-                    return [3 /*break*/, 20];
-                case 16:
-                    _g = (_f = ethers.BigNumber).from;
+                    return [3 /*break*/, 18];
+                case 15:
+                    _e = (_d = ethers.BigNumber).from;
                     return [4 /*yield*/, getExpectedTokenValue(total, token.address, strategy)];
-                case 17:
-                    expectedValue = _g.apply(_f, [_k.sent()]);
-                    _j = (_h = ethers.BigNumber).from;
-                    return [4 /*yield*/, getRebalanceRange(expectedValue, controller, strategy)];
-                case 18:
-                    rebalanceRange = _j.apply(_h, [_k.sent()]);
-                    if (!estimatedValue.lt(expectedValue.sub(rebalanceRange))) return [3 /*break*/, 20];
+                case 16:
+                    expectedValue = _e.apply(_d, [_h.sent()]);
+                    if (!estimatedValue.lt(expectedValue)) return [3 /*break*/, 18];
                     diff = expectedValue.sub(estimatedValue);
-                    return [4 /*yield*/, adapter.swapPrice(diff, weth.address, token.address)];
-                case 19:
-                    expected = _k.sent();
+                    _g = (_f = ethers_1.BigNumber).from;
+                    return [4 /*yield*/, adapter.spotPrice(diff, weth.address, token.address)];
+                case 17:
+                    expected = _g.apply(_f, [_h.sent()]).mul(slippage).div(utils_1.DIVISOR);
                     calls.push(encodeDelegateSwap(router, adapter.address, diff, expected, weth.address, token.address, strategy.address, strategy.address));
-                    _k.label = 20;
-                case 20:
+                    _h.label = 18;
+                case 18:
                     i++;
-                    return [3 /*break*/, 14];
-                case 21: return [2 /*return*/, calls];
+                    return [3 /*break*/, 13];
+                case 19: return [2 /*return*/, calls];
             }
         });
     });
 }
 exports.prepareRebalanceMulticall = prepareRebalanceMulticall;
-function prepareDepositMulticall(strategy, controller, router, adapter, weth, total, tokens, percentages) {
+function prepareDepositMulticall(strategy, controller, router, adapter, weth, total, strategyItems) {
     return __awaiter(this, void 0, void 0, function () {
-        var calls, wethInStrategy, i, token, amount, expected;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var calls, slippage, wethInStrategy, i, category, token, percentage, amount, expected, _a, _b;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0:
                     calls = [];
+                    return [4 /*yield*/, controller.slippage(strategy.address)];
+                case 1:
+                    slippage = _c.sent();
                     wethInStrategy = false;
                     i = 0;
-                    _a.label = 1;
-                case 1:
-                    if (!(i < tokens.length)) return [3 /*break*/, 8];
-                    return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, tokens[i])];
+                    _c.label = 2;
                 case 2:
-                    token = _a.sent();
-                    if (!(token.address.toLowerCase() !== weth.address.toLowerCase())) return [3 /*break*/, 6];
-                    if (!(!wethInStrategy && i == tokens.length - 1)) return [3 /*break*/, 3];
-                    calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, controller.address, strategy.address));
-                    return [3 /*break*/, 5];
+                    if (!(i < strategyItems.length)) return [3 /*break*/, 10];
+                    category = ethers.BigNumber.from(1);
+                    if (!category.eq(1)) return [3 /*break*/, 8];
+                    return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, strategyItems[i].item)];
                 case 3:
-                    amount = ethers_1.BigNumber.from(total).mul(percentages[i]).div(utils_1.DIVISOR);
-                    return [4 /*yield*/, adapter.swapPrice(amount, weth.address, token.address)
-                        //console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
-                    ];
+                    token = _c.sent();
+                    percentage = strategyItems[i].percentage;
+                    if (!(token.address.toLowerCase() !== weth.address.toLowerCase())) return [3 /*break*/, 7];
+                    if (!(!wethInStrategy && i == strategyItems.length - 1)) return [3 /*break*/, 4];
+                    calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, strategy.address, strategy.address));
+                    return [3 /*break*/, 6];
                 case 4:
-                    expected = _a.sent();
+                    amount = ethers_1.BigNumber.from(total).mul(percentage).div(utils_1.DIVISOR);
+                    _b = (_a = ethers_1.BigNumber).from;
+                    return [4 /*yield*/, adapter.spotPrice(amount, weth.address, token.address)];
+                case 5:
+                    expected = _b.apply(_a, [_c.sent()]).mul(slippage).div(utils_1.DIVISOR);
                     //console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
-                    calls.push(encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, controller.address, strategy.address));
-                    _a.label = 5;
-                case 5: return [3 /*break*/, 7];
-                case 6:
-                    wethInStrategy = true;
-                    _a.label = 7;
+                    calls.push(encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, strategy.address, strategy.address));
+                    _c.label = 6;
+                case 6: return [3 /*break*/, 8];
                 case 7:
-                    i++;
-                    return [3 /*break*/, 1];
+                    if (percentage.gt(0))
+                        wethInStrategy = true;
+                    _c.label = 8;
                 case 8:
-                    if (wethInStrategy) {
-                        calls.push(encodeSettleTransferFrom(router, weth.address, controller.address, strategy.address));
+                    if (category.eq(2)) { //STRATEGY
+                        // TODO: Lookup strategy items + item data, then call prepareDepositMulticall
                     }
-                    return [2 /*return*/, calls];
+                    _c.label = 9;
+                case 9:
+                    i++;
+                    return [3 /*break*/, 2];
+                case 10: 
+                /*
+                if (wethInStrategy) {
+                    calls.push(encodeSettleTransferFrom(router, weth.address, controller.address, strategy.address))
+                }
+                */
+                return [2 /*return*/, calls];
             }
         });
     });
@@ -298,41 +304,29 @@ function preparePermit(strategy, owner, spender, value, deadline) {
                     if (owner.provider === undefined)
                         return [2 /*return*/, Error('Signer isnt connected to the network')];
                     _c = (_b = ethers.utils).splitSignature;
-                    return [4 /*yield*/, ethers.provider.send('eth_signTypedData', [owner.address, typedData])];
+                    return [4 /*yield*/, ethers.provider.send('eth_signTypedData_v4', [owner.address, typedData])];
                 case 2: return [2 /*return*/, _c.apply(_b, [_d.sent()])];
             }
         });
     });
 }
 exports.preparePermit = preparePermit;
-function calculateAddress(strategyFactory, creator, name, symbol, tokens, percentages) {
+function calculateAddress(strategyFactory, creator, name, symbol) {
     return __awaiter(this, void 0, void 0, function () {
-        var _a, salt, implementation, version, controller, Proxy, Strategy, deployTx;
+        var _a, salt, implementation, admin, Proxy, deployTx;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0: return [4 /*yield*/, Promise.all([
                         strategyFactory.salt(creator, name, symbol),
                         strategyFactory.implementation(),
-                        strategyFactory.version(),
-                        strategyFactory.controller(),
+                        strategyFactory.admin()
                     ])];
                 case 1:
-                    _a = _b.sent(), salt = _a[0], implementation = _a[1], version = _a[2], controller = _a[3];
+                    _a = _b.sent(), salt = _a[0], implementation = _a[1], admin = _a[2];
                     return [4 /*yield*/, getContractFactory('TransparentUpgradeableProxy')];
                 case 2:
                     Proxy = _b.sent();
-                    return [4 /*yield*/, getContractFactory('Strategy')];
-                case 3:
-                    Strategy = _b.sent();
-                    deployTx = Proxy.getDeployTransaction(implementation, strategyFactory.address, Strategy.interface.encodeFunctionData('initialize', [
-                        name,
-                        symbol,
-                        version,
-                        controller,
-                        creator,
-                        tokens,
-                        percentages,
-                    ]));
+                    deployTx = Proxy.getDeployTransaction(implementation, admin, '0x');
                     return [2 /*return*/, ethers.utils.getCreate2Address(strategyFactory.address, salt, ethers.utils.keccak256(deployTx.data))];
             }
         });
@@ -344,7 +338,7 @@ function getExpectedTokenValue(total, token, strategy) {
         var percentage;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, strategy.percentage(token)];
+                case 0: return [4 /*yield*/, strategy.getPercentage(token)];
                 case 1:
                     percentage = _a.sent();
                     return [2 /*return*/, ethers.BigNumber.from(total).mul(percentage).div(utils_1.DIVISOR)];
@@ -367,6 +361,20 @@ function getRebalanceRange(expectedValue, controller, strategy) {
     });
 }
 exports.getRebalanceRange = getRebalanceRange;
+function encodeStrategyItem(position) {
+    var data = {
+        adapters: position.adapters || [],
+        path: position.path || [],
+        cache: position.cache || '0x',
+    };
+    var item = {
+        item: position.token,
+        percentage: position.percentage || ethers_1.BigNumber.from(0),
+        data: data
+    };
+    return item;
+}
+exports.encodeStrategyItem = encodeStrategyItem;
 function encodeSwap(adapter, amountTokens, minTokens, tokenIn, tokenOut, accountFrom, accountTo) {
     var swapEncoded = adapter.interface.encodeFunctionData('swap', [
         amountTokens,
@@ -374,9 +382,7 @@ function encodeSwap(adapter, amountTokens, minTokens, tokenIn, tokenOut, account
         tokenIn,
         tokenOut,
         accountFrom,
-        accountTo,
-        '0x',
-        '0x',
+        accountTo
     ]);
     var msgValue = tokenIn === AddressZero ? amountTokens : ethers_1.BigNumber.from(0);
     return { target: adapter.address, callData: swapEncoded, value: msgValue };
@@ -390,8 +396,7 @@ function encodeDelegateSwap(router, adapter, amount, minTokens, tokenIn, tokenOu
         tokenIn,
         tokenOut,
         accountFrom,
-        accountTo,
-        '0x',
+        accountTo
     ]);
     return { target: router.address, callData: delegateSwapEncoded, value: ethers_1.BigNumber.from(0) };
 }
@@ -407,8 +412,7 @@ function encodeSettleSwap(router, adapter, tokenIn, tokenOut, accountFrom, accou
         tokenIn,
         tokenOut,
         accountFrom,
-        accountTo,
-        '0x',
+        accountTo
     ]);
     return { target: router.address, callData: settleSwapEncoded, value: ethers_1.BigNumber.from(0) };
 }
@@ -447,6 +451,11 @@ function encodeWethDeposit(weth, amount) {
     return { target: weth.address, callData: depositEncoded, value: amount };
 }
 exports.encodeWethDeposit = encodeWethDeposit;
+function encodeWethWithdraw(weth, amount) {
+    var withdrawEncoded = weth.interface.encodeFunctionData('withdraw', [amount]);
+    return { target: weth.address, callData: withdrawEncoded, value: ethers_1.BigNumber.from(0) };
+}
+exports.encodeWethWithdraw = encodeWethWithdraw;
 function encodeEthTransfer(to, amount) {
     return { target: to, callData: '0x0', value: amount };
 }

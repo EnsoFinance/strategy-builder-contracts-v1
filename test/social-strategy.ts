@@ -4,7 +4,7 @@ const chai = require('chai')
 chai.use(solidity)
 const hre = require('hardhat')
 const { ethers } = hre
-import { StrategyBuilder } from '../lib/encode'
+import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { increaseTime, TIMELOCK_CATEGORY } from '../lib/utils'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -13,13 +13,18 @@ const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther } = constants
 
 const NUM_TOKENS = 15
-const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
-const SLIPPAGE = 995 // 995/1000 = 99.5%
-const TIMELOCK = 60 // 1 minute
-let WETH: Contract
+const STRATEGY_STATE: StrategyState = {
+	timelock: BigNumber.from(60),
+	rebalanceThreshold: BigNumber.from(10),
+	slippage: BigNumber.from(995),
+	performanceFee: BigNumber.from(50),
+	social: true
+}
+
 
 describe('StrategyController - Social', function () {
 	let tokens: Contract[],
+		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
@@ -29,21 +34,22 @@ describe('StrategyController - Social', function () {
 		whitelist: Contract,
 		adapter: Contract,
 		strategy: Contract,
-		strategyTokens: string[],
-		strategyPercentages: BigNumber[],
-		strategyAdapters: string[],
+		strategyItems: StrategyItem[],
 		wrapper: Contract
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
-		WETH = tokens[0]
+		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-
-		const p = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[strategyFactory, controller, oracle, whitelist] = [p.strategyFactory, p.controller, p.oracle, p.whitelist]
-		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, WETH)
-		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		controller = platform.controller
+		strategyFactory = platform.strategyFactory
+		oracle = platform.oracles.ensoOracle
+		whitelist = platform.administration.whitelist
+		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+		await whitelist.connect(accounts[0]).approve(adapter.address)
+		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -54,23 +60,16 @@ describe('StrategyController - Social', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(200) },
 			{ token: tokens[3].address, percentage: BigNumber.from(200) },
 		]
+		strategyItems = prepareStrategy(positions, adapter.address)
 
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters];
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
 			accounts[1].address,
 			'Test Strategy',
 			'TEST',
-			strategyTokens,
-			strategyPercentages,
-			true,
-			50, // 5% fee
-			REBALANCE_THRESHOLD,
-			SLIPPAGE,
-			TIMELOCK,
+			strategyItems,
+			STRATEGY_STATE,
 			router.address,
-			data,
+			'0x',
 			{ value: ethers.BigNumber.from('10000000000000000') }
 		)
 		let receipt = await tx.wait()
@@ -84,7 +83,7 @@ describe('StrategyController - Social', function () {
 		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
@@ -98,41 +97,35 @@ describe('StrategyController - Social', function () {
 	it('Should purchase tokens, requiring a rebalance', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(50)
-		await WETH.connect(accounts[2]).deposit({ value: value.mul(2) })
-		await WETH.connect(accounts[2]).approve(adapter.address, value.mul(2))
+		await weth.connect(accounts[2]).deposit({ value: value.mul(2) })
+		await weth.connect(accounts[2]).approve(adapter.address, value.mul(2))
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, WETH.address, tokens[1].address, accounts[2].address, accounts[2].address, [], [])
+			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, WETH.address, tokens[2].address, accounts[2].address, accounts[2].address, [], [])
-		//await displayBalances(wrapper, strategyTokens, WETH)
+			.swap(value, 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should rebalance strategy', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
 	it('Should deposit more', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[2].address)
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
-		const tx = await controller
+		const tx = await strategy
 			.connect(accounts[2])
-			.deposit(strategy.address, router.address, data, { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(0, router.address, '0x', { value: ethers.BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[2].address)
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
@@ -154,7 +147,7 @@ describe('StrategyController - Social', function () {
 		const amount = BigNumber.from('10000000000000')
 		const supplyBefore = BigNumber.from((await strategy.totalSupply()).toString())
 		const tokenBalanceBefore = BigNumber.from((await tokens[1].balanceOf(strategy.address)).toString())
-		const tx = await strategy.connect(accounts[1]).withdraw(amount)
+		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const supplyAfter = BigNumber.from((await strategy.totalSupply()).toString())
@@ -176,9 +169,8 @@ describe('StrategyController - Social', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(400) },
 		]
 
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
-		await controller.connect(accounts[1]).restructure(strategy.address, strategyTokens, strategyPercentages)
+		strategyItems = prepareStrategy(positions, adapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
 	it('Should fail to restructure: time lock active', async function () {
@@ -194,48 +186,38 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should fail to finalize structure: time lock not passed', async function () {
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
-
 		await expect(
 			controller
 				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, sellAdapters, strategyAdapters)
+				.finalizeStructure(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Timelock active')
 	})
 
 	it('Should finalize structure', async function () {
-		await increaseTime(TIMELOCK)
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
+		await increaseTime(STRATEGY_STATE.timelock.toNumber())
 
 		await controller
 			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, sellAdapters, strategyAdapters)
-		//await displayBalances(wrapper, strategyTokens, WETH)
+			.finalizeStructure(strategy.address, router.address, '0x')
+		//await displayBalances(wrapper, strategyItems, weth)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
 		const value = WeiPerEther.mul(100)
-		await WETH.connect(accounts[2]).deposit({ value: value })
-		await WETH.connect(accounts[2]).approve(adapter.address, value)
+		await weth.connect(accounts[2]).deposit({ value: value })
+		await weth.connect(accounts[2]).approve(adapter.address, value)
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, WETH.address, tokens[2].address, accounts[2].address, accounts[2].address, [], [])
-		//await displayBalances(wrapper, strategyTokens, WETH)
+			.swap(value, 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should rebalance strategy', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 

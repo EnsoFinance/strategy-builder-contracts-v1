@@ -8,19 +8,15 @@ import { solidity } from 'ethereum-waffle'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract, Event } from 'ethers'
-import { Position, preparePermit, StrategyBuilder } from '../lib/encode'
+import { preparePermit, prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 
 const NUM_TOKENS = 15
-const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
-const SLIPPAGE = 995 // 995/1000 = 99.5%
-const TIMELOCK = 60 // 1 minute
-
-let WETH: Contract
 
 chai.use(solidity)
 describe('StrategyToken', function () {
 	let tokens: Contract[],
+		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		strategyFactory: Contract,
@@ -30,31 +26,28 @@ describe('StrategyToken', function () {
 		oracle: Contract,
 		adapter: Contract,
 		strategy: Contract,
-		strategyTokens: string[],
-		strategyPercentages: BigNumber[],
-		strategyAdapters: string[],
+		strategyItems: StrategyItem[],
 		amount: BigNumber,
 		total: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
-		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
-		WETH = tokens[0]
-		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[strategyFactory, controller, oracle, whitelist] = [
-			platform.strategyFactory,
-			platform.controller,
-			platform.oracle,
-			platform.whitelist,
-		]
-		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, WETH)
-		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
-		await whitelist.connect(accounts[0]).approve(router.address)
-		const LockableStrategy = await getContractFactory('LockableStrategy')
-		const strategyImplementation = await LockableStrategy.connect(accounts[0]).deploy()
+		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
+		weth = tokens[0]
+		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
+		const platform = await deployPlatform(accounts[10], uniswapFactory, weth)
+		controller = platform.controller
+		strategyFactory = platform.strategyFactory
+		oracle = platform.oracles.ensoOracle
+		whitelist = platform.administration.whitelist
+		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
+		await whitelist.connect(accounts[10]).approve(adapter.address)
+		router = await deployLoopRouter(accounts[10], controller)
+		await whitelist.connect(accounts[10]).approve(router.address)
+		const Strategy = await getContractFactory('Strategy')
+		const strategyImplementation = await Strategy.connect(accounts[10]).deploy()
 		await strategyImplementation.deployed()
-		await strategyFactory.updateImplementation(strategyImplementation.address, '2')
+		await strategyFactory.connect(accounts[10]).updateImplementation(strategyImplementation.address, '2')
 	})
 
 	it('Should deploy strategy', async function () {
@@ -74,11 +67,15 @@ describe('StrategyToken', function () {
 			{ token: tokens[13].address, percentage: BigNumber.from(50) },
 			{ token: tokens[14].address, percentage: BigNumber.from(50) },
 		]
-		const s = new StrategyBuilder(positions, adapter.address)
-		strategyTokens = s.tokens
-		strategyPercentages = s.percentages
-		strategyAdapters = s.adapters
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: StrategyState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			slippage: BigNumber.from(995),
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
+
 		amount = BigNumber.from('10000000000000000')
 		let tx = await strategyFactory
 			.connect(accounts[1])
@@ -86,48 +83,21 @@ describe('StrategyToken', function () {
 				accounts[1].address,
 				'Test Strategy',
 				'TEST',
-				strategyTokens,
-				strategyPercentages,
-				false,
-				0,
-				REBALANCE_THRESHOLD,
-				SLIPPAGE,
-				TIMELOCK,
+				strategyItems,
+				strategyState,
 				router.address,
-				data,
+				'0x',
 				{ value: amount }
 			)
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const LockableStrategy = await getContractFactory('LockableStrategy')
-		strategy = LockableStrategy.attach(strategyAddress)
-		;[total] = await oracle.estimateTotal(strategy.address, await strategy.items())
+		const Strategy = await getContractFactory('Strategy')
+		strategy = Strategy.attach(strategyAddress)
+		;[total] = await oracle.estimateStrategy(strategy.address)
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
-	})
-
-	it('Should fail to verify structure: 0 address', async function () {
-		const failTokens = [AddressZero, tokens[1].address]
-		const failPercentages = [500, 500]
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('Invalid item addr')
-	})
-
-	it('Should fail to verify structure: out of order', async function () {
-		const failTokens = [tokens[1].address, AddressZero]
-		const failPercentages = [500, 500]
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('Item ordering')
-	})
-
-	it('Should fail to verify structure: no percentage', async function () {
-		const positions = [
-			{ token: tokens[1].address, percentage: BigNumber.from(1000) },
-			{ token: tokens[2].address, percentage: BigNumber.from(0) },
-		]
-		const s = new StrategyBuilder(positions, adapter.address)
-		const [failTokens, failPercentages] = [s.tokens, s.percentages]
-		await expect(strategy.verifyStructure(failTokens, failPercentages)).to.be.revertedWith('0 percentage provided')
 	})
 
 	it('Should get name', async function () {
@@ -259,7 +229,7 @@ describe('StrategyToken', function () {
 		}
 		//Spender tries to sign transaction instead of owner
 		const { v, r, s } = ethers.utils.splitSignature(
-			await ethers.provider.send('eth_signTypedData', [spender.address, typedData])
+			await ethers.provider.send('eth_signTypedData_v4', [spender.address, typedData])
 		)
 
 		await expect(
@@ -294,18 +264,18 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to withdraw: no strategy tokens', async function () {
-		await expect(strategy.connect(accounts[0]).withdraw(1)).to.be.revertedWith('Amount exceeds balance')
+		await expect(strategy.connect(accounts[0]).withdrawAll(1)).to.be.revertedWith('Amount exceeds balance')
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
-		await expect(strategy.connect(accounts[1]).withdraw(0)).to.be.revertedWith('0 amount')
+		await expect(strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
 	})
 
 	it('Should withdraw', async function () {
 		amount = BigNumber.from('10000000000000')
 		const supplyBefore = BigNumJs((await strategy.totalSupply()).toString())
 		const tokenBalanceBefore = BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
-		const tx = await strategy.connect(accounts[1]).withdraw(amount)
+		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const supplyAfter = BigNumJs((await strategy.totalSupply()).toString())

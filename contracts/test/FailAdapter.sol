@@ -2,37 +2,36 @@
 pragma solidity 0.6.12;
 
 import "../adapters/ExchangeAdapter.sol";
-import "hardhat/console.sol";
 
-contract FailAdapter is ExchangeAdapter {
-
-    constructor(address weth_) public ExchangeAdapter(weth_) {
-        _package = abi.encode(buyFail, sellFail, weth_);
-    }
-
+contract FailAdapterController {
     bool public buyFail;
     bool public sellFail;
 
     function setBuyFail(bool fail) external {
         buyFail = fail;
-        _package = abi.encode(buyFail, sellFail, weth);
     }
 
     function setSellFail(bool fail) external {
         sellFail = fail;
-        _package = abi.encode(buyFail, sellFail, weth);
+    }
+}
+
+contract FailAdapter is ExchangeAdapter {
+    FailAdapterController public immutable controller;
+
+    constructor(address weth_) public ExchangeAdapter(weth_) {
+        controller = new FailAdapterController();
+    }
+
+    function setBuyFail(bool fail) external {
+        controller.setBuyFail(fail);
+    }
+
+    function setSellFail(bool fail) external {
+        controller.setSellFail(fail);
     }
 
     function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (tokenIn, tokenOut);
-        return amount;
-    }
-
-    function swapPrice(
         uint256 amount,
         address tokenIn,
         address tokenOut
@@ -47,16 +46,12 @@ contract FailAdapter is ExchangeAdapter {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data,
-        bytes memory package
+        address to
     ) public override returns (bool) {
-        (amount, expected, tokenIn, tokenOut, from, to, data);
-        (bool buyFailState, bool sellFailState, address wethAddress) = package.length > 0
-            ? abi.decode(package, (bool, bool, address))
-            : (buyFail, sellFail, weth);
-        if (buyFailState && tokenIn == wethAddress) revert("Fail");
-        if (sellFailState && tokenOut == wethAddress) revert("Fail");
+        (amount, expected, tokenIn, tokenOut, from, to);
+
+        if (controller.buyFail() && tokenIn == weth) revert("Fail");
+        if (controller.sellFail() && tokenOut == weth) revert("Fail");
         return true;
     }
 }

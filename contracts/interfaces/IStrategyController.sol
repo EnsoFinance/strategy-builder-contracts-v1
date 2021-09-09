@@ -1,18 +1,18 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity >=0.6.0 <0.9.0;
+pragma experimental ABIEncoderV2;
 
 import "./IStrategy.sol";
 import "./IStrategyRouter.sol";
+import "./IOracle.sol";
+import "./IWhitelist.sol";
+import "../helpers/StrategyTypes.sol";
 
-interface IStrategyController {
+interface IStrategyController is StrategyTypes {
     function setupStrategy(
         address manager_,
         address strategy_,
-        bool social_,
-        uint256 fee_,
-        uint256 threshold_,
-        uint256 slippage_,
-        uint256 timelock_,
+        StrategyState memory state_,
         address router_,
         bytes memory data_
     ) external payable;
@@ -23,34 +23,26 @@ interface IStrategyController {
         bytes memory data
     ) external;
 
-    function deposit(
-        IStrategy strategy,
-        IStrategyRouter router,
-        bytes memory data
-    ) external payable;
-
-    function withdrawPerformanceFee(IStrategy strategy) external;
-
     function restructure(
         IStrategy strategy,
-        address[] memory tokens,
-        uint256[] memory percentages
+        StrategyItem[] memory strategyItems
     ) external;
 
     function finalizeStructure(
         IStrategy strategy,
-        address router,
-        address[] memory sellAdapters,
-        address[] memory buyAdapters
+        IStrategyRouter router,
+        bytes memory data
     ) external;
 
     function updateValue(
         IStrategy strategy,
-        uint256 categoryIndex,
+        TimelockCategory category,
         uint256 newValue
     ) external;
 
     function finalizeValue(address strategy) external;
+
+    function withdrawPerformanceFee(IStrategy strategy) external;
 
     function openStrategy(IStrategy strategy, uint256 fee) external;
 
@@ -63,4 +55,15 @@ interface IStrategyController {
     function slippage(address strategy) external view returns (uint256);
 
     function timelock(address strategy) external view returns (uint256);
+
+    function performanceFee(address strategy) external view returns (uint256);
+
+    function verifyStructure(address strategy, StrategyItem[] memory newItems)
+        external
+        view
+        returns (bool);
+
+    function oracle() external view returns (IOracle);
+
+    function whitelist() external view returns (IWhitelist);
 }

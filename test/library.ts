@@ -1,20 +1,17 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployLoopRouter } from '../lib/deploy'
-import { StrategyBuilder, Position } from '../lib/encode'
+import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
 const NUM_TOKENS = 15
-let WETH
-const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
-const SLIPPAGE = 995 // 995/1000 = 99.5%
-const TIMELOCK = 1209600 // Two weeks
 
 describe('StrategyLibrary', function () {
 	let tokens: Contract[],
+		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
@@ -23,20 +20,22 @@ describe('StrategyLibrary', function () {
 		oracle: Contract,
 		whitelist: Contract,
 		adapter: Contract,
-		strategyTokens: string[],
-		strategyPercentages: BigNumber[],
-		strategyAdapters: string[],
+		strategyItems: StrategyItem[],
 		wrapper: Contract
 
 	before('Setup LibraryWrapper', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
-		WETH = tokens[0]
+		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, WETH)
-		const p = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[strategyFactory, controller, oracle, whitelist] = [p.strategyFactory, p.controller, p.oracle, p.whitelist]
-		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		controller = platform.controller
+		strategyFactory = platform.strategyFactory
+		oracle = platform.oracles.ensoOracle
+		whitelist = platform.administration.whitelist
+		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+		await whitelist.connect(accounts[0]).approve(adapter.address)
+		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
 
 		const positions = [
@@ -55,9 +54,14 @@ describe('StrategyLibrary', function () {
 			{ token: tokens[13].address, percentage: BigNumber.from(50) },
 			{ token: tokens[14].address, percentage: BigNumber.from(50) },
 		] as Position[]
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: StrategyState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			slippage: BigNumber.from(995),
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 
 		const total = ethers.BigNumber.from('10000000000000000')
 		let tx = await strategyFactory
@@ -66,15 +70,10 @@ describe('StrategyLibrary', function () {
 				accounts[1].address,
 				'Test Strategy',
 				'TEST',
-				strategyTokens,
-				strategyPercentages,
-				false,
-				0,
-				REBALANCE_THRESHOLD,
-				SLIPPAGE,
-				TIMELOCK,
+				strategyItems,
+				strategyState,
 				router.address,
-				data,
+				'0x',
 				{ value: total }
 			)
 		let receipt = await tx.wait()

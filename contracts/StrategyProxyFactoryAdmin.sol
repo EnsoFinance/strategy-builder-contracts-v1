@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity 0.7.6;
 
 import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
 import "./StrategyProxyFactory.sol";
@@ -15,6 +15,7 @@ contract StrategyProxyFactoryAdmin is ProxyAdmin {
     constructor(
         address strategyImplementation_,
         address oracle_,
+        address registry_,
         address whitelist_
     ) public {
         StrategyProxyFactory factoryImplementation = new StrategyProxyFactory();
@@ -23,10 +24,11 @@ contract StrategyProxyFactoryAdmin is ProxyAdmin {
                 address(factoryImplementation),
                 address(this),
                 abi.encodeWithSelector(
-                    bytes4(keccak256("initialize(address,address,address,address)")),
+                    bytes4(keccak256("initialize(address,address,address,address,address)")),
                     msg.sender,
                     strategyImplementation_,
                     oracle_,
+                    registry_,
                     whitelist_
                 )
             );

@@ -42,13 +42,12 @@ contract BalancerAdapter is ExchangeAdapter {
         uint    maxPrice;
     }
 
-    address internal _registry;
+    RegistryInterface public immutable registry;
     uint256 private constant BONE = 10**18;
     uint256 private constant NPOOLS = 3;
 
     constructor(address registry_, address weth_) public ExchangeAdapter(weth_) {
-        _registry = registry_;
-        _package = abi.encode(registry_);
+        registry = RegistryInterface(registry_);
     }
 
     function spotPrice(
@@ -56,17 +55,8 @@ contract BalancerAdapter is ExchangeAdapter {
         address tokenIn,
         address tokenOut
     ) external view override returns (uint256) {
-      (, uint256 totalAmountOut) = _viewSplitExactIn(RegistryInterface(_registry), tokenIn, tokenOut, amount, NPOOLS, true);
+      (, uint256 totalAmountOut) = _viewSplitExactIn(tokenIn, tokenOut, amount, NPOOLS, true);
       return totalAmountOut;
-    }
-
-    function swapPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (, uint256 totalAmountOut) = _viewSplitExactIn(RegistryInterface(_registry), tokenIn, tokenOut, amount, NPOOLS, false);
-        return totalAmountOut;
     }
 
     /*
@@ -81,17 +71,10 @@ contract BalancerAdapter is ExchangeAdapter {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data,
-        bytes memory package
+        address to
     ) public override returns (bool) {
-        (data); //Unused for now
         require(tokenIn != tokenOut, "Tokens cannot match");
-        Swap[] memory swaps;
-        {
-            (address registry) = package.length > 0 ? abi.decode(package, (address)) : (_registry);
-            (swaps, ) = _viewSplitExactIn(RegistryInterface(registry), tokenIn, tokenOut, amount, NPOOLS, false);
-        }
+        (Swap[] memory swaps, ) = _viewSplitExactIn(tokenIn, tokenOut, amount, NPOOLS, false);
         _batchSwapExactIn(swaps, IERC20(tokenIn), IERC20(tokenOut), from, to, amount, expected);
         return true;
     }
@@ -108,7 +91,8 @@ contract BalancerAdapter is ExchangeAdapter {
         internal
         returns (uint totalAmountOut)
     {
-        tokenIn.safeTransferFrom(from, address(this), totalAmountIn);
+        if (from != address(this))
+            tokenIn.safeTransferFrom(from, address(this), totalAmountIn);
 
         for (uint i = 0; i < swaps.length; i++) {
             Swap memory _swap = swaps[i];
@@ -132,13 +116,13 @@ contract BalancerAdapter is ExchangeAdapter {
 
         require(totalAmountOut >= minTotalAmountOut, "ERR_LIMIT_OUT");
 
-        tokenOut.safeTransfer(to, totalAmountOut);
-        tokenIn.safeTransfer(from, tokenIn.balanceOf(address(this))); //Return unused funds
-
+        if (to != address(this))
+            tokenOut.safeTransfer(to, totalAmountOut);
+        if (from != address(this))
+            tokenIn.safeTransfer(from, tokenIn.balanceOf(address(this))); //Return unused funds
     }
 
     function _viewSplitExactIn(
-        RegistryInterface registry,
         address tokenIn,
         address tokenOut,
         uint swapAmount,

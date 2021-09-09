@@ -1,41 +1,80 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity >=0.6.0 <0.9.0;
+pragma experimental ABIEncoderV2;
 
+import "./IStrategyRouter.sol";
 import "./IStrategyToken.sol";
+import "./IOracle.sol";
+import "./IWhitelist.sol";
+import "../helpers/StrategyTypes.sol";
 
-interface IStrategy is IStrategyToken {
+interface IStrategy is IStrategyToken, StrategyTypes {
     function approveToken(
-        IERC20 token,
+        address token,
         address account,
         uint256 amount
     ) external;
 
-    function approveTokens(address account, uint256 amount) external;
+    function approveDebt(
+        address token,
+        address account,
+        uint256 amount
+    ) external;
 
-    function setStructure(address[] memory newItems, uint256[] memory newPercentages) external;
+    function approveSynths(
+        address account,
+        uint256 amount
+    ) external;
 
-    function withdraw(uint256 amount) external;
+    function setStructure(StrategyItem[] memory newItems) external;
+
+    function setCollateral(address token) external;
+
+    function withdrawAll(uint256 amount) external;
+
+    function withdrawWeth(uint256 amount, IStrategyRouter router, bytes memory data) external;
+
+    function deposit(
+        uint256 amount,
+        IStrategyRouter router,
+        bytes memory data
+    ) external payable;
+
+    function depositFromController(
+        address account,
+        IStrategyRouter router,
+        bytes memory data
+    ) external payable;
 
     function mint(address account, uint256 amount) external;
 
-    function updateManager(address newManager) external;
+    function updateTradeData(address item, TradeData memory data) external;
+
+    function lock() external;
+
+    function unlock() external;
+
+    function locked() external view returns (bool);
 
     function items() external view returns (address[] memory);
 
-    function percentage(address token) external view returns (uint256);
+    function synths() external view returns (address[] memory);
 
-    function isWhitelisted(address account) external view returns (bool);
+    function debt() external view returns (address[] memory);
+
+    function getCategory(address item) external view returns (EstimatorCategory);
+
+    function getPercentage(address item) external view returns (int256);
+
+    function getTradeData(address item) external view returns (TradeData memory);
 
     function controller() external view returns (address);
 
     function manager() external view returns (address);
 
-    function oracle() external view returns (address);
+    function oracle() external view returns (IOracle);
 
-    function whitelist() external view returns (address);
+    function whitelist() external view returns (IWhitelist);
 
-    function verifyStructure(address[] memory newTokens, uint256[] memory newPercentages)
-        external
-        pure
-        returns (bool);
+    function supportsSynths() external view returns (bool);
 }

@@ -2,8 +2,6 @@ import { expect } from 'chai'
 import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
-
-
 import { ethers } from 'hardhat'
 import { Contract } from '@ethersproject/contracts'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -34,9 +32,7 @@ describe('UniswapAdapter', function () {
 				tokens[0].address,
 				tokens[0].address,
 				accounts[0].address,
-				accounts[0].address,
-				'0x',
-				'0x'
+				accounts[0].address
 			)
 		).to.be.revertedWith('Tokens cannot match')
 	})
@@ -44,8 +40,8 @@ describe('UniswapAdapter', function () {
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
 		const expected = ethers.BigNumber.from(
-			await adapter.swapPrice(amount, tokens[1].address, tokens[0].address)
-		).add(1)
+			await adapter.spotPrice(amount, tokens[1].address, tokens[0].address)
+		)
 		await tokens[1].approve(adapter.address, amount)
 		await expect(
 			adapter.swap(
@@ -54,9 +50,7 @@ describe('UniswapAdapter', function () {
 				tokens[1].address,
 				tokens[0].address,
 				accounts[0].address,
-				accounts[0].address,
-				'0x',
-				'0x'
+				accounts[0].address
 			)
 		).to.be.revertedWith('Insufficient tokenOut amount')
 	})
@@ -72,9 +66,7 @@ describe('UniswapAdapter', function () {
 			tokens[1].address,
 			tokens[0].address,
 			accounts[0].address,
-			accounts[0].address,
-			'0x',
-			'0x'
+			accounts[0].address
 		)
 		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)

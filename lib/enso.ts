@@ -1,28 +1,40 @@
-const hre = require('hardhat')
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { BigNumber, Contract } from 'ethers'
-const { MAINNET_ADDRESSES } = require('./utils')
-const WETH9 = require('@uniswap/v2-periphery/build/WETH9.json')
-const UniswapV2Factory = require('@uniswap/v2-core/build/UniswapV2Factory.json')
-const {
+import { constants, BigNumber, Contract } from 'ethers'
+import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.json'
+import BalancerRegistry from '../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json'
+import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import {
 	deployTokens,
 	deployPlatform,
+	deployBalancer,
 	deployUniswapV2,
+	deployBalancerAdapter,
 	deployUniswapV2Adapter,
+	deployMetaStrategyAdapter,
+	deploySynthetixAdapter,
+	deployCurveAdapter,
+	//deployAaveLendAdapter,
+	//deployAaveBorrowAdapter,
+	deployFullRouter,
 	deployLoopRouter,
 	deployGenericRouter,
-} = require('./deploy')
-import { deployBalancer, deployBalancerAdapter, Platform } from './deploy'
-const { ethers, waffle } = hre
-const { constants } = ethers
-const { WeiPerEther } = constants
-const { getContractFactory } = waffle
+	Platform
+} from './deploy'
+import { MAINNET_ADDRESSES } from './utils'
 
-export const wethPerToken = (numTokens: number) => WeiPerEther.mul(100 * (numTokens - 1))
+const { WeiPerEther } = constants
+
+export const wethPerToken = (numTokens: number) => BigNumber.from(WeiPerEther).mul(100 * (numTokens - 1))
 
 export type EnsoAdapters = {
-	uniswap: Adapter
+	//aavelend: Adapter
+	//aaveborrow: Adapter
 	balancer: Adapter
+	curve: Adapter
+	synthetix: Adapter
+	metastrategy: Adapter
+	uniswap: Adapter
 }
 
 export class EnsoBuilder {
@@ -62,43 +74,63 @@ export class EnsoBuilder {
 		this.adapters = this.adapters ?? ({} as EnsoAdapters)
 		const adapter = new Adapter(type)
 		switch (adapter.type) {
-			case Adapters.Uniswap:
-				this.adapters.uniswap = adapter
-				break
 			case Adapters.Balancer:
 				this.adapters.balancer = adapter
+				break
+			case Adapters.Curve:
+				this.adapters.curve = adapter
+				break
+			case Adapters.Synthetix:
+				this.adapters.synthetix = adapter
+				break
+			case Adapters.MetaStrategy:
+				this.adapters.metastrategy = adapter
+				break
+			case Adapters.Uniswap:
+				this.adapters.uniswap = adapter
 				break
 			default:
 				throw Error('Invalid adapter type')
 		}
+		return this
 	}
 	private async deployBalancer(): Promise<Balancer> {
 		if (this.tokens === undefined) throw Error('Tried deploying balancer with no erc20 tokens')
-		let balancerFactory = {} as Contract
-		let balancerRegistry = {} as Contract
-		const BalancerFactory = await getContractFactory('Balancer')
-		const BalancerRegistry = await getContractFactory('BalancerRegistry')
 		let balancer = {} as Balancer
+		let factory = {} as Contract
+		let registry = {} as Contract
 		switch (this.network) {
 			case Networks.LocalTestnet:
-				const [factory, registry] = await deployBalancer(this.signer, this.tokens)
+				[factory, registry] = await deployBalancer(this.signer, this.tokens)
 				balancer = new Balancer(factory, registry)
 				break
 			case Networks.Mainnet:
-				balancerFactory = await BalancerFactory.connect(this.signer).deploy()
-				await balancerFactory.deployed()
-				balancerRegistry = await BalancerRegistry.connect(this.signer).deploy(balancerFactory.address)
-				await balancerRegistry.deployed()
-				balancer = new Balancer(MAINNET_ADDRESSES.BALANCER_FACTORY, MAINNET_ADDRESSES.BALANCER_REGISTRY)
+				factory = new Contract(
+					MAINNET_ADDRESSES.BALANCER_FACTORY,
+					BalancerFactory.abi,
+					this.signer
+				)
+				registry = new Contract(
+					MAINNET_ADDRESSES.BALANCER_REGISTRY,
+					BalancerRegistry.abi,
+					this.signer
+				)
+				balancer = new Balancer(factory, registry)
 				break
 			case Networks.ExternalTestnet:
 				throw Error('External testnet not implemented yet')
 			default:
-				balancerFactory = await BalancerFactory.connect(this.signer).deploy()
-				await balancerFactory.deployed()
-				balancerRegistry = await BalancerRegistry.connect(this.signer).deploy(balancerFactory.address)
-				await balancerRegistry.deployed()
-				balancer = new Balancer(MAINNET_ADDRESSES.BALANCER_FACTORY, MAINNET_ADDRESSES.BALANCER_REGISTRY)
+				factory = new Contract(
+					MAINNET_ADDRESSES.BALANCER_FACTORY,
+					BalancerFactory.abi,
+					this.signer
+				)
+				registry = new Contract(
+					MAINNET_ADDRESSES.BALANCER_REGISTRY,
+					BalancerRegistry.abi,
+					this.signer
+				)
+				balancer = new Balancer(factory, registry)
 				break
 		}
 		return balancer
@@ -129,7 +161,7 @@ export class EnsoBuilder {
 			case Networks.ExternalTestnet:
 				throw Error('External testnet not implemented yet')
 			default:
-				this.tokens[0] = new Contract(MAINNET_ADDRESSES.WETH, JSON.stringify(WETH9.abi), this.signer)
+				this.tokens[0] = new Contract(MAINNET_ADDRESSES.WETH, WETH9.abi, this.signer)
 				this.tokens[0].connect(this.signer)
 				uniswap = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, this.signer)
 		}
@@ -139,28 +171,46 @@ export class EnsoBuilder {
 		const ensoPlatform = await deployPlatform(this.signer, uniswap, weth)
 		ensoPlatform.print()
 
+		// Provide all routers by default
+		if (this.routers.length === 0) {
+			this.addRouter('generic')
+			this.addRouter('loop')
+			this.addRouter('full')
+		}
+		this.routers = await Promise.all(
+			this.routers.map(async r => {
+				await r.deploy(this.signer, ensoPlatform.controller)
+				await ensoPlatform.administration.whitelist.connect(this.signer).approve(r.contract?.address)
+				return r
+			})
+		)
+
 		// We need uniswap
 		if (this.adapters?.uniswap === undefined) {
 			this.addAdapter('uniswap')
 		}
+		if (this.adapters?.metastrategy === undefined) {
+			this.addAdapter('metastrategy')
+		}
 		// Deploy adapters
 		if (this.adapters?.uniswap !== undefined) {
 			await this.adapters.uniswap.deploy(this.signer, uniswap, weth)
+			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.uniswap.contract?.address)
 		}
 		if (this.adapters?.balancer !== undefined) {
 			balancer = await this.deployBalancer()
 			await this.adapters.balancer.deploy(this.signer, balancer.registry, weth)
+			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.balancer.contract?.address)
 		}
-
-		// Provide all routers by default
-		if (this.routers === undefined) {
-			this.addRouter('generic')
-			this.addRouter('loop')
+		if (this.adapters?.curve !== undefined) {
+			await this.adapters.curve.deploy(this.signer, ensoPlatform.oracles.registries.curvePoolRegistry, weth)
+			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.curve.contract?.address)
 		}
-		this.routers?.forEach(async (r) => {
-			await r.deploy(this.signer, ensoPlatform.controller, weth, this.adapters?.uniswap.contract)
-			await ensoPlatform.whitelist.connect(this.signer).approve(r.contract?.address)
-		})
+		const fullRouterIndex = this.routers.findIndex(router => router.type == Routers.Full)
+		if (this.adapters?.metastrategy !== undefined && fullRouterIndex > -1) {
+			await this.adapters.metastrategy.deploy(this.signer, this.routers[fullRouterIndex].contract || new Contract('0x', [], this.signer), weth)
+			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.metastrategy.contract?.address)
+		}
 
 		// Safety check
 		if (this.adapters === undefined) throw Error('Failed to add adapters')
@@ -182,7 +232,7 @@ export class EnsoBuilder {
 export class EnsoEnvironment {
 	signer: SignerWithAddress
 	defaults: Defaults
-	enso: Platform
+	platform: Platform
 	adapters: EnsoAdapters
 	routers: Router[]
 	uniswap: Contract
@@ -192,7 +242,7 @@ export class EnsoEnvironment {
 	constructor(
 		signer: SignerWithAddress,
 		defaults: Defaults,
-		enso: Platform,
+		platform: Platform,
 		adapters: EnsoAdapters,
 		routers: Router[],
 		uniswap: Contract,
@@ -201,7 +251,7 @@ export class EnsoEnvironment {
 	) {
 		this.signer = signer
 		this.defaults = defaults
-		this.enso = enso
+		this.platform = platform
 		this.adapters = adapters
 		this.routers = routers
 		this.uniswap = uniswap
@@ -231,9 +281,13 @@ export type Defaults = {
 	numTokens: number
 	wethSupply: BigNumber
 }
+
 export enum Adapters {
-	Uniswap = 'uniswap',
 	Balancer = 'balancer',
+	Curve = 'curve',
+	MetaStrategy = 'metastrategy',
+	Synthetix = 'synthetix',
+	Uniswap = 'uniswap',
 }
 
 export class Adapter {
@@ -245,7 +299,16 @@ export class Adapter {
 				this.type = Adapters.Uniswap
 				break
 			case Adapters.Balancer:
-				this.type = Adapters.Uniswap
+				this.type = Adapters.Balancer
+				break
+			case Adapters.Curve:
+				this.type = Adapters.Curve
+				break
+			case Adapters.Synthetix:
+				this.type = Adapters.Synthetix
+				break
+			case Adapters.MetaStrategy:
+				this.type = Adapters.MetaStrategy
 				break
 			default:
 				throw Error('Invalid adapter selected! Accepted inputs: uniswap/balancer')
@@ -255,8 +318,14 @@ export class Adapter {
 	async deploy(signer: SignerWithAddress, adapterTargetFactory: Contract, weth: Contract) {
 		if (this.type === Adapters.Uniswap) {
 			this.contract = await deployUniswapV2Adapter(signer, adapterTargetFactory, weth)
-		} else {
+		} else if (this.type === Adapters.Balancer) {
 			this.contract = await deployBalancerAdapter(signer, adapterTargetFactory, weth)
+		} else if (this.type === Adapters.Curve) {
+			this.contract = await deployCurveAdapter(signer, adapterTargetFactory, weth)
+		} else if (this.type === Adapters.Synthetix) {
+			this.contract = await deploySynthetixAdapter(signer, adapterTargetFactory, weth)
+		} else {
+			this.contract = await deployMetaStrategyAdapter(signer, adapterTargetFactory, weth)
 		}
 	}
 }
@@ -264,6 +333,7 @@ export class Adapter {
 export enum Routers {
 	Generic,
 	Loop,
+	Full
 }
 
 // TODO: implement encoding for each Router (chain calldata for each type of router GenericRouter is IRouter, LoopRouter is IRouter etc..)
@@ -275,6 +345,9 @@ export class Router {
 			case 'generic' || 'genericrouter':
 				this.type = Routers.Generic
 				break
+			case 'full' || 'fullrouter':
+				this.type = Routers.Full
+				break
 			case 'loop' || 'looprouter':
 				this.type = Routers.Loop
 				break
@@ -285,12 +358,13 @@ export class Router {
 		}
 	}
 
-	async deploy(signer: SignerWithAddress, controller: Contract, weth: Contract, adapter?: Contract) {
+	async deploy(signer: SignerWithAddress, controller: Contract) {
 		if (this.type == Routers.Generic) {
-			this.contract = await deployGenericRouter(signer, controller, weth)
+			this.contract = await deployGenericRouter(signer, controller)
+		} else if (this.type == Routers.Full) {
+			this.contract = await deployFullRouter(signer, controller)
 		} else {
-			if (adapter === undefined) throw Error("Didn't pass adapter to Router.deploy()")
-			this.contract = await deployLoopRouter(signer, controller, adapter, weth)
+			this.contract = await deployLoopRouter(signer, controller)
 		}
 	}
 }

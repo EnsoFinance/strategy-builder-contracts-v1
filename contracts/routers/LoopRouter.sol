@@ -1,93 +1,182 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
-import "../interfaces/IStrategyController.sol";
 import "./StrategyRouter.sol";
 
-contract LoopRouter is StrategyRouter {
-    using SafeMath for uint256;
-    using SafeERC20 for IERC20;
+contract LoopRouter is StrategyTypes, StrategyRouter {
 
-
-    IExchangeAdapter private adapter;
-
-    constructor(
-        address adapter_,
-        address controller_,
-        address weth_
-    ) public StrategyRouter(controller_, weth_) {
-        adapter = IExchangeAdapter(adapter_);
-    }
+    constructor(address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {}
 
     function deposit(address strategy, bytes calldata data)
         external
         override
-        onlyController
+        onlyStrategy(strategy)
     {
-        (address[] memory strategyItems, address[] memory adapters) =
-            abi.decode(data, (address[], address[]));
-        buyTokens(strategy, strategyItems, adapters);
+        (address depositor, uint256 amount) =
+            abi.decode(data, (address, uint256));
+        address[] memory strategyItems = IStrategy(strategy).items();
+        int256[] memory estimates = new int256[](strategyItems.length);
+        _batchBuy(
+          strategy,
+          depositor,
+          amount,
+          estimates,
+          strategyItems
+        );
+    }
+
+    function withdraw(address strategy, bytes calldata data)
+        external
+        override
+        onlyStrategy(strategy)
+    {
+        (uint256 percentage) =
+            abi.decode(data, (uint256));
+        address[] memory strategyItems = IStrategy(strategy).items();
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            address strategyItem = strategyItems[i];
+            _sellPath(
+                IStrategy(strategy).getTradeData(strategyItem),
+                IERC20(strategyItem).balanceOf(strategy).mul(percentage).div(10**18),
+                strategyItem,
+                strategy
+            );
+        }
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
-        (uint256 total, uint256[] memory estimates) = abi.decode(data, (uint256, uint256[]));
+        (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
 
-        address[] memory buyTokens = new address[](strategyItems.length);
-        uint256[] memory buyEstimates = new uint256[](strategyItems.length);
-        uint256 buyCount = 0;
+        uint256[] memory buy = new uint256[](strategyItems.length);
         // Sell loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            address tokenAddress = strategyItems[i];
-            if (tokenAddress != weth) {
-                if (!_sellToken(strategy, tokenAddress, estimates[i], total)) {
-                    buyTokens[buyCount] = strategyItems[i];
-                    buyEstimates[buyCount] = estimates[i];
-                    buyCount++;
-                }
+            address strategyItem = strategyItems[i];
+            if (!_sellToken(
+                    strategy,
+                    strategyItem,
+                    estimates[i],
+                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                )
+            ) buy[i] = 1;
+        }
+        // Buy loop
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            if (buy[i] == 1) {
+                address strategyItem = strategyItems[i];
+                _buyToken(
+                    strategy,
+                    strategy,
+                    strategyItem,
+                    estimates[i],
+                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                );
             }
         }
-        bool wethInStrategy = IStrategy(strategy).percentage(weth) != 0;
-        // Buy loop
-        for (uint256 i = 0; i < buyCount; i++) {
+    }
+
+    function restructure(address strategy, bytes calldata data)
+        external
+        override
+        onlyController
+    {
+        (
+          uint256 currentTotal,
+          int256[] memory currentEstimates,
+          address[] memory currentItems
+        ) = abi.decode(data, (uint256, int256[], address[]));
+
+        _batchSell(strategy, currentTotal, currentEstimates, currentItems);
+        (uint256 newTotal, int256[] memory newEstimates) = IStrategy(strategy).oracle().estimateStrategy(IStrategy(strategy));
+        address[] memory newItems = IStrategy(strategy).items();
+        _batchBuy(strategy, strategy, newTotal, newEstimates, newItems);
+    }
+
+    function _batchSell(
+        address strategy,
+        uint256 total,
+        int256[] memory estimates,
+        address[] memory strategyItems
+    ) internal {
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            // Convert funds into Ether
+            address strategyItem = strategyItems[i];
+            if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
+                //Sell all tokens that have 0 percentage
+                _sellPath(
+                    IStrategy(strategy).getTradeData(strategyItem),
+                    IERC20(strategyItem).balanceOf(strategy),
+                    strategyItem,
+                    strategy
+                );
+            } else {
+                //Only sell if above rebalance threshold
+                _sellToken(
+                    strategy,
+                    strategyItem,
+                    estimates[i],
+                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                );
+            }
+        }
+    }
+
+    function _batchBuy(
+        address strategy,
+        address from,
+        uint256 total,
+        int256[] memory estimates,
+        address[] memory strategyItems
+    ) internal {
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            address strategyItem = strategyItems[i];
             _buyToken(
                 strategy,
-                buyTokens[i],
-                buyEstimates[i],
-                total,
-                i == buyCount - 1 && !wethInStrategy // If the last token use up remainder of WETH
+                from,
+                strategyItem,
+                estimates[i],
+                StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
             );
+        }
+        int256 percentage = IStrategy(strategy).getPercentage(weth);
+        if (percentage > 0) {
+            if (from == address(this)) {
+              // Send all WETH
+              IERC20(weth).safeTransfer(strategy, IERC20(weth).balanceOf(from));
+            } else {
+              // Calculate remaining WETH
+              // Since from is not address(this), we know this is a deposit, so estimated value not relevant
+              uint256 amount =
+                  total.mul(uint256(percentage))
+                       .div(DIVISOR);
+              IERC20(weth).safeTransferFrom(
+                  from,
+                  strategy,
+                  amount
+              );
+            }
         }
     }
 
     function _sellToken(
         address strategy,
-        address tokenAddress,
-        uint256 estimatedValue,
-        uint256 total
+        address token,
+        int256 estimatedValue,
+        int256 expectedValue
     ) internal returns (bool) {
-        uint256 expectedValue =
-            StrategyLibrary.getExpectedTokenValue(total, strategy, tokenAddress);
-        uint256 rebalanceRange =
+        int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
                 IStrategyController(msg.sender).rebalanceThreshold(strategy)
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
-            uint256 diff =
-                adapter.spotPrice(estimatedValue.sub(expectedValue), weth, tokenAddress);
-            require(
-                _delegateSwap(
-                    address(adapter),
-                    diff,
-                    0,
-                    tokenAddress,
-                    weth,
-                    strategy,
-                    strategy,
-                    new bytes(0)
-                ),
-                "Swap failed"
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
+            _sellPath(
+                tradeData,
+                _pathPrice(tradeData, uint256(estimatedValue.sub(expectedValue)), token),
+                token,
+                strategy
             );
             return true;
         }
@@ -96,49 +185,33 @@ contract LoopRouter is StrategyRouter {
 
     function _buyToken(
         address strategy,
-        address tokenAddress,
-        uint256 estimatedValue,
-        uint256 total,
-        bool lastToken
+        address from,
+        address token,
+        int256 estimatedValue,
+        int256 expectedValue
     ) internal {
-        if (lastToken) {
-            require(
-                _delegateSwap(
-                    address(adapter),
-                    IERC20(weth).balanceOf(strategy),
-                    0,
-                    weth,
-                    tokenAddress,
-                    strategy,
-                    strategy,
-                    new bytes(0)
-                ),
-                "Swap failed"
-            );
+        int256 amount;
+        if (estimatedValue == 0) {
+            amount = expectedValue;
         } else {
-            uint256 expectedValue =
-                StrategyLibrary.getExpectedTokenValue(total, strategy, tokenAddress);
-            uint256 rebalanceRange =
+            int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    IStrategyController(msg.sender).rebalanceThreshold(strategy)
+                    IStrategyController(controller).rebalanceThreshold(strategy)
                 );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
-                uint256 diff = expectedValue.sub(estimatedValue);
-                require(
-                    _delegateSwap(
-                        address(adapter),
-                        diff,
-                        0,
-                        weth,
-                        tokenAddress,
-                        strategy,
-                        strategy,
-                        new bytes(0)
-                    ),
-                    "Swap failed"
-                );
+                amount = expectedValue.sub(estimatedValue);
             }
+        }
+        if (amount > 0) {
+            uint256 balance = IERC20(weth).balanceOf(from);
+            _buyPath(
+                IStrategy(strategy).getTradeData(token),
+                uint256(amount) > balance ? balance : uint256(amount),
+                token,
+                strategy,
+                from
+            );
         }
     }
 }

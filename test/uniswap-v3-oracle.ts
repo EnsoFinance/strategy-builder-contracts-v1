@@ -14,7 +14,6 @@ const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline, UNI_
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
 const UniswapV3Pool = require('@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json')
 const SwapRouter = require('@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json')
-//const Quoter = require('@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json')
 
 const NUM_TOKENS = 3
 const ORACLE_TIME_WINDOW = 1
@@ -23,10 +22,10 @@ let tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		oracle: Contract,
+		registry: Contract,
 		uniswapFactory: Contract,
 		uniswapNFTManager: Contract,
 		uniswapRouter: Contract,
-		//uniswapQuoter,
 		trader: SignerWithAddress
 
 async function exactInput(
@@ -67,23 +66,24 @@ async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 	const bNum = ethers.BigNumber.from(input)
 
 	if (aNum.lt(bNum)) {
-		return bn(amount.toString()).multipliedBy(bn(1.0001).exponentiatedBy(tick)).toFixed(0, 1)
-	} else {
 		return bn(amount.toString()).dividedBy(bn(1.0001).exponentiatedBy(tick)).toFixed(0, 1)
+	} else {
+		return bn(amount.toString()).multipliedBy(bn(1.0001).exponentiatedBy(tick)).toFixed(0, 1)
 	}
 }
 
 describe('UniswapV3Oracle', function() {
 	before('Setup Uniswap V3 + Oracle', async function() {
 		accounts = await getSigners()
-		trader = accounts[5]
+		trader = accounts[7]
 		// Need to deploy these tokens before WETH to get the correct arrangement of token address where some are bigger and some smaller (for sorting)
 		const token1 = await deployContract(trader, ERC20, [WeiPerEther.mul(10000)])
 		const token2 = await deployContract(trader, ERC20, [WeiPerEther.mul(10000)])
-		tokens = await deployTokens(trader, NUM_TOKENS - 2, WeiPerEther.mul(100).mul(NUM_TOKENS - 1))
+		tokens = await deployTokens(trader, NUM_TOKENS-2, WeiPerEther.mul(100).mul(NUM_TOKENS - 1))
 		tokens.push(token1)
 		tokens.push(token2)
 		weth = tokens[0]
+
 		;[uniswapFactory, uniswapNFTManager] = await deployUniswapV3(trader, tokens)
 		uniswapRouter = await deployContract(trader, SwapRouter, [uniswapFactory.address, weth.address])
 		//uniswapQuoter = await deployContract(trader, Quoter, [uniswapFactory.address, weth.address])
@@ -114,38 +114,43 @@ describe('UniswapV3Oracle', function() {
 			deadline: getDeadline(240),
 		})
 
+		const Registry = await getContractFactory('UniswapV3Registry')
+		registry = await Registry.connect(trader).deploy(ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address)
+		await registry.deployed()
 		const Oracle = await getContractFactory('UniswapV3Oracle')
-		oracle = await Oracle.connect(trader).deploy(ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address)
+		oracle = await Oracle.connect(trader).deploy(registry.address)
 		await oracle.deployed()
 	})
 
 	it('Should initialize token', async function() {
-		await oracle.initialize(tokens[1].address)
-		expect(await oracle.pools(tokens[1].address)).to.not.equal(AddressZero)
+		await registry.initialize(tokens[1].address)
+		const pool = await registry.pools(tokens[1].address)
+		expect(pool).to.not.equal(AddressZero)
+		expect(pool).to.equal(await uniswapFactory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
 	})
 
 	it('Should initialize all tokens', async function() {
 		for (let i = 1; i < tokens.length; i++) {
-			await oracle.initialize(tokens[i].address)
+			await registry.initialize(tokens[i].address)
 		}
 	})
 
 	it('Should fail to initialize token: not valid', async function() {
-		await expect(oracle.initialize(AddressZero)).to.be.revertedWith('No valid pool')
+		await expect(registry.initialize(AddressZero)).to.be.revertedWith('No valid pool')
 	})
 
 	it('Should fail to add fee tier: already added', async function() {
-		await expect(oracle.addFee(500)).to.be.revertedWith('Fee already set')
+		await expect(registry.addFee(500)).to.be.revertedWith('Fee already set')
 	})
 
 	it('Should fail to add fee tier: not owner', async function() {
-		await expect(oracle.connect(accounts[1]).addFee(1)).to.be.revertedWith('Ownable: caller is not the owner')
+		await expect(registry.connect(accounts[1]).addFee(1)).to.be.revertedWith('Ownable: caller is not the owner')
 	})
 
 	it('Should add fee tier', async function() {
 		const fee = 1
-		await oracle.addFee(fee)
-		const newFee = await oracle.fees(3) //index of most recent push
+		await registry.addFee(fee)
+		const newFee = await registry.fees(3) //index of most recent push
 		expect(newFee).to.equal(fee)
 	})
 

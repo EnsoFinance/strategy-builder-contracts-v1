@@ -7,23 +7,13 @@ import "../adapters/ExchangeAdapter.sol";
 contract MaliciousAdapter is ExchangeAdapter {
     using SafeERC20 for IERC20;
 
-    address internal _attacker;
+    address public immutable attacker;
 
     constructor(address weth_) public ExchangeAdapter(weth_) {
-        _attacker = msg.sender;
-        _package = abi.encode(_attacker);
+        attacker = msg.sender;
     }
 
     function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (tokenIn, tokenOut);
-        return amount;
-    }
-
-    function swapPrice(
         uint256 amount,
         address tokenIn,
         address tokenOut
@@ -38,13 +28,9 @@ contract MaliciousAdapter is ExchangeAdapter {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data,
-        bytes memory package
+        address to
     ) public override returns (bool) {
-        (expected, tokenOut, to, data);
-        (address attacker) =
-            package.length > 0 ? abi.decode(package, (address)) : (_attacker);
+        (expected, tokenOut, to);
         IERC20(tokenIn).transferFrom(from, attacker, amount);
         return true;
     }

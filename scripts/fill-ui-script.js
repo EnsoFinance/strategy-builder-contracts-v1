@@ -1,6 +1,6 @@
 const hre = require('hardhat')
 const deployedContracts = require('../deployments.json')
-const { StrategyBuilder } = require('../lib/encode')
+const { prepareStrategy } = require('../lib/encode')
 const { wallets, strategyNames, positions } = require('./constants/constants')
 
 const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
@@ -36,12 +36,18 @@ async function main() {
       const strategyName = getRandomName()
       const position = getRandomPosition()
 
-      const s = new StrategyBuilder(position, deployedContracts[process.env.HARDHAT_NETWORK].UniswapAdapter)
-      let [strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
+      const strategyItems = prepareStrategy(position, deployedContracts[process.env.HARDHAT_NETWORK].UniswapV2Adapter)
 
-      const data = hre.ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
       const isSocial = Math.round(Math.random())
       let fee = isSocial ? 100 : 0
+
+      const strategyState = {
+        timelock: TIMELOCK,
+        rebalanceThreshold: REBALANCE_THRESHOLD,
+        slippage: SLIPPAGE,
+        performanceFee: fee,
+        social: isSocial
+      }
 
       let tx = await strategyFactory
         .connect(wallet)
@@ -49,15 +55,10 @@ async function main() {
           wallet.address,
           strategyName,
           strategyName.substring(0, 3),
-          strategyTokens,
-          strategyPercentages,
-          isSocial,
-          fee,
-          REBALANCE_THRESHOLD,
-          SLIPPAGE,
-          TIMELOCK,
+          strategyItems,
+          strategyState,
           routerAddress,
-          data,
+          '0x',
           { value: amount, gasLimit: 3100000 }
         )
       let receipt = await tx.wait()

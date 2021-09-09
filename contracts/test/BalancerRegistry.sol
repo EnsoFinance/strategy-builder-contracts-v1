@@ -152,8 +152,6 @@ contract BalancerRegistry {
 
                 bytes32 indices = _buildSortIndices(effectiveLiquidity);
 
-                // console.logBytes32(indices);
-
                 if (indices != _pools[key].indices) {
                     emit IndicesUpdated(
                         tokens[i] < tokens[j] ? tokens[i] : tokens[j],
@@ -210,11 +208,9 @@ contract BalancerRegistry {
                 // we define effective liquidity as b2 * w1 / (w1 + w2)
                 effectiveLiquidity[i] = bdiv(uint256(info.weight1),uint256(info.weight1).add(uint256(info.weight2)));
                 effectiveLiquidity[i] = effectiveLiquidity[i].mul(IBPool(pools[i]).getBalance(token2));
-                // console.log("1. %s: %s", pools[i], effectiveLiquidity[i]);
             } else {
                 effectiveLiquidity[i] = bdiv(uint256(info.weight2),uint256(info.weight1).add(uint256(info.weight2)));
                 effectiveLiquidity[i] = effectiveLiquidity[i].mul(IBPool(pools[i]).getBalance(token2));
-                // console.log("2. %s: %s", pools[i], effectiveLiquidity[i]);
             }
         }
     }
@@ -235,21 +231,17 @@ contract BalancerRegistry {
                 _infos[pools[i]][key].liq = bdiv(uint256(info.weight1), uint256(info.weight1).add(uint256(info.weight2)));
                 _infos[pools[i]][key].liq = _infos[pools[i]][key].liq.mul(IBPool(pools[i]).getBalance(token2));
                 totalLiq = totalLiq.add(_infos[pools[i]][key].liq);
-                // console.log("1. %s: %s", pools[i], _infos[pools[i]][key].liq);
             } else {
                 _infos[pools[i]][key].liq = bdiv(uint256(info.weight2), uint256(info.weight1).add(uint256(info.weight2)));
                 _infos[pools[i]][key].liq = _infos[pools[i]][key].liq.mul(IBPool(pools[i]).getBalance(token2));
                 totalLiq = totalLiq.add(_infos[pools[i]][key].liq);
-                // console.log("2. %s: %s", pools[i], _infos[pools[i]][key].liq);
             }
         }
 
         uint256 threshold = bmul(totalLiq, ((10 * BONE) / 100));
-        // console.log("totalLiq: %s, Thresh: %s", totalLiq, threshold);
 
         // Delete any pools that aren't greater than threshold (10% of total)
         for(uint i = 0;i < _pools[key].pools.length();i++){
-            //console.log("Pool: %s, %s", _pools[key].pools.at(i), info.liq);
             if(_infos[_pools[key].pools.at(i)][key].liq < threshold){
                 _pools[key].pools.remove(_pools[key].pools.at(i));
             }
@@ -259,7 +251,6 @@ contract BalancerRegistry {
 
         // pool.remove reorders pools so need to use correct liq for index
         for(uint i = 0;i < _pools[key].pools.length();i++){
-            // console.log(_pools[key].pools.at(i));
             effectiveLiquidity[i] = _infos[_pools[key].pools.at(i)][key].liq;
         }
     }

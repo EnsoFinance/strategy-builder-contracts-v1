@@ -1,10 +1,13 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber, Contract } from 'ethers';
 import { Platform } from './deploy';
-export declare const wethPerToken: (numTokens: number) => any;
+export declare const wethPerToken: (numTokens: number) => BigNumber;
 export declare type EnsoAdapters = {
-    uniswap: Adapter;
     balancer: Adapter;
+    curve: Adapter;
+    synthetix: Adapter;
+    metastrategy: Adapter;
+    uniswap: Adapter;
 };
 export declare class EnsoBuilder {
     signer: SignerWithAddress;
@@ -18,20 +21,20 @@ export declare class EnsoBuilder {
     testnet(): this;
     setDefaults(defaults: Defaults): void;
     addRouter(type: string): this;
-    addAdapter(type: string): void;
+    addAdapter(type: string): this;
     private deployBalancer;
     build(): Promise<EnsoEnvironment>;
 }
 export declare class EnsoEnvironment {
     signer: SignerWithAddress;
     defaults: Defaults;
-    enso: Platform;
+    platform: Platform;
     adapters: EnsoAdapters;
     routers: Router[];
     uniswap: Contract;
     tokens: Contract[];
     balancer?: Balancer;
-    constructor(signer: SignerWithAddress, defaults: Defaults, enso: Platform, adapters: EnsoAdapters, routers: Router[], uniswap: Contract, tokens: Contract[], balancer?: Balancer);
+    constructor(signer: SignerWithAddress, defaults: Defaults, platform: Platform, adapters: EnsoAdapters, routers: Router[], uniswap: Contract, tokens: Contract[], balancer?: Balancer);
 }
 export declare class Balancer {
     factory: Contract;
@@ -51,8 +54,11 @@ export declare type Defaults = {
     wethSupply: BigNumber;
 };
 export declare enum Adapters {
-    Uniswap = "uniswap",
-    Balancer = "balancer"
+    Balancer = "balancer",
+    Curve = "curve",
+    MetaStrategy = "metastrategy",
+    Synthetix = "synthetix",
+    Uniswap = "uniswap"
 }
 export declare class Adapter {
     type: Adapters;
@@ -62,11 +68,12 @@ export declare class Adapter {
 }
 export declare enum Routers {
     Generic = 0,
-    Loop = 1
+    Loop = 1,
+    Full = 2
 }
 export declare class Router {
     type: Routers;
     contract?: Contract;
     constructor(routerType: string);
-    deploy(signer: SignerWithAddress, controller: Contract, weth: Contract, adapter?: Contract): Promise<void>;
+    deploy(signer: SignerWithAddress, controller: Contract): Promise<void>;
 }

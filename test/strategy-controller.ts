@@ -1,68 +1,80 @@
-const hre = require('hardhat')
+import chai from 'chai'
+const { expect } = chai
+import hre from 'hardhat'
 const { ethers } = hre
-const chai = require('chai')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
-const BigNumJs = require('bignumber.js')
+import BigNumJs from 'bignumber.js'
 import { solidity } from 'ethereum-waffle'
-import { expect } from 'chai'
+
 import { BigNumber, Contract, Event } from 'ethers'
-import { StrategyBuilder, Position } from '../lib/encode'
-import { TIMELOCK_CATEGORY } from '../lib/utils'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { TIMELOCK_CATEGORY } from '../lib/utils'
+import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter, Platform } from '../lib/deploy'
+//import { displayBalances } from '../lib/logging'
+
 
 const NUM_TOKENS = 15
-const REBALANCE_THRESHOLD = 10 // 10/1000 = 1%
-const SLIPPAGE = 995 // 995/1000 = 99.5%
-const TIMELOCK = 60 // 1 minute
-let WETH: Contract
+const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
+const SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
+const TIMELOCK = BigNumber.from(60) // 1 minute
 
 chai.use(solidity)
 
-describe('StrategyController', function () {
+describe('controller', function () {
 	let tokens: Contract[],
+		weth: Contract,
 		accounts: SignerWithAddress[],
+		platform: Platform,
 		uniswapFactory: Contract,
 		router: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
-		controllerAdmin: Contract,
 		oracle: Contract,
 		whitelist: Contract,
 		adapter: Contract,
 		failAdapter: Contract,
-		failRouter: Contract,
 		strategy: Contract,
-		strategyTokens: string[],
-		strategyPercentages: BigNumber[],
-		strategyAdapters: string[],
+		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		newThreshold: BigNumber
+
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
-		WETH = tokens[0]
+		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const p = await deployPlatform(accounts[0], uniswapFactory, WETH)
-		;[strategyFactory, controller, oracle, whitelist, controllerAdmin] = [
-			p.strategyFactory,
-			p.controller,
-			p.oracle,
-			p.whitelist,
-			p.controllerAdmin,
-		]
-		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, WETH)
-		router = await deployLoopRouter(accounts[0], controller, adapter, WETH)
+		platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		strategyFactory = platform.strategyFactory
+		controller = platform.controller
+		oracle = platform.oracles.ensoOracle
+		whitelist = platform.administration.whitelist
+
+		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+		await whitelist.connect(accounts[0]).approve(adapter.address)
+		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
 	it('Should get implementation', async function () {
-		const implementation = await controllerAdmin.implementation()
+		const implementation = await platform.administration.controllerAdmin.implementation()
 		expect(implementation).to.not.equal(AddressZero)
 	})
 
 	it('Should fail to deploy strategy: threshold too high', async function () {
+		const positions = [
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: tokens[2].address, percentage: BigNumber.from(500) }
+		] as Position[]
+		const failItems = prepareStrategy(positions, adapter.address)
+		const failState: StrategyState = {
+			timelock: TIMELOCK,
+			rebalanceThreshold: BigNumber.from(1001),
+			slippage: SLIPPAGE,
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 		await expect(
 			strategyFactory
 				.connect(accounts[1])
@@ -70,20 +82,27 @@ describe('StrategyController', function () {
 					accounts[1].address,
 					'Fail Strategy',
 					'FAIL',
-					[],
-					[],
-					false,
-					0,
-					10001,
-					SLIPPAGE,
-					TIMELOCK,
+					failItems,
+					failState,
 					router.address,
 					'0x'
 				)
-		).to.be.revertedWith('Slippage/threshold high')
+		).to.be.revertedWith('Threshold high')
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
+		const positions = [
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: tokens[2].address, percentage: BigNumber.from(500) }
+		] as Position[]
+		const failItems = prepareStrategy(positions, adapter.address)
+		const failState: StrategyState = {
+			timelock: TIMELOCK,
+			rebalanceThreshold: REBALANCE_THRESHOLD,
+			slippage: BigNumber.from(1001),
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 		await expect(
 			strategyFactory
 				.connect(accounts[1])
@@ -91,17 +110,70 @@ describe('StrategyController', function () {
 					accounts[1].address,
 					'Fail Strategy',
 					'FAIL',
-					[],
-					[],
-					false,
-					0,
-					REBALANCE_THRESHOLD,
-					1001,
-					TIMELOCK,
+					failItems,
+					failState,
 					router.address,
 					'0x'
 				)
-		).to.be.revertedWith('Slippage/threshold high')
+		).to.be.revertedWith('Slippage high')
+	})
+	/*
+	it('Should fail to deploy strategy: no weth', async function () {
+		const positions = [
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: tokens[2].address, percentage: BigNumber.from(500) }
+		] as Position[]
+		const failItems = prepareStrategy(positions, adapter.address)
+		const failState: StrategyState = {
+			timelock: TIMELOCK,
+			rebalanceThreshold: REBALANCE_THRESHOLD,
+			slippage: SLIPPAGE,
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
+		await expect(
+			strategyFactory
+				.connect(accounts[1])
+				.createStrategy(
+					accounts[1].address,
+					'Fail Strategy',
+					'FAIL',
+					failItems,
+					failState,
+					router.address,
+					'0x'
+				)
+		).to.be.revertedWith('No WETH')
+	})
+	*/
+	it('Should deploy empty strategy', async function() {
+		const strategyState: StrategyState = {
+			timelock: TIMELOCK,
+			rebalanceThreshold: REBALANCE_THRESHOLD,
+			slippage: SLIPPAGE,
+			performanceFee: BigNumber.from(10), //1% fee
+			social: true // social
+		}
+		const tx = await strategyFactory
+			.connect(accounts[2])
+			.createStrategy(
+				accounts[2].address,
+				'Empty',
+				'MT',
+				[],
+				strategyState,
+				AddressZero,
+				'0x'
+			)
+		const receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await getContractFactory('Strategy')
+		const emptyStrategy = await Strategy.attach(strategyAddress)
+		expect((await emptyStrategy.items()).length).to.equal(0)
+		expect(await controller.social(emptyStrategy.address)).to.equal(true)
+		expect(BigNumber.from(await controller.performanceFee(emptyStrategy.address)).eq(strategyState.performanceFee)).to.equal(true)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -121,26 +193,26 @@ describe('StrategyController', function () {
 			{ token: tokens[11].address, percentage: BigNumber.from(50) },
 			{ token: tokens[12].address, percentage: BigNumber.from(50) },
 			{ token: tokens[13].address, percentage: BigNumber.from(50) },
-			{ token: tokens[14].address, percentage: BigNumber.from(50) },
+			{ token: tokens[0].address, percentage: BigNumber.from(50) },
 		] as Position[]
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: StrategyState = {
+			timelock: TIMELOCK,
+			rebalanceThreshold: REBALANCE_THRESHOLD,
+			slippage: SLIPPAGE,
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
 				accounts[1].address,
 				name,
 				symbol,
-				strategyTokens,
-				strategyPercentages,
-				false,
-				0,
-				REBALANCE_THRESHOLD,
-				SLIPPAGE,
-				TIMELOCK,
+				strategyItems,
+				strategyState,
 				router.address,
-				data,
+				'0x',
 				{ value: BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
@@ -159,16 +231,57 @@ describe('StrategyController', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	/*
 	it('Should fail to setup strategy: initialized', async function () {
+		const failState: StrategyState = {
+			timelock: BigNumber.from(0),
+			rebalanceThreshold: BigNumber.from(0),
+			slippage: BigNumber.from(0),
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 		await expect(
-			controller.setupStrategy(accounts[1].address, strategy.address, false, 0, 0, 0, 0, router.address, '0x')
+			controller.setupStrategy(accounts[1].address, strategy.address, failState, router.address, '0x')
 		).to.be.revertedWith('Already setup')
 	})
+	*/
 
 	it('Should fail to setup strategy: initialized', async function () {
+		const failState: StrategyState = {
+			timelock: BigNumber.from(0),
+			rebalanceThreshold: BigNumber.from(0),
+			slippage: BigNumber.from(0),
+			performanceFee: BigNumber.from(0),
+			social: false
+		}
 		await expect(
-			controller.setupStrategy(accounts[1].address, AddressZero, false, 0, 0, 0, 0, router.address, '0x')
+			controller.setupStrategy(accounts[1].address, AddressZero, failState, router.address, '0x')
 		).to.be.revertedWith('Not factory')
+	})
+
+	it('Should fail to verify structure: 0 address', async function () {
+		const failPositions: Position[] = [
+			{ token: tokens[0].address, percentage: BigNumber.from(0) },
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: AddressZero, percentage: BigNumber.from(500) }
+		]
+		const failItems = prepareStrategy(failPositions, adapter.address)
+		await expect(controller.verifyStructure(strategy.address, failItems)).to.be.revertedWith('Invalid item addr')
+	})
+
+	it('Should fail to verify structure: out of order', async function () {
+		const failPositions: Position[] = [
+			{ token: tokens[0].address, percentage: BigNumber.from(0) },
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: AddressZero, percentage: BigNumber.from(500) }
+		]
+		const failItems = prepareStrategy(failPositions, adapter.address)
+		const pos0 = failItems[0]
+		const pos1 = failItems[1]
+		// Switch order
+		failItems[0] = pos1
+		failItems[1] = pos0
+		await expect(controller.verifyStructure(strategy.address, failItems)).to.be.revertedWith('Item ordering')
 	})
 
 	it('Should fail to update value: restructure is invalid option', async function () {
@@ -200,7 +313,7 @@ describe('StrategyController', function () {
 
 	it('Should fail to finalize restructure: timelock not set for restructure', async function () {
 		await expect(
-			controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, [], [])
+			controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Wrong category')
 	})
 
@@ -231,6 +344,25 @@ describe('StrategyController', function () {
 		expect(BigNumber.from(await controller.slippage(strategy.address)).eq(slippage)).to.equal(true)
 	})
 
+	it('Should fail to update performance fee: not manager', async function () {
+		await expect(
+			controller.connect(accounts[0]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1)
+		).to.be.revertedWith('Not manager')
+	})
+
+	it('Should fail to update performance fee: value too large', async function () {
+		await expect(
+			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1001)
+		).to.be.revertedWith('Value too high')
+	})
+
+	it('Should update performance fee', async function () {
+		const fee = 10 // 1% fee
+		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, fee)
+		await controller.finalizeValue(strategy.address)
+		expect(BigNumber.from(await controller.performanceFee(strategy.address)).eq(fee)).to.equal(true)
+	})
+
 	it('Should fail to update timelock: not manager', async function () {
 		await expect(
 			controller.connect(accounts[0]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 1)
@@ -245,132 +377,114 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to rebalance, already balanced', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
 		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Balanced')
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(50)
-		await WETH.connect(accounts[2]).deposit({ value: value.mul(2) })
-		await WETH.connect(accounts[2]).approve(adapter.address, value.mul(2))
+		await weth.connect(accounts[2]).deposit({ value: value.mul(2) })
+		await weth.connect(accounts[2]).approve(adapter.address, value.mul(2))
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, WETH.address, tokens[1].address, accounts[2].address, accounts[2].address, '0x', '0x')
+			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		//The following trade should increase the value of the token such that it doesn't need to be rebalanced
 		await adapter
 			.connect(accounts[2])
 			.swap(
 				value.div(4),
 				0,
-				WETH.address,
+				weth.address,
 				tokens[3].address,
 				accounts[2].address,
-				accounts[2].address,
-				'0x',
-				'0x'
+				accounts[2].address
 			)
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should fail to rebalance, router not approved', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-		await expect(controller.connect(accounts[1]).rebalance(strategy.address, AddressZero, data)).to.be.revertedWith(
+		await expect(controller.connect(accounts[1]).rebalance(strategy.address, AddressZero, '0x')).to.be.revertedWith(
 			'Router not approved'
 		)
 	})
 
 	it('Should rebalance strategy', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
 	it('Should fail to rebalance, only manager may rebalance', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
 		await expect(
-			controller.connect(accounts[2]).rebalance(strategy.address, router.address, data)
+			controller.connect(accounts[2]).rebalance(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Not manager')
 	})
 
 	it('Should fail to deposit: not manager', async function () {
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
 		await expect(
-			controller
-				.connect(accounts[0])
-				.deposit(strategy.address, router.address, data, { value: BigNumber.from('10000000000000000') })
+			strategy.connect(accounts[0]).deposit(0, router.address, '0x', { value: BigNumber.from('10000000000000000') })
 		).to.be.revertedWith('Not manager')
 	})
 
 	it('Should fail to deposit: no funds deposited', async function () {
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, router.address, data)
-		).to.be.revertedWith('Swap failed')
+			strategy.connect(accounts[1]).deposit(0, router.address, '0x')
+		).to.be.revertedWith('Lost value')
 	})
 
-	it('Should fail to deposit: incorrect adapters', async function () {
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, []])
+	it('Should fail to deposit: value slipped', async function () {
 		await expect(
-			controller
-				.connect(accounts[1])
-				.deposit(strategy.address, router.address, data, { value: BigNumber.from('10000000000000000') })
-		).to.be.revertedWith('Routers/items mismatch')
+			strategy.connect(accounts[1]).deposit(0, router.address, '0x', { value: BigNumber.from('1000') })
+		).to.be.revertedWith('Value slipped')
 	})
 
-	it('Should deposit more', async function () {
+	it('Should deposit more: ETH', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, strategyAdapters])
-		const tx = await controller
-			.connect(accounts[1])
-			.deposit(strategy.address, router.address, data, { value: BigNumber.from('10000000000000000') })
+		const tx = await strategy.connect(accounts[1]).deposit(0, router.address, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[1].address)
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+	})
+
+	it('Should deposit more: weth', async function () {
+		const amount = BigNumber.from('10000000000000000')
+		await weth.connect(accounts[1]).deposit({value: amount})
+		await weth.connect(accounts[1]).approve(router.address, amount)
+		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+		const tx = await strategy.connect(accounts[1]).deposit(amount, router.address, '0x')
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
 	it('Should fail to withdraw: no strategy tokens', async function () {
-		await expect(strategy.connect(accounts[0]).withdraw(1)).to.be.revertedWith('ERC20: Amount exceeds balance')
+		await expect(strategy.connect(accounts[0]).withdrawAll(1)).to.be.revertedWith('ERC20: Amount exceeds balance')
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
-		await expect(strategy.connect(accounts[1]).withdraw(0)).to.be.revertedWith('0 amount')
+		await expect(strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
 	})
 
 	it('Should withdraw', async function () {
 		const amount = BigNumber.from('10000000000000')
-		const supplyBefore = BigNumJs((await strategy.totalSupply()).toString())
-		const tokenBalanceBefore = BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
-		const tx = await strategy.connect(accounts[1]).withdraw(amount)
+		const supplyBefore = new BigNumJs((await strategy.totalSupply()).toString())
+		const tokenBalanceBefore = new BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
+		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const supplyAfter = BigNumJs((await strategy.totalSupply()).toString())
-		const tokenBalanceAfter = BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
+		const supplyAfter = new BigNumJs((await strategy.totalSupply()).toString())
+		const tokenBalanceAfter = new BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
 		expect(supplyBefore.minus(amount.toString()).eq(supplyAfter)).to.equal(true)
 		expect(
 			supplyBefore
@@ -387,29 +501,15 @@ describe('StrategyController', function () {
 		)
 	})
 
-	it('Should fail to restructure: wrong array length', async function () {
-		const positions = [
-			{ token: tokens[0].address, percentage: BigNumber.from(500) },
-			{ token: tokens[1].address, percentage: BigNumber.from(500) },
-			{ token: tokens[2].address, percentage: BigNumber.from(0) },
-		]
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
-		await expect(
-			controller.connect(accounts[1]).restructure(strategy.address, strategyTokens, [500, 500])
-		).to.be.revertedWith('Invalid input lengths')
-	})
-
 	it('Should fail to restructure: wrong percentages', async function () {
 		const positions = [
 			{ token: tokens[0].address, percentage: BigNumber.from(300) },
 			{ token: tokens[1].address, percentage: BigNumber.from(300) },
 			{ token: tokens[2].address, percentage: BigNumber.from(300) },
 		] as Position[]
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
+		const failItems = prepareStrategy(positions, adapter.address)
 		await expect(
-			controller.connect(accounts[1]).restructure(strategy.address, strategyTokens, strategyPercentages)
+			controller.connect(accounts[1]).restructure(strategy.address, failItems)
 		).to.be.revertedWith('Total percentage wrong')
 	})
 
@@ -419,10 +519,9 @@ describe('StrategyController', function () {
 			{ token: tokens[1].address, percentage: BigNumber.from(300) },
 			{ token: tokens[2].address, percentage: BigNumber.from(400) },
 		] as Position[]
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
+		const failItems = prepareStrategy(positions, adapter.address)
 		await expect(
-			controller.connect(accounts[2]).restructure(strategy.address, strategyTokens, strategyPercentages)
+			controller.connect(accounts[2]).restructure(strategy.address, failItems)
 		).to.be.revertedWith('Not manager')
 	})
 
@@ -432,96 +531,74 @@ describe('StrategyController', function () {
 			{ token: tokens[1].address, percentage: BigNumber.from(300) },
 			{ token: tokens[2].address, percentage: BigNumber.from(400) },
 		] as Position[]
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
-		await controller.connect(accounts[1]).restructure(strategy.address, strategyTokens, strategyPercentages)
+		strategyItems = prepareStrategy(positions, adapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
 	it('Should fail to finalize value: wrong category', async function () {
 		await expect(controller.finalizeValue(strategy.address)).to.be.revertedWith('Wrong category')
 	})
-
-	it('Should fail to finalize structure: sell adapters mismatch', async function () {
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, strategyAdapters, strategyAdapters)
-		).to.be.revertedWith('Sell adapters length')
-	})
-
-	it('Should fail to finalize structure: buy adapters mismatch', async function () {
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
-
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, sellAdapters, sellAdapters)
-		).to.be.revertedWith('Buy adapters length')
-	})
-
+	/*
 	it('Should fail to finalize structure: value slipped', async function () {
 		const MaliciousAdapter = await getContractFactory('MaliciousAdapter')
-		const maliciousAdapter = await MaliciousAdapter.connect(accounts[1]).deploy(WETH.address)
+		const maliciousAdapter = await MaliciousAdapter.connect(accounts[1]).deploy(weth.address)
 		await maliciousAdapter.deployed()
+		await whitelist.connect(accounts[0]).approve(maliciousAdapter.address)
 
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
-		const maliciousAdapters = strategyTokens.map(() => maliciousAdapter.address)
+		const [total, estimates] = await oracle.estimateStrategy(strategy.address)
+		const currentItems = await strategy.items()
+		const maliciousAdapters = currentItems.map(() => maliciousAdapter.address)
+
+		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]', 'address[]', 'address[]', 'address[]'], [total, estimates, currentItems, maliciousAdapters, strategyAdapters])
 
 		await expect(
 			controller
 				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, sellAdapters, maliciousAdapters)
+				.finalizeStructure(strategy.address, router.address, data)
 		).to.be.revertedWith('Value slipped')
 	})
-
+	*/
 	it('Should finalize structure', async function () {
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
-
 		await controller
 			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, sellAdapters, strategyAdapters)
-		//await displayBalances(wrapper, strategyTokens, WETH)
+			.finalizeStructure(strategy.address, router.address, '0x')
+		//await displayBalances(wrapper, strategyItems, weth)
 	})
 
 	it('Should have no token 3', async function () {
-		const [total, estimates] = await oracle.estimateTotal(strategy.address, [tokens[3].address])
-		expect(total.eq(0)).to.equal(true)
-		expect(estimates[0].eq(0)).to.equal(true)
+		const amount = await tokens[3].balanceOf(strategy.address);
+		expect(amount.eq(0)).to.equal(true)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
-		if (strategyTokens[0] === WETH.address) {
+		if (strategyItems[0].item === weth.address) {
 			const value = await tokens[1].balanceOf(accounts[2].address)
 			await tokens[1].connect(accounts[2]).approve(adapter.address, value)
 			await adapter
 				.connect(accounts[2])
-				.swap(value, 0, tokens[1].address, WETH.address, accounts[2].address, accounts[2].address, '0x', '0x')
+				.swap(value, 0, tokens[1].address, weth.address, accounts[2].address, accounts[2].address)
 		} else {
 			const value = WeiPerEther.mul(100)
-			await WETH.connect(accounts[2]).deposit({ value: value })
-			await WETH.connect(accounts[2]).approve(adapter.address, value)
+			await weth.connect(accounts[2]).deposit({ value: value })
+			await weth.connect(accounts[2]).approve(adapter.address, value)
 			await adapter
 				.connect(accounts[2])
-				.swap(value, 0, WETH.address, strategyTokens[0], accounts[2].address, accounts[2].address, '0x', '0x')
+				.swap(value, 0, weth.address, strategyItems[0].item, accounts[2].address, accounts[2].address)
 		}
 
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
+	it('Should fail to rebalance: not controller', async function () {
+		await expect(router.rebalance(strategy.address, '0x')).to.be.revertedWith('Only controller')
+	})
+
 	it('Should rebalance strategy', async function () {
-		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
-		)
-		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyTokens, WETH)
+		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -542,146 +619,126 @@ describe('StrategyController', function () {
 		expect(await controller.social(strategy.address)).to.equal(true)
 	})
 
-	it('Should call update on oracle', async function () {
-		const tx = await oracle.update(tokens[1].address)
-		const receipt = await tx.wait()
-		const newPriceEvent = receipt.events.find((ev: Event) => ev.event === 'NewPrice').args
-		expect(newPriceEvent.token.toLowerCase()).to.equal(tokens[1].address.toLowerCase())
-		expect(newPriceEvent.price.gt(0)).to.equal(true)
-	})
-
-	it('Should return 0 when passing 0 to consult', async function () {
-		const value = await oracle.consult(0, tokens[1].address)
-		expect(value.eq(0)).to.equal(true)
-	})
-
-	it('Should return value when consult oracle about weth price', async function () {
-		const value = await oracle.consult(1, tokens[0].address)
-		expect(value.eq(1)).to.equal(true)
-	})
-
-	it('Should return 0 when estimating total of ETH in strategy', async function () {
-		const [total, estimates] = await oracle.estimateTotal(strategy.address, [AddressZero])
-		expect(total.eq(0)).to.equal(true)
-		expect(estimates[0].eq(0)).to.equal(true)
-	})
-
-	it('Should deploy fail adapter+router', async function () {
+	it('Should deploy fail adapter + setup strategy to need rebalance', async function () {
 		const FailAdapter = await getContractFactory('FailAdapter')
-		failAdapter = await FailAdapter.deploy(WETH.address)
+		failAdapter = await FailAdapter.deploy(weth.address)
 		await failAdapter.deployed()
-		failRouter = await deployLoopRouter(accounts[0], controller, failAdapter, WETH)
-		await whitelist.connect(accounts[0]).approve(failRouter.address)
+
+		const value = WeiPerEther.mul(100)
+		await weth.connect(accounts[2]).deposit({ value: value })
+		await weth.connect(accounts[2]).approve(adapter.address, value)
+		await adapter
+			.connect(accounts[2])
+			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
+	})
+	/*
+	it('Should fail to swap rebalance: adapter not approve', async function () {
+		const failAdapters = strategyItems.map(() => failAdapter.address)
+		const estimates = await Promise.all(
+			strategyItems.map(async (strategyItem) => (await wrapper.getTokenValue(strategyItem.item)).toString())
+		)
+		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
+		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]', 'address[]'], [total, estimates, failAdapters])
+
+		await expect(
+			controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
+		).to.be.revertedWith('Not approved')
+
+		// Approve
+		await whitelist.connect(accounts[0]).approve(failAdapter.address)
 	})
 
 	it('Should fail to rebalance: fail adapter (_sellTokens)', async function () {
-		const value = WeiPerEther.mul(100)
-		await WETH.connect(accounts[2]).deposit({ value: value })
-		await WETH.connect(accounts[2]).approve(adapter.address, value)
-		await adapter
-			.connect(accounts[2])
-			.swap(value, 0, WETH.address, tokens[1].address, accounts[2].address, accounts[2].address, '0x', '0x')
-
+		const failAdapters = strategyItems.map(() => failAdapter.address)
 		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+			strategyItems.map(async (strategyItem) => (await wrapper.getTokenValue(strategyItem.item)).toString())
 		)
 		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
+		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]', 'address[]'], [total, estimates, failAdapters])
 
 		await failAdapter.setSellFail(true)
 		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, failRouter.address, data)
+			controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
 		).to.be.revertedWith('Swap failed')
 		await failAdapter.setSellFail(false)
 	})
 
 	it('Should fail to rebalance: fail adapter (_buyTokens)', async function () {
+		const failAdapters = strategyItems.map(() => failAdapter.address)
 		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+			strategyItems.map(async (strategyItem) => (await wrapper.getTokenValue(strategyItem.item)).toString())
 		)
 		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
+		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]', 'address[]'], [total, estimates, failAdapters])
 
 		await failAdapter.setBuyFail(true)
 		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, failRouter.address, data)
+			controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
 		).to.be.revertedWith('Swap failed')
 		await failAdapter.setBuyFail(true)
 	})
 
 	it('Should fail to deposit: fail adapter', async function () {
-		const failAdapters = strategyTokens.map(() => failAdapter.address)
-		const data = ethers.utils.defaultAbiCoder.encode(['address[]', 'address[]'], [strategyTokens, failAdapters])
+		const failAdapters = strategyItems.map(() => failAdapter.address)
+		const data = ethers.utils.defaultAbiCoder.encode(['bool', 'address[]'], [false, failAdapters])
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, failRouter.address, data, { value: WeiPerEther })
+			strategy.connect(accounts[1]).deposit(0, router.address, data, { value: WeiPerEther })
 		).to.be.revertedWith('Swap failed')
 	})
-
+	*/
 	it('Should restructure', async function () {
 		const positions = [
+			{ token: weth.address, percentage: BigNumber.from(0) },
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
-			{ token: tokens[2].address, percentage: BigNumber.from(500) },
+			{ token: tokens[3].address, percentage: BigNumber.from(500) },
 		] as Position[]
 
-		const s = new StrategyBuilder(positions, adapter.address)
-		;[strategyTokens, strategyPercentages, strategyAdapters] = [s.tokens, s.percentages, s.adapters]
-		await controller.connect(accounts[1]).restructure(strategy.address, strategyTokens, strategyPercentages)
+		strategyItems = prepareStrategy(positions, adapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
-
+	/*
 	it('Should fail to finalize: fail sell adapter', async function () {
-		const currentTokens = await strategy.items()
-		const failAdapters = currentTokens.map(() => failAdapter.address)
+		const [total, estimates] = await oracle.estimateStrategy(strategy.address)
+		const currentItems = await strategy.items()
+		const failAdapters = currentItems.map(() => failAdapter.address)
+
+		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]', 'address[]', 'address[]', 'address[]'], [total, estimates, currentItems, failAdapters, strategyAdapters])
 
 		await failAdapter.setSellFail(true)
 		await expect(
 			controller
 				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, failAdapters, strategyAdapters)
+				.finalizeStructure(strategy.address, router.address, data)
 		).to.be.revertedWith('Swap failed')
 		await failAdapter.setSellFail(false)
 	})
-
-	it('Should fail to finalize: fail sell adapter', async function () {
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
-		const failAdapters = strategyTokens.map(() => failAdapter.address)
-
-		await failAdapter.setSellFail(true)
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, sellAdapters, failAdapters)
-		).to.be.revertedWith('Swap failed')
-		await failAdapter.setSellFail(false)
-	})
-
+	*/
 	it('Should finalize structure', async function () {
-		const currentTokens = await strategy.items()
-		const sellAdapters = currentTokens.map(() => adapter.address)
-
 		await controller
 			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, sellAdapters, strategyAdapters)
-		//await displayBalances(wrapper, strategyTokens, WETH)
+			.finalizeStructure(strategy.address, router.address, '0x')
+		//await displayBalances(wrapper, strategyItems, weth)
 	})
-
+	/*
 	it('Should fail to rebalance: fail adapter (_buyTokens)', async function () {
 		const value = tokens[1].balanceOf(accounts[2].address)
 		await tokens[1].connect(accounts[2]).approve(adapter.address, value)
 		await adapter
 			.connect(accounts[2])
-			.swap(value, 0, tokens[1].address, WETH.address, accounts[2].address, accounts[2].address, '0x', '0x')
+			.swap(value, 0, tokens[1].address, weth.address, accounts[2].address, accounts[2].address)
 
+		const failAdapters = strategyItems.map(() => failAdapter.address)
 		const estimates = await Promise.all(
-			strategyTokens.map(async (token) => (await wrapper.getTokenValue(token)).toString())
+			strategyItems.map(async (strategyItem) => (await wrapper.getTokenValue(strategyItem.item)).toString())
 		)
 		const total = estimates.reduce((total, value) => BigNumber.from(total.toString()).add(value)).toString()
-		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]'], [total, estimates])
+		const data = ethers.utils.defaultAbiCoder.encode(['uint256', 'uint256[]', 'address[]'], [total, estimates, failAdapters])
 
 		await failAdapter.setBuyFail(true)
 		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, failRouter.address, data)
+			controller.connect(accounts[1]).rebalance(strategy.address, router.address, data)
 		).to.be.revertedWith('Swap failed')
 		await failAdapter.setBuyFail(true)
 	})
+	*/
 })

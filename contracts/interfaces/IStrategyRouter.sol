@@ -1,28 +1,20 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity >=0.6.0 <0.9.0;
+
+import "../interfaces/IStrategyController.sol";
 
 interface IStrategyRouter {
-    //address public weth;
-    //function deposit(address depositor, address[] memory tokens, address[] memory routers) external payable;
-    //function withdraw(address withdrawer, uint256 amount) external;
-
-    function sellTokens(
-        address strategy,
-        address[] memory tokens,
-        address[] memory routers
-    ) external;
-
-    function buyTokens(
-        address strategy,
-        address[] memory tokens,
-        address[] memory routers
-    ) external;
+    enum RouterCategory {GENERIC, LOOP, SYNTH, BATCH}
 
     function rebalance(address strategy, bytes calldata data) external;
 
+    function restructure(address strategy, bytes calldata data) external;
+
     function deposit(address strategy, bytes calldata data) external;
 
-    function controller() external view returns (address);
+    function withdraw(address strategy, bytes calldata) external;
 
-    function weth() external view returns (address);
+    function controller() external view returns (IStrategyController);
+
+    function category() external view returns (RouterCategory);
 }

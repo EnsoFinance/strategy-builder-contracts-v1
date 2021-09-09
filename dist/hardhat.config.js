@@ -10,7 +10,6 @@ require("solidity-coverage");
 require("@typechain/hardhat");
 require("./tasks/accounts");
 require("./tasks/clean");
-// import 'hardhat-etherscan-abi'
 dotenv_1.default.config();
 var chainIds = {
     ganache: 1337,
@@ -21,41 +20,48 @@ var chainIds = {
     rinkeby: 4,
     ropsten: 3,
 };
+// Ensure that we have all the environment variables we need.
 var mnemonic = process.env.MNEMONIC;
 var infuraApiKey = process.env.INFURA_API_KEY;
-var networkIndex = process.argv.findIndex(function (arg) { return arg === '--network'; });
+var archiveNode = process.env.ARCHIVE_NODE;
+var networkIndex = process.argv.findIndex(function (arg) { return arg === "--network"; });
 if (networkIndex > 0) {
-    if (process.argv[networkIndex + 1] !== 'hardhat') {
+    if (process.argv[networkIndex + 1] !== "hardhat") {
         if (!mnemonic) {
-            throw new Error('Please set your MNEMONIC in a .env file');
+            throw new Error("Please set your MNEMONIC in a .env file");
         }
         if (!infuraApiKey) {
-            throw new Error('Please set your INFURA_API_KEY in a .env file');
+            throw new Error("Please set your INFURA_API_KEY in a .env file");
+        }
+    }
+    else {
+        if (process.argv[2] == "test" && !archiveNode) {
+            throw new Error("Please set your ARCHIVE_NODE in a .env file");
         }
     }
 }
-//  let archiveNode: string;
-//  if (!process.env.ARCHIVE_NODE) {
-//    throw new Error("Please set your ARCHIVE_NODE url in a .env file");
-//  } else {
-//    archiveNode = process.env.ARCHIVE_NODE;
-//  }
-//  let etherscanApiKey: string;
-//  if (!process.env.ETHERSCAN_API_KEY) {
-//    throw new Error("Please set your ETHERSCAN_API_KEY in a .env file");
-//  } else {
-//    etherscanApiKey = process.env.ETHERSCAN_API_KEY;
-//  }
+else {
+    if (process.argv[2] == "test" && !archiveNode) {
+        throw new Error("Please set your ARCHIVE_NODE in a .env file");
+    }
+}
 function getNetworks() {
     var networks = {
         hardhat: {
-            //  forking: {
-            //    url: archiveNode,
-            //    blockNumber: 12142007,
-            //  },
             chainId: chainIds.mainnet,
-        }
+        },
     };
+    if (networks.hardhat) {
+        if (mnemonic)
+            networks.hardhat.accounts = {
+                mnemonic: mnemonic,
+            };
+        if (archiveNode)
+            networks.hardhat.forking = {
+                url: archiveNode,
+                blockNumber: 12782865,
+            };
+    }
     if (mnemonic && infuraApiKey) {
         networks.goerli = createTestnetConfig('goerli');
         networks.kovan = createTestnetConfig('kovan');
@@ -89,6 +95,15 @@ var config = {
     },
     solidity: {
         compilers: [
+            {
+                version: '0.7.6',
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 20,
+                    },
+                },
+            },
             {
                 version: '0.6.12',
                 settings: {
@@ -139,9 +154,5 @@ var config = {
     mocha: {
         timeout: 40000,
     },
-    // typechain: {
-    // 	outDir: 'typechain',
-    // 	target: 'ethers-v5',
-    // },
 };
 exports.default = config;

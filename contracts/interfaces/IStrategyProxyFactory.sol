@@ -1,7 +1,22 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity >=0.6.0 <0.9.0;
+pragma experimental ABIEncoderV2;
 
-interface IStrategyProxyFactory {
+import "../helpers/StrategyTypes.sol";
+
+interface IStrategyProxyFactory is StrategyTypes{
+    function createStrategy(
+        address manager,
+        string memory name,
+        string memory symbol,
+        StrategyItem[] memory strategyItems,
+        StrategyState memory strategyState,
+        address router,
+        bytes memory data
+    ) external payable returns (address);
+
+    function updateProxyVersion(address proxy) external;
+
     function implementation() external view returns (address);
 
     function controller() external view returns (address);
@@ -12,20 +27,7 @@ interface IStrategyProxyFactory {
 
     function version() external view returns (string memory);
 
-    function salt(address manager, string memory name, string memory symbol) external pure returns (bytes32);
+    function getManager(address proxy) external view returns (address);
 
-    function createStrategy(
-        address manager,
-        string memory name,
-        string memory symbol,
-        address[] memory tokens,
-        uint256[] memory percentages,
-        bool social,
-        uint256 fee,
-        uint256 threshold,
-        uint256 slippage,
-        uint256 timelock,
-        address router,
-        bytes memory data
-    ) external payable returns (address);
+    function salt(address manager, string memory name, string memory symbol) external pure returns (bytes32);
 }

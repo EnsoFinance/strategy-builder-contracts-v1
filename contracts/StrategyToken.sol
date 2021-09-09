@@ -75,7 +75,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) external virtual override returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender] + addedValue);
+        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
         return true;
     }
 
@@ -96,7 +96,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     function decreaseAllowance(address spender, uint256 subtractedValue) external virtual override returns (bool) {
         uint256 currentAllowance = _allowances[msg.sender][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        _approve(msg.sender, spender, currentAllowance - subtractedValue);
+        _approve(msg.sender, spender, currentAllowance.sub(subtractedValue));
 
         return true;
     }
@@ -179,7 +179,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
      * no way affects any of the arithmetic of the contract, including
      * {IERC20-balanceOf} and {IERC20-transfer}.
      */
-    function decimals() external view returns (uint8) {
+    function decimals() external view override returns (uint8) {
         return _decimals;
     }
 

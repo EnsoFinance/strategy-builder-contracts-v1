@@ -2,23 +2,19 @@
 pragma solidity 0.6.12;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
-import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./ExchangeAdapter.sol";
 import "../libraries/UniswapV2Library.sol";
-import "hardhat/console.sol";
 
 contract UniswapV2Adapter is ExchangeAdapter {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
-    address internal _factory;
+    address public immutable factory;
 
     constructor(address factory_, address weth_) public ExchangeAdapter(weth_) {
-        _factory = factory_;
-        _package = abi.encode(factory_);
+        factory = factory_;
     }
 
     function spotPrice(
@@ -27,19 +23,8 @@ contract UniswapV2Adapter is ExchangeAdapter {
         address tokenOut
     ) external view override returns (uint256) {
         (uint256 reserveA, uint256 reserveB) =
-            UniswapV2Library.getReserves(_factory, tokenIn, tokenOut);
+            UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
         return UniswapV2Library.quote(amount, reserveA, reserveB);
-    }
-
-    function swapPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        address[] memory path = new address[](2);
-        path[0] = tokenIn;
-        path[1] = tokenOut;
-        return UniswapV2Library.getAmountsOut(_factory, amount, path)[1];
     }
 
     /*
@@ -54,43 +39,34 @@ contract UniswapV2Adapter is ExchangeAdapter {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data,
-        bytes memory package
+        address to
     ) public override returns (bool) {
         require(tokenIn != tokenOut, "Tokens cannot match");
-        // For delegate call must pass state in with 'package' parameters.
-        // If package.length == 0 just rely on regular state
-        (address factoryAddress) =
-            package.length > 0 ? abi.decode(package, (address)) : (_factory);
         {
-          address pair = UniswapV2Library.pairFor(factoryAddress, tokenIn, tokenOut);
-          uint256 beforeBalance = IERC20(tokenIn).balanceOf(pair);
-          TransferHelper.safeTransferFrom(
-              tokenIn,
-              from,
-              pair,
-              amount
-          );
-          uint256 afterBalance = IERC20(tokenIn).balanceOf(pair);
-          amount = afterBalance.sub(beforeBalance); //In case of transfer fees reducing amount
+            address pair = UniswapV2Library.pairFor(factory, tokenIn, tokenOut);
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(pair);
+            if (from != address(this)) {
+                IERC20(tokenIn).safeTransferFrom(from, pair, amount);
+            } else {
+                IERC20(tokenIn).safeTransfer(pair, amount);
+            }
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(pair);
+            amount = afterBalance.sub(beforeBalance); //In case of transfer fees reducing amount
         }
 
-        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factoryAddress, tokenIn, tokenOut);
+        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
         uint256 received = UniswapV2Library.getAmountOut(amount, reserveIn, reserveOut);
         require(received >= expected, "Insufficient tokenOut amount");
-        _pairSwap(factoryAddress, 0, received, tokenIn, tokenOut, to, data);
+        _pairSwap(0, received, tokenIn, tokenOut, to);
         return true;
     }
 
     function _pairSwap(
-        address factory,
         uint256 tokenAOut,
         uint256 tokenBOut,
         address tokenA,
         address tokenB,
-        address to,
-        bytes memory data
+        address to
     ) internal {
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
         (uint256 amount0Out, uint256 amount1Out) =
@@ -99,7 +75,7 @@ contract UniswapV2Adapter is ExchangeAdapter {
             amount0Out,
             amount1Out,
             to,
-            data
+            new bytes(0)
         );
     }
 }

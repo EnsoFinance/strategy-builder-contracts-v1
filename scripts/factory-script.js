@@ -9,7 +9,7 @@ const hre = require("hardhat");
 const strategyImplementation = ''
 const strategyController = ''
 const oracle = ''
-const whitelist = ''
+const registry = ''
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -25,7 +25,7 @@ async function main() {
     strategyImplementation,
     strategyController,
     oracle,
-    whitelist
+    registry
   )
   await strategyFactory.deployed()
 

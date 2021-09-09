@@ -1,102 +1,57 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-//import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IExchangeAdapter.sol";
 import "../libraries/StrategyLibrary.sol";
+import "../helpers/StrategyTypes.sol";
 
-abstract contract StrategyRouter is IStrategyRouter {
+abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    address public override controller;
-    address public override weth;
+    uint256 internal constant DIVISOR = 1000;
 
-    constructor(address controller_, address weth_) public {
-        controller = controller_;
-        weth = weth_;
+    RouterCategory public override category;
+    IStrategyController public override controller;
+    address public weth;
+
+    constructor(RouterCategory category_, address controller_) public {
+        category = category_;
+        controller = IStrategyController(controller_);
+        weth = controller.oracle().weth();
     }
 
     /**
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(controller == msg.sender, "Only controller");
+        require(address(controller) == msg.sender, "Only controller");
+        _;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the strategy.
+     */
+    modifier onlyStrategy(address strategy) {
+        require(strategy == msg.sender, "Only strategy");
         _;
     }
 
     // Abstract external functions to be defined by inheritor
     function deposit(address strategy, bytes calldata data) external virtual override;
 
+    function withdraw(address strategy, bytes calldata data) external virtual override;
+
     function rebalance(address strategy, bytes calldata data) external virtual override;
 
-    // Public functions
-    function sellTokens(
-        address strategy,
-        address[] memory strategyItems,
-        address[] memory adapters
-    ) public override onlyController {
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            // Convert funds into Ether
-            address tokenAddress = strategyItems[i];
-            uint256 amount = IERC20(tokenAddress).balanceOf(strategy);
-            if (tokenAddress == weth) {
-                IERC20(tokenAddress).safeTransferFrom(strategy, msg.sender, amount);
-            } else {
-                require(
-                    _delegateSwap(
-                        adapters[i],
-                        amount,
-                        0,
-                        tokenAddress,
-                        weth,
-                        strategy,
-                        msg.sender,
-                        new bytes(0)
-                    ),
-                    "Swap failed"
-                );
-            }
-        }
-    }
-
-    function buyTokens(
-        address strategy,
-        address[] memory strategyItems,
-        address[] memory adapters
-    ) public override onlyController {
-        require(adapters.length == strategyItems.length, "Routers/items mismatch");
-        uint256 total = IERC20(weth).balanceOf(msg.sender);
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            address tokenAddress = strategyItems[i];
-            uint256 amount =
-                i == strategyItems.length - 1
-                    ? IERC20(weth).balanceOf(msg.sender)
-                    : StrategyLibrary.getExpectedTokenValue(total, strategy, tokenAddress);
-            if (tokenAddress == weth) {
-                IERC20(tokenAddress).safeTransferFrom(msg.sender, strategy, amount);
-            } else {
-                // Convert WETH to Token
-                require(
-                    _delegateSwap(
-                        adapters[i],
-                        amount,
-                        0,
-                        weth,
-                        tokenAddress,
-                        msg.sender,
-                        strategy,
-                        new bytes(0)
-                    ),
-                    "Swap failed"
-                );
-            }
-        }
-    }
+    function restructure(address strategy, bytes calldata data) external virtual override;
 
     function _delegateSwap(
         address adapter,
@@ -105,23 +60,20 @@ abstract contract StrategyRouter is IStrategyRouter {
         address tokenIn,
         address tokenOut,
         address from,
-        address to,
-        bytes memory data
+        address to
     ) internal returns (bool success) {
-        bytes memory package = IExchangeAdapter(adapter).getPackage();
+        require(controller.whitelist().approved(adapter), "Not approved");
         bytes memory swapData =
             abi.encodeWithSelector(
                 bytes4(
-                    keccak256("swap(uint256,uint256,address,address,address,address,bytes,bytes)")
+                    keccak256("swap(uint256,uint256,address,address,address,address)")
                 ),
                 amount,
                 expected,
                 tokenIn,
                 tokenOut,
                 from,
-                to,
-                data,
-                package
+                to
             );
         uint256 txGas = gasleft();
         assembly {
@@ -129,7 +81,113 @@ abstract contract StrategyRouter is IStrategyRouter {
         }
     }
 
-    receive() external payable {
-        assert(msg.sender == weth); // only accept ETH via fallback from the WETH contract
+    function _sellPath(
+        TradeData memory data,
+        uint256 amount,
+        address token,
+        address strategy
+    ) internal {
+        if(amount > 0) {
+            for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
+                uint256 _amount;
+                address _tokenIn;
+                address _tokenOut;
+                address _from;
+                address _to;
+                if (uint256(i) == data.adapters.length-1) {
+                    _tokenIn = token;
+                    _amount = amount;
+                    _from = strategy;
+                } else {
+                    _tokenIn = data.path[uint256(i)];
+                    _from = address(this);
+                    _amount = IERC20(_tokenIn).balanceOf(_from);
+                }
+                if (uint256(i) == 0) {
+                    _tokenOut = weth;
+                    _to = strategy;
+                } else {
+                    _tokenOut = data.path[uint256(i-1)];
+                    _to = address(this);
+                }
+                require(
+                    _delegateSwap(
+                        data.adapters[uint256(i)],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
+                    ),
+                    "Swap failed"
+                );
+            }
+        }
+    }
+
+    function _buyPath(
+        TradeData memory data,
+        uint256 amount,
+        address token,
+        address strategy,
+        address from
+    ) internal {
+        if (amount > 0) {
+            for (uint256 i = 0; i < data.adapters.length; i++) {
+                uint256 _amount;
+                address _tokenIn;
+                address _tokenOut;
+                address _from;
+                address _to;
+                if (i == 0) {
+                    _tokenIn = weth;
+                    _amount = amount;
+                    _from = from;
+                } else {
+                    _tokenIn = data.path[i-1];
+                    _from = address(this);
+                    _amount = IERC20(_tokenIn).balanceOf(_from);
+                }
+                if (i == data.adapters.length-1) {
+                    _tokenOut = token;
+                    _to = strategy;
+                } else {
+                    _tokenOut = data.path[i];
+                    _to = address(this);
+                }
+                require(
+                    _delegateSwap(
+                        data.adapters[i],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
+                    ),
+                    "Swap failed"
+                );
+            }
+        }
+    }
+
+    function _pathPrice(TradeData memory data, uint256 amount, address token) internal view returns (uint256){
+        for (uint256 i = 0; i < data.adapters.length; i++) {
+            address tokenIn;
+            address tokenOut;
+            if (i == 0) {
+                tokenIn = weth;
+            } else {
+                tokenIn = data.path[i-1];
+            }
+            if (i == data.adapters.length-1) {
+                tokenOut = token;
+            } else {
+                tokenOut = data.path[i];
+            }
+            amount = IExchangeAdapter(data.adapters[i]).spotPrice(amount, tokenIn, tokenOut);
+        }
+        return amount;
     }
 }

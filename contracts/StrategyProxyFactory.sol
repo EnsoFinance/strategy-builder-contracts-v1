@@ -1,14 +1,18 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity 0.7.6;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./StrategyProxyFactoryStorage.sol";
-import "./StrategyProxyManagerRegistry.sol";
+import "./StrategyProxyAdmin.sol";
+import "./helpers/StrategyTypes.sol";
 import "./helpers/AddressUtils.sol";
 import "./helpers/StringUtils.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
+import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
+import "./interfaces/ITokenRegistry.sol";
 
 /**
  * @notice Deploys Proxy Strategies
@@ -16,8 +20,6 @@ import "./interfaces/IStrategyController.sol";
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
 contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils {
-    StrategyProxyManagerRegistry private immutable managerRegistry;
-
     /**
      * @notice Log the address of an implementation contract update
      */
@@ -31,13 +33,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address manager,
         string name,
         string symbol,
-        address[] tokens,
-        uint256[] percentages,
-        bool social,
-        uint256 fee,
-        uint256 threshold,
-        uint256 slippage,
-        uint256 timelock
+        StrategyItem[] items
     );
 
     /**
@@ -58,41 +54,39 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     /**
      * @notice Initialize constructor to disable implementation
      */
-    constructor() public initializer {
-        managerRegistry = new StrategyProxyManagerRegistry(address(this));
-    }
+    constructor() public initializer {}
 
     function initialize(
         address owner_,
         address implementation_,
         address oracle_,
+        address registry_,
         address whitelist_
     ) external
         initializer
         noZeroAddress(owner_)
         noZeroAddress(implementation_)
         noZeroAddress(oracle_)
+        noZeroAddress(registry_)
         noZeroAddress(whitelist_)
-        returns (bool){
-        _owner = owner_;
+        returns (bool)
+    {
+        admin = address(new StrategyProxyAdmin(address(this)));
+        owner = owner_;
         _implementation = implementation_;
         _oracle = oracle_;
+        _registry = registry_;
         _whitelist = whitelist_;
         _version = "1";
         emit Update(_implementation, _version);
         emit NewOracle(_oracle);
         emit NewWhitelist(_whitelist);
-        emit OwnershipTransferred(address(0), _owner);
+        emit OwnershipTransferred(address(0), owner);
         return true;
     }
 
-    modifier onlyManager(address proxy) {
-        require(managerRegistry.manager(proxy) == msg.sender, "Not manager");
-        _;
-    }
-
     modifier onlyOwner() {
-        require(_owner == msg.sender, "Not owner");
+        require(owner == msg.sender, "Not owner");
         _;
     }
 
@@ -105,40 +99,25 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address manager,
         string memory name,
         string memory symbol,
-        address[] memory tokens,
-        uint256[] memory percentages,
-        bool social,
-        uint256 fee,
-        uint256 threshold,
-        uint256 slippage,
-        uint256 timelock,
+        StrategyItem[] memory strategyItems,
+        StrategyState memory strategyState,
         address router,
         bytes memory data
     ) external payable override returns (address){
-        address strategy = _createProxy(manager, name, symbol, tokens, percentages);
-        _setupStrategy(
-           manager,
-           strategy,
-           social,
-           fee,
-           threshold,
-           slippage,
-           timelock,
-           router,
-           data
-        );
+        address strategy = _createProxy(manager, name, symbol, strategyItems);
         emit NewStrategy(
             strategy,
             manager,
             name,
             symbol,
-            tokens,
-            percentages,
-            social,
-            fee,
-            threshold,
-            slippage,
-            timelock
+            strategyItems
+        );
+        _setupStrategy(
+           manager,
+           strategy,
+           strategyState,
+           router,
+           data
         );
         return strategy;
     }
@@ -165,71 +144,25 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         emit NewWhitelist(newWhitelist);
     }
 
-    function salt(address manager, string memory name, string memory symbol) public pure override returns (bytes32) {
-      return keccak256(abi.encodePacked(manager, name, symbol));
-    }
-
-    /**
-     * @dev Returns the current implementation of `proxy`.
-     *
-     * Requirements:
-     *
-     * - This contract must be the admin of `proxy`.
+    /*
+     * @dev This function is called by StrategyProxyAdmin
      */
-    function getProxyImplementation(TransparentUpgradeableProxy proxy)
-        public
-        view
-        returns (address)
-    {
-        // We need to manually run the static call since the getter cannot be flagged as view
-        // bytes4(keccak256("implementation()")) == 0x5c60da1b
-        (bool success, bytes memory returndata) = address(proxy).staticcall(hex"5c60da1b");
-        require(success);
-        return abi.decode(returndata, (address));
+    function updateProxyVersion(address proxy) external override {
+        require(msg.sender == admin, "Only admin");
+        IStrategyManagement(proxy).updateVersion(_version);
     }
 
-    /**
-     * @dev Returns the current admin of `proxy`.
-     *
-     * Requirements:
-     *
-     * - This contract must be the admin of `proxy`.
-     */
-    function getProxyAdmin(TransparentUpgradeableProxy proxy) public view returns (address) {
-        // We need to manually run the static call since the getter cannot be flagged as view
-        // bytes4(keccak256("admin()")) == 0xf851a440
-        (bool success, bytes memory returndata) = address(proxy).staticcall(hex"f851a440");
-        require(success);
-        return abi.decode(returndata, (address));
+    function addEstimatorToRegistry(uint256 estimatorCategoryIndex, address estimator) external onlyOwner {
+        ITokenRegistry(_registry).addEstimator(estimatorCategoryIndex, estimator);
     }
 
-    /**
-     * @dev Upgrades `proxy` to `implementation`. See {TransparentUpgradeableProxy-upgradeTo}.
-     *
-     * Requirements:
-     *
-     * - This contract must be the admin of `proxy`.
-     */
-    function upgrade(TransparentUpgradeableProxy proxy) public payable onlyManager(address(proxy)) {
-        bytes memory data = abi.encodeWithSelector(bytes4(keccak256("updateVersion(string)")), _version);
-        proxy.upgradeToAndCall{value: msg.value}(_implementation, data);
+    function addItemToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token
+    ) external onlyOwner {
+        _addItemToRegistry(itemCategoryIndex, estimatorCategoryIndex, token);
     }
-
-    // /**
-    //  * @dev Upgrades `proxy` to `implementation` and calls a function on the new implementation. See
-    //  * {TransparentUpgradeableProxy-upgradeToAndCall}.
-    //  *
-    //  * Requirements:
-    //  *
-    //  * - This contract must be the admin of `proxy`.
-    //  */
-    // function upgradeAndCall(TransparentUpgradeableProxy proxy, bytes memory data)
-    //     public
-    //     payable
-    //     onlyManager(address(proxy))
-    // {
-    //     proxy.upgradeToAndCall{value: msg.value}(_implementation, data);
-    // }
 
     /**
      * @dev Leaves the contract without owner. It will not be possible to call
@@ -239,8 +172,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * thereby removing any functionality that is only available to the owner.
      */
     function renounceOwnership() public onlyOwner {
-        emit OwnershipTransferred(_owner, address(0));
-        _owner = address(0);
+        emit OwnershipTransferred(owner, address(0));
+        owner = address(0);
     }
 
     /**
@@ -248,26 +181,35 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) public noZeroAddress(newOwner) onlyOwner {
-        emit OwnershipTransferred(_owner, newOwner);
-        _owner = newOwner;
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
     }
 
-    function owner() external view returns (address) {
-        return _owner;
+    function salt(address manager, string memory name, string memory symbol) public pure override returns (bytes32) {
+      return keccak256(abi.encodePacked(manager, name, symbol));
     }
 
     function controller() external view override returns (address) {
         return _controller;
     }
 
+    /*
+     * @dev This function is called by Strategy and StrategyController
+     */
     function whitelist() external view override returns (address) {
         return _whitelist;
     }
 
+    /*
+     * @dev This function is called by  Strategy and StrategyController
+     */
     function oracle() external view override returns (address) {
         return _oracle;
     }
 
+    /*
+     * @dev This function is called by StrategyProxyAdmin
+     */
     function implementation() external view override returns (address) {
         return _implementation;
     }
@@ -276,38 +218,42 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return _version;
     }
 
+    /*
+     * @dev This function is called by StrategyProxyAdmin
+     */
+    function getManager(address proxy) external view override returns (address) {
+        return IStrategyManagement(proxy).manager();
+    }
+
     /**
         @notice Creates a Strategy proxy and makes a delegate call to initialize items + percentages on the proxy
     */
     function _createProxy(
-        address manager, string memory name, string memory symbol, address[] memory tokens, uint256[] memory percentages
+        address manager, string memory name, string memory symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy{salt: salt(manager, name, symbol)}(
                     _implementation,
-                    address(this),
-                    abi.encodeWithSelector(
-                        bytes4(keccak256("initialize(string,string,string,address,address,address[],uint256[])")),
-                        name,
-                        symbol,
-                        _version,
-                        _controller,
-                        manager,
-                        tokens,
-                        percentages
-                    )
+                    admin,
+                    new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
-      return address(proxy);
+        _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy));
+        // Instead we initialize it directly in the Strategy contract
+        IStrategyManagement(address(proxy)).initialize(
+            name,
+            symbol,
+            _version,
+            _controller,
+            manager,
+            strategyItems
+        );
+        return address(proxy);
     }
 
     function _setupStrategy(
         address manager,
         address strategy,
-        bool social,
-        uint256 fee,
-        uint256 threshold,
-        uint256 slippage,
-        uint256 timelock,
+        StrategyState memory strategyState,
         address router,
         bytes memory data
     ) internal {
@@ -315,13 +261,17 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         strategyController.setupStrategy{value: msg.value}(
             manager,
             strategy,
-            social,
-            fee,
-            threshold,
-            slippage,
-            timelock,
+            strategyState,
             router,
             data
         );
+    }
+
+    function _addItemToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token
+    ) internal {
+        ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 }

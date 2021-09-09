@@ -4,7 +4,6 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interfaces/IExchangeAdapter.sol";
-import "hardhat/console.sol";
 
 contract Arbitrager is Ownable {
     using SafeERC20 for IERC20;
@@ -54,9 +53,7 @@ contract Arbitrager is Ownable {
             address(arbToken),
             address(pairToken),
             address(this),
-            address(this),
-            new bytes(0),
-            new bytes(0)
+            address(this)
         );
         uint256 balance = pairToken.balanceOf(address(this));
         pairToken.safeApprove(address(buyAdapter), balance);
@@ -66,9 +63,7 @@ contract Arbitrager is Ownable {
             address(pairToken),
             address(arbToken),
             address(this),
-            address(this),
-            new bytes(0),
-            new bytes(0)
+            address(this)
         );
     }
 
