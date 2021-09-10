@@ -8,6 +8,7 @@ import { expect } from 'chai'
 import { BigNumber, Contract, Event } from 'ethers'
 import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployBatchDepositRouter } from '../lib/deploy'
+import { displayBalances } from '../lib/logging'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const NUM_TOKENS = 15
@@ -50,6 +51,16 @@ describe('BatchDepositRouter', function () {
 		const token2Balance = await tokens[2].balanceOf(accounts[0].address)
 		await tokens[1].connect(accounts[0]).transfer(accounts[1].address, token1Balance)
 		await tokens[2].connect(accounts[0]).transfer(accounts[1].address, token2Balance)
+	})
+
+	it('Should purchase a token, causing price disparity', async function () {
+		// Approve the user to use the adapter
+		const value = WeiPerEther.mul(50)
+		await weth.connect(accounts[2]).deposit({ value: value.mul(2) })
+		await weth.connect(accounts[2]).approve(adapter.address, value.mul(2))
+		await adapter
+			.connect(accounts[2])
+			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -97,6 +108,7 @@ describe('BatchDepositRouter', function () {
 		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
+		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 

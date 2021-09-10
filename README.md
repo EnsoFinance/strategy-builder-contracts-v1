@@ -172,6 +172,8 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
 
     GenericRouter: 0xE0a9382c01d6EDfA0c933714b3626435EeF10811
 
+    BatchDepositRouter: 0x05450f1469F2A8D0009842DDA3e54c6451F41936
+
     UniswapV2Adapter: 0x3731D53ef2B183206a670080c61DA81b09da0C5d
 
     MetaStrategyAdapter: 0x283E0942c1769d5b0cb678B70550E0C11b445AD0
