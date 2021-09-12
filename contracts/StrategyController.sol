@@ -29,6 +29,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
     event StrategyOpen(address indexed strategy, uint256 performanceFee);
 
+    // Initialize constructor to disable implementation
+    constructor() public initializer {}
 
     /**
      * @dev Called to initialize proxy

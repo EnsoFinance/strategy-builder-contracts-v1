@@ -34,7 +34,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
     event Deposit(uint256 value, uint256 amount);
 
     // Initialize constructor to disable implementation
-    constructor() public initializer {} //solhint-disable-line
+    constructor() public initializer {}
 
     /**
      * @dev Throws if called by any account other than the controller.

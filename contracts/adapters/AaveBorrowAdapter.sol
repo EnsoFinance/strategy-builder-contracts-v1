@@ -79,7 +79,7 @@ contract AaveBorrowAdapter is ExchangeAdapter {
             mstore(0x40, add(ptr, 32))
             mstore(ptr, selector)
             success := staticcall(
-                7000, //estimated gas costs
+                6000, //estimated gas costs
                 token,
                 ptr,
                 4,

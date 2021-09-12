@@ -12,9 +12,7 @@ import "./interfaces/IStrategyProxyFactory.sol";
  */
 contract StrategyProxyAdmin {
     IStrategyProxyFactory private immutable factory;
-    /**
-     * @notice Initialize constructor to disable implementation
-     */
+
     constructor(address factory_) public  {
         factory = IStrategyProxyFactory(factory_);
     }
