@@ -85,7 +85,7 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
 		chainId: chainIds[network],
 		url,
 	}
-}
+}5
 
 let config: HardhatUserConfig = {
 	defaultNetwork: 'hardhat',
@@ -155,7 +155,7 @@ let config: HardhatUserConfig = {
 		],
 	},
 	mocha: {
-		timeout: 40000,
+		timeout: 80000,
 	},
 }
 

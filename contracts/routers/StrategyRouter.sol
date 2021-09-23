@@ -36,14 +36,6 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         _;
     }
 
-    /**
-     * @dev Throws if called by any account other than the strategy.
-     */
-    modifier onlyStrategy(address strategy) {
-        require(strategy == msg.sender, "Only strategy");
-        _;
-    }
-
     // Abstract external functions to be defined by inheritor
     function deposit(address strategy, bytes calldata data) external virtual override;
 
@@ -87,7 +79,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address token,
         address strategy
     ) internal {
-        if(amount > 0) {
+        if (amount > 0) {
             for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
                 uint256 _amount;
                 address _tokenIn;

@@ -84,6 +84,7 @@ function createTestnetConfig(network) {
         url: url,
     };
 }
+5;
 var config = {
     defaultNetwork: 'hardhat',
     networks: getNetworks(),
@@ -152,7 +153,7 @@ var config = {
         ],
     },
     mocha: {
-        timeout: 40000,
+        timeout: 80000,
     },
 };
 exports.default = config;

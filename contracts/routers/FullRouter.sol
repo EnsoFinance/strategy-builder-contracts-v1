@@ -23,7 +23,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     function deposit(address strategy, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
@@ -43,42 +43,48 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     function withdraw(address strategy, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
-        (uint256 percentage) =
-            abi.decode(data, (uint256));
-        address[] memory strategyDebt = IStrategy(strategy).debt();
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            address strategyItem = strategyDebt[i];
-            uint256 balance = IERC20(strategyItem).balanceOf(strategy);
-            int256 estimatedValue =
-                controller.oracle().estimateItem(
-                    balance,
-                    strategyItem
-                );
-            _deleveragePath(
-                IStrategy(strategy).getTradeData(strategyItem),
-                uint256(-estimatedValue).mul(percentage).div(10**18),
-                estimatedValue,
-                strategy
-            );
-        }
+        (uint256 percentage, uint256 total, int256[] memory estimates) =
+            abi.decode(data, (uint256, uint256, int256[]));
+
+        uint256 expectedWeth = total.mul(percentage).div(10**18);
+        total = total.sub(expectedWeth);
+
         address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            address strategyItem = strategyItems[i];
-            uint256 balance = IERC20(strategyItem).balanceOf(strategy);
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
-            if (tradeData.cache.length > 0) {
-                //Apply multiplier
-                uint16 multiplier = abi.decode(tradeData.cache, (uint16));
-                balance = balance.mul(multiplier).div(DIVISOR);
+        {
+            address[] memory strategyDebt = IStrategy(strategy).debt();
+            // Deleverage debt
+            for (uint256 i = 0; i < strategyDebt.length; i++) {
+                int256 estimatedValue = estimates[strategyItems.length + i];
+                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
+                if (estimatedValue < expectedValue) {
+                    _deleveragePath(
+                        IStrategy(strategy).getTradeData(strategyDebt[i]),
+                        uint256(-estimatedValue.sub(expectedValue)),
+                        estimatedValue,
+                        strategy
+                    );
+                }
             }
-            _sellPath(
-                tradeData,
-                balance.mul(percentage).div(10**18),
-                strategyItem,
-                strategy
-            );
+        }
+        // Sell loop
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            int256 estimatedValue = estimates[i];
+            if (_tempEstimate[strategyItems[i]] > 0) {
+                estimatedValue = _tempEstimate[strategyItems[i]];
+                delete _tempEstimate[strategyItems[i]];
+            }
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
+            if (estimatedValue > expectedValue) {
+                TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[i]);
+                _sellPath(
+                    tradeData,
+                    _pathPrice(tradeData, uint256(estimatedValue.sub(expectedValue)), strategyItems[i]),
+                    strategyItems[i],
+                    strategy
+                );
+            }
         }
     }
 
@@ -86,7 +92,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
-
         // Deleverage debt
         for (uint256 i = 0; i < strategyDebt.length; i++) {
             _repayToken(
@@ -96,8 +101,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i])
             );
         }
-        uint256[] memory buy = new uint256[](strategyItems.length);
         // Sell loop
+        uint256[] memory buy = new uint256[](strategyItems.length);
         for (uint256 i = 0; i < strategyItems.length; i++) {
             address strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
@@ -105,16 +110,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimate = _tempEstimate[strategyItem];
                 delete _tempEstimate[strategyItem];
             }
-            if (strategyItem != weth) {
-                int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
-                if (!_sellToken(
-                        strategy,
-                        strategyItem,
-                        estimate,
-                        expected
-                    )
-                ) buy[i] = 1;
-            }
+            int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
+            if (!_sellToken(
+                    strategy,
+                    strategyItem,
+                    estimate,
+                    expected
+                )
+            ) buy[i] = 1;
         }
         // Buy loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
@@ -191,29 +194,27 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         for (uint256 i = 0; i < strategyItems.length; i++) {
             // Convert funds into Ether
             address strategyItem = strategyItems[i];
-            if (strategyItem != weth) {
-                int256 estimate = estimates[i];
-                if (_tempEstimate[strategyItem] > 0) {
-                    estimate = _tempEstimate[strategyItem];
-                    delete _tempEstimate[strategyItem];
-                }
-                if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
-                    //Sell all tokens that have 0 percentage
-                    _sellPath(
-                        IStrategy(strategy).getTradeData(strategyItem),
-                        IERC20(strategyItem).balanceOf(strategy),
-                        strategyItem,
-                        strategy
-                    );
-                } else {
-                    //Only sell if above rebalance threshold
-                    _sellToken(
-                        strategy,
-                        strategyItem,
-                        estimate,
-                        StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
-                    );
-                }
+            int256 estimate = estimates[i];
+            if (_tempEstimate[strategyItem] > 0) {
+                estimate = _tempEstimate[strategyItem];
+                delete _tempEstimate[strategyItem];
+            }
+            if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
+                //Sell all tokens that have 0 percentage
+                _sellPath(
+                    IStrategy(strategy).getTradeData(strategyItem),
+                    IERC20(strategyItem).balanceOf(strategy),
+                    strategyItem,
+                    strategy
+                );
+            } else {
+                //Only sell if above rebalance threshold
+                _sellToken(
+                    strategy,
+                    strategyItem,
+                    estimate,
+                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                );
             }
         }
         if (IStrategy(strategy).supportsSynths()) {
@@ -317,7 +318,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
-                IStrategyController(msg.sender).rebalanceThreshold(strategy)
+                controller.rebalanceThreshold(strategy)
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
@@ -346,7 +347,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    IStrategyController(controller).rebalanceThreshold(strategy)
+                    controller.rebalanceThreshold(strategy)
                 );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
                 amount = expectedValue.sub(estimatedValue);
@@ -379,7 +380,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
-                IStrategyController(msg.sender).rebalanceThreshold(strategy)
+                controller.rebalanceThreshold(strategy)
             );
         if (estimatedValue < expectedValue.add(rebalanceRange)) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
@@ -389,7 +390,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimatedValue,
                 strategy
             );
-
             return true;
         }
         return false;
@@ -408,7 +408,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    IStrategyController(controller).rebalanceThreshold(strategy)
+                    controller.rebalanceThreshold(strategy)
                 );
             if (estimatedValue > expectedValue.sub(rebalanceRange)) {
                 amountInWeth = expectedValue.sub(estimatedValue);

@@ -14,7 +14,7 @@ export async function displayBalances(wrapper: Contract, tokens: string[], weth:
 	const balanceWETH = BigNumber((await wrapper.getTokenValue(weth.address)).toString())
 	const percentWETH = balanceWETH.times(100).div(total)
 	console.log('\nWETH Balance: ', balanceWETH.toString())
-	console.log('WETH Percent: ', `${percentWETH.toFixed(2)}%`)
+	console.log('WETH Percent: ', `${percentWETH.toFixed(4)}%`)
 	for (let i = 0; i < tokens.length; i++) {
 		const balance = BigNumber((await wrapper.getTokenValue(tokens[i])).toString())
 		const percent = balance.times(100).div(total)

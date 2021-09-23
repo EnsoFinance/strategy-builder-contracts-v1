@@ -5,9 +5,8 @@ import "./helpers/StrategyTypes.sol";
 
 contract StrategyControllerStorage  is StrategyTypes {
     // ALERT: Do not reorder variables on upgrades! Append only
-    uint256 internal _locked; // Reentrancy guard
     address internal _factory;
-    mapping(address => uint256) internal _lastTokenValue;
+    mapping(address => uint256) internal _initialized;
     mapping(address => StrategyState) internal _strategyStates;
     mapping(address => Timelock) internal _timelocks;
 }

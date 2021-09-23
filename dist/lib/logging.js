@@ -63,7 +63,7 @@ function displayBalances(wrapper, tokens, weth) {
                     balanceWETH = _b.apply(void 0, [(_d.sent()).toString()]);
                     percentWETH = balanceWETH.times(100).div(total);
                     console.log('\nWETH Balance: ', balanceWETH.toString());
-                    console.log('WETH Percent: ', percentWETH.toFixed(2) + "%");
+                    console.log('WETH Percent: ', percentWETH.toFixed(4) + "%");
                     i = 0;
                     _d.label = 4;
                 case 4:

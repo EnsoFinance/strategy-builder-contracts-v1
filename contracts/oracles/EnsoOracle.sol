@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
-import "../interfaces/ITokenRegistry.sol";
 
 contract EnsoOracle is IOracle {
     using SafeMath for uint256;
@@ -69,5 +68,14 @@ contract EnsoOracle is IOracle {
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(balance, token);
+    }
+
+    function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {
+        uint256[] memory totals = new uint256[](strategies.length);
+        for (uint256 i = 0; i < strategies.length; i++) {
+            (uint256 total, ) = estimateStrategy(strategies[i]);
+            totals[i] = total;
+        }
+        return totals;
     }
 }

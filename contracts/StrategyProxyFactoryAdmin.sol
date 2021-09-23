@@ -16,7 +16,8 @@ contract StrategyProxyFactoryAdmin is ProxyAdmin {
         address strategyImplementation_,
         address oracle_,
         address registry_,
-        address whitelist_
+        address whitelist_,
+        address pool_
     ) public {
         StrategyProxyFactory factoryImplementation = new StrategyProxyFactory();
         TransparentUpgradeableProxy proxy =
@@ -24,12 +25,13 @@ contract StrategyProxyFactoryAdmin is ProxyAdmin {
                 address(factoryImplementation),
                 address(this),
                 abi.encodeWithSelector(
-                    bytes4(keccak256("initialize(address,address,address,address,address)")),
+                    bytes4(keccak256("initialize(address,address,address,address,address,address)")),
                     msg.sender,
                     strategyImplementation_,
                     oracle_,
                     registry_,
-                    whitelist_
+                    whitelist_,
+                    pool_
                 )
             );
         factory = address(proxy);

@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "./ExchangeAdapter.sol";
 import "../interfaces/IStrategy.sol";
+import "../interfaces/IStrategyController.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IOracle.sol";
 import "../helpers/StrategyTypes.sol";
@@ -14,12 +15,15 @@ contract MetaStrategyAdapter is ExchangeAdapter, StrategyTypes {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    IStrategyController public immutable controller;
     IStrategyRouter public immutable router;
 
     constructor(
+        address controller_,
         address router_,
         address weth_
     ) public ExchangeAdapter(weth_) {
+        controller = IStrategyController(controller_);
         router = IStrategyRouter(router_);
     }
 
@@ -47,20 +51,21 @@ contract MetaStrategyAdapter is ExchangeAdapter, StrategyTypes {
 
         if (tokenIn == weth) {
             if(address(router) != address(this))
-                IERC20(tokenIn).approve(address(router), amount);
+                IERC20(tokenIn).safeApprove(address(router), amount);
             //Assumes the use of LoopRouter when depositing tokens
-            IStrategy(tokenOut).deposit(amount, router, "0x");
+            controller.deposit(IStrategy(tokenOut), router, amount, "0x");
             if(address(router) != address(this))
                 IERC20(tokenIn).safeApprove(address(router), 0);
         }
 
         if (tokenOut == weth)
-            IStrategy(tokenIn).withdrawWeth(amount, router, "0x");
+            controller.withdraw(IStrategy(tokenIn), router, amount, "0x");
 
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
+        
         if (to != address(this))
-            IERC20(tokenOut).safeTransfer(to, received);
+          IERC20(tokenOut).safeTransfer(to, received);
 
         return true;
     }
@@ -74,7 +79,7 @@ contract MetaStrategyAdapter is ExchangeAdapter, StrategyTypes {
         if (tokenIn == weth) {
             IStrategy strategy = IStrategy(tokenOut);
             uint256 totalSupply = strategy.totalSupply();
-            (uint256 total, ) = IOracle(strategy.oracle()).estimateStrategy(strategy);
+            (uint256 total, ) = strategy.oracle().estimateStrategy(strategy);
 
             return totalSupply.mul(amount).div(total);
         }
@@ -89,7 +94,7 @@ contract MetaStrategyAdapter is ExchangeAdapter, StrategyTypes {
                 if (item == weth) {
                   total = total.add(relativeAmount);
                 } else {
-                    EstimatorCategory category = strategy.getCategory(item);
+                    EstimatorCategory category = EstimatorCategory(strategy.oracle().tokenRegistry().estimatorCategories(item));
                     if (category == EstimatorCategory.STRATEGY) {
                         total = total.add(_getPrice(relativeAmount, item, weth));
                     } else {

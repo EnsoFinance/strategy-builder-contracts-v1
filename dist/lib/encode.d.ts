@@ -4,7 +4,6 @@ export declare const FEE_SIZE = 3;
 export declare type Multicall = {
     target: string;
     callData: string;
-    value: BigNumber;
 };
 export declare type Position = {
     token: string;
@@ -37,6 +36,7 @@ export declare type StrategyState = {
     slippage: BigNumber;
     performanceFee: BigNumber;
     social: boolean;
+    set: boolean;
 };
 export declare function prepareStrategy(positions: Position[], defaultAdapter: string): StrategyItem[];
 export declare function prepareUniswapSwap(router: Contract, adapter: Contract, factory: Contract, from: string, to: string, amount: BigNumber, tokenIn: Contract, tokenOut: Contract): Promise<Multicall[]>;
@@ -56,7 +56,4 @@ export declare function encodeSettleTransferFrom(router: Contract, token: string
 export declare function encodeTransfer(token: Contract, to: string, amount: BigNumber): Multicall;
 export declare function encodeTransferFrom(token: Contract, from: string, to: string, amount: BigNumber): Multicall;
 export declare function encodeApprove(token: Contract, to: string, amount: BigNumber): Multicall;
-export declare function encodeWethDeposit(weth: Contract, amount: BigNumber): Multicall;
-export declare function encodeWethWithdraw(weth: Contract, amount: BigNumber): Multicall;
-export declare function encodeEthTransfer(to: string, amount: BigNumber): Multicall;
 export declare function encodePath(path: string[], fees: number[]): string;

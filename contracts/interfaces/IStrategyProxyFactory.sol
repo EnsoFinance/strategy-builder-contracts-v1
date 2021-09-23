@@ -25,6 +25,8 @@ interface IStrategyProxyFactory is StrategyTypes{
 
     function whitelist() external view returns (address);
 
+    function pool() external view returns (address);
+
     function version() external view returns (string memory);
 
     function getManager(address proxy) external view returns (address);

@@ -18,9 +18,7 @@ import {
   encodeSettleTransfer,
   encodeTransfer,
   encodeTransferFrom,
-  encodeApprove,
-  encodeWethDeposit,
-  encodeEthTransfer
+  encodeApprove
 } from './encode'
 
 export {
@@ -44,7 +42,5 @@ export {
   encodeSettleTransfer,
   encodeTransfer,
   encodeTransferFrom,
-  encodeApprove,
-  encodeWethDeposit,
-  encodeEthTransfer
+  encodeApprove
 }

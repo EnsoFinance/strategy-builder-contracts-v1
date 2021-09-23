@@ -4,7 +4,7 @@ pragma solidity >=0.6.0 <0.9.0;
 interface StrategyTypes {
 
     enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE}
-    enum EstimatorCategory {BASIC, STRATEGY, SYNTH, COMPOUND, AAVE, AAVE_DEBT, YEARN_V1, YEARN_V2, CURVE, CURVE_GAUGE, BALANCER, UNISWAP_V2, UNISWAP_V3, SUSHI, SUSHI_FARM}
+    enum EstimatorCategory {BASIC, STRATEGY, SYNTH, COMPOUND, AAVE, AAVE_DEBT, YEARN_V1, YEARN_V2, CURVE, CURVE_GAUGE, BALANCER, UNISWAP_V2, UNISWAP_V3, SUSHI, SUSHI_FARM, BLOCKED}
     enum TimelockCategory {RESTRUCTURE, THRESHOLD, SLIPPAGE, TIMELOCK, PERFORMANCE}
 
     struct StrategyItem {
@@ -25,6 +25,7 @@ interface StrategyTypes {
         uint16 slippage;
         uint16 performanceFee;
         bool social;
+        bool set;
     }
 
     /**

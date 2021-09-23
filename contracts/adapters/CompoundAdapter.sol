@@ -9,7 +9,6 @@ import "../interfaces/compound/IComptroller.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interfaces/IERC20NonStandard.sol";
-import "hardhat/console.sol";
 
 contract CompoundAdapter is ExchangeAdapter, IRewardsAdapter {
     using SafeMath for uint256;
@@ -94,7 +93,6 @@ contract CompoundAdapter is ExchangeAdapter, IRewardsAdapter {
                 32
             )
         }
-        console.log("Success: ", success);
         return success;
     }
 }

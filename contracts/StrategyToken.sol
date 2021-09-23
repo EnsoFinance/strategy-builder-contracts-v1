@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IStrategyToken.sol";
 import "./StrategyTokenStorage.sol";
 
-contract StrategyToken is IStrategyToken, StrategyTokenStorage {
+abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     using SafeMath for uint256;
 
     string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";
@@ -206,9 +206,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) external view override returns (uint256) {
-        return _balances[account];
-    }
+    function balanceOf(address account) external view override virtual returns (uint256);
 
     function chainId() public pure returns (uint256 id) {
         assembly {
@@ -237,8 +235,10 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     ) internal virtual {
         _validAddress(sender);
         _validAddress(recipient);
+        _handleFees(sender, recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
+        _resetTokenValue(sender);
         emit Transfer(sender, recipient, amount);
     }
 
@@ -273,6 +273,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         _validAddress(account);
         _balances[account] = _balances[account].sub(amount, BALANCE_LOW);
         _totalSupply = _totalSupply.sub(amount);
+        _resetTokenValue(account);
         emit Transfer(account, address(0), amount);
     }
 
@@ -301,7 +302,13 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         emit Approval(owner, spender, amount);
     }
 
+    function _resetTokenValue(address account) internal {
+        if (_balances[account] == 0) _paidTokenValues[account] = 0;
+    }
+
     function _validAddress(address addr) internal pure {
         require(addr != address(0), "ERC20: No address(0)");
     }
+
+    function _handleFees(address sender, address recipient) internal virtual;
 }

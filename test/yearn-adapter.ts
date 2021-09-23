@@ -91,7 +91,8 @@ describe('YEarnV2Adapter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const tx = await strategyFactory

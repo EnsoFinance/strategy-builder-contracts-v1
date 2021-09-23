@@ -76,7 +76,8 @@ describe('BatchDepositRouter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 		let tx = await strategyFactory
 			.connect(accounts[1])
@@ -100,7 +101,7 @@ describe('BatchDepositRouter', function () {
 
 		await tokens[1].connect(accounts[1]).approve(router.address, MaxUint256.toString())
 		await tokens[2].connect(accounts[1]).approve(router.address, MaxUint256.toString())
-		tx = await strategy.connect(accounts[1]).deposit(BigNumber.from('10000000000000000'), router.address, '0x')
+		tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, BigNumber.from('10000000000000000'), '0x')
 		receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 

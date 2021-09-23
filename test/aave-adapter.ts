@@ -80,7 +80,8 @@ describe('AaveAdapter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const tx = await strategyFactory
@@ -152,7 +153,8 @@ describe('AaveAdapter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(990),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const tx = await strategyFactory
@@ -171,6 +173,7 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		console.log("Strategy address: ", strategyAddress)
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
 
@@ -225,18 +228,43 @@ describe('AaveAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	/*
+	it('Should purchase a token, requiring a rebalance of strategy', async function () {
+		// Approve the user to use the adapter
+		const value = WeiPerEther.mul(1000)
+		await weth.connect(accounts[18]).deposit({value: value})
+		await weth.connect(accounts[18]).approve(uniswapAdapter.address, value)
+		await uniswapAdapter
+			.connect(accounts[18])
+			.swap(value, 0, weth.address, usdc.address, accounts[18].address, accounts[18].address)
+
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(false)
+	})
+
+	it('Should purchase a token, requiring a rebalance of strategy', async function () {
+		// Approve the user to use the adapter
+		const value = WeiPerEther.mul(1000)
+		await weth.connect(accounts[17]).deposit({value: value})
+		await weth.connect(accounts[17]).approve(uniswapAdapter.address, value)
+		await uniswapAdapter
+			.connect(accounts[17])
+			.swap(value, 0, weth.address, usdc.address, accounts[17].address, accounts[17].address)
+
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(false)
+	})
+	*/
+
 	it('Should withdraw', async function () {
 		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		const amount = BigNumber.from('10000000000000')
-		const supplyBefore = await strategy.totalSupply()
+		const amount = BigNumber.from('10000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await strategy.connect(accounts[1]).withdrawWeth(amount, router.address, '0x')
+		const tx = await controller.connect(accounts[1]).withdraw(strategy.address, router.address, amount, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		const supplyAfter = await strategy.totalSupply()
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
-		expect(supplyBefore.sub(amount).eq(supplyAfter)).to.equal(true)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
 	})
 

@@ -145,12 +145,12 @@ var EnsoBuilder = /** @class */ (function () {
     };
     // Defaults to Mainnet-fork
     EnsoBuilder.prototype.build = function () {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
         return __awaiter(this, void 0, void 0, function () {
-            var weth, uniswap, balancer, _q, _r, ensoPlatform, _s, fullRouterIndex;
+            var weth, uniswap, balancer, _l, _m, ensoPlatform, _o, fullRouterIndex;
             var _this = this;
-            return __generator(this, function (_t) {
-                switch (_t.label) {
+            return __generator(this, function (_p) {
+                switch (_p.label) {
                     case 0:
                         weth = {};
                         uniswap = {};
@@ -160,23 +160,23 @@ var EnsoBuilder = /** @class */ (function () {
                         this.routers = (_c = this.routers) !== null && _c !== void 0 ? _c : [];
                         this.network = (_d = this.network) !== null && _d !== void 0 ? _d : Networks.Mainnet;
                         console.log('Setting up EnsoEnvironment on: ', this.network);
-                        _q = this.network;
-                        switch (_q) {
+                        _l = this.network;
+                        switch (_l) {
                             case Networks.LocalTestnet: return [3 /*break*/, 1];
                             case Networks.Mainnet: return [3 /*break*/, 4];
                             case Networks.ExternalTestnet: return [3 /*break*/, 5];
                         }
                         return [3 /*break*/, 6];
                     case 1:
-                        _r = this;
+                        _m = this;
                         return [4 /*yield*/, deploy_1.deployTokens(this.signer, this.defaults.numTokens, this.defaults.wethSupply)];
                     case 2:
-                        _r.tokens = _t.sent();
+                        _m.tokens = _p.sent();
                         if (this.tokens === undefined)
                             throw Error('Failed to deploy erc20 tokens');
                         return [4 /*yield*/, deploy_1.deployUniswapV2(this.signer, this.tokens)];
                     case 3:
-                        uniswap = _t.sent();
+                        uniswap = _p.sent();
                         return [3 /*break*/, 7];
                     case 4:
                         this.tokens[0] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
@@ -188,12 +188,12 @@ var EnsoBuilder = /** @class */ (function () {
                         this.tokens[0] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
                         this.tokens[0].connect(this.signer);
                         uniswap = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory_json_1.default.abi, this.signer);
-                        _t.label = 7;
+                        _p.label = 7;
                     case 7:
                         weth = this.tokens[0];
                         return [4 /*yield*/, deploy_1.deployPlatform(this.signer, uniswap, weth)];
                     case 8:
-                        ensoPlatform = _t.sent();
+                        ensoPlatform = _p.sent();
                         ensoPlatform.print();
                         // Provide all routers by default
                         if (this.routers.length === 0) {
@@ -201,7 +201,7 @@ var EnsoBuilder = /** @class */ (function () {
                             this.addRouter('loop');
                             this.addRouter('full');
                         }
-                        _s = this;
+                        _o = this;
                         return [4 /*yield*/, Promise.all(this.routers.map(function (r) { return __awaiter(_this, void 0, void 0, function () {
                                 var _a;
                                 return __generator(this, function (_b) {
@@ -219,7 +219,7 @@ var EnsoBuilder = /** @class */ (function () {
                             // We need uniswap
                         ];
                     case 9:
-                        _s.routers = _t.sent();
+                        _o.routers = _p.sent();
                         // We need uniswap
                         if (((_e = this.adapters) === null || _e === void 0 ? void 0 : _e.uniswap) === undefined) {
                             this.addAdapter('uniswap');
@@ -227,46 +227,34 @@ var EnsoBuilder = /** @class */ (function () {
                         if (((_f = this.adapters) === null || _f === void 0 ? void 0 : _f.metastrategy) === undefined) {
                             this.addAdapter('metastrategy');
                         }
-                        if (!(((_g = this.adapters) === null || _g === void 0 ? void 0 : _g.uniswap) !== undefined)) return [3 /*break*/, 12];
-                        return [4 /*yield*/, this.adapters.uniswap.deploy(this.signer, uniswap, weth)];
+                        if (!(((_g = this.adapters) === null || _g === void 0 ? void 0 : _g.uniswap) !== undefined)) return [3 /*break*/, 11];
+                        return [4 /*yield*/, this.adapters.uniswap.deploy(this.signer, ensoPlatform, uniswap, weth)];
                     case 10:
-                        _t.sent();
-                        return [4 /*yield*/, ensoPlatform.administration.whitelist.connect(this.signer).approve((_h = this.adapters.uniswap.contract) === null || _h === void 0 ? void 0 : _h.address)];
+                        _p.sent();
+                        _p.label = 11;
                     case 11:
-                        _t.sent();
-                        _t.label = 12;
-                    case 12:
-                        if (!(((_j = this.adapters) === null || _j === void 0 ? void 0 : _j.balancer) !== undefined)) return [3 /*break*/, 16];
+                        if (!(((_h = this.adapters) === null || _h === void 0 ? void 0 : _h.balancer) !== undefined)) return [3 /*break*/, 14];
                         return [4 /*yield*/, this.deployBalancer()];
+                    case 12:
+                        balancer = _p.sent();
+                        return [4 /*yield*/, this.adapters.balancer.deploy(this.signer, ensoPlatform, balancer.registry, weth)];
                     case 13:
-                        balancer = _t.sent();
-                        return [4 /*yield*/, this.adapters.balancer.deploy(this.signer, balancer.registry, weth)];
+                        _p.sent();
+                        _p.label = 14;
                     case 14:
-                        _t.sent();
-                        return [4 /*yield*/, ensoPlatform.administration.whitelist.connect(this.signer).approve((_k = this.adapters.balancer.contract) === null || _k === void 0 ? void 0 : _k.address)];
+                        if (!(((_j = this.adapters) === null || _j === void 0 ? void 0 : _j.curve) !== undefined)) return [3 /*break*/, 16];
+                        return [4 /*yield*/, this.adapters.curve.deploy(this.signer, ensoPlatform, ensoPlatform.oracles.registries.curvePoolRegistry, weth)];
                     case 15:
-                        _t.sent();
-                        _t.label = 16;
+                        _p.sent();
+                        _p.label = 16;
                     case 16:
-                        if (!(((_l = this.adapters) === null || _l === void 0 ? void 0 : _l.curve) !== undefined)) return [3 /*break*/, 19];
-                        return [4 /*yield*/, this.adapters.curve.deploy(this.signer, ensoPlatform.oracles.registries.curvePoolRegistry, weth)];
-                    case 17:
-                        _t.sent();
-                        return [4 /*yield*/, ensoPlatform.administration.whitelist.connect(this.signer).approve((_m = this.adapters.curve.contract) === null || _m === void 0 ? void 0 : _m.address)];
-                    case 18:
-                        _t.sent();
-                        _t.label = 19;
-                    case 19:
                         fullRouterIndex = this.routers.findIndex(function (router) { return router.type == Routers.Full; });
-                        if (!(((_o = this.adapters) === null || _o === void 0 ? void 0 : _o.metastrategy) !== undefined && fullRouterIndex > -1)) return [3 /*break*/, 22];
-                        return [4 /*yield*/, this.adapters.metastrategy.deploy(this.signer, this.routers[fullRouterIndex].contract || new ethers_1.Contract('0x', [], this.signer), weth)];
-                    case 20:
-                        _t.sent();
-                        return [4 /*yield*/, ensoPlatform.administration.whitelist.connect(this.signer).approve((_p = this.adapters.metastrategy.contract) === null || _p === void 0 ? void 0 : _p.address)];
-                    case 21:
-                        _t.sent();
-                        _t.label = 22;
-                    case 22:
+                        if (!(((_k = this.adapters) === null || _k === void 0 ? void 0 : _k.metastrategy) !== undefined && fullRouterIndex > -1)) return [3 /*break*/, 18];
+                        return [4 /*yield*/, this.adapters.metastrategy.deploy(this.signer, ensoPlatform, this.routers[fullRouterIndex].contract || new ethers_1.Contract('0x', [], this.signer), weth)];
+                    case 17:
+                        _p.sent();
+                        _p.label = 18;
+                    case 18:
                         // Safety check
                         if (this.adapters === undefined)
                             throw Error('Failed to add adapters');
@@ -339,7 +327,7 @@ var Adapter = /** @class */ (function () {
                 throw Error('Invalid adapter selected! Accepted inputs: uniswap/balancer');
         }
     }
-    Adapter.prototype.deploy = function (signer, adapterTargetFactory, weth) {
+    Adapter.prototype.deploy = function (signer, platform, adapterTargetFactory, weth) {
         return __awaiter(this, void 0, void 0, function () {
             var _a, _b, _c, _d, _e;
             return __generator(this, function (_f) {
@@ -374,11 +362,14 @@ var Adapter = /** @class */ (function () {
                         return [3 /*break*/, 10];
                     case 8:
                         _e = this;
-                        return [4 /*yield*/, deploy_1.deployMetaStrategyAdapter(signer, adapterTargetFactory, weth)];
+                        return [4 /*yield*/, deploy_1.deployMetaStrategyAdapter(signer, platform.controller, adapterTargetFactory, weth)];
                     case 9:
                         _e.contract = _f.sent();
                         _f.label = 10;
-                    case 10: return [2 /*return*/];
+                    case 10: return [4 /*yield*/, platform.administration.whitelist.connect(signer).approve(this.contract.address)];
+                    case 11:
+                        _f.sent();
+                        return [2 /*return*/];
                 }
             });
         });

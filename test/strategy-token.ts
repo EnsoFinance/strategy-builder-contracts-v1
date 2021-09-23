@@ -73,7 +73,8 @@ describe('StrategyToken', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		amount = BigNumber.from('10000000000000000')
@@ -158,18 +159,9 @@ describe('StrategyToken', function () {
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
 	})
 
-	it('Should fail to mint tokens: not controller', async function () {
-		await expect(strategy.connect(accounts[3]).mint(accounts[3].address, 1)).to.be.revertedWith('Controller only')
-	})
-
 	it('Should fail to update manager: not manager', async function () {
 		await expect(strategy.connect(accounts[2]).updateManager(accounts[2].address)).to.be.revertedWith('')
 	})
-	/*
-	  it('Should fail to update manager: zero address', async function() {
-	    await expect(strategy.connect(accounts[1]).updateManager(AddressZero)).to.be.revertedWith()
-	  })
-	  */
 
 	it('Should update manager', async function () {
 		await strategy.connect(accounts[1]).updateManager(accounts[2].address)
@@ -273,20 +265,11 @@ describe('StrategyToken', function () {
 
 	it('Should withdraw', async function () {
 		amount = BigNumber.from('10000000000000')
-		const supplyBefore = BigNumJs((await strategy.totalSupply()).toString())
 		const tokenBalanceBefore = BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
 		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const supplyAfter = BigNumJs((await strategy.totalSupply()).toString())
 		const tokenBalanceAfter = BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
-		expect(supplyBefore.minus(amount.toString()).eq(supplyAfter)).to.equal(true)
-		expect(
-			supplyBefore
-				.div(supplyAfter)
-				.decimalPlaces(10)
-				.isEqualTo(tokenBalanceBefore.div(tokenBalanceAfter).decimalPlaces(10))
-		).to.equal(true)
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
 	})
 
@@ -330,6 +313,28 @@ describe('StrategyToken', function () {
 		const signature = await accounts[2].signMessage(message) //Mananger
 		const response = await strategy['isValidSignature(bytes,bytes)']('0x', signature) //Bad message
 		expect(response).to.equal('0xffffffff') //Invalid value
+	})
+
+	it('Should fail to add signer', async function() {
+		await expect(strategy.connect(accounts[1]).updateSigner(accounts[1].address, true)).to.be.revertedWith('Not manager')
+	})
+
+	it('Should add signer', async function() {
+			await strategy.connect(accounts[2]).updateSigner(accounts[1].address, true)
+			// Test signer
+			const message = 'TEST'
+			const signature = await accounts[1].signMessage(message) // Not manager
+			const response = await strategy['isValidSignature(bytes32,bytes)'](ethers.utils.hashMessage(message), signature)
+			expect(response).to.equal('0x1626ba7e') //Magic value
+	})
+
+	it('Should remove signer', async function() {
+			await strategy.connect(accounts[2]).updateSigner(accounts[1].address, false)
+			// Test signer
+			const message = 'FAIL'
+			const signature = await accounts[1].signMessage(message) //Not manager
+			const response = await strategy['isValidSignature(bytes32,bytes)'](ethers.utils.hashMessage(message), signature)
+			expect(response).to.equal('0xffffffff') //Invalid value
 	})
 
 	it('Should fail to decrease allowance: more than allowed', async function() {

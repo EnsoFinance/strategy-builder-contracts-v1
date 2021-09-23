@@ -17,6 +17,20 @@ interface IStrategyController is StrategyTypes {
         bytes memory data_
     ) external payable;
 
+    function deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external payable;
+
+    function withdraw(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external;
+
     function rebalance(
         IStrategy strategy,
         IStrategyRouter router,
@@ -42,9 +56,9 @@ interface IStrategyController is StrategyTypes {
 
     function finalizeValue(address strategy) external;
 
-    function withdrawPerformanceFee(IStrategy strategy) external;
-
     function openStrategy(IStrategy strategy, uint256 fee) external;
+
+    function setStrategy(IStrategy strategy) external;
 
     function initialized(address strategy) external view returns (bool);
 

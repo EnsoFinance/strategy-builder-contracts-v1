@@ -30,10 +30,10 @@ export declare function deployBalancer(owner: SignerWithAddress, tokens: Contrac
 export declare function deployBalancerAdapter(owner: SignerWithAddress, balancerRegistry: Contract, weth: Contract): Promise<Contract>;
 export declare function deployUniswapV2(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract>;
 export declare function deployUniswapV3(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract[]>;
-export declare function deployPlatform(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract, susd?: Contract): Promise<Platform>;
+export declare function deployPlatform(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract, susd?: Contract, feePool?: string): Promise<Platform>;
 export declare function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract>;
 export declare function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapFactory: Contract, weth: Contract): Promise<Contract>;
-export declare function deployMetaStrategyAdapter(owner: SignerWithAddress, router: Contract, weth: Contract): Promise<Contract>;
+export declare function deployMetaStrategyAdapter(owner: SignerWithAddress, controller: Contract, router: Contract, weth: Contract): Promise<Contract>;
 export declare function deployAaveLendAdapter(owner: SignerWithAddress, lendingPool: Contract, strategyController: Contract, weth: Contract): Promise<Contract>;
 export declare function deployAaveBorrowAdapter(owner: SignerWithAddress, lendingPool: Contract, weth: Contract): Promise<Contract>;
 export declare function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract): Promise<Contract>;

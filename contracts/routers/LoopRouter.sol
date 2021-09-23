@@ -11,7 +11,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
     function deposit(address strategy, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
@@ -29,26 +29,34 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
     function withdraw(address strategy, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
-        (uint256 percentage) =
-            abi.decode(data, (uint256));
+        (uint256 percentage, uint256 total, int256[] memory estimates) =
+            abi.decode(data, (uint256, uint256, int256[]));
+
+        uint256 expectedWeth = total.mul(percentage).div(10**18);
+        total = total.sub(expectedWeth);
+
+        // Sell loop
         address[] memory strategyItems = IStrategy(strategy).items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            address strategyItem = strategyItems[i];
-            _sellPath(
-                IStrategy(strategy).getTradeData(strategyItem),
-                IERC20(strategyItem).balanceOf(strategy).mul(percentage).div(10**18),
-                strategyItem,
-                strategy
-            );
+            int256 estimatedValue = estimates[i];
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
+            if (estimatedValue > expectedValue) {
+                TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[i]);
+                _sellPath(
+                    tradeData,
+                    _pathPrice(tradeData, uint256(estimatedValue.sub(expectedValue)), strategyItems[i]),
+                    strategyItems[i],
+                    strategy
+                );
+            }
         }
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
-
         uint256[] memory buy = new uint256[](strategyItems.length);
         // Sell loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
@@ -168,7 +176,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
-                IStrategyController(msg.sender).rebalanceThreshold(strategy)
+                controller.rebalanceThreshold(strategy)
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
@@ -197,7 +205,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    IStrategyController(controller).rebalanceThreshold(strategy)
+                    controller.rebalanceThreshold(strategy)
                 );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
                 amount = expectedValue.sub(estimatedValue);

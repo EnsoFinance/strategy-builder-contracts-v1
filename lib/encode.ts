@@ -13,7 +13,6 @@ export const FEE_SIZE = 3
 export type Multicall = {
 	target: string
 	callData: string
-	value: BigNumber
 }
 
 export type Position = {
@@ -52,6 +51,7 @@ export type StrategyState = {
 	slippage: BigNumber
 	performanceFee: BigNumber
 	social: boolean
+	set: boolean
 }
 
 export function prepareStrategy(positions: Position[], defaultAdapter: string): StrategyItem[]  {
@@ -222,7 +222,7 @@ export async function prepareDepositMulticall(
 							adapter.address,
 							weth.address,
 							token.address,
-							strategy.address,
+							controller.address,
 							strategy.address
 						)
 					)
@@ -238,7 +238,7 @@ export async function prepareDepositMulticall(
 							expected,
 							weth.address,
 							token.address,
-							strategy.address,
+							controller.address,
 							strategy.address
 						)
 					)
@@ -370,8 +370,7 @@ export function encodeSwap(
 		accountFrom,
 		accountTo
 	])
-	const msgValue = tokenIn === AddressZero ? amountTokens : BigNumber.from(0)
-	return { target: adapter.address, callData: swapEncoded, value: msgValue }
+	return { target: adapter.address, callData: swapEncoded }
 }
 
 export function encodeDelegateSwap(
@@ -393,7 +392,7 @@ export function encodeDelegateSwap(
 		accountFrom,
 		accountTo
 	])
-	return { target: router.address, callData: delegateSwapEncoded, value: BigNumber.from(0) }
+	return { target: router.address, callData: delegateSwapEncoded }
 }
 
 export function encodeUniswapPairSwap(
@@ -403,7 +402,7 @@ export function encodeUniswapPairSwap(
 	accountTo: string
 ): Multicall {
 	const pairSwapEncoded = pair.interface.encodeFunctionData('swap', [amount0Out, amount1Out, accountTo, '0x'])
-	return { target: pair.address, callData: pairSwapEncoded, value: BigNumber.from(0) }
+	return { target: pair.address, callData: pairSwapEncoded }
 }
 
 export function encodeSettleSwap(
@@ -421,12 +420,12 @@ export function encodeSettleSwap(
 		accountFrom,
 		accountTo
 	])
-	return { target: router.address, callData: settleSwapEncoded, value: BigNumber.from(0) }
+	return { target: router.address, callData: settleSwapEncoded }
 }
 
 export function encodeSettleTransfer(router: Contract, token: string, accountTo: string): Multicall {
 	const settleTransferEncoded = router.interface.encodeFunctionData('settleTransfer', [token, accountTo])
-	return { target: router.address, callData: settleTransferEncoded, value: BigNumber.from(0) }
+	return { target: router.address, callData: settleTransferEncoded }
 }
 
 export function encodeSettleTransferFrom(
@@ -440,36 +439,22 @@ export function encodeSettleTransferFrom(
 		accountFrom,
 		accountTo,
 	])
-	return { target: router.address, callData: settleTransferFromEncoded, value: BigNumber.from(0) }
+	return { target: router.address, callData: settleTransferFromEncoded }
 }
 
 export function encodeTransfer(token: Contract, to: string, amount: BigNumber): Multicall {
 	const transferEncoded = token.interface.encodeFunctionData('transfer', [to, amount])
-	return { target: token.address, callData: transferEncoded, value: BigNumber.from(0) }
+	return { target: token.address, callData: transferEncoded }
 }
 
 export function encodeTransferFrom(token: Contract, from: string, to: string, amount: BigNumber): Multicall {
 	const transferFromEncoded = token.interface.encodeFunctionData('transferFrom', [from, to, amount])
-	return { target: token.address, callData: transferFromEncoded, value: BigNumber.from(0) }
+	return { target: token.address, callData: transferFromEncoded }
 }
 
 export function encodeApprove(token: Contract, to: string, amount: BigNumber): Multicall {
 	const approveEncoded = token.interface.encodeFunctionData('approve', [to, amount])
-	return { target: token.address, callData: approveEncoded, value: BigNumber.from(0) }
-}
-
-export function encodeWethDeposit(weth: Contract, amount: BigNumber): Multicall {
-	const depositEncoded = weth.interface.encodeFunctionData('deposit', [])
-	return { target: weth.address, callData: depositEncoded, value: amount }
-}
-
-export function encodeWethWithdraw(weth: Contract, amount: BigNumber): Multicall {
-	const withdrawEncoded = weth.interface.encodeFunctionData('withdraw', [amount])
-	return { target: weth.address, callData: withdrawEncoded, value: BigNumber.from(0) }
-}
-
-export function encodeEthTransfer(to: string, amount: BigNumber): Multicall {
-	return { target: to, callData: '0x0', value: amount }
+	return { target: token.address, callData: approveEncoded }
 }
 
 export function encodePath(path: string[], fees: number[]) {

@@ -2,7 +2,6 @@
 pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
-import "./IStrategyRouter.sol";
 import "./IStrategyToken.sol";
 import "./IOracle.sol";
 import "./IWhitelist.sol";
@@ -32,21 +31,20 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function withdrawAll(uint256 amount) external;
 
-    function withdrawWeth(uint256 amount, IStrategyRouter router, bytes memory data) external;
-
-    function deposit(
-        uint256 amount,
-        IStrategyRouter router,
-        bytes memory data
-    ) external payable;
-
-    function depositFromController(
-        address account,
-        IStrategyRouter router,
-        bytes memory data
-    ) external payable;
+    function withdrawStreamingFee() external;
 
     function mint(address account, uint256 amount) external;
+
+    function burn(address account, uint256 amount) external returns (uint256);
+
+    function delegateSwap(
+        address adapter,
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) external;
+
+    function updateTokenValue(uint256 total) external;
 
     function updateTradeData(address item, TradeData memory data) external;
 
@@ -61,8 +59,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
     function synths() external view returns (address[] memory);
 
     function debt() external view returns (address[] memory);
-
-    function getCategory(address item) external view returns (EstimatorCategory);
 
     function getPercentage(address item) external view returns (int256);
 

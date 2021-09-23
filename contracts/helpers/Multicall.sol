@@ -9,7 +9,6 @@ contract Multicall is RevertDebug {
     struct Call {
         address payable target;
         bytes callData;
-        uint256 value;
     }
 
     /**
@@ -19,12 +18,8 @@ contract Multicall is RevertDebug {
         returnData = new bytes[](calls.length);
         for (uint256 i = 0; i < calls.length; i++) {
             Call memory internalTx = calls[i];
-            require(
-                msg.value >= internalTx.value || address(this).balance >= internalTx.value,
-                "Not enough wei"
-            );
             (bool success, bytes memory ret) =
-                internalTx.target.call{value: internalTx.value}(internalTx.callData);
+                internalTx.target.call(internalTx.callData);
             if (!success) {
                 revert(_getPrefixedRevertMsg(ret));
             }

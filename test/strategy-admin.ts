@@ -65,7 +65,8 @@ describe('StrategyProxyAdmin', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const amount = ethers.BigNumber.from('10000000000000000')

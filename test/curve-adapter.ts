@@ -112,7 +112,8 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
@@ -185,7 +186,7 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 	})
 
 	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).claimRewards(curveRewardsAdapter.address, rewardToken)
+		await strategy.connect(accounts[1]).delegateClaimRewards(curveRewardsAdapter.address, rewardToken)
 	})
 
 	it('Should check reward spot price', async function () {

@@ -14,7 +14,7 @@ contract BatchDepositRouter is StrategyRouter {
     function deposit(address strategy, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
@@ -39,7 +39,7 @@ contract BatchDepositRouter is StrategyRouter {
     function withdraw(address strategy, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
       (strategy, data);
       revert("Withdraw not supported");

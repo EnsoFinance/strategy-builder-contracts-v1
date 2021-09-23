@@ -17,7 +17,8 @@ const STRATEGY_STATE: StrategyState = {
 	rebalanceThreshold: BigNumber.from(10),
 	slippage: BigNumber.from(995),
 	performanceFee: BigNumber.from(50),
-	social: true
+	social: true,
+	set: false
 }
 
 export enum TokenTypes {

@@ -47,6 +47,11 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     event NewWhitelist(address newWhitelist);
 
     /**
+     * @notice New default pool address
+     */
+    event NewPool(address newPool);
+
+    /**
      * @notice Log ownership transfer
      */
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
@@ -61,7 +66,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address implementation_,
         address oracle_,
         address registry_,
-        address whitelist_
+        address whitelist_,
+        address pool_
     ) external
         initializer
         noZeroAddress(owner_)
@@ -77,6 +83,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _oracle = oracle_;
         _registry = registry_;
         _whitelist = whitelist_;
+        _pool = pool_;
         _version = "1";
         emit Update(_implementation, _version);
         emit NewOracle(_oracle);
@@ -144,6 +151,11 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         emit NewWhitelist(newWhitelist);
     }
 
+    function updatePool(address newPool) external noZeroAddress(newPool) onlyOwner {
+        _pool = newPool;
+        emit NewPool(newPool);
+    }
+
     /*
      * @dev This function is called by StrategyProxyAdmin
      */
@@ -205,6 +217,10 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      */
     function oracle() external view override returns (address) {
         return _oracle;
+    }
+
+    function pool() external view override returns (address) {
+        return _pool;
     }
 
     /*

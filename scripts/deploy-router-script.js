@@ -24,12 +24,13 @@ async function main() {
     deployedContracts['StrategyController']
   )
   await router.deployed()
-  console.log(`${ROUTER_NAME}: `, router.address)
 
   const Whitelist = await hre.ethers.getContractFactory('Whitelist')
   const whitelist = await Whitelist.attach(deployedContracts['Whitelist'])
   const tx = await whitelist.approve(router.address)
   await tx.wait()
+
+  console.log(`${ROUTER_NAME}: `, router.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

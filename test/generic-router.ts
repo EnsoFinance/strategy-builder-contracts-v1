@@ -115,7 +115,8 @@ describe('GenericRouter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const create2Address = await calculateAddress(
@@ -176,10 +177,10 @@ describe('GenericRouter', function () {
 	})
 
 	it('Should fail to deposit: total slipped', async function () {
-		const call = await encodeTransferFrom(weth, strategy.address, accounts[1].address, BigNumber.from(1))
+		const call = await encodeTransferFrom(weth, controller.address, accounts[1].address, BigNumber.from(1))
 		const data = await genericRouter.encodeCalls([call])
 		await expect(
-			strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: 1 })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: 1 })
 		).to.be.revertedWith('Lost value')
 	})
 
@@ -211,9 +212,10 @@ describe('GenericRouter', function () {
 			strategyItems
 		)
 		const depositData = await genericRouter.encodeCalls(depositCalls)
-		const depositEncoded = await strategy.interface.encodeFunctionData('deposit', [
-			0,
+		const depositEncoded = await controller.interface.encodeFunctionData('deposit', [
+			strategy.address,
 			genericRouter.address,
+			0,
 			depositData,
 		])
 		const reentrancyCalls = [{ target: controller.address, callData: depositEncoded, value: amount }]
@@ -428,7 +430,7 @@ describe('GenericRouter', function () {
 		calls.push(await encodeSettleTransfer(genericRouter, weth.address, accounts[1].address)) // When there isn't balance
 		calls.push(await encodeSettleTransferFrom(genericRouter, weth.address, controller.address, accounts[1].address))
 		const data = await genericRouter.encodeCalls(calls)
-		await strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: amount })
+		await controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
 	})
 
 	it('Should fail to deposit: calling settleTransferFrom without approval', async function () {
@@ -447,7 +449,7 @@ describe('GenericRouter', function () {
 		)
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
-			strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: amount })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
 		).to.be.revertedWith('')
 	})
 
@@ -484,7 +486,7 @@ describe('GenericRouter', function () {
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, genericRouter.address, data)
 	})
-
+	/*
 	it('Should fail to send multicall with value transfer', async function () {
 		const amount = WeiPerEther
 		const calls = []
@@ -495,6 +497,7 @@ describe('GenericRouter', function () {
 			strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: amount })
 		).to.be.revertedWith('')
 	})
+	*/
 
 	it('Should succeed in calling settleTransfer and settleTransferFrom when balances are in router or controller respectively', async function () {
 		const amount = WeiPerEther
@@ -505,7 +508,7 @@ describe('GenericRouter', function () {
 		calls.push(encodeSettleTransfer(genericRouter, weth.address, strategy.address)) //Transfer to strategy
 
 		const data = await genericRouter.encodeCalls(calls)
-		await strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: amount })
+		await controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
 	})
 
 	it('Should fail to call router directly', async function () {
@@ -513,7 +516,7 @@ describe('GenericRouter', function () {
 		calls.push(encodeSettleTransferFrom(genericRouter, weth.address, strategy.address, accounts[1].address)) //Transfer from strategy to account
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(genericRouter.connect(accounts[1]).deposit(strategy.address, data)).to.be.revertedWith(
-			'Only strategy'
+			'Only controller'
 		)
 	})
 })

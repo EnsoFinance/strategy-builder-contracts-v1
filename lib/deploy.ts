@@ -26,6 +26,7 @@ import BasicEstimator from '../artifacts/contracts/oracles/estimators/BasicEstim
 import CompoundEstimator from '../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json'
 import CurveEstimator from '../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json'
 import CurveGaugeEstimator from '../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json'
+import EmergencyEstimator from '../artifacts/contracts/oracles/estimators/EmergencyEstimator.sol/EmergencyEstimator.json'
 import StrategyEstimator from '../artifacts/contracts/oracles/estimators/StrategyEstimator.sol/StrategyEstimator.json'
 import SynthEstimator from '../artifacts/contracts/oracles/estimators/SynthEstimator.sol/SynthEstimator.json'
 import UniswapV2Estimator from '../artifacts/contracts/oracles/estimators/UniswapV2Estimator.sol/UniswapV2Estimator.json'
@@ -243,7 +244,8 @@ export async function deployPlatform(
 	owner: SignerWithAddress,
 	uniswapFactory: Contract,
 	weth: Contract,
-	susd?: Contract
+	susd?: Contract,
+	feePool?: string
 ): Promise<Platform> {
 	// Setup Oracle infrastructure - registries, estimators, protocol oracles
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
@@ -265,6 +267,8 @@ export async function deployPlatform(
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)
 	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
+	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
 	const synthEstimator = await waffle.deployContract(owner, SynthEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.SYNTH, synthEstimator.address)
 	const strategyEstimator = await waffle.deployContract(owner, StrategyEstimator, [])
@@ -299,7 +303,8 @@ export async function deployPlatform(
 		strategyImplementation.address,
 		ensoOracle.address,
 		tokenRegistry.address,
-		whitelist.address
+		whitelist.address,
+		feePool || owner.address
 	])
 	await factoryAdmin.deployed()
 
@@ -360,10 +365,11 @@ export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRe
 
 export async function deployMetaStrategyAdapter(
 	owner: SignerWithAddress,
+	controller: Contract,
 	router: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, MetaStrategyAdapter, [router.address, weth.address])
+	const adapter = await waffle.deployContract(owner, MetaStrategyAdapter, [controller.address, router.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }

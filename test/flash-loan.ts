@@ -74,7 +74,8 @@ describe('Flash Loan', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 		const create2Address = await calculateAddress(
 			strategyFactory,

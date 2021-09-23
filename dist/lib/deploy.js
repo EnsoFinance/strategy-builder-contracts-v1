@@ -57,6 +57,7 @@ var BasicEstimator_json_1 = __importDefault(require("../artifacts/contracts/orac
 var CompoundEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json"));
 var CurveEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json"));
 var CurveGaugeEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json"));
+var EmergencyEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/EmergencyEstimator.sol/EmergencyEstimator.json"));
 var StrategyEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/StrategyEstimator.sol/StrategyEstimator.json"));
 var SynthEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/SynthEstimator.sol/SynthEstimator.json"));
 var UniswapV2Estimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/UniswapV2Estimator.sol/UniswapV2Estimator.json"));
@@ -356,9 +357,9 @@ function deployUniswapV3(owner, tokens) {
     });
 }
 exports.deployUniswapV3 = deployUniswapV3;
-function deployPlatform(owner, uniswapFactory, weth, susd) {
+function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
     return __awaiter(this, void 0, void 0, function () {
-        var tokenRegistry, curvePoolRegistry, uniswapV3Registry, basicEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, synthEstimator, strategyEstimator, uniswapV2Estimator, yearnV2Estimator, uniswapOracle, chainlinkOracle, ensoOracle, whitelist, strategyImplementation, factoryAdmin, factoryAddress, strategyFactory, controllerAdmin, controllerAddress, controller, oracles, administration;
+        var tokenRegistry, curvePoolRegistry, uniswapV3Registry, basicEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, emergencyEstimator, synthEstimator, strategyEstimator, uniswapV2Estimator, yearnV2Estimator, uniswapOracle, chainlinkOracle, ensoOracle, whitelist, strategyImplementation, factoryAdmin, factoryAddress, strategyFactory, controllerAdmin, controllerAddress, controller, oracles, administration;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, TokenRegistry_json_1.default, [])];
@@ -415,104 +416,111 @@ function deployPlatform(owner, uniswapFactory, weth, susd) {
                     return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)];
                 case 18:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, SynthEstimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, EmergencyEstimator_json_1.default, [])];
                 case 19:
-                    synthEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.SYNTH, synthEstimator.address)];
+                    emergencyEstimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)];
                 case 20:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, StrategyEstimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, SynthEstimator_json_1.default, [])];
                 case 21:
-                    strategyEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)];
+                    synthEstimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.SYNTH, synthEstimator.address)];
                 case 22:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, UniswapV2Estimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, StrategyEstimator_json_1.default, [])];
                 case 23:
-                    uniswapV2Estimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.UNISWAP_V2, uniswapV2Estimator.address)];
+                    strategyEstimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)];
                 case 24:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, YEarnV2Estimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, UniswapV2Estimator_json_1.default, [])];
                 case 25:
-                    yearnV2Estimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)];
+                    uniswapV2Estimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.UNISWAP_V2, uniswapV2Estimator.address)];
                 case 26:
                     _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.BASIC, weth.address)];
+                    return [4 /*yield*/, waffle.deployContract(owner, YEarnV2Estimator_json_1.default, [])];
                 case 27:
-                    _a.sent();
-                    if (!susd) return [3 /*break*/, 29];
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.SYNTH, susd.address)];
+                    yearnV2Estimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)];
                 case 28:
                     _a.sent();
-                    _a.label = 29;
-                case 29: return [4 /*yield*/, waffle.deployContract(owner, UniswapNaiveOracle_json_1.default, [uniswapFactory.address, weth.address])];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.BASIC, weth.address)];
+                case 29:
+                    _a.sent();
+                    if (!susd) return [3 /*break*/, 31];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.SYNTH, susd.address)];
                 case 30:
+                    _a.sent();
+                    _a.label = 31;
+                case 31: return [4 /*yield*/, waffle.deployContract(owner, UniswapNaiveOracle_json_1.default, [uniswapFactory.address, weth.address])];
+                case 32:
                     uniswapOracle = _a.sent();
                     return [4 /*yield*/, uniswapOracle.deployed()];
-                case 31:
-                    _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, ChainlinkOracle_json_1.default, [weth.address])];
-                case 32:
-                    chainlinkOracle = _a.sent();
-                    return [4 /*yield*/, chainlinkOracle.deployed()];
                 case 33:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, EnsoOracle_json_1.default, [tokenRegistry.address, uniswapOracle.address, chainlinkOracle.address, weth.address, (susd === null || susd === void 0 ? void 0 : susd.address) || AddressZero])];
+                    return [4 /*yield*/, waffle.deployContract(owner, ChainlinkOracle_json_1.default, [weth.address])];
                 case 34:
+                    chainlinkOracle = _a.sent();
+                    return [4 /*yield*/, chainlinkOracle.deployed()];
+                case 35:
+                    _a.sent();
+                    return [4 /*yield*/, waffle.deployContract(owner, EnsoOracle_json_1.default, [tokenRegistry.address, uniswapOracle.address, chainlinkOracle.address, weth.address, (susd === null || susd === void 0 ? void 0 : susd.address) || AddressZero])];
+                case 36:
                     ensoOracle = _a.sent();
                     return [4 /*yield*/, ensoOracle.deployed()
                         // Whitelist
                     ];
-                case 35:
+                case 37:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, Whitelist_json_1.default, [])];
-                case 36:
+                case 38:
                     whitelist = _a.sent();
                     return [4 /*yield*/, whitelist.deployed()
                         // Strategy Implementation
                     ];
-                case 37:
+                case 39:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, Strategy_json_1.default, [])];
-                case 38:
+                case 40:
                     strategyImplementation = _a.sent();
                     return [4 /*yield*/, strategyImplementation.deployed()
                         // Factory
                     ];
-                case 39:
+                case 41:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, StrategyProxyFactoryAdmin_json_1.default, [
                             strategyImplementation.address,
                             ensoOracle.address,
                             tokenRegistry.address,
-                            whitelist.address
+                            whitelist.address,
+                            feePool || owner.address
                         ])];
-                case 40:
+                case 42:
                     factoryAdmin = _a.sent();
                     return [4 /*yield*/, factoryAdmin.deployed()];
-                case 41:
+                case 43:
                     _a.sent();
                     return [4 /*yield*/, factoryAdmin.factory()];
-                case 42:
+                case 44:
                     factoryAddress = _a.sent();
                     strategyFactory = new ethers_1.Contract(factoryAddress, StrategyProxyFactory_json_1.default.abi, owner);
                     return [4 /*yield*/, waffle.deployContract(owner, StrategyControllerAdmin_json_1.default, [factoryAddress])];
-                case 43:
+                case 45:
                     controllerAdmin = _a.sent();
                     return [4 /*yield*/, controllerAdmin.deployed()];
-                case 44:
+                case 46:
                     _a.sent();
                     return [4 /*yield*/, controllerAdmin.controller()];
-                case 45:
+                case 47:
                     controllerAddress = _a.sent();
                     controller = new ethers_1.Contract(controllerAddress, StrategyController_json_1.default.abi, owner);
                     return [4 /*yield*/, strategyFactory.connect(owner).setController(controllerAddress)];
-                case 46:
+                case 48:
                     _a.sent();
                     return [4 /*yield*/, tokenRegistry.connect(owner).transferOwnership(factoryAddress)];
-                case 47:
+                case 49:
                     _a.sent();
                     oracles = {
                         ensoOracle: ensoOracle,
@@ -571,12 +579,12 @@ function deployUniswapV3Adapter(owner, uniswapRegistry, uniswapFactory, weth) {
     });
 }
 exports.deployUniswapV3Adapter = deployUniswapV3Adapter;
-function deployMetaStrategyAdapter(owner, router, weth) {
+function deployMetaStrategyAdapter(owner, controller, router, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, MetaStrategyAdapter_json_1.default, [router.address, weth.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, MetaStrategyAdapter_json_1.default, [controller.address, router.address, weth.address])];
                 case 1:
                     adapter = _a.sent();
                     return [4 /*yield*/, adapter.deployed()];

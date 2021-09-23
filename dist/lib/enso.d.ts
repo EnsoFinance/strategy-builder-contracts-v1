@@ -64,7 +64,7 @@ export declare class Adapter {
     type: Adapters;
     contract?: Contract;
     constructor(adapterType: string);
-    deploy(signer: SignerWithAddress, adapterTargetFactory: Contract, weth: Contract): Promise<void>;
+    deploy(signer: SignerWithAddress, platform: Platform, adapterTargetFactory: Contract, weth: Contract): Promise<void>;
 }
 export declare enum Routers {
     Generic = 0,

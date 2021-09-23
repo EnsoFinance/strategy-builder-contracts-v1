@@ -194,22 +194,18 @@ export class EnsoBuilder {
 		}
 		// Deploy adapters
 		if (this.adapters?.uniswap !== undefined) {
-			await this.adapters.uniswap.deploy(this.signer, uniswap, weth)
-			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.uniswap.contract?.address)
+			await this.adapters.uniswap.deploy(this.signer, ensoPlatform, uniswap, weth)
 		}
 		if (this.adapters?.balancer !== undefined) {
 			balancer = await this.deployBalancer()
-			await this.adapters.balancer.deploy(this.signer, balancer.registry, weth)
-			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.balancer.contract?.address)
+			await this.adapters.balancer.deploy(this.signer, ensoPlatform, balancer.registry, weth)
 		}
 		if (this.adapters?.curve !== undefined) {
-			await this.adapters.curve.deploy(this.signer, ensoPlatform.oracles.registries.curvePoolRegistry, weth)
-			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.curve.contract?.address)
+			await this.adapters.curve.deploy(this.signer, ensoPlatform, ensoPlatform.oracles.registries.curvePoolRegistry, weth)
 		}
 		const fullRouterIndex = this.routers.findIndex(router => router.type == Routers.Full)
 		if (this.adapters?.metastrategy !== undefined && fullRouterIndex > -1) {
-			await this.adapters.metastrategy.deploy(this.signer, this.routers[fullRouterIndex].contract || new Contract('0x', [], this.signer), weth)
-			await ensoPlatform.administration.whitelist.connect(this.signer).approve(this.adapters.metastrategy.contract?.address)
+			await this.adapters.metastrategy.deploy(this.signer, ensoPlatform, this.routers[fullRouterIndex].contract || new Contract('0x', [], this.signer), weth)
 		}
 
 		// Safety check
@@ -315,7 +311,7 @@ export class Adapter {
 		}
 	}
 
-	async deploy(signer: SignerWithAddress, adapterTargetFactory: Contract, weth: Contract) {
+	async deploy(signer: SignerWithAddress, platform: Platform, adapterTargetFactory: Contract, weth: Contract) {
 		if (this.type === Adapters.Uniswap) {
 			this.contract = await deployUniswapV2Adapter(signer, adapterTargetFactory, weth)
 		} else if (this.type === Adapters.Balancer) {
@@ -325,8 +321,9 @@ export class Adapter {
 		} else if (this.type === Adapters.Synthetix) {
 			this.contract = await deploySynthetixAdapter(signer, adapterTargetFactory, weth)
 		} else {
-			this.contract = await deployMetaStrategyAdapter(signer, adapterTargetFactory, weth)
+			this.contract = await deployMetaStrategyAdapter(signer, platform.controller, adapterTargetFactory, weth)
 		}
+		await platform.administration.whitelist.connect(signer).approve(this.contract.address)
 	}
 }
 

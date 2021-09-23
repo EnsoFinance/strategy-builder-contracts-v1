@@ -39,7 +39,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.encodePath = exports.encodeEthTransfer = exports.encodeWethWithdraw = exports.encodeWethDeposit = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransferFrom = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeUniswapPairSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.getRebalanceRange = exports.getExpectedTokenValue = exports.calculateAddress = exports.preparePermit = exports.prepareDepositMulticall = exports.prepareRebalanceMulticall = exports.prepareUniswapSwap = exports.prepareStrategy = exports.FEE_SIZE = void 0;
+exports.encodePath = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransferFrom = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeUniswapPairSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.getRebalanceRange = exports.getExpectedTokenValue = exports.calculateAddress = exports.preparePermit = exports.prepareDepositMulticall = exports.prepareRebalanceMulticall = exports.prepareUniswapSwap = exports.prepareStrategy = exports.FEE_SIZE = void 0;
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
 var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
@@ -221,7 +221,7 @@ function prepareDepositMulticall(strategy, controller, router, adapter, weth, to
                     percentage = strategyItems[i].percentage;
                     if (!(token.address.toLowerCase() !== weth.address.toLowerCase())) return [3 /*break*/, 7];
                     if (!(!wethInStrategy && i == strategyItems.length - 1)) return [3 /*break*/, 4];
-                    calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, strategy.address, strategy.address));
+                    calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, controller.address, strategy.address));
                     return [3 /*break*/, 6];
                 case 4:
                     amount = ethers_1.BigNumber.from(total).mul(percentage).div(utils_1.DIVISOR);
@@ -230,7 +230,7 @@ function prepareDepositMulticall(strategy, controller, router, adapter, weth, to
                 case 5:
                     expected = _b.apply(_a, [_c.sent()]).mul(slippage).div(utils_1.DIVISOR);
                     //console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
-                    calls.push(encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, strategy.address, strategy.address));
+                    calls.push(encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, controller.address, strategy.address));
                     _c.label = 6;
                 case 6: return [3 /*break*/, 8];
                 case 7:
@@ -384,8 +384,7 @@ function encodeSwap(adapter, amountTokens, minTokens, tokenIn, tokenOut, account
         accountFrom,
         accountTo
     ]);
-    var msgValue = tokenIn === AddressZero ? amountTokens : ethers_1.BigNumber.from(0);
-    return { target: adapter.address, callData: swapEncoded, value: msgValue };
+    return { target: adapter.address, callData: swapEncoded };
 }
 exports.encodeSwap = encodeSwap;
 function encodeDelegateSwap(router, adapter, amount, minTokens, tokenIn, tokenOut, accountFrom, accountTo) {
@@ -398,12 +397,12 @@ function encodeDelegateSwap(router, adapter, amount, minTokens, tokenIn, tokenOu
         accountFrom,
         accountTo
     ]);
-    return { target: router.address, callData: delegateSwapEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: router.address, callData: delegateSwapEncoded };
 }
 exports.encodeDelegateSwap = encodeDelegateSwap;
 function encodeUniswapPairSwap(pair, amount0Out, amount1Out, accountTo) {
     var pairSwapEncoded = pair.interface.encodeFunctionData('swap', [amount0Out, amount1Out, accountTo, '0x']);
-    return { target: pair.address, callData: pairSwapEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: pair.address, callData: pairSwapEncoded };
 }
 exports.encodeUniswapPairSwap = encodeUniswapPairSwap;
 function encodeSettleSwap(router, adapter, tokenIn, tokenOut, accountFrom, accountTo) {
@@ -414,12 +413,12 @@ function encodeSettleSwap(router, adapter, tokenIn, tokenOut, accountFrom, accou
         accountFrom,
         accountTo
     ]);
-    return { target: router.address, callData: settleSwapEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: router.address, callData: settleSwapEncoded };
 }
 exports.encodeSettleSwap = encodeSettleSwap;
 function encodeSettleTransfer(router, token, accountTo) {
     var settleTransferEncoded = router.interface.encodeFunctionData('settleTransfer', [token, accountTo]);
-    return { target: router.address, callData: settleTransferEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: router.address, callData: settleTransferEncoded };
 }
 exports.encodeSettleTransfer = encodeSettleTransfer;
 function encodeSettleTransferFrom(router, token, accountFrom, accountTo) {
@@ -428,38 +427,24 @@ function encodeSettleTransferFrom(router, token, accountFrom, accountTo) {
         accountFrom,
         accountTo,
     ]);
-    return { target: router.address, callData: settleTransferFromEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: router.address, callData: settleTransferFromEncoded };
 }
 exports.encodeSettleTransferFrom = encodeSettleTransferFrom;
 function encodeTransfer(token, to, amount) {
     var transferEncoded = token.interface.encodeFunctionData('transfer', [to, amount]);
-    return { target: token.address, callData: transferEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: token.address, callData: transferEncoded };
 }
 exports.encodeTransfer = encodeTransfer;
 function encodeTransferFrom(token, from, to, amount) {
     var transferFromEncoded = token.interface.encodeFunctionData('transferFrom', [from, to, amount]);
-    return { target: token.address, callData: transferFromEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: token.address, callData: transferFromEncoded };
 }
 exports.encodeTransferFrom = encodeTransferFrom;
 function encodeApprove(token, to, amount) {
     var approveEncoded = token.interface.encodeFunctionData('approve', [to, amount]);
-    return { target: token.address, callData: approveEncoded, value: ethers_1.BigNumber.from(0) };
+    return { target: token.address, callData: approveEncoded };
 }
 exports.encodeApprove = encodeApprove;
-function encodeWethDeposit(weth, amount) {
-    var depositEncoded = weth.interface.encodeFunctionData('deposit', []);
-    return { target: weth.address, callData: depositEncoded, value: amount };
-}
-exports.encodeWethDeposit = encodeWethDeposit;
-function encodeWethWithdraw(weth, amount) {
-    var withdrawEncoded = weth.interface.encodeFunctionData('withdraw', [amount]);
-    return { target: weth.address, callData: withdrawEncoded, value: ethers_1.BigNumber.from(0) };
-}
-exports.encodeWethWithdraw = encodeWethWithdraw;
-function encodeEthTransfer(to, amount) {
-    return { target: to, callData: '0x0', value: amount };
-}
-exports.encodeEthTransfer = encodeEthTransfer;
 function encodePath(path, fees) {
     if (path.length != fees.length + 1) {
         throw new Error('path/fee lengths do not match');

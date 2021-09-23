@@ -70,7 +70,8 @@ describe('StrategyProxyFactory', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const amount = ethers.BigNumber.from('10000000000000000')
@@ -131,15 +132,15 @@ describe('StrategyProxyFactory', function () {
 	it('Should update whitelist', async function () {
 		const oldBalance = await strategy.balanceOf(accounts[1].address)
 		await expect(
-			strategy.connect(accounts[1]).deposit(0, newRouter.address, '0x', {
+			controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, '0x', {
 				value: ethers.BigNumber.from('10000000000000000'),
 			})
-		).to.be.revertedWith('Router not approved')
+		).to.be.revertedWith('Not approved')
 		await strategyFactory.connect(accounts[10]).updateWhitelist(newWhitelist.address)
 		expect(await strategyFactory.whitelist()).to.equal(newWhitelist.address)
-		await strategy
+		await controller
 			.connect(accounts[1])
-			.deposit(0, newRouter.address, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, newRouter.address, 0, '0x', { value: ethers.BigNumber.from('10000000000000000') })
 		const newBalance = await strategy.balanceOf(accounts[1].address)
 		expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
 	})

@@ -18,7 +18,8 @@ const STRATEGY_STATE: StrategyState = {
 	rebalanceThreshold: BigNumber.from(10),
 	slippage: BigNumber.from(995),
 	performanceFee: BigNumber.from(50),
-	social: true
+	social: true,
+	set: false
 }
 
 
@@ -89,7 +90,7 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should fail to withdraw performance fee: no earnings', async function () {
-		await expect(controller.connect(accounts[1]).withdrawPerformanceFee(strategy.address)).to.be.revertedWith(
+		await expect(strategy.connect(accounts[1]).withdrawPerformanceFee(accounts.map((account) => account.address))).to.be.revertedWith(
 			'No earnings'
 		)
 	})
@@ -119,9 +120,9 @@ describe('StrategyController - Social', function () {
 
 	it('Should deposit more', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[2].address)
-		const tx = await strategy
+		const tx = await controller
 			.connect(accounts[2])
-			.deposit(0, router.address, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, router.address, 0, '0x', { value: ethers.BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[2].address)
@@ -131,34 +132,25 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should fail to withdraw performance fee: not manager', async function () {
-		await expect(controller.connect(accounts[2]).withdrawPerformanceFee(strategy.address)).to.be.revertedWith(
+		await expect(strategy.connect(accounts[2]).withdrawPerformanceFee(accounts.map((account) => account.address))).to.be.revertedWith(
 			'Not manager'
 		)
 	})
 
 	it('Should withdraw performance fee', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		await controller.connect(accounts[1]).withdrawPerformanceFee(strategy.address)
+		await strategy.connect(accounts[1]).withdrawPerformanceFee(accounts.map((account) => account.address))
 		const balanceAfter = await strategy.balanceOf(accounts[1].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
 	it('Should withdraw', async function () {
 		const amount = BigNumber.from('10000000000000')
-		const supplyBefore = BigNumber.from((await strategy.totalSupply()).toString())
 		const tokenBalanceBefore = BigNumber.from((await tokens[1].balanceOf(strategy.address)).toString())
 		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const supplyAfter = BigNumber.from((await strategy.totalSupply()).toString())
 		const tokenBalanceAfter = BigNumber.from((await tokens[1].balanceOf(strategy.address)).toString())
-		expect(supplyBefore.sub(amount.toString()).eq(supplyAfter)).to.equal(true)
-		// expect(
-		// 	supplyBefore
-		// 		.div(supplyAfter)
-		// 		.decimalPlaces(10)
-		// 		.isEqualTo(tokenBalanceBefore.dividedBy(tokenBalanceAfter).decimalPlaces(10))
-		// ).to.equal(true)
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
 	})
 

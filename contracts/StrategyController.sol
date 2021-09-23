@@ -24,10 +24,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     uint256 private constant DIVISOR = 1000;
 
-    event RebalanceCalled(address indexed strategy, uint256 total, address caller);
+    event Withdraw(address indexed strategy, uint256 value, uint256 amount);
+    event Deposit(address indexed strategy, uint256 value, uint256 amount);
+    event Balanced(address indexed strategy, uint256 total, address caller);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
     event StrategyOpen(address indexed strategy, uint256 performanceFee);
+    event StrategySet(address indexed strategy);
 
     // Initialize constructor to disable implementation
     constructor() public initializer {}
@@ -55,17 +58,87 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         address router_,
         bytes memory data_
     ) external payable override {
-        _setLock();
+        IStrategy strategy = IStrategy(strategy_);
+        _setStrategyLock(strategy);
         require(msg.sender == _factory, "Not factory");
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
-            IStrategy(strategy_).depositFromController{value: msg.value}(
-                creator_,
+            _deposit(
+                strategy,
                 IStrategyRouter(router_),
+                creator_,
+                0,
+                0,
+                uint256(-1),
                 data_
             );
-        _removeLock();
+        _removeStrategyLock(strategy);
+    }
+
+    /**
+     * @notice Deposit ether, which is traded for the underlying assets, and mint strategy tokens
+     * @param router The address of the router that will be doing the handling the trading logic
+     * @param data The calldata for the router's deposit function
+     */
+    function deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external payable override {
+        _setStrategyLock(strategy);
+        _socialOrManager(strategy);
+        strategy.withdrawStreamingFee();
+        (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
+        uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimates);
+        _deposit(strategy, router, msg.sender, amount, totalBefore, balanceBefore, data);
+        _removeStrategyLock(strategy);
+    }
+
+    function withdraw(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external override {
+        _setStrategyLock(strategy);
+        require(amount > 0, "0 amount");
+        IOracle o = oracle();
+        (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
+        uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimatesBefore);
+        uint256 totalSupply = strategy.totalSupply();
+        // Deduct fee and burn strategy tokens
+        amount = strategy.burn(msg.sender, amount);
+        {
+          uint256 percentage = amount.mul(10**18).div(totalSupply);
+          // Setup data
+          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+              data = abi.encode(percentage, totalBefore, estimatesBefore);
+          // Approve items
+          _approveItems(strategy, strategy.items(), address(router), uint256(-1));
+          _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+          // Withdraw
+          router.withdraw(address(strategy), data);
+          // Revoke items approval
+          _approveItems(strategy, strategy.items(), address(router), uint256(0));
+          _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(0));
+        }
+
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
+        require(
+            totalAfter >=
+                totalBefore.mul(strategyState.slippage).div(DIVISOR),
+            "Too much slippage"
+        );
+        uint256 withdrawnWeth = totalBefore.mul(amount).div(totalSupply).sub(totalBefore.sub(totalAfter)); // remove slippage from expected weth
+        address weth = o.weth();
+        strategy.approveToken(weth, address(this), withdrawnWeth);
+        IERC20(weth).safeTransferFrom(address(strategy), msg.sender, withdrawnWeth);
+        _checkBalance(strategy, balanceBefore, totalAfter.sub(withdrawnWeth), estimatesAfter);
+        emit Withdraw(address(strategy), withdrawnWeth, amount);
+        _removeStrategyLock(strategy);
     }
 
     /**
@@ -79,19 +152,51 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
-        strategy.lock();
-        _setLock();
+        _setStrategyLock(strategy);
         _onlyApproved(address(router));
         _onlyManager(strategy);
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = _verifyBalance(strategy);
         require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
-        _approveTokens(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
+        _approveItems(strategy, strategy.items(), address(router), uint256(-1));
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         _rebalance(strategy, router, totalBefore, data);
-        _approveTokens(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
-        _removeLock();
-        strategy.unlock();
+        _approveItems(strategy, strategy.items(), address(router), uint256(0));
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(0));
+        _removeStrategyLock(strategy);
+    }
+
+    function settleSynths(IStrategy strategy, address adapter, address token) external {
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        address susd = oracle().susd();
+        if (token == susd) {
+            address[] memory synths = strategy.synths();
+            for (uint256 i = 0; i < synths.length; i++) {
+                strategy.delegateSwap(
+                    adapter,
+                    IERC20(synths[i]).balanceOf(address(strategy)),
+                    synths[i],
+                    susd
+                );
+            }
+        } else if (token == address(-1)) {
+            uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
+            int256 percentTotal = strategy.getPercentage(address(-1));
+            address[] memory synths = strategy.synths();
+            for (uint256 i = 0; i < synths.length; i++) {
+                strategy.delegateSwap(
+                    adapter,
+                    uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal)),
+                    susd,
+                    synths[i]
+                );
+            }
+        } else {
+            revert("Unsupported token");
+        }
+        _removeStrategyLock(strategy);
     }
 
     /**
@@ -104,7 +209,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy,
         StrategyItem[] memory strategyItems
     ) external override {
-        _setLock();
+        _notSet(address(strategy)); // Set strategies cannot restructure
+        _setStrategyLock(strategy);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
         require(
@@ -119,7 +225,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         lock.data = abi.encode(strategyItems);
 
         emit NewStructure(address(strategy), strategyItems, false);
-        _removeLock();
+        _removeStrategyLock(strategy);
     }
 
     /**
@@ -133,8 +239,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
-        strategy.lock();
-        _setLock();
+        _notSet(address(strategy));  // Set strategies cannot restructure
+        _setStrategyLock(strategy);
         _onlyApproved(address(router));
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
@@ -152,8 +258,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         delete lock.timestamp;
         delete lock.data;
         emit NewStructure(address(strategy), strategyItems, true);
-        _removeLock();
-        strategy.unlock();
+        _removeStrategyLock(strategy);
     }
 
     function updateValue(
@@ -161,7 +266,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         TimelockCategory category,
         uint256 newValue
     ) external override {
-        _setLock();
+        _setStrategyLock(strategy);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
         require(
@@ -178,11 +283,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(newValue);
         emit NewValue(address(strategy), category, newValue, false);
-        _removeLock();
+        _removeStrategyLock(strategy);
     }
 
     function finalizeValue(address strategy) external override {
-        _setLock();
+        _setStrategyLock(IStrategy(strategy));
         StrategyState storage strategyState = _strategyStates[strategy];
         Timelock storage lock = _timelocks[strategy];
         require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
@@ -205,47 +310,44 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         delete lock.category;
         delete lock.timestamp;
         delete lock.data;
-        _removeLock();
+        _removeStrategyLock(IStrategy(strategy));
     }
 
     /**
-     * @notice Manager can withdraw their performance fee here
-     * @param strategy The strategy that will be withdrawn from
-     */
-     function withdrawPerformanceFee(IStrategy strategy) external override {
-        _setLock();
-        _onlyManager(strategy);
-        (uint256 total, ) =
-           oracle().estimateStrategy(strategy);
-        uint256 totalSupply = strategy.totalSupply();
-        uint256 tokenValue = total.mul(10**18).div(totalSupply);
-        require(tokenValue > _lastTokenValue[address(strategy)], "No earnings");
-        uint256 diff = tokenValue.sub(_lastTokenValue[address(strategy)]);
-        uint256 performanceFee = uint256(_strategyStates[address(strategy)].performanceFee);
-        uint256 reward = totalSupply.mul(diff).mul(performanceFee).div(DIVISOR).div(10**18);
-        _lastTokenValue[address(strategy)] = tokenValue;
-        strategy.mint(msg.sender, reward); // _onlyManager() ensures that msg.sender == manager
-        _removeLock();
-    }
-
-    /**
-     * @notice Setter to change strategy to social. Cannot be undone.
+     * @notice Change strategy to 'social'. Cannot be undone.
      * @dev A social profile allows other users to deposit and rebalance the strategy
      */
     function openStrategy(IStrategy strategy, uint256 fee) external override {
-        _setLock();
+        _setStrategyLock(strategy);
         _onlyManager(strategy);
-        (uint256 total, ) =
-            IOracle(strategy.oracle()).estimateStrategy(strategy);
-        _openStrategy(strategy, fee, total);
-        _removeLock();
+        require(fee < DIVISOR, "Fee too high");
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        require(!strategyState.social, "Strategy already open");
+        strategyState.social = true;
+        strategyState.performanceFee = uint16(fee);
+        emit StrategyOpen(address(strategy), fee);
+        _removeStrategyLock(strategy);
+    }
+
+    /**
+     * @notice Change strategy to 'set'. Cannot be undone.
+     * @dev A set strategy cannot be restructured
+     */
+    function setStrategy(IStrategy strategy) external override {
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        require(!strategyState.set, "Strategy already set");
+        strategyState.set = true;
+        emit StrategySet(address(strategy));
+        _removeStrategyLock(strategy);
     }
 
     /**
      * @notice Initialized getter
      */
      function initialized(address strategy) external view override returns (bool) {
-         return _lastTokenValue[strategy] > 0;
+         return _initialized[strategy] > 0;
      }
 
     /**
@@ -306,7 +408,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         for (uint256 i = 0; i < newItems.length; i++) {
             address item = newItems[i].item;
             require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
-            if (EstimatorCategory(registry.estimatorCategories(item)) == EstimatorCategory.STRATEGY)
+            EstimatorCategory category = EstimatorCategory(registry.estimatorCategories(item));
+            require(category != EstimatorCategory.BLOCKED, "Token blocked");
+            if (category == EstimatorCategory.STRATEGY)
                 _checkCyclicDependency(strategy, IStrategy(item), registry);
             total = total.add(newItems[i].percentage);
         }
@@ -323,6 +427,56 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     // Internal Strategy Functions
+    /**
+     * @notice Deposit eth or weth into strategy
+     * @dev The calldata that gets passed to this function can differ depending on which router is being used
+     */
+    function _deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        address account,
+        uint256 amount,
+        uint256 totalBefore,
+        uint256 balanceBefore,
+        bytes memory data
+    ) internal {
+        _onlyApproved(address(router));
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+        IOracle o = oracle();
+        if (amount == 0) {
+          amount = msg.value;
+          address weth = o.weth();
+          IWETH(weth).deposit{value: amount}();
+          IERC20(weth).safeApprove(address(router), amount);
+          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+              data = abi.encode(address(this), amount);
+          router.deposit(address(strategy), data);
+          IERC20(weth).safeApprove(address(router), 0);
+        } else {
+          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+              data = abi.encode(account, amount);
+          router.deposit(address(strategy), data);
+        }
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
+        // Recheck total
+        (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
+        require(totalAfter > totalBefore, "Lost value");
+        _checkBalance(strategy, balanceBefore, totalAfter, estimates);
+
+        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
+        require(
+            valueAdded >=
+                amount.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+            "Value slipped"
+        );
+        uint256 totalSupply = strategy.totalSupply();
+        uint256 relativeTokens =
+            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+        strategy.updateTokenValue(totalAfter);
+        strategy.mint(account, relativeTokens);
+        emit Deposit(address(strategy), amount, relativeTokens);
+    }
+
     /**
      * @notice Rebalance the strategy to match the current structure
      * @dev The calldata that gets passed to this function can differ depending on which router is being used
@@ -345,33 +499,22 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
             "Value slipped"
         );
-        emit RebalanceCalled(address(strategy), totalAfter, msg.sender);
+        strategy.updateTokenValue(totalAfter);
+        emit Balanced(address(strategy), totalAfter, msg.sender);
         return totalAfter;
-    }
-
-    function _openStrategy(IStrategy strategy, uint256 fee, uint256 total) internal {
-        require(fee < DIVISOR, "Fee too high");
-        StrategyState storage strategyState = _strategyStates[address(strategy)];
-        require(!strategyState.social, "Strategy already open");
-        strategyState.social = true;
-        strategyState.performanceFee = uint16(fee);
-        //As token value increase compared to the _tokenValueLast value, performance fees may be extracted
-        if (total > 0)
-            _lastTokenValue[address(strategy)] = total.mul(10**18).div(strategy.totalSupply()); // Value is initially set to 10**18, only change if there is total
-        emit StrategyOpen(address(strategy), fee);
     }
 
     function _setInitialState(address strategy, StrategyState memory state) private {
         require(uint256(state.rebalanceThreshold) <= DIVISOR, "Threshold high");
         require(uint256(state.slippage) <= DIVISOR, "Slippage high");
         require(uint256(state.performanceFee) < DIVISOR, "Fee too high");
+        _initialized[strategy] = 1;
         _strategyStates[strategy] = state;
-        _lastTokenValue[address(strategy)] = 10**18; //Default starting token value at time of first deposit
         emit NewValue(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
         emit NewValue(strategy, TimelockCategory.SLIPPAGE, uint256(state.slippage), true);
         emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
-        if (state.social)
-            emit StrategyOpen(address(strategy), state.performanceFee);
+        if (state.social) emit StrategyOpen(address(strategy), state.performanceFee);
+        if (state.set) emit StrategySet(address(strategy));
     }
 
     /**
@@ -411,6 +554,41 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
+     * @notice This function gets the strategy value from the oracle and determines
+     *         how out of balance the strategy using an absolute value.
+     */
+    function _amountOutOfBalance(IStrategy strategy, uint256 total, int256[] memory estimates) internal view returns (uint256) {
+        if (total == 0) return 0;
+        uint256 amountOutOfBalance = 0;
+        address[] memory strategyItems = strategy.items();
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
+            if (estimates[i] > expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(estimates[i].sub(expectedValue)));
+                break;
+            }
+            if (estimates[i] < expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(expectedValue.sub(estimates[i])));
+                break;
+            }
+        }
+        address[] memory strategyDebt = strategy.debt();
+        for (uint256 i = 0; i < strategyDebt.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
+            uint256 index = strategyItems.length + i;
+            if (estimates[index] > expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(estimates[index].sub(expectedValue)));
+                break;
+            }
+            if (estimates[index] < expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(expectedValue.sub(estimates[index])));
+                break;
+            }
+        }
+        return (amountOutOfBalance.mul(10**18).div(total));
+    }
+
+    /**
      * @notice Finalize the structure by selling current posiition, setting new structure, and buying new position
      * @param strategy The strategy contract
      * @param router The router contract that will handle the trading
@@ -435,9 +613,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Set new structure
         strategy.setStructure(newItems);
         // Liquidate unused tokens
-        _approveTokens(strategy, currentItems, currentDebt, address(router), uint256(-1));
+        _approveItems(strategy, currentItems, address(router), uint256(-1));
+        _approveSynthsAndDebt(strategy, currentDebt, address(router), uint256(-1));
         router.restructure(address(strategy), data);
-        _approveTokens(strategy, currentItems, currentDebt, address(router), uint256(0));
+        _approveItems(strategy, currentItems, address(router), uint256(0));
+        _approveSynthsAndDebt(strategy, currentDebt, address(router), uint256(0));
 
         (uint256 totalAfter, ) = o.estimateStrategy(strategy);
         require(
@@ -445,49 +625,67 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
             "Value slipped"
         );
+        strategy.updateTokenValue(totalAfter);
     }
 
     /**
-     * @notice Batch approve tokens
+     * @notice Batch approve items
      * @param spender The address that will be approved to spend tokens
      * @param amount The amount the each token will be approved for
      */
-    function _approveTokens(
+    function _approveItems(
         IStrategy strategy,
         address[] memory strategyItems,
-        address[] memory strategyDebt,
         address spender,
         uint256 amount
     ) internal {
         strategy.approveToken(oracle().weth(), spender, amount);
-        if (strategy.supportsSynths()) {
-            strategy.approveSynths(spender, amount);
-        }
         for (uint256 i = 0; i < strategyItems.length; i++) {
             strategy.approveToken(strategyItems[i], spender, amount);
+        }
+    }
+
+    /**
+     * @notice Batch approve synths and debt
+     * @param spender The address that will be approved to spend tokens
+     * @param amount The amount the each token will be approved for
+     */
+    function _approveSynthsAndDebt(
+        IStrategy strategy,
+        address[] memory strategyDebt,
+        address spender,
+        uint256 amount
+    ) internal {
+        if (strategy.supportsSynths()) {
+            strategy.approveSynths(spender, amount);
         }
         for (uint256 i = 0; i < strategyDebt.length; i++) {
             strategy.approveDebt(strategyDebt[i], spender, amount);
         }
     }
 
-    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) internal view returns (bool) {
+    function _checkBalance(IStrategy strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) internal view {
+        uint256 balanceAfter = _amountOutOfBalance(strategy, total, estimates);
+        if (balanceAfter > uint256(10**18).mul(_strategyStates[address(strategy)].rebalanceThreshold).div(DIVISOR))
+            require(balanceAfter <= balanceBefore, "Lost balance");
+    }
+
+    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) internal view {
         require(address(strategy) != test, "Cyclic dependency");
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
           EstimatorCategory category = EstimatorCategory(registry.estimatorCategories(strategyItems[i]));
-          require(category != EstimatorCategory.SYNTH, "Does not support synths in underlying strategies");
+          require(category != EstimatorCategory.SYNTH, "Synths not supported");
           if (category == EstimatorCategory.STRATEGY)
               _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
         }
-        return true;
     }
 
     /**
      * @notice Checks that router is whitelisted
      */
-    function _onlyApproved(address router) internal view {
-        require(whitelist().approved(router), "Router not approved");
+    function _onlyApproved(address account) internal view {
+        require(whitelist().approved(account), "Not approved");
     }
 
     function _onlyManager(IStrategy strategy) internal view {
@@ -495,17 +693,31 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
+     * @notice Checks if strategy is social or else require msg.sender is manager
+     */
+    function _socialOrManager(IStrategy strategy) internal view {
+        require(
+            msg.sender == strategy.manager() || _strategyStates[address(strategy)].social,
+            "Not manager"
+        );
+    }
+
+    function _notSet(address strategy) internal view {
+        require(!_strategyStates[strategy].set, "Strategy cannot change");
+    }
+
+    /**
      * @notice Sets Reentrancy guard
      */
-    function _setLock() internal {
-        require(_locked == 0, "No Reentrancy");
-        _locked = 1;
+    function _setStrategyLock(IStrategy strategy) internal {
+        require(!strategy.locked(), "No Reentrancy");
+        strategy.lock();
     }
 
     /**
      * @notice Removes reentrancy guard.
      */
-    function _removeLock() internal {
-        _locked = 0;
+    function _removeStrategyLock(IStrategy strategy) internal {
+        strategy.unlock();
     }
 }

@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./ERC1271.sol";
 import "./StrategyToken.sol";
+import "./libraries/StrategyLibrary.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -28,10 +29,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
 
     IDelegateApprovals private constant SYNTH_DELEGATE = IDelegateApprovals(0x15fd6e554874B9e70F832Ed37f231Ac5E142362f);
     ILendingPool private constant AAVE_LENDING_POOL = ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
+    uint256 public constant WITHDRAWAL_FEE = 2*10**15; // 0.2% per withdraw
+    uint256 public constant STREAM_FEE = 10**16; //uint256(10**34)/(uint256(10**18)-uint256(10**16)); // 1% per year
+    uint256 private constant YEAR = 365 days;
     uint256 private constant DIVISOR = 1000;
 
     event Withdraw(uint256 amount, uint256[] amounts);
-    event Deposit(uint256 value, uint256 amount);
 
     // Initialize constructor to disable implementation
     constructor() public initializer {}
@@ -63,6 +66,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _symbol = symbol_;
         _decimals = 18;
         _version = version_;
+        _lastTokenValue = 10**18;
+        _lastStreamTimestamp = block.timestamp;
         PERMIT_TYPEHASH = keccak256(
             "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
         );
@@ -116,7 +121,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
     }
 
     function setCollateral(address token) external override {
-        require(whitelist().approved(msg.sender), "Not approved");
+        _onlyApproved(msg.sender);
         AAVE_LENDING_POOL.setUserUseReserveAsCollateral(token, true);
     }
 
@@ -128,6 +133,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _setLock();
         require(_debt.length == 0, "Cannot withdraw debt");
         require(amount > 0, "0 amount");
+        amount = _deductWithdrawalFee(msg.sender, amount);
         uint256 percentage = amount.mul(10**18).div(_totalSupply);
         // Burn strategy tokens
         _burn(msg.sender, amount);
@@ -169,85 +175,79 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _removeLock();
     }
 
-    function withdrawWeth(
-        uint256 amount,
-        IStrategyRouter router,
-        bytes memory data
-    ) external override {
+    function withdrawPerformanceFee(address[] memory holders) external {
         _setLock();
-        require(amount > 0, "0 amount");
-        address weth = oracle().weth();
-        uint256 wethBefore = IERC20(weth).balanceOf(address(this));
-        (uint256 totalBefore, ) = oracle().estimateStrategy(this);
-        uint256 percentage = amount.mul(10**18).div(_totalSupply);
-        uint256 expectedWeth = totalBefore.mul(percentage).div(10**18);
-        // Burn strategy tokens
-        _burn(msg.sender, amount);
-        // Approve items
-        for (uint256 i = 0; i < _items.length; i++) {
-            IERC20(_items[i]).safeApprove(address(router), uint256(-1));
+        _onlyManager();
+        updateTokenValue();
+        address pool = IStrategyProxyFactory(_factory).pool();
+        uint256 performanceFee = IStrategyController(_controller).performanceFee(address(this));
+        uint256 amount = 0;
+        for (uint256 i = 0; i < holders.length; i++) {
+            amount = amount.add(_deductPerformanceFee(holders[i], pool, performanceFee));
         }
-        for (uint256 i = 0; i < _debt.length; i++) {
-            IDebtToken(_debt[i]).approveDelegation(address(router), uint256(-1));
-        }
-        // Withdraw
-        if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(percentage);
-        router.withdraw(address(this), data);
-        // Revoke items approval
-        for (uint256 i = 0; i < _items.length; i++) {
-            IERC20(_items[i]).safeApprove(address(router), uint256(0));
-        }
-        for (uint256 i = 0; i < _debt.length; i++) {
-            IDebtToken(_debt[i]).approveDelegation(address(router), uint256(0));
-        }
-        uint256 wethDiff = IERC20(weth).balanceOf(address(this))
-            .sub(wethBefore.sub(wethBefore.mul(percentage).div(10**18))); // weth after - (weth before - percentage of weth withdrawn)
-        IERC20(weth).safeTransfer(msg.sender, wethDiff);
-        (uint256 totalAfter, ) = oracle().estimateStrategy(this);
-        uint256 valueRemoved = totalBefore.sub(totalAfter);
-        uint256 slippage = IStrategyController(_controller).slippage(address(this));
-        require(valueRemoved.mul(slippage).div(DIVISOR) <= expectedWeth, "Too much removed");
-        require(
-            valueRemoved >=
-                expectedWeth.mul(slippage).div(DIVISOR),
-            "Too much slippage"
+        require(amount > 0, "No earnings");
+        _distributePerformanceFee(pool, amount);
+        _removeLock();
+    }
+
+    function withdrawStreamingFee() external override {
+        _issueStreamingFee(IStrategyProxyFactory(_factory).pool());
+    }
+
+    function mint(address account, uint256 amount) external override onlyController {
+        //Assumes updateTokenValue has been called
+        address pool = IStrategyProxyFactory(_factory).pool();
+        uint256 fee = _deductPerformanceFee(
+            account,
+            pool,
+            IStrategyController(_controller).performanceFee(address(this))
         );
-        //emit Withdraw(amount, amounts);
-        _removeLock();
+        if (fee > 0) _distributePerformanceFee(pool, fee);
+        _mint(account, amount);
+        _paidTokenValues[account] = _lastTokenValue;
     }
 
-    /**
-     * @notice Deposit ether, which is traded for the underlying assets, and mint strategy tokens
-     * @param router The address of the router that will be doing the handling the trading logic
-     * @param data The calldata for the router's deposit function
+    function burn(address account, uint256 amount) external override onlyController returns (uint256){
+        amount = _deductWithdrawalFee(account, amount);
+        _burn(account, amount);
+        return amount;
+    }
+
+    /*
+     *
      */
-    function deposit(
+    function delegateSwap(
+        address adapter,
         uint256 amount,
-        IStrategyRouter router,
-        bytes memory data
-    ) external payable override {
-        _setLock();
-        _socialOrManager();
-        (uint256 totalBefore, ) = oracle().estimateStrategy(this);
-        _deposit(msg.sender, amount, totalBefore, router, data);
-        _removeLock();
+        address tokenIn,
+        address tokenOut
+    ) external override onlyController {
+        // Note: No reentrancy lock since only callable by _settleSynths function in controller which already locks
+        _onlyApproved(adapter);
+        bytes memory swapData =
+            abi.encodeWithSelector(
+                bytes4(
+                    keccak256("swap(uint256,uint256,address,address,address,address)")
+                ),
+                amount,
+                1,
+                tokenIn,
+                tokenOut,
+                address(this),
+                address(this)
+            );
+        uint256 txGas = gasleft();
+        bool success;
+        assembly {
+            success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
+        }
+        require(success, "Swap failed");
     }
 
-    function depositFromController(
-        address account,
-        IStrategyRouter router,
-        bytes memory data
-    ) external payable override onlyController {
+    function delegateClaimRewards(address adapter, address token) external {
         _setLock();
-        _deposit(account, msg.value, 0, router, data);
-        _removeLock();
-    }
-
-    function claimRewards(address adapter, address token) external {
-        _setLock();
-        require(msg.sender == _manager, "Not manager");
-        require(whitelist().approved(adapter), "Not approved");
+        _onlyManager();
+        _onlyApproved(adapter);
         bytes memory data =
             abi.encodeWithSelector(
                 bytes4(keccak256("claim(address)")),
@@ -262,68 +262,33 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _removeLock();
     }
 
-    function settleSynths(address adapter, address token) external {
-        //Ensure we have an approved adapter before calling _unsafeDelegateSwap
-        require(msg.sender == _manager, "Not manager");
-        require(whitelist().approved(adapter), "Not approved");
-        address susd = oracle().susd();
-        if (token == susd) {
-            for (uint256 i = 0; i < _synths.length; i++) {
-                require(
-                    _unsafeDelegateSwap(
-                        adapter,
-                        IERC20(_synths[i]).balanceOf(address(this)),
-                        _synths[i],
-                        susd
-                    ),
-                    "Swap failed"
-                );
-            }
-        } else if (token == address(-1)) {
-            uint256 susdBalance = IERC20(susd).balanceOf(address(this));
-            int256 percentTotal = _percentage[address(-1)];
-            for (uint256 i = 0; i < _synths.length; i++) {
-                require(
-                    _unsafeDelegateSwap(
-                        adapter,
-                        uint256(int256(susdBalance).mul(_percentage[_synths[i]]).div(percentTotal)),
-                        susd,
-                        _synths[i]
-                    ),
-                    "Swap failed"
-                );
-            }
-        } else {
-            revert("Unsupported token");
-        }
+    function updateTokenValue() public {
+        (uint256 total, ) = oracle().estimateStrategy(this);
+        _setTokenValue(total);
     }
 
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     */
-    function mint(address account, uint256 amount) external override onlyController {
-        _mint(account, amount);
+    function updateTokenValue(uint256 total) external override onlyController {
+        _setTokenValue(total);
     }
 
     /**
         @notice Update the manager of this Strategy
      */
     function updateManager(address newManager) external override {
-        require(msg.sender == _manager, "Not manager");
+        _onlyManager();
         _manager = newManager;
+    }
+
+    function updateSigner(address signer, bool add) external {
+        _onlyManager();
+        _signers[signer] = add ? 1 : 0;
     }
 
     /**
         @notice Update an item's trade data
      */
     function updateTradeData(address item, TradeData memory data) external override {
-        require(msg.sender == _manager, "Not manager");
+        _onlyManager();
         _tradeData[item] = data;
     }
 
@@ -360,10 +325,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         return _debt;
     }
 
-    function getCategory(address item) external view override returns (EstimatorCategory) {
-        return EstimatorCategory(oracle().tokenRegistry().estimatorCategories(item));
-    }
-
     function getPercentage(address item) external view override returns (int256) {
         return _percentage[item];
     }
@@ -392,53 +353,22 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         return _synths.length > 0;
     }
 
-    function _deposit(
-        address account,
-        uint256 amount,
-        uint256 totalBefore,
-        IStrategyRouter router,
-        bytes memory data
-    ) internal {
-        _onlyApproved(address(router));
+    function balanceOf(address account) external view override(StrategyToken, IERC20NonStandard) returns (uint256) {
+        uint256 balance = _balances[account];
+        if (balance == 0) return 0;
+        if (account == IStrategyProxyFactory(_factory).pool()) return balance;
+        if (_lastTokenValue > _paidTokenValues[account])
+            return balance.sub(_calcPerformanceFee(
+                balance,
+                _paidTokenValues[account],
+                _lastTokenValue,
+                IStrategyController(_controller).performanceFee(address(this)))
+            );
+        return balance;
+    }
 
-        IOracle o = oracle();
-        if (supportsSynths()) SYNTH_DELEGATE.approveExchangeOnBehalf(address(router));
-        for (uint256 i = 0; i < _debt.length; i++) {
-            IDebtToken(_debt[i]).approveDelegation(address(router), uint256(-1));
-        }
-
-        if (msg.value > 0) {
-          amount = msg.value;
-          address weth = o.weth();
-          IWETH(weth).deposit{value: msg.value}();
-          IERC20(weth).safeApprove(address(router), msg.value);
-          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-              data = abi.encode(address(this), msg.value);
-          router.deposit(address(this), data);
-          IERC20(weth).safeApprove(address(router), 0);
-        } else {
-          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-              data = abi.encode(account, amount);
-          router.deposit(address(this), data);
-        }
-        if (supportsSynths()) SYNTH_DELEGATE.removeExchangeOnBehalf(address(router));
-        for (uint256 i = 0; i < _debt.length; i++) {
-            IDebtToken(_debt[i]).approveDelegation(address(router), 0);
-        }
-
-        // Recheck total
-        (uint256 totalAfter, ) = o.estimateStrategy(this);
-        require(totalAfter > totalBefore, "Lost value");
-        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
-        require(
-            valueAdded >=
-                amount.mul(IStrategyController(_controller).slippage(address(this))).div(DIVISOR),
-            "Value slipped"
-        );
-        uint256 relativeTokens =
-            _totalSupply > 0 ? _totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
-        _mint(account, relativeTokens);
-        emit Deposit(amount, relativeTokens);
+    function _setTokenValue(uint256 total) internal {
+        if(_totalSupply > 0) _lastTokenValue = total.mul(10**18).div(_totalSupply);
     }
 
     function _setDomainSeperator() internal {
@@ -502,31 +432,64 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         }
     }
 
-    /*
-     * @warning This function does not validate the adapter, please do so before calling
-     */
-    function _unsafeDelegateSwap(
-        address adapter,
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) private returns (bool success) {
-        bytes memory swapData =
-            abi.encodeWithSelector(
-                bytes4(
-                    keccak256("swap(uint256,uint256,address,address,address,address)")
-                ),
-                amount,
-                1,
-                tokenIn,
-                tokenOut,
-                address(this),
-                address(this)
-            );
-        uint256 txGas = gasleft();
-        assembly {
-            success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
+    function _handleFees(address sender, address recipient) internal override {
+        // Streaming fee
+        address pool = IStrategyProxyFactory(_factory).pool();
+        _issueStreamingFee(pool);
+        // Performance fees
+        uint256 performanceFee = IStrategyController(_controller).performanceFee(address(this));
+        uint256 amount = _deductPerformanceFee(sender, pool, performanceFee);
+        amount = amount.add(_deductPerformanceFee(recipient, pool, performanceFee));
+        if (amount > 0) _distributePerformanceFee(pool, amount);
+    }
+
+    function _issueStreamingFee(address pool) internal {
+        uint256 timePassed = block.timestamp.sub(_lastStreamTimestamp);
+        if (timePassed > 0) {
+            uint256 feePercent = uint256(10**36).div(uint256(10**18).sub(STREAM_FEE.mul(timePassed).div(YEAR))).sub(10**18);
+            uint256 amountToMint = _totalSupply.mul(feePercent).div(10**18);
+            _mint(pool, amountToMint);
+            _lastStreamTimestamp = block.timestamp;
         }
+    }
+
+    function _deductWithdrawalFee(address account, uint256 amount) internal returns (uint256) {
+        address pool = IStrategyProxyFactory(_factory).pool();
+        if (account == pool) return amount;
+        uint256 fee = amount.mul(WITHDRAWAL_FEE).div(10**18);
+        _transfer(account, pool, fee);
+        return amount.sub(fee);
+    }
+
+    function _deductPerformanceFee(address account, address pool, uint256 performanceFee) internal returns (uint256){
+        if (account == pool) return 0;
+        uint256 paidTokenValue = _paidTokenValues[account];
+        if (paidTokenValue == 0) {
+            _paidTokenValues[account] = _lastTokenValue;
+            return 0;
+        } else if (_lastTokenValue > paidTokenValue) {
+            uint256 balance = _balances[account];
+            uint256 amount = _calcPerformanceFee(balance, paidTokenValue, _lastTokenValue, performanceFee);
+            if (amount > 0) {
+              _paidTokenValues[account] = _lastTokenValue;
+              _balances[account] = balance.sub(amount);
+              emit Transfer(account, _manager, amount);
+              return amount;
+            }
+        }
+        return 0;
+    }
+
+    function _distributePerformanceFee(address pool, uint256 amount) internal {
+        uint256 poolAmount = amount.mul(300).div(DIVISOR);
+        _balances[_manager] = _balances[_manager].add(amount.sub(poolAmount));
+        _balances[pool] = _balances[pool].add(poolAmount);
+        emit Transfer(_manager, pool, poolAmount);
+    }
+
+    function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 performanceFee) internal pure returns (uint256){
+        uint256 diff = tokenValue.sub(paidTokenValue);
+        return balance.mul(diff).mul(performanceFee).div(DIVISOR).div(10**18);
     }
 
     /**
@@ -535,24 +498,19 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
      * @return Bool confirming whether signer is permitted
      */
     function _checkSigner(address signer) internal view override returns (bool) {
-        return signer == _manager;
+        if (signer == _manager) return true;
+        return _signers[signer] > 0;
     }
 
     /**
      * @notice Checks that router is whitelisted
      */
-    function _onlyApproved(address router) internal view {
-        require(whitelist().approved(router), "Router not approved");
+    function _onlyApproved(address account) internal view {
+        require(whitelist().approved(account), "Not approved");
     }
 
-    /**
-     * @notice Checks if strategy is social or else require msg.sender is manager
-     */
-    function _socialOrManager() internal view {
-        require(
-            msg.sender == _manager || IStrategyController(_controller).social(address(this)),
-            "Not manager"
-        );
+    function _onlyManager() internal view {
+        require(msg.sender == _manager, "Not manager");
     }
 
     /**

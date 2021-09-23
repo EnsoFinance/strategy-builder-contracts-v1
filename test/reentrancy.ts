@@ -51,7 +51,8 @@ describe('Reentrancy    ', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const create2Address = await calculateAddress(
@@ -125,15 +126,16 @@ describe('Reentrancy    ', function () {
 		)
 		calls.push(...depositCalls)
 		let secondDeposit = await genericRouter.encodeCalls(calls)
-		let depositCalldata = strategy.interface.encodeFunctionData('deposit', [
-			0,
+		let depositCalldata = controller.interface.encodeFunctionData('deposit', [
+			strategy.address,
 			genericRouter.address,
+			0,
 			secondDeposit,
 		])
 		calls.push({ target: controller.address, callData: depositCalldata, value: 0 })
 		let data = await genericRouter.encodeCalls(calls)
 		await expect(
-			strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: total })
 		).to.be.revertedWith('')
 	})
 
@@ -166,7 +168,7 @@ describe('Reentrancy    ', function () {
 
 		let data = await genericRouter.encodeCalls(calls)
 		await expect(
-			strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: total })
 		).to.be.revertedWith('')
 
 		// Remove last call
@@ -174,9 +176,9 @@ describe('Reentrancy    ', function () {
 		data = await genericRouter.encodeCalls(calls)
 
 		// Deposit should work now
-		const tx = await strategy
+		const tx = await controller
 			.connect(accounts[1])
-			.deposit(0, genericRouter.address, data, { value: total })
+			.deposit(strategy.address, genericRouter.address, 0, data, { value: total })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 

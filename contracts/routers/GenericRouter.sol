@@ -21,19 +21,19 @@ contract GenericRouter is StrategyRouter, Multicall {
      * @notice Executes provided calldata to achieve a deposit for the Strategy
      */
     // Receive call from controller
-    function deposit(address strategy, bytes memory data)
+    function deposit(address, bytes memory data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
     }
 
-    function withdraw(address strategy, bytes calldata data)
+    function withdraw(address, bytes calldata data)
         external
         override
-        onlyStrategy(strategy)
+        onlyController
     {
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
@@ -43,14 +43,12 @@ contract GenericRouter is StrategyRouter, Multicall {
      * @notice Executes provided calldata to achieve a rebalance for the Strategy
      */
     // Receive call from controller
-    function rebalance(address strategy, bytes memory data) external override onlyController {
-        (strategy);
+    function rebalance(address, bytes memory data) external override onlyController {
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
     }
 
-    function restructure(address strategy, bytes memory data) external override onlyController {
-        (strategy);
+    function restructure(address, bytes memory data) external override onlyController {
         Call[] memory callStructs = abi.decode(data, (Call[]));
         aggregate(callStructs);
     }

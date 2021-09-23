@@ -46,7 +46,8 @@ export enum ESTIMATOR_CATEGORY {
 	UNISWAP_V2,
 	UNISWAP_V3,
 	SUSHI,
-	SUSHI_FARM
+	SUSHI_FARM,
+	BLOCKED
 }
 
 export async function increaseTime(seconds: number) {

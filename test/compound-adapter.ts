@@ -76,7 +76,8 @@ describe('CompoundAdapter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
-			social: false
+			social: false,
+			set: false
 		}
 
 		const tx = await strategyFactory
@@ -150,7 +151,7 @@ describe('CompoundAdapter', function () {
 	})
 
 	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
+		await strategy.connect(accounts[1]).delegateClaimRewards(compoundAdapter.address, cToken)
 	})
 
 	it('Should check spot price (deposit)', async function () {

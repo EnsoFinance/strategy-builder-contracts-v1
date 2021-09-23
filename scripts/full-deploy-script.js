@@ -14,6 +14,7 @@ const deployedContracts = {
     aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
     aaveLendingPool: '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9',
     synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+    ensoPool: ''
   },
   kovan: {
     weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
@@ -21,7 +22,8 @@ const deployedContracts = {
     uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
     aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
     aaveLendingPool: '0xE0fBa4Fc209b4948668006B2bE61711b7f465bAe',
-    synthetixAddressResolver: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6'
+    synthetixAddressResolver: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
+    ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b'
   },
 }
 
@@ -92,6 +94,14 @@ async function main() {
   await tx.wait()
 
   console.log('CurveGaugeEstimator: ', curveGaugeEstimator.address)
+
+  const EmergencyEstimator = await hre.ethers.getContractFactory('EmergencyEstimator')
+	const emergencyEstimator = await EmergencyEstimator.deploy()
+  await emergencyEstimator.deployed()
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
+  await tx.wait()
+
+  console.log('EmergencyEstimator: ', emergencyEstimator.address)
 
   const SynthEstimator = await hre.ethers.getContractFactory('SynthEstimator')
 	const synthEstimator = await SynthEstimator.deploy()
@@ -173,7 +183,8 @@ async function main() {
     strategyImplementation.address,
     ensoOracle.address,
     tokenRegistry.address,
-    whitelist.address
+    whitelist.address,
+    deployedContracts[process.env.HARDHAT_NETWORK].ensoPool
   )
   await factoryAdmin.deployed()
 
@@ -234,6 +245,18 @@ async function main() {
   tx = await whitelist.approve(genericRouter.address)
   await tx.wait()
 
+
+  const BatchDepositRouter = await hre.ethers.getContractFactory('BatchDepositRouter')
+  const batchDepositRouter = await BatchDepositRouter.deploy(
+    controllerAddress
+  )
+  await batchDepositRouter.deployed()
+
+  console.log('BatchDepositRouter: ', batchDepositRouter.address)
+
+  tx = await whitelist.approve(batchDepositRouter.address)
+  await tx.wait()
+
   const UniswapV2Adapter = await hre.ethers.getContractFactory('UniswapV2Adapter')
   const uniswapV2Adapter = await UniswapV2Adapter.deploy(
     deployedContracts[process.env.HARDHAT_NETWORK].uniswapFactory,
@@ -248,6 +271,7 @@ async function main() {
 
   const MetaStrategyAdapter = await hre.ethers.getContractFactory('MetaStrategyAdapter')
   const metaStrategyAdapter = await MetaStrategyAdapter.deploy(
+    controllerAddress,
     fullRouter.address,
     deployedContracts[process.env.HARDHAT_NETWORK].weth
   )

@@ -8,6 +8,7 @@ contract StrategyProxyFactoryStorage {
     address internal _controller;
     address internal _whitelist;
     address internal _oracle;
+    address internal _pool;
     address internal _registry;
     address internal _implementation;
     string internal _version;
