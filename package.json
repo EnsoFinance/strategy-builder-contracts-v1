@@ -5,6 +5,7 @@
   "main": "./dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
   "scripts": {
+    "start": "yarn hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/5IIoZbDFo-8QzhVpR2JDHma79j9_HbIX --hostname 0.0.0.0",
     "build": "yarn hardhat compile && tsc --build",
     "coverage": "yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
@@ -63,6 +64,5 @@
     "ts-node": "~9.1.1",
     "typechain": "~3.0.0",
     "typescript": "~4.2.3"
-  },
-  "devDependencies": {}
+  }
 }

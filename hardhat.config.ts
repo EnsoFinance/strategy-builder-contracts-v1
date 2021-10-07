@@ -49,7 +49,7 @@ if (networkIndex > 0) {
 function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
     hardhat: {
-      chainId: chainIds.mainnet,
+      chainId: chainIds.hardhat,
     },
   };
   if (networks.hardhat) {

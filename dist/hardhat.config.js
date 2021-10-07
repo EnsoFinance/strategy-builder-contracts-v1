@@ -48,7 +48,7 @@ else {
 function getNetworks() {
     var networks = {
         hardhat: {
-            chainId: chainIds.mainnet,
+            chainId: chainIds.hardhat,
         },
     };
     if (networks.hardhat) {
