@@ -12,7 +12,7 @@ async function main() {
     deployedContracts[process.env.HARDHAT_NETWORK].StrategyProxyFactory
   )
 
-  await factory.updateImplementation(implementation.address)
+  await factory.updateImplementation(implementation.address, '2')
 
   console.log('Strategy updated')
 }

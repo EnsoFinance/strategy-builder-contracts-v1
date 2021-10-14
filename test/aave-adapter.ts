@@ -39,7 +39,6 @@ describe('AaveAdapter', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		tokens: Tokens
-		//aToken: string
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -64,15 +63,12 @@ describe('AaveAdapter', function () {
 		aaveBorrowAdapter = await deployAaveBorrowAdapter(accounts[0], new Contract('0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5', [], accounts[0]), weth)
 		await whitelist.connect(accounts[0]).approve(aaveBorrowAdapter.address)
 	})
-
-	/*it('Should deploy strategy', async function () {
-		aToken = tokens.aDAI
-
+	/*
+	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: aToken, percentage: BigNumber.from(500), category: aToken.data.category, itemCache: aToken.data.cache, adapters: [uniswapAdapter.address, aaveLendAdapter.address], path: [tokens.usdc] }
+			{ token: tokens.aDAI, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address, aaveLendAdapter.address], path: [tokens.dai] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: StrategyState = {
@@ -94,7 +90,7 @@ describe('AaveAdapter', function () {
 				strategyState,
 				router.address,
 				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
+				{ value: WeiPerEther }
 			)
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
@@ -102,16 +98,17 @@ describe('AaveAdapter', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
-
+		console.log('Strategy: ', strategy.address)
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper')
 		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		//await displayBalances(wrapper, strategyItems.map((item) => item), weth)
+		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})*/
+	})
+	*/
 
 	it('Should deploy strategy', async function () {
 		const collateralToken = tokens.aWETH

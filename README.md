@@ -189,9 +189,15 @@ const imbalance = Math.abs( Math.abs(expectedValueOfToken - estimatedValueOfToke
 
     CurveAdapter:  0x0B2E73EE3aD006e6AD53CB204fEcba212b380669
 
+    CurveLPAdapter:  0x200F00645d79e913b930Ac3C120E7D4a4D9Ab341
+
+    CurveRewardsAdapter:  0x1f8A248e51b571c0147037B4E4cCe4bFF7DfbBd6
+
     AaveLendAdapter:  0x0E8Ea36f2E51fA10fec9a259082922394a60B3c9
 
     AaveBorrowAdapter:  0xBDae6090CAe894284ff796fd5A30114b9BaCF695
+
+    YEarnV2Adapter:  0xbcc3D46C6783F96CbAA7008e2956f3f339eA2848
 
     TokenRegistry:  0x6e603591680F52502450e937f568DE51d73E41D8
 

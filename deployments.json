@@ -29,8 +29,11 @@
     "MetaStrategyAdapter": "0xa34Af66c004e91bF1BaccccF6b3F417255aF6772",
     "SynthetixAdapter": "0x208FdA8ed24d3983C4Dea4137F3824860c3a1613",
     "CurveAdapter": "0x0B2E73EE3aD006e6AD53CB204fEcba212b380669",
+    "CurveLPAdapter":  "0x200F00645d79e913b930Ac3C120E7D4a4D9Ab341",
+    "CurveRewardsAdapter":  "0x1f8A248e51b571c0147037B4E4cCe4bFF7DfbBd6",
     "AaveLendAdapter": "0x0E8Ea36f2E51fA10fec9a259082922394a60B3c9",
-    "AaveBorrowAdapter": "0xBDae6090CAe894284ff796fd5A30114b9BaCF695"
+    "AaveBorrowAdapter": "0xBDae6090CAe894284ff796fd5A30114b9BaCF695",
+    "YEarnV2Adapter":  "0xbcc3D46C6783F96CbAA7008e2956f3f339eA2848"
   },
   "localhost": {
     "TokenRegistry": "0x04C89607413713Ec9775E14b954286519d836FEf",

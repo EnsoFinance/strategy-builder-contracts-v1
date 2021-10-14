@@ -318,6 +318,30 @@ async function main() {
   tx = await whitelist.approve(curveAdapter.address)
   await tx.wait()
 
+  const CurveLPAdapter = await hre.ethers.getContractFactory('CurveLPAdapter')
+  const curveLPAdapter = await CurveLPAdapter.deploy(
+    curvePoolRegistry.address,
+    deployedContracts[process.env.HARDHAT_NETWORK].weth
+  )
+  await curveLPAdapter.deployed()
+
+  console.log('CurveLPAdapter: ', curveLPAdapter.address)
+
+  tx = await whitelist.approve(curveLPAdapter.address)
+  await tx.wait()
+
+  const CurveGaugeAdapter = await hre.ethers.getContractFactory('CurveGaugeAdapter')
+  const curveGaugeAdapter = await CurveGaugeAdapter.deploy(
+    curvePoolRegistry.address,
+    deployedContracts[process.env.HARDHAT_NETWORK].weth
+  )
+  await curveAdapter.deployed()
+
+  console.log('CurveGaugeAdapter: ', curveGaugeAdapter.address)
+
+  tx = await whitelist.approve(curveGaugeAdapter.address)
+  await tx.wait()
+
   const AaveLendAdapter = await hre.ethers.getContractFactory('AaveLendAdapter')
   const aaveLendAdapter = await AaveLendAdapter.deploy(
     deployedContracts[process.env.HARDHAT_NETWORK].aaveLendingPool,
@@ -342,6 +366,17 @@ async function main() {
 
   tx = await whitelist.approve(aaveBorrowAdapter.address)
   await tx.wait()
+  const YEarnV2Adapter = await hre.ethers.getContractFactory('YEarnV2Adapter')
+  const yearnAdapter = await YEarnV2Adapter.deploy(
+    deployedContracts[process.env.HARDHAT_NETWORK].weth
+  )
+  await yearnAdapter.deployed()
+
+  log('YEarnV2Adapter: ', yearnAdapter.address)
+
+  tx = await whitelist.approve(yearnAdapter.address)
+  await tx.wait()
+
   write2File();
 }
 
