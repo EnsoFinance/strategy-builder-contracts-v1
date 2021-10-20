@@ -24,31 +24,31 @@ var chainIds = {
 var mnemonic = process.env.MNEMONIC;
 var infuraApiKey = process.env.INFURA_API_KEY;
 var archiveNode = process.env.ARCHIVE_NODE;
-var networkIndex = process.argv.findIndex(function (arg) { return arg === "--network"; });
+var networkIndex = process.argv.findIndex(function (arg) { return arg === '--network'; });
 if (networkIndex > 0) {
-    if (process.argv[networkIndex + 1] !== "hardhat") {
+    if (process.argv[networkIndex + 1] !== 'hardhat') {
         if (!mnemonic) {
-            throw new Error("Please set your MNEMONIC in a .env file");
+            throw new Error('Please set your MNEMONIC in a .env file');
         }
         if (!infuraApiKey) {
-            throw new Error("Please set your INFURA_API_KEY in a .env file");
+            throw new Error('Please set your INFURA_API_KEY in a .env file');
         }
     }
     else {
-        if (process.argv[2] == "test" && !archiveNode) {
-            throw new Error("Please set your ARCHIVE_NODE in a .env file");
+        if (process.argv[2] == 'test' && !archiveNode) {
+            throw new Error('Please set your ARCHIVE_NODE in a .env file');
         }
     }
 }
 else {
-    if (process.argv[2] == "test" && !archiveNode) {
-        throw new Error("Please set your ARCHIVE_NODE in a .env file");
+    if (process.argv[2] == 'test' && !archiveNode) {
+        throw new Error('Please set your ARCHIVE_NODE in a .env file');
     }
 }
 function getNetworks() {
     var networks = {
         hardhat: {
-            chainId: chainIds.hardhat,
+            chainId: chainIds.mainnet,
         },
     };
     if (networks.hardhat) {
@@ -59,7 +59,7 @@ function getNetworks() {
         if (archiveNode)
             networks.hardhat.forking = {
                 url: archiveNode,
-                blockNumber: 12782865,
+                blockNumber: 13409143,
             };
     }
     if (mnemonic && infuraApiKey) {
@@ -84,7 +84,6 @@ function createTestnetConfig(network) {
         url: url,
     };
 }
-5;
 var config = {
     defaultNetwork: 'hardhat',
     networks: getNetworks(),
