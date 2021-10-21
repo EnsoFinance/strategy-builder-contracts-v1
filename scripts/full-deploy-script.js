@@ -51,13 +51,13 @@ async function main() {
 	const tokenRegistry = await TokenRegistry.deploy()
 	await tokenRegistry.deployed()
 
-	log('TokenRegistry', tokenRegistry.address)
+	add2Deployments('TokenRegistry', tokenRegistry.address)
 
 	const CurvePoolRegistry = await hre.ethers.getContractFactory('CurvePoolRegistry')
 	const curvePoolRegistry = await CurvePoolRegistry.deploy()
 	await curvePoolRegistry.deployed()
 
-	log('CurvePoolRegistry', curvePoolRegistry.address)
+	add2Deployments('CurvePoolRegistry', curvePoolRegistry.address)
 
 	// Add token estimators
 	const BasicEstimator = await hre.ethers.getContractFactory('BasicEstimator')
@@ -66,7 +66,7 @@ async function main() {
 	let tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.BASIC, basicEstimator.address)
 	await tx.wait()
 
-	log('BasicEstimator', basicEstimator.address)
+	add2Deployments('BasicEstimator', basicEstimator.address)
 
 	const AaveEstimator = await hre.ethers.getContractFactory('AaveEstimator')
 	const aaveEstimator = await AaveEstimator.deploy()
@@ -74,7 +74,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE, aaveEstimator.address)
 	await tx.wait()
 
-	log('AaveEstimator', aaveEstimator.address)
+	add2Deployments('AaveEstimator', aaveEstimator.address)
 
 	const AaveDebtEstimator = await hre.ethers.getContractFactory('AaveDebtEstimator')
 	const aaveDebtEstimator = await AaveDebtEstimator.deploy()
@@ -82,7 +82,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_DEBT, aaveDebtEstimator.address)
 	await tx.wait()
 
-	log('AaveDebtEstimator', aaveDebtEstimator.address)
+	add2Deployments('AaveDebtEstimator', aaveDebtEstimator.address)
 
 	const CompoundEstimator = await hre.ethers.getContractFactory('CompoundEstimator')
 	const compoundEstimator = await CompoundEstimator.deploy()
@@ -90,7 +90,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)
 	await tx.wait()
 
-	log('CompoundEstimator', compoundEstimator.address)
+	add2Deployments('CompoundEstimator', compoundEstimator.address)
 
 	const CurveEstimator = await hre.ethers.getContractFactory('CurveEstimator')
 	const curveEstimator = await CurveEstimator.deploy(curvePoolRegistry.address)
@@ -98,7 +98,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)
 	await tx.wait()
 
-	log('CurveEstimator', curveEstimator.address)
+	add2Deployments('CurveEstimator', curveEstimator.address)
 
 	const CurveGaugeEstimator = await hre.ethers.getContractFactory('CurveGaugeEstimator')
 	const curveGaugeEstimator = await CurveGaugeEstimator.deploy()
@@ -106,7 +106,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
 	await tx.wait()
 
-	log('CurveGaugeEstimator', curveGaugeEstimator.address)
+	add2Deployments('CurveGaugeEstimator', curveGaugeEstimator.address)
 
 	const EmergencyEstimator = await hre.ethers.getContractFactory('EmergencyEstimator')
 	const emergencyEstimator = await EmergencyEstimator.deploy()
@@ -114,7 +114,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
 	await tx.wait()
 
-	log('EmergencyEstimator', emergencyEstimator.address)
+	add2Deployments('EmergencyEstimator', emergencyEstimator.address)
 
 	const SynthEstimator = await hre.ethers.getContractFactory('SynthEstimator')
 	const synthEstimator = await SynthEstimator.deploy()
@@ -122,7 +122,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.SYNTH, synthEstimator.address)
 	await tx.wait()
 
-	log('SynthEstimator', synthEstimator.address)
+	add2Deployments('SynthEstimator', synthEstimator.address)
 
 	const StrategyEstimator = await hre.ethers.getContractFactory('StrategyEstimator')
 	const strategyEstimator = await StrategyEstimator.deploy()
@@ -130,7 +130,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
 	await tx.wait()
 
-	log('StrategyEstimator', strategyEstimator.address)
+	add2Deployments('StrategyEstimator', strategyEstimator.address)
 
 	const UniswapV2Estimator = await hre.ethers.getContractFactory('UniswapV2Estimator')
 	const uniswapV2Estimator = await UniswapV2Estimator.deploy()
@@ -138,7 +138,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2, uniswapV2Estimator.address)
 	await tx.wait()
 
-	log('UniswapV2Estimator', uniswapV2Estimator.address)
+	add2Deployments('UniswapV2Estimator', uniswapV2Estimator.address)
 
 	const YEarnV2Estimator = await hre.ethers.getContractFactory('YEarnV2Estimator')
 	const yearnV2Estimator = await YEarnV2Estimator.deploy()
@@ -146,7 +146,7 @@ async function main() {
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
 	await tx.wait()
 
-	log('YEarnV2Estimator', yearnV2Estimator.address)
+	add2Deployments('YEarnV2Estimator', yearnV2Estimator.address)
 
 	tx = await tokenRegistry.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BASIC, deployedContracts[network].weth)
 	await tx.wait()
@@ -161,13 +161,13 @@ async function main() {
 	)
 	await uniswapOracle.deployed()
 
-	log('UniswapOracle', uniswapOracle.address)
+	add2Deployments('UniswapOracle', uniswapOracle.address)
 
 	const ChainlinkOracle = await hre.ethers.getContractFactory('ChainlinkOracle')
 	const chainlinkOracle = await ChainlinkOracle.deploy(deployedContracts[network].weth)
 	await chainlinkOracle.deployed()
 
-	log('ChainlinkOracle', chainlinkOracle.address)
+	add2Deployments('ChainlinkOracle', chainlinkOracle.address)
 
 	const EnsoOracle = await hre.ethers.getContractFactory('EnsoOracle')
 	const ensoOracle = await EnsoOracle.deploy(
@@ -179,13 +179,13 @@ async function main() {
 	)
 	await ensoOracle.deployed()
 
-	log('EnsoOracle', ensoOracle.address)
+	add2Deployments('EnsoOracle', ensoOracle.address)
 
 	const Whitelist = await hre.ethers.getContractFactory('Whitelist')
 	const whitelist = await Whitelist.deploy()
 	await whitelist.deployed()
 
-	log('Whitelist', whitelist.address)
+	add2Deployments('Whitelist', whitelist.address)
 
 	const Strategy = await hre.ethers.getContractFactory('Strategy')
 	const strategyImplementation = await Strategy.deploy()
@@ -201,21 +201,21 @@ async function main() {
 	)
 	await factoryAdmin.deployed()
 
-	log('StrategyProxyFactoryAdmin', factoryAdmin.address)
+	add2Deployments('StrategyProxyFactoryAdmin', factoryAdmin.address)
 
 	const factoryAddress = await factoryAdmin.factory()
 
-	log('StrategyProxyFactory', factoryAddress)
+	add2Deployments('StrategyProxyFactory', factoryAddress)
 
 	const StrategyControllerAdmin = await hre.ethers.getContractFactory('StrategyControllerAdmin')
 	const controllerAdmin = await StrategyControllerAdmin.deploy(factoryAddress)
 	await controllerAdmin.deployed()
 
-	log('StrategyControllerAdmin', controllerAdmin.address)
+	add2Deployments('StrategyControllerAdmin', controllerAdmin.address)
 
 	const controllerAddress = await controllerAdmin.controller()
 
-	log('StrategyController', controllerAddress)
+	add2Deployments('StrategyController', controllerAddress)
 
 	const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
 	const strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
@@ -229,7 +229,7 @@ async function main() {
 	const loopRouter = await LoopRouter.deploy(controllerAddress)
 	await loopRouter.deployed()
 
-	log('LoopRouter', loopRouter.address)
+	add2Deployments('LoopRouter', loopRouter.address)
 
 	tx = await whitelist.approve(loopRouter.address)
 	await tx.wait()
@@ -238,7 +238,7 @@ async function main() {
 	const fullRouter = await FullRouter.deploy(controllerAddress)
 	await fullRouter.deployed()
 
-	log('FullRouter', fullRouter.address)
+	add2Deployments('FullRouter', fullRouter.address)
 
 	tx = await whitelist.approve(fullRouter.address)
 	await tx.wait()
@@ -247,7 +247,7 @@ async function main() {
 	const genericRouter = await GenericRouter.deploy(controllerAddress)
 	await genericRouter.deployed()
 
-	log('GenericRouter', genericRouter.address)
+	add2Deployments('GenericRouter', genericRouter.address)
 
 	tx = await whitelist.approve(genericRouter.address)
 	await tx.wait()
@@ -256,7 +256,7 @@ async function main() {
 	const batchDepositRouter = await BatchDepositRouter.deploy(controllerAddress)
 	await batchDepositRouter.deployed()
 
-	log('BatchDepositRouter', batchDepositRouter.address)
+	add2Deployments('BatchDepositRouter', batchDepositRouter.address)
 
 	tx = await whitelist.approve(batchDepositRouter.address)
 	await tx.wait()
@@ -268,7 +268,7 @@ async function main() {
 	)
 	await uniswapV2Adapter.deployed()
 
-	log('UniswapV2Adapter', uniswapV2Adapter.address)
+	add2Deployments('UniswapV2Adapter', uniswapV2Adapter.address)
 
 	tx = await whitelist.approve(uniswapV2Adapter.address)
 	await tx.wait()
@@ -281,7 +281,7 @@ async function main() {
 	)
 	await metaStrategyAdapter.deployed()
 
-	log('MetaStrategyAdapter', metaStrategyAdapter.address)
+	add2Deployments('MetaStrategyAdapter', metaStrategyAdapter.address)
 
 	tx = await whitelist.approve(metaStrategyAdapter.address)
 	await tx.wait()
@@ -293,7 +293,7 @@ async function main() {
 	)
 	await synthetixAdapter.deployed()
 
-	log('SynthetixAdapter', synthetixAdapter.address)
+	add2Deployments('SynthetixAdapter', synthetixAdapter.address)
 
 	tx = await whitelist.approve(synthetixAdapter.address)
 	await tx.wait()
@@ -302,7 +302,7 @@ async function main() {
 	const curveAdapter = await CurveAdapter.deploy(curvePoolRegistry.address, deployedContracts[network].weth)
 	await curveAdapter.deployed()
 
-	log('CurveAdapter', curveAdapter.address)
+	add2Deployments('CurveAdapter', curveAdapter.address)
 
 	tx = await whitelist.approve(curveAdapter.address)
 	await tx.wait()
@@ -311,18 +311,21 @@ async function main() {
 	const curveLPAdapter = await CurveLPAdapter.deploy(curvePoolRegistry.address, deployedContracts[network].weth)
 	await curveLPAdapter.deployed()
 
-	console.log('CurveLPAdapter: ', curveLPAdapter.address)
+	add2Deployments('CurveLPAdapter', curveLPAdapter.address)
 
 	tx = await whitelist.approve(curveLPAdapter.address)
 	await tx.wait()
 
-	const CurveGaugeAdapter = await hre.ethers.getContractFactory('CurveGaugeAdapter')
-	const curveGaugeAdapter = await CurveGaugeAdapter.deploy(curvePoolRegistry.address, deployedContracts[network].weth)
-	await curveAdapter.deployed()
+	const CurveRewardsAdapter = await hre.ethers.getContractFactory('CurveRewardsAdapter')
+	const curveRewardsAdapter = await CurveRewardsAdapter.deploy(
+		curvePoolRegistry.address,
+		deployedContracts[network].weth
+	)
+	await curveRewardsAdapter.deployed()
 
-	console.log('CurveGaugeAdapter: ', curveGaugeAdapter.address)
+	add2Deployments('CurveRewardsAdapter', curveRewardsAdapter.address)
 
-	tx = await whitelist.approve(curveGaugeAdapter.address)
+	tx = await whitelist.approve(curveRewardsAdapter.address)
 	await tx.wait()
 
 	const AaveLendAdapter = await hre.ethers.getContractFactory('AaveLendAdapter')
@@ -333,7 +336,7 @@ async function main() {
 	)
 	await aaveLendAdapter.deployed()
 
-	log('AaveLendAdapter', aaveLendAdapter.address)
+	add2Deployments('AaveLendAdapter', aaveLendAdapter.address)
 
 	tx = await whitelist.approve(aaveLendAdapter.address)
 	await tx.wait()
@@ -345,7 +348,7 @@ async function main() {
 	)
 	await aaveBorrowAdapter.deployed()
 
-	log('AaveBorrowAdapter', aaveBorrowAdapter.address)
+	add2Deployments('AaveBorrowAdapter', aaveBorrowAdapter.address)
 
 	tx = await whitelist.approve(aaveBorrowAdapter.address)
 	await tx.wait()
@@ -353,7 +356,7 @@ async function main() {
 	const yearnAdapter = await YEarnV2Adapter.deploy(deployedContracts[network].weth)
 	await yearnAdapter.deployed()
 
-	log('YEarnV2Adapter: ', yearnAdapter.address)
+	add2Deployments('YEarnV2Adapter', yearnAdapter.address)
 
 	tx = await whitelist.approve(yearnAdapter.address)
 	await tx.wait()
@@ -362,7 +365,7 @@ async function main() {
 }
 
 const contracts = {}
-const log = (contractTitle, address) => {
+const add2Deployments = (contractTitle, address) => {
 	contracts[contractTitle] = address
 	console.log(contractTitle + ': ' + address)
 }
