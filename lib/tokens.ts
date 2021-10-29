@@ -29,12 +29,14 @@ export class Tokens {
   crvUSDP: string
 	crvSUSD: string
 	crvAAVE: string
+	crvSAAVE: string
 	crvLINK: string
 	// Curve Gauge
   crv3Gauge: string
   crvUSDPGauge: string
 	crvSUSDGauge: string
 	crvAAVEGauge: string
+	crvSAAVEGauge: string
 	crvLINKGauge: string
   // YEarn
 	ycrv3: string
@@ -77,12 +79,14 @@ export class Tokens {
     this.crvUSDP = '0x7Eb40E450b9655f4B3cC4259BCC731c63ff55ae6'
 		this.crvSUSD = '0xC25a3A3b969415c80451098fa907EC722572917F'
 		this.crvAAVE = '0xFd2a8fA60Abd58Efe3EeE34dd494cD491dC14900'
+		this.crvSAAVE = '0x02d341CcB60fAaf662bC0554d13778015d1b285C'
 		this.crvLINK = '0xcee60cfa923170e4f8204ae08b4fa6a3f5656f3a'
 		// Curve Gauge Tokens
 		this.crv3Gauge = '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'
 		this.crvUSDPGauge = '0x055be5DDB7A925BfEF3417FC157f53CA77cA7222'
 		this.crvSUSDGauge = '0xA90996896660DEcC6E997655E065b23788857849'
 		this.crvAAVEGauge = '0xd662908ADA2Ea1916B3318327A97eB18aD588b5d'
+		this.crvSAAVEGauge = '0x462253b8F74B72304c145DB0e4Eebd326B22ca39'
 		this.crvLINKGauge = '0xFD4D8a17df4C27c1dD245d153ccf4499e806C87D'
     // YEarn Tokens
 		this.ycrv3 = '0x84E13785B5a27879921D6F685f041421C7F482dA'
@@ -93,7 +97,7 @@ export class Tokens {
 
   }
 
-  async registerTokens(owner: SignerWithAddress, strategyFactory: Contract) {
+  async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, curvePoolRegistry?: Contract) {
     await Promise.all([
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BASIC, this.weth),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.SYNTH, this.susd),
@@ -112,16 +116,26 @@ export class Tokens {
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvUSDP),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvSUSD),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvAAVE),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvSAAVE),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvLINK),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crv3Gauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSUSDGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI)
     ])
+		if (curvePoolRegistry) {
+			await curvePoolRegistry.addPool(this.crv3, '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', this.crv3Gauge, false);
+			await curvePoolRegistry.addPool(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851', '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD', this.crvSUSDGauge, true);
+			await curvePoolRegistry.addPool(this.crvAAVE, '0xDeBF20617708857ebe4F679508E7b7863a8A8EeE', '0xDeBF20617708857ebe4F679508E7b7863a8A8EeE', this.crvAAVEGauge, false);
+			await curvePoolRegistry.addPool(this.crvSAAVE, '0xEB16Ae0052ed37f479f7fe63849198Df1765a733', '0xEB16Ae0052ed37f479f7fe63849198Df1765a733', this.crvSAAVEGauge, false)
+			await curvePoolRegistry.addPool(this.crvLINK, '0xf178c0b5bb7e7abf4e12a4838c7b7c5ba2c623c0', '0xf178c0b5bb7e7abf4e12a4838c7b7c5ba2c623c0', this.crvLINKGauge, false);
+			await curvePoolRegistry.addPool(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940', '0x42d7025938bEc20B69cBae5A77421082407f053A', this.crvUSDPGauge, false);
+		}
   }
 }

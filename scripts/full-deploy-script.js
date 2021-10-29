@@ -17,6 +17,7 @@ const deployedContracts = {
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		aaveLendingPool: '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9',
 		synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
 		ensoPool: '',
 	},
 	localhost: {
@@ -26,6 +27,7 @@ const deployedContracts = {
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		aaveLendingPool: '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9',
 		synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b', // template address
 	},
 	kovan: {
@@ -35,6 +37,7 @@ const deployedContracts = {
 		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
 		aaveLendingPool: '0xE0fBa4Fc209b4948668006B2bE61711b7f465bAe',
 		synthetixAddressResolver: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
+		compoundComptroller: '',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b',
 	},
 }
@@ -352,6 +355,16 @@ async function main() {
 
 	tx = await whitelist.approve(aaveBorrowAdapter.address)
 	await tx.wait()
+
+	const CompoundAdapter = await hre.ethers.getContractFactory('CompoundAdapter')
+	const compoundAdapter = await CompoundAdapter.deploy(deployedContracts[network].compoundComptroller, deployedContracts[network].weth)
+	await compoundAdapter.deployed()
+
+	add2Deployments('CompoundAdapter', compoundAdapter.address)
+
+	tx = await whitelist.approve(compoundAdapter.address)
+	await tx.wait()
+
 	const YEarnV2Adapter = await hre.ethers.getContractFactory('YEarnV2Adapter')
 	const yearnAdapter = await YEarnV2Adapter.deploy(deployedContracts[network].weth)
 	await yearnAdapter.deployed()

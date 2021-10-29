@@ -53,11 +53,11 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 
-		await tokens.registerTokens(accounts[0], strategyFactory)
-
 		const chainlinkOracle = platform.oracles.protocols.chainlinkOracle
 		const curvePoolRegistry = platform.oracles.registries.curvePoolRegistry
 		const whitelist = platform.administration.whitelist
+
+		await tokens.registerTokens(accounts[0], strategyFactory, curvePoolRegistry)
 
 		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
@@ -70,12 +70,6 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 
 		// Add chainlink oracle
 		await chainlinkOracle.addOracle(tokens.slink, weth.address, '0xDC530D9457755926550b59e8ECcdaE7624181557', false);
-		// Add curve pools
-		await curvePoolRegistry.addPool('0x7Eb40E450b9655f4B3cC4259BCC731c63ff55ae6', '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940', '0x42d7025938bEc20B69cBae5A77421082407f053A', '0x055be5DDB7A925BfEF3417FC157f53CA77cA7222', false); //crvusdp
-		await curvePoolRegistry.addPool('0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490', '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A', false); //crv3
-		await curvePoolRegistry.addPool('0xC25a3A3b969415c80451098fa907EC722572917F', '0xfcba3e75865d2d561be8d220616520c171f12851', '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD', '0xA90996896660DEcC6E997655E065b23788857849', true); //crvsusd
-		await curvePoolRegistry.addPool('0xFd2a8fA60Abd58Efe3EeE34dd494cD491dC14900', '0xDeBF20617708857ebe4F679508E7b7863a8A8EeE', '0xDeBF20617708857ebe4F679508E7b7863a8A8EeE', '0xd662908ADA2Ea1916B3318327A97eB18aD588b5d', false); //crvaave
-		await curvePoolRegistry.addPool('0xcee60cfa923170e4f8204ae08b4fa6a3f5656f3a', '0xf178c0b5bb7e7abf4e12a4838c7b7c5ba2c623c0', '0xf178c0b5bb7e7abf4e12a4838c7b7c5ba2c623c0', '0xFD4D8a17df4C27c1dD245d153ccf4499e806C87D', false); //crvlink
 	})
 
 	/*

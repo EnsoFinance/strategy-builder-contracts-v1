@@ -57,7 +57,7 @@ describe('CompoundAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract('0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B', [], accounts[0]), weth)
+		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
 	})
 
