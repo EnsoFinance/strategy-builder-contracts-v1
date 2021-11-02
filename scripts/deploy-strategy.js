@@ -6,18 +6,21 @@
 const hre = require('hardhat')
 const BigNumber = hre.ethers.BigNumber
 const { prepareStrategy } = require('../lib/encode')
+const { Tokens } = require('../lib/tokens')
 const deployments = require('../deployments.json')
+
 const deployedContracts = deployments[process.env.HARDHAT_NETWORK]
+const tokens = new Tokens()
 
 const manager = '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b'
-const name = 'Dai Aave Farm'
-const symbol = 'DAF'
+const name = 'Test'
+const symbol = 'TEST'
 const positions = [
   {
-    token: '0xdCf0aF9e59C002FA3AA091a46196b37530FD48a8',
+    token: tokens.crvLINK,
     percentage: BigNumber.from(1000),
-    adapters: [deployedContracts.UniswapV2Adapter, deployedContracts.AaveLendAdapter],
-    path: ['0xff795577d9ac8bd7d90ee22b6c1703490b6512fd']
+    adapters: [deployedContracts.UniswapV2Adapter, deployedContracts.CurveLPAdapter],
+    path: [tokens.link]
   }
 ]
 const strategyState = {
@@ -37,7 +40,6 @@ async function main() {
   // manually to make sure everything is compiled
   // await hre.run('compile');
   const strategyItems = prepareStrategy(positions, deployedContracts.UniswapV2Adapter)
-
   const Factory = await hre.ethers.getContractFactory('StrategyProxyFactory')
   const factory = await Factory.attach(deployedContracts.StrategyProxyFactory)
   const tx = await factory.createStrategy(
@@ -48,11 +50,11 @@ async function main() {
     strategyState,
     deployedContracts.LoopRouter,
     '0x',
-    { value: '10000000000000000' }
+    { value: '1000000000000000000' }
   )
-  await tx.wait()
-
-  console.log('Success')
+  const receipt = await tx.wait()
+  const strategyAddress = receipt.events.find((ev) => ev.event === 'NewStrategy').args.strategy
+  console.log('Strategy address: ', strategyAddress)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -28,9 +28,9 @@ describe('ChainlinkOracle', function() {
 
 	it('Should add pairs', async function() {
 		// Add chainlink oracle
-		await oracle.connect(owner).addOracle(tokens.susd, MAINNET_ADDRESSES.WETH, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
-		await oracle.connect(owner).addOracle(tokens.seur, tokens.susd, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false);
-		await oracle.connect(owner).addOracle(tokens.slink, MAINNET_ADDRESSES.WETH, '0xDC530D9457755926550b59e8ECcdaE7624181557', false);
+		await oracle.connect(owner).addOracle(tokens.sUSD, MAINNET_ADDRESSES.WETH, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
+		await oracle.connect(owner).addOracle(tokens.sEUR, tokens.sUSD, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false);
+		await oracle.connect(owner).addOracle(tokens.sLINK, MAINNET_ADDRESSES.WETH, '0xDC530D9457755926550b59e8ECcdaE7624181557', false);
 	})
 
 	it('Should consult oracle: weth', async function() {
@@ -44,17 +44,17 @@ describe('ChainlinkOracle', function() {
 	})
 
 	it('Should consult oracle: sEUR', async function() {
-		const price = await oracle.consult(WeiPerEther, tokens.seur)
+		const price = await oracle.consult(WeiPerEther, tokens.sEUR)
 		console.log("Price: ", price.toString());
 	})
 
 	it('Should consult oracle: sUSD', async function() {
-		const price = await oracle.consult(WeiPerEther, tokens.susd)
+		const price = await oracle.consult(WeiPerEther, tokens.sUSD)
 		console.log("Price: ", price.toString());
 	})
 
 	it('Should consult oracle: sLINK', async function() {
-		const price = await oracle.consult(WeiPerEther, tokens.slink)
+		const price = await oracle.consult(WeiPerEther, tokens.sLINK)
 		console.log("Price: ", price.toString());
 	})
 })

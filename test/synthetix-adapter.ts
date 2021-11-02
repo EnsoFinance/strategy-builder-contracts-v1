@@ -62,7 +62,7 @@ describe('SynthetixAdapter', function () {
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
-		susd = new Contract(tokens.susd, ERC20.abi, accounts[0]);
+		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0]);
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
 		const platform = await deployPlatform(accounts[10], uniswapFactory, weth, susd)
 		strategyFactory = platform.strategyFactory
@@ -88,8 +88,8 @@ describe('SynthetixAdapter', function () {
 			true // isInt128
 		);
 
-		await chainlinkOracle.connect(accounts[10]).addOracle(tokens.susd, MAINNET_ADDRESSES.WETH, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
-		await chainlinkOracle.connect(accounts[10]).addOracle(tokens.seur, tokens.susd, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false);
+		await chainlinkOracle.connect(accounts[10]).addOracle(tokens.sUSD, MAINNET_ADDRESSES.WETH, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
+		await chainlinkOracle.connect(accounts[10]).addOracle(tokens.sEUR, tokens.sUSD, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false);
 
 		router = await deployFullRouter(accounts[10], controller)
 		await whitelist.connect(accounts[10]).approve(router.address)
@@ -107,8 +107,8 @@ describe('SynthetixAdapter', function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(0) },
 			{ token: crv.address, percentage: BigNumber.from(400) },
-			{ token: tokens.susd, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
-			{ token: tokens.seur, percentage: BigNumber.from(200), adapters: [synthetixAdapter.address], path: [] }
+			{ token: tokens.sUSD, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
+			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapter.address], path: [] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: StrategyState = {
@@ -205,16 +205,16 @@ describe('SynthetixAdapter', function () {
 	})
 
 	it('Should check spot price (deposit)', async function () {
-		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.susd, tokens.seur)
+		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sUSD, tokens.sEUR)
 		expect(price.gt(0)).to.equal(true)
 	})
 
 	it('Should check spot price (withdraw)', async function () {
-		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.seur, tokens.susd)
+		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sEUR, tokens.sUSD)
 		expect(price.gt(0)).to.equal(true)
 	})
 	it('Should check spot price: same', async function () {
-		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.susd, tokens.susd)
+		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sUSD, tokens.sUSD)
 		expect(price.eq(WeiPerEther)).to.equal(true)
 	})
 })

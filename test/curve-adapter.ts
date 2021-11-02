@@ -55,9 +55,9 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 
 		const chainlinkOracle = platform.oracles.protocols.chainlinkOracle
 		const curvePoolRegistry = platform.oracles.registries.curvePoolRegistry
-		const whitelist = platform.administration.whitelist
+		await tokens.registerTokens(accounts[0], strategyFactory, curvePoolRegistry, chainlinkOracle)
 
-		await tokens.registerTokens(accounts[0], strategyFactory, curvePoolRegistry)
+		const whitelist = platform.administration.whitelist
 
 		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
@@ -67,9 +67,6 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
 		curveRewardsAdapter = await deployCurveRewardsAdapter(accounts[0], curvePoolRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveRewardsAdapter.address)
-
-		// Add chainlink oracle
-		await chainlinkOracle.addOracle(tokens.slink, weth.address, '0xDC530D9457755926550b59e8ECcdaE7624181557', false);
 	})
 
 	/*

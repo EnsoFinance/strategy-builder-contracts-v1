@@ -52,12 +52,12 @@ describe('YEarnV2Adapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		const whitelist = platform.administration.whitelist
+
 		const chainlinkOracle = platform.oracles.protocols.chainlinkOracle
 		const curvePoolRegistry = platform.oracles.registries.curvePoolRegistry
+		await tokens.registerTokens(accounts[0], strategyFactory, curvePoolRegistry, chainlinkOracle)
 
-		await tokens.registerTokens(accounts[0], strategyFactory)
-
+		const whitelist = platform.administration.whitelist
 		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
@@ -66,13 +66,6 @@ describe('YEarnV2Adapter', function () {
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		yearnAdapter = await deployYEarnAdapter(accounts[0], weth)
 		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
-
-		//Add chainlink oracle
-		await chainlinkOracle.connect(accounts[0]).addOracle(tokens.susd, MAINNET_ADDRESSES.WETH, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true); //susd
-		// Add curve pools
-		await curvePoolRegistry.addPool('0x7Eb40E450b9655f4B3cC4259BCC731c63ff55ae6', '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940', '0x42d7025938bEc20B69cBae5A77421082407f053A', '0x055be5DDB7A925BfEF3417FC157f53CA77cA7222', false); //crvusdp
-		await curvePoolRegistry.addPool('0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490', '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', '0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7', '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A', false); //crv3
-		await curvePoolRegistry.addPool('0xC25a3A3b969415c80451098fa907EC722572917F', '0xfcba3e75865d2d561be8d220616520c171f12851', '0xA5407eAE9Ba41422680e2e00537571bcC53efBfD', '0xA90996896660DEcC6E997655E065b23788857849', true); //crvsusd
 	})
 
 	it('Should deploy strategy', async function () {
@@ -83,7 +76,7 @@ describe('YEarnV2Adapter', function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(0) },
 			{ token: crv.address, percentage: BigNumber.from(500) },
-			{ token: yearnToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, curveAdapter.address, yearnAdapter.address], path: [tokens.susd, tokens.crvSUSD] }
+			{ token: yearnToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, curveAdapter.address, yearnAdapter.address], path: [tokens.sUSD, tokens.crvSUSD] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: StrategyState = {
