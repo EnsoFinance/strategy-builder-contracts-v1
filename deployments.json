@@ -33,7 +33,8 @@
 		"CurveRewardsAdapter": "0x1f8A248e51b571c0147037B4E4cCe4bFF7DfbBd6",
 		"AaveLendAdapter": "0x0E8Ea36f2E51fA10fec9a259082922394a60B3c9",
 		"AaveBorrowAdapter": "0xBDae6090CAe894284ff796fd5A30114b9BaCF695",
-		"YEarnV2Adapter": "0xbcc3D46C6783F96CbAA7008e2956f3f339eA2848"
+		"YEarnV2Adapter": "0xbcc3D46C6783F96CbAA7008e2956f3f339eA2848",
+		"CompoundAdapter": "0x"
 	},
 	"localhost": {
 		"TokenRegistry": "0x36b58F5C1969B7b6591D752ea6F5486D069010AB",

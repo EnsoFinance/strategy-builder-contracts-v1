@@ -8,6 +8,7 @@ export declare const MAINNET_ADDRESSES: {
     UNISWAP: string;
     BALANCER_REGISTRY: string;
     BALANCER_FACTORY: string;
+    COMPOUND_COMPTROLLER: string;
 };
 export declare enum TIMELOCK_CATEGORY {
     RESTRUCTURE = 0,
