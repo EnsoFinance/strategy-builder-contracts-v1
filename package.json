@@ -10,6 +10,7 @@
     "coverage": "yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
     "register-tokens": "yarn hardhat run scripts/register-token.ts --network",
+    "register-dictionary": "yarn hardhat run scripts/register-dictionary.js --network",
     "fill-ui": "yarn hardhat run scripts/fill-ui-script.js --network",
     "lint": "yarn eslint",
     "prettier:solidity": "yarn prettier --write 'contracts/**/*.sol'",
