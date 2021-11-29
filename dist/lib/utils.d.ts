@@ -5,9 +5,13 @@ export declare const UNI_V3_FEE = 3000;
 export declare const ORACLE_TIME_WINDOW = 1;
 export declare const MAINNET_ADDRESSES: {
     WETH: string;
+    SUSD: string;
+    USDC: string;
     UNISWAP: string;
     BALANCER_REGISTRY: string;
     BALANCER_FACTORY: string;
+    AAVE_ADDRESS_PROVIDER: string;
+    CURVE_ADDRESS_PROVIDER: string;
     COMPOUND_COMPTROLLER: string;
 };
 export declare enum TIMELOCK_CATEGORY {
@@ -24,22 +28,24 @@ export declare enum ITEM_CATEGORY {
     RESERVE = 3
 }
 export declare enum ESTIMATOR_CATEGORY {
-    BASIC = 0,
-    STRATEGY = 1,
-    SYNTH = 2,
-    COMPOUND = 3,
-    AAVE = 4,
-    AAVE_DEBT = 5,
-    YEARN_V1 = 6,
-    YEARN_V2 = 7,
-    CURVE = 8,
-    CURVE_GAUGE = 9,
-    BALANCER = 10,
-    UNISWAP_V2 = 11,
-    UNISWAP_V3 = 12,
-    SUSHI = 13,
-    SUSHI_FARM = 14,
-    BLOCKED = 15
+    DEFAULT_ORACLE = 0,
+    CHAINLINK_ORACLE = 1,
+    UNISWAP_TWAP_ORACLE = 2,
+    SUSHI_TWAP_ORACLE = 3,
+    STRATEGY = 4,
+    BLOCKED = 5,
+    AAVE = 6,
+    AAVE_DEBT = 7,
+    BALANCER = 8,
+    COMPOUND = 9,
+    CURVE = 10,
+    CURVE_GAUGE = 11,
+    SUSHI_LP = 12,
+    SUSHI_FARM = 13,
+    UNISWAP_V2_LP = 14,
+    UNISWAP_V3_LP = 15,
+    YEARN_V1 = 16,
+    YEARN_V2 = 17
 }
 export declare function increaseTime(seconds: number): Promise<any>;
 export declare function encodePriceSqrt(reserve1: number, reserve0: number): BigNumber;

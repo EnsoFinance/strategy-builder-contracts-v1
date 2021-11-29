@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
-import "../../interfaces/uniswap/IUniswapV3Registry.sol";
+import "../../interfaces/registries/IUniswapV3Registry.sol";
 
 
 contract UniswapV3Registry is IUniswapV3Registry, Ownable {

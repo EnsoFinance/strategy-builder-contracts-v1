@@ -1,0 +1,455 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/adapters/strategy/MetaStrategyAdapter.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">contracts/adapters/strategy/</a> MetaStrategyAdapter.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">92.45% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>49/53</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">84.38% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>27/32</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>5/5</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">94.23% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>49/52</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">43×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">120×</span>
+<span class="cline-any cline-yes">119×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-yes">104×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">79×</span>
+<span class="cline-any cline-yes">75×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">114×</span>
+<span class="cline-any cline-yes">39×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">110×</span>
+<span class="cline-any cline-yes">110×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">109×</span>
+<span class="cline-any cline-yes">109×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">44×</span>
+<span class="cline-any cline-yes">44×</span>
+<span class="cline-any cline-yes">40×</span>
+<span class="cline-any cline-yes">40×</span>
+<span class="cline-any cline-yes">40×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">40×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+&nbsp;
+import "../BaseAdapter.sol";
+import "../../interfaces/IStrategy.sol";
+import "../../interfaces/IStrategyController.sol";
+import "../../interfaces/IStrategyRouter.sol";
+import "../../interfaces/IOracle.sol";
+import "../../helpers/StrategyTypes.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+&nbsp;
+contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
+    using SafeMath for uint256;
+    using SafeERC20 for IERC20;
+&nbsp;
+    IStrategyController public immutable controller;
+    IStrategyRouter public immutable router;
+&nbsp;
+    constructor(
+        address controller_,
+        address router_,
+        address weth_
+    ) public BaseAdapter(weth_) {
+        controller = IStrategyController(controller_);
+        router = IStrategyRouter(router_);
+    }
+&nbsp;
+    function spotPrice(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) external view override returns (uint256) {
+        return _getPrice(amount, tokenIn, tokenOut);
+    }
+&nbsp;
+    function swap(
+        uint256 amount,
+        uint256 expected,
+        address tokenIn,
+        address tokenOut,
+        address from,
+        address to
+    ) public override {
+        require(tokenIn != tokenOut, "Tokens cannot match");
+        require(tokenIn == weth || tokenOut == weth, "No WETH");
+&nbsp;
+        if (from != address(this))
+            IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+&nbsp;
+        if (tokenIn == weth) {
+            if(address(router) != address(this))
+                IERC20(tokenIn).safeApprove(address(router), amount);
+            //Assumes the use of LoopRouter when depositing tokens
+            controller.deposit(IStrategy(tokenOut), router, amount, "0x");
+            if(address(router) != address(this))
+                IERC20(tokenIn).safeApprove(address(router), 0);
+        }
+&nbsp;
+        if (tokenOut == weth)
+            controller.withdrawWETH(IStrategy(tokenIn), router, amount, "0x");
+&nbsp;
+        uint256 received = IERC20(tokenOut).balanceOf(address(this));
+        require(received &gt;= expected, "Insufficient tokenOut amount");
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (to != address(this))
+          IERC20(tokenOut).safeTransfer(to, received);
+    }
+&nbsp;
+    function _getPrice(
+      uint256 amount,
+      address tokenIn,
+      address tokenOut
+    ) internal view returns (uint256) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (tokenIn == tokenOut) <span class="cstat-no" title="statement not covered" >return amount;</span>
+        if (tokenIn == weth) {
+            IStrategy strategy = IStrategy(tokenOut);
+            uint256 totalSupply = strategy.totalSupply();
+            (uint256 total, ) = strategy.oracle().estimateStrategy(strategy);
+&nbsp;
+            return totalSupply.mul(amount).div(total);
+        }
+        if (tokenOut == weth) {
+            IStrategy strategy = IStrategy(tokenIn);
+            address[] memory strategyItems = strategy.items();
+            uint256 totalSupply = strategy.totalSupply();
+            uint256 total;
+            for (uint256 i = 0; i &lt; strategyItems.length; i++) {
+                address item = strategyItems[i];
+                uint256 relativeAmount = IERC20(item).balanceOf(address(strategy)).mul(amount).div(totalSupply);
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (item == weth) {
+<span class="cstat-no" title="statement not covered" >                  total = total.add(relativeAmount)</span>;
+                } else {
+                    EstimatorCategory category = EstimatorCategory(strategy.oracle().tokenRegistry().estimatorCategories(item));
+                    if (category == EstimatorCategory.STRATEGY) {
+                        total = total.add(_getPrice(relativeAmount, item, weth));
+                    } else {
+                        total = total.add(_pathPrice(strategy.getTradeData(item), relativeAmount, item));
+                    }
+                }
+            }
+            return total;
+        }
+        return 0;
+    }
+&nbsp;
+    function _pathPrice(
+        TradeData memory data,
+        uint256 amount,
+        address token
+    ) internal view returns (uint256){
+        for (uint256 i = 0; i &lt; data.adapters.length; i++) {
+            address tokenIn;
+            address tokenOut;
+            <span class="missing-if-branch" title="else path not taken" >E</span>if (i == 0) {
+                tokenIn = weth;
+            } else {
+<span class="cstat-no" title="statement not covered" >                tokenIn = data.path[i-1]</span>;
+            }
+            <span class="missing-if-branch" title="else path not taken" >E</span>if (i == data.adapters.length-1) {
+                tokenOut = token;
+            } else {
+<span class="cstat-no" title="statement not covered" >                tokenOut = data.path[i]</span>;
+            }
+            amount = IBaseAdapter(data.adapters[i]).spotPrice(amount, tokenIn, tokenOut);
+        }
+        return amount;
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 12 2021 10:44:37 GMT-0800 (Pacific Standard Time)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

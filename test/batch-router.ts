@@ -141,19 +141,12 @@ describe('BatchDepositRouter', function () {
 			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Rebalance not supported')
 	})
-	/*
-	it('Should deposit more', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		const data = ethers.utils.defaultAbiCoder.encode(['bool', 'address[]'], [false, strategyAdapters])
-		const tx = await strategy.connect(accounts[1]).deposit(router.address, data, { value: BigNumber.from('10000000000000000') })
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[1].address)
-		//await displayBalances(wrapper, strategyItems, weth)
-		expect(await wrapper.isBalanced()).to.equal(true)
-		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+
+	it('Should fail to withdraw: router revert', async function () {
+		await expect(
+			controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, 1, '0x')
+		).to.be.revertedWith('Withdraw not supported')
 	})
-	*/
 
 	it('Should restructure', async function () {
 		const positions = [

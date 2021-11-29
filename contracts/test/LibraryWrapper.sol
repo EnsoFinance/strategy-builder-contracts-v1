@@ -62,8 +62,20 @@ contract LibraryWrapper is StrategyTypes{
         if (token == address(0)) {
             return int256(address(s).balance);
         } else if (token == address(-1)) {
-            (uint256 estimate, ) = s.oracle().chainlinkOracle().estimateTotal(address(s), s.synths());
-            return int256(estimate);
+            IOracle oracle = s.oracle();
+            address[] memory synths = s.synths();
+            int256 estimate = 0;
+            for (uint256 i = 0; i < synths.length; i++) {
+              estimate = estimate.add(oracle.estimateItem(
+                IERC20(synths[i]).balanceOf(address(s)),
+                synths[i]
+              ));
+            }
+            estimate = estimate.add(oracle.estimateItem(
+              IERC20(oracle.susd()).balanceOf(address(s)),
+              oracle.susd()
+            ));
+            return estimate;
         } else if (token == oracle.weth()) {
             return int256(IERC20(token).balanceOf(address(s)));
         } else {
@@ -82,27 +94,42 @@ contract LibraryWrapper is StrategyTypes{
         bool balanced = true;
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            address tokenAddress = strategyItems[i];
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), tokenAddress);
-            int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
-            if (estimates[i] < 0) {
-              if (estimates[i] < expectedValue.add(rebalanceRange)) {
-                  balanced = false;
-                  break;
-              }
-              if (estimates[i] > expectedValue.sub(rebalanceRange)) {
-                  balanced = false;
-                  break;
-              }
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
+            if (expectedValue > 0) {
+                int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
+                if (estimates[i] > expectedValue.add(rebalanceRange)) {
+                    balanced = false;
+                    break;
+                }
+                if (estimates[i] < expectedValue.sub(rebalanceRange)) {
+                    balanced = false;
+                    break;
+                }
             } else {
-              if (estimates[i] > expectedValue.add(rebalanceRange)) {
-                  balanced = false;
-                  break;
-              }
-              if (estimates[i] < expectedValue.sub(rebalanceRange)) {
-                  balanced = false;
-                  break;
-              }
+                // Token has an expected value of 0, so any value can cause the contract
+                // to be 'unbalanced' so we need an alternative way to determine balance.
+                // Min percent = 0.1%. If token value is above, consider it unbalanced
+                if (estimates[i] > StrategyLibrary.getRange(int256(total), 1)) {
+                    balanced = false;
+                    break;
+                }
+            }
+        }
+        if (balanced) {
+            address[] memory strategyDebt = strategy.debt();
+            for (uint256 i = 0; i < strategyDebt.length; i++) {
+              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
+              int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
+              uint256 index = strategyItems.length + i;
+               // Debt
+               if (estimates[index] < expectedValue.add(rebalanceRange)) {
+                   balanced = false;
+                   break;
+               }
+               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
+                   balanced = false;
+                   break;
+               }
             }
         }
         return balanced;

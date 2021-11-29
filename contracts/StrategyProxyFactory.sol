@@ -12,7 +12,7 @@ import "./helpers/StringUtils.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
-import "./interfaces/ITokenRegistry.sol";
+import "./interfaces/registries/ITokenRegistry.sol";
 
 /**
  * @notice Deploys Proxy Strategies
@@ -75,6 +75,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         noZeroAddress(oracle_)
         noZeroAddress(registry_)
         noZeroAddress(whitelist_)
+        noZeroAddress(pool_)
         returns (bool)
     {
         admin = address(new StrategyProxyAdmin(address(this)));
@@ -88,6 +89,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         emit Update(_implementation, _version);
         emit NewOracle(_oracle);
         emit NewWhitelist(_whitelist);
+        emit NewPool(_pool);
         emit OwnershipTransferred(address(0), owner);
         return true;
     }
@@ -129,9 +131,9 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return strategy;
     }
 
-    function setController(address controller) external noZeroAddress(controller) onlyOwner {
+    function setController(address newController) external noZeroAddress(newController) onlyOwner {
         require(_controller == address(0), "Cannot change controller");
-        _controller = controller;
+        _controller = newController;
     }
 
     function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {

@@ -2,18 +2,13 @@
 pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
-import "./IProtocolOracle.sol";
-import "./ITokenRegistry.sol";
+import "./registries/ITokenRegistry.sol";
 import "./IStrategy.sol";
 
 interface IOracle {
     function weth() external view returns (address);
 
     function susd() external view returns (address);
-
-    function uniswapOracle() external view returns (IProtocolOracle);
-
-    function chainlinkOracle() external view returns (IProtocolOracle);
 
     function tokenRegistry() external view returns (ITokenRegistry);
 

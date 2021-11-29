@@ -1,7 +1,8 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-import "../adapters/ExchangeAdapter.sol";
+import "../adapters/BaseAdapter.sol";
+import "../interfaces/IRewardsAdapter.sol";
 
 contract FailAdapterController {
     bool public buyFail;
@@ -16,10 +17,10 @@ contract FailAdapterController {
     }
 }
 
-contract FailAdapter is ExchangeAdapter {
+contract FailAdapter is BaseAdapter, IRewardsAdapter {
     FailAdapterController public immutable controller;
 
-    constructor(address weth_) public ExchangeAdapter(weth_) {
+    constructor(address weth_) public BaseAdapter(weth_) {
         controller = new FailAdapterController();
     }
 
@@ -47,11 +48,15 @@ contract FailAdapter is ExchangeAdapter {
         address tokenOut,
         address from,
         address to
-    ) public override returns (bool) {
+    ) public override {
         (amount, expected, tokenIn, tokenOut, from, to);
 
         if (controller.buyFail() && tokenIn == weth) revert("Fail");
         if (controller.sellFail() && tokenOut == weth) revert("Fail");
-        return true;
+    }
+
+    function claim(address token) public override {
+        (token);
+        revert();
     }
 }

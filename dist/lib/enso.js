@@ -40,14 +40,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Router = exports.Routers = exports.Adapter = exports.Adapters = exports.Networks = exports.Balancer = exports.EnsoEnvironment = exports.EnsoBuilder = exports.wethPerToken = void 0;
+var hardhat_1 = require("hardhat");
 var ethers_1 = require("ethers");
 var Balancer_json_1 = __importDefault(require("../artifacts/contracts/test/Balancer.sol/Balancer.json"));
 var BalancerRegistry_json_1 = __importDefault(require("../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json"));
 var WETH9_json_1 = __importDefault(require("@uniswap/v2-periphery/build/WETH9.json"));
+var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
 var UniswapV2Factory_json_1 = __importDefault(require("@uniswap/v2-core/build/UniswapV2Factory.json"));
 var deploy_1 = require("./deploy");
 var utils_1 = require("./utils");
-var WeiPerEther = ethers_1.constants.WeiPerEther;
+var _a = hardhat_1.ethers.constants, AddressZero = _a.AddressZero, WeiPerEther = _a.WeiPerEther;
+var NULL_CONTRACT = new ethers_1.Contract(AddressZero, [], hardhat_1.ethers.provider);
 var wethPerToken = function (numTokens) { return ethers_1.BigNumber.from(WeiPerEther).mul(100 * (numTokens - 1)); };
 exports.wethPerToken = wethPerToken;
 var EnsoBuilder = /** @class */ (function () {
@@ -83,11 +86,20 @@ var EnsoBuilder = /** @class */ (function () {
         this.adapters = (_a = this.adapters) !== null && _a !== void 0 ? _a : {};
         var adapter = new Adapter(type);
         switch (adapter.type) {
+            case Adapters.AaveBorrow:
+                this.adapters.aaveborrow = adapter;
+                break;
+            case Adapters.AaveLend:
+                this.adapters.aavelend = adapter;
+                break;
             case Adapters.Balancer:
                 this.adapters.balancer = adapter;
                 break;
             case Adapters.Curve:
                 this.adapters.curve = adapter;
+                break;
+            case Adapters.Leverage:
+                this.adapters.leverage = adapter;
                 break;
             case Adapters.Synthetix:
                 this.adapters.synthetix = adapter;
@@ -144,15 +156,18 @@ var EnsoBuilder = /** @class */ (function () {
         });
     };
     // Defaults to Mainnet-fork
+    // Defaults to Mainnet-fork
     EnsoBuilder.prototype.build = function () {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
         return __awaiter(this, void 0, void 0, function () {
-            var weth, uniswap, balancer, _l, _m, ensoPlatform, _o, fullRouterIndex;
+            var weth, susd, usdc, uniswap, balancer, _s, _t, ensoPlatform, _u, fullRouterIndex;
             var _this = this;
-            return __generator(this, function (_p) {
-                switch (_p.label) {
+            return __generator(this, function (_v) {
+                switch (_v.label) {
                     case 0:
                         weth = {};
+                        susd = {};
+                        usdc = {};
                         uniswap = {};
                         balancer = {};
                         this.tokens = (_a = this.tokens) !== null && _a !== void 0 ? _a : [];
@@ -160,40 +175,52 @@ var EnsoBuilder = /** @class */ (function () {
                         this.routers = (_c = this.routers) !== null && _c !== void 0 ? _c : [];
                         this.network = (_d = this.network) !== null && _d !== void 0 ? _d : Networks.Mainnet;
                         console.log('Setting up EnsoEnvironment on: ', this.network);
-                        _l = this.network;
-                        switch (_l) {
+                        _s = this.network;
+                        switch (_s) {
                             case Networks.LocalTestnet: return [3 /*break*/, 1];
                             case Networks.Mainnet: return [3 /*break*/, 4];
                             case Networks.ExternalTestnet: return [3 /*break*/, 5];
                         }
                         return [3 /*break*/, 6];
                     case 1:
-                        _m = this;
+                        _t = this;
                         return [4 /*yield*/, deploy_1.deployTokens(this.signer, this.defaults.numTokens, this.defaults.wethSupply)];
                     case 2:
-                        _m.tokens = _p.sent();
+                        _t.tokens = _v.sent();
                         if (this.tokens === undefined)
                             throw Error('Failed to deploy erc20 tokens');
                         return [4 /*yield*/, deploy_1.deployUniswapV2(this.signer, this.tokens)];
                     case 3:
-                        uniswap = _p.sent();
+                        uniswap = _v.sent();
                         return [3 /*break*/, 7];
                     case 4:
                         this.tokens[0] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
                         this.tokens[0].connect(this.signer);
+                        this.tokens[1] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.SUSD, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[1].connect(this.signer);
+                        this.tokens[2] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.USDC, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[2].connect(this.signer);
                         uniswap = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory_json_1.default.abi, this.signer);
                         return [3 /*break*/, 7];
                     case 5: throw Error('External testnet not implemented yet');
                     case 6:
                         this.tokens[0] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
                         this.tokens[0].connect(this.signer);
+                        this.tokens[1] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.SUSD, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[1].connect(this.signer);
+                        this.tokens[2] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.USDC, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[2].connect(this.signer);
                         uniswap = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory_json_1.default.abi, this.signer);
-                        _p.label = 7;
+                        _v.label = 7;
                     case 7:
                         weth = this.tokens[0];
-                        return [4 /*yield*/, deploy_1.deployPlatform(this.signer, uniswap, weth)];
+                        if (this.tokens[1])
+                            susd = this.tokens[1];
+                        if (this.tokens[2])
+                            usdc = this.tokens[2];
+                        return [4 /*yield*/, deploy_1.deployPlatform(this.signer, uniswap, weth, susd)];
                     case 8:
-                        ensoPlatform = _p.sent();
+                        ensoPlatform = _v.sent();
                         ensoPlatform.print();
                         // Provide all routers by default
                         if (this.routers.length === 0) {
@@ -201,7 +228,7 @@ var EnsoBuilder = /** @class */ (function () {
                             this.addRouter('loop');
                             this.addRouter('full');
                         }
-                        _o = this;
+                        _u = this;
                         return [4 /*yield*/, Promise.all(this.routers.map(function (r) { return __awaiter(_this, void 0, void 0, function () {
                                 var _a;
                                 return __generator(this, function (_b) {
@@ -219,7 +246,7 @@ var EnsoBuilder = /** @class */ (function () {
                             // We need uniswap
                         ];
                     case 9:
-                        _o.routers = _p.sent();
+                        _u.routers = _v.sent();
                         // We need uniswap
                         if (((_e = this.adapters) === null || _e === void 0 ? void 0 : _e.uniswap) === undefined) {
                             this.addAdapter('uniswap');
@@ -227,34 +254,59 @@ var EnsoBuilder = /** @class */ (function () {
                         if (((_f = this.adapters) === null || _f === void 0 ? void 0 : _f.metastrategy) === undefined) {
                             this.addAdapter('metastrategy');
                         }
-                        if (!(((_g = this.adapters) === null || _g === void 0 ? void 0 : _g.uniswap) !== undefined)) return [3 /*break*/, 11];
+                        if (((_g = this.adapters) === null || _g === void 0 ? void 0 : _g.leverage) !== undefined) {
+                            // AaveLend and AaveBorrow always needed for leverage
+                            if (((_h = this.adapters) === null || _h === void 0 ? void 0 : _h.aavelend) === undefined)
+                                this.addAdapter('aavelend');
+                            if (((_j = this.adapters) === null || _j === void 0 ? void 0 : _j.aaveborrow) === undefined)
+                                this.addAdapter('aaveborrow');
+                        }
+                        if (!(((_k = this.adapters) === null || _k === void 0 ? void 0 : _k.uniswap) !== undefined)) return [3 /*break*/, 11];
                         return [4 /*yield*/, this.adapters.uniswap.deploy(this.signer, ensoPlatform, uniswap, weth)];
                     case 10:
-                        _p.sent();
-                        _p.label = 11;
+                        _v.sent();
+                        _v.label = 11;
                     case 11:
-                        if (!(((_h = this.adapters) === null || _h === void 0 ? void 0 : _h.balancer) !== undefined)) return [3 /*break*/, 14];
+                        if (!(((_l = this.adapters) === null || _l === void 0 ? void 0 : _l.balancer) !== undefined)) return [3 /*break*/, 14];
                         return [4 /*yield*/, this.deployBalancer()];
                     case 12:
-                        balancer = _p.sent();
+                        balancer = _v.sent();
                         return [4 /*yield*/, this.adapters.balancer.deploy(this.signer, ensoPlatform, balancer.registry, weth)];
                     case 13:
-                        _p.sent();
-                        _p.label = 14;
+                        _v.sent();
+                        _v.label = 14;
                     case 14:
-                        if (!(((_j = this.adapters) === null || _j === void 0 ? void 0 : _j.curve) !== undefined)) return [3 /*break*/, 16];
-                        return [4 /*yield*/, this.adapters.curve.deploy(this.signer, ensoPlatform, ensoPlatform.oracles.registries.curvePoolRegistry, weth)];
+                        if (!(((_m = this.adapters) === null || _m === void 0 ? void 0 : _m.curve) !== undefined)) return [3 /*break*/, 16];
+                        return [4 /*yield*/, this.adapters.curve.deploy(this.signer, ensoPlatform, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth)];
                     case 15:
-                        _p.sent();
-                        _p.label = 16;
+                        _v.sent();
+                        _v.label = 16;
                     case 16:
-                        fullRouterIndex = this.routers.findIndex(function (router) { return router.type == Routers.Full; });
-                        if (!(((_k = this.adapters) === null || _k === void 0 ? void 0 : _k.metastrategy) !== undefined && fullRouterIndex > -1)) return [3 /*break*/, 18];
-                        return [4 /*yield*/, this.adapters.metastrategy.deploy(this.signer, ensoPlatform, this.routers[fullRouterIndex].contract || new ethers_1.Contract('0x', [], this.signer), weth)];
+                        if (!(((_o = this.adapters) === null || _o === void 0 ? void 0 : _o.aavelend) !== undefined)) return [3 /*break*/, 18];
+                        return [4 /*yield*/, this.adapters.aavelend.deploy(this.signer, ensoPlatform, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth)];
                     case 17:
-                        _p.sent();
-                        _p.label = 18;
+                        _v.sent();
+                        _v.label = 18;
                     case 18:
+                        if (!(((_p = this.adapters) === null || _p === void 0 ? void 0 : _p.aaveborrow) !== undefined)) return [3 /*break*/, 20];
+                        return [4 /*yield*/, this.adapters.aaveborrow.deploy(this.signer, ensoPlatform, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth)];
+                    case 19:
+                        _v.sent();
+                        _v.label = 20;
+                    case 20:
+                        if (!(((_q = this.adapters) === null || _q === void 0 ? void 0 : _q.leverage) !== undefined)) return [3 /*break*/, 22];
+                        return [4 /*yield*/, this.adapters.leverage.deploy(this.signer, ensoPlatform, usdc, weth, this.adapters)];
+                    case 21:
+                        _v.sent();
+                        _v.label = 22;
+                    case 22:
+                        fullRouterIndex = this.routers.findIndex(function (router) { return router.type == Routers.Full; });
+                        if (!(((_r = this.adapters) === null || _r === void 0 ? void 0 : _r.metastrategy) !== undefined && fullRouterIndex > -1)) return [3 /*break*/, 24];
+                        return [4 /*yield*/, this.adapters.metastrategy.deploy(this.signer, ensoPlatform, this.routers[fullRouterIndex].contract || NULL_CONTRACT, weth)];
+                    case 23:
+                        _v.sent();
+                        _v.label = 24;
+                    case 24:
                         // Safety check
                         if (this.adapters === undefined)
                             throw Error('Failed to add adapters');
@@ -304,12 +356,18 @@ var Adapters;
     Adapters["MetaStrategy"] = "metastrategy";
     Adapters["Synthetix"] = "synthetix";
     Adapters["Uniswap"] = "uniswap";
+    Adapters["AaveLend"] = "aavelend";
+    Adapters["AaveBorrow"] = "aaveborrow";
+    Adapters["Leverage"] = "leverage";
 })(Adapters = exports.Adapters || (exports.Adapters = {}));
 var Adapter = /** @class */ (function () {
     function Adapter(adapterType) {
         switch (adapterType.toLowerCase()) {
-            case Adapters.Uniswap:
-                this.type = Adapters.Uniswap;
+            case Adapters.AaveBorrow:
+                this.type = Adapters.AaveBorrow;
+                break;
+            case Adapters.AaveLend:
+                this.type = Adapters.AaveLend;
                 break;
             case Adapters.Balancer:
                 this.type = Adapters.Balancer;
@@ -317,59 +375,90 @@ var Adapter = /** @class */ (function () {
             case Adapters.Curve:
                 this.type = Adapters.Curve;
                 break;
-            case Adapters.Synthetix:
-                this.type = Adapters.Synthetix;
+            case Adapters.Leverage:
+                this.type = Adapters.Leverage;
                 break;
             case Adapters.MetaStrategy:
                 this.type = Adapters.MetaStrategy;
                 break;
+            case Adapters.Synthetix:
+                this.type = Adapters.Synthetix;
+                break;
+            case Adapters.Uniswap:
+                this.type = Adapters.Uniswap;
+                break;
             default:
-                throw Error('Invalid adapter selected! Accepted inputs: uniswap/balancer');
+                throw Error('Invalid adapter selected!');
         }
     }
-    Adapter.prototype.deploy = function (signer, platform, adapterTargetFactory, weth) {
+    Adapter.prototype.deploy = function (signer, platform, adapterTargetFactory, weth, adapters) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, _b, _c, _d, _e;
-            return __generator(this, function (_f) {
-                switch (_f.label) {
+            var _a, _b, _c, _d, _e, _f, _g, _h;
+            return __generator(this, function (_j) {
+                switch (_j.label) {
                     case 0:
                         if (!(this.type === Adapters.Uniswap)) return [3 /*break*/, 2];
                         _a = this;
                         return [4 /*yield*/, deploy_1.deployUniswapV2Adapter(signer, adapterTargetFactory, weth)];
                     case 1:
-                        _a.contract = _f.sent();
-                        return [3 /*break*/, 10];
+                        _a.contract = _j.sent();
+                        return [3 /*break*/, 16];
                     case 2:
-                        if (!(this.type === Adapters.Balancer)) return [3 /*break*/, 4];
+                        if (!(this.type === Adapters.AaveBorrow)) return [3 /*break*/, 4];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployBalancerAdapter(signer, adapterTargetFactory, weth)];
+                        return [4 /*yield*/, deploy_1.deployAaveBorrowAdapter(signer, adapterTargetFactory, weth)];
                     case 3:
-                        _b.contract = _f.sent();
-                        return [3 /*break*/, 10];
+                        _b.contract = _j.sent();
+                        return [3 /*break*/, 16];
                     case 4:
-                        if (!(this.type === Adapters.Curve)) return [3 /*break*/, 6];
+                        if (!(this.type === Adapters.AaveLend)) return [3 /*break*/, 6];
                         _c = this;
-                        return [4 /*yield*/, deploy_1.deployCurveAdapter(signer, adapterTargetFactory, weth)];
+                        return [4 /*yield*/, deploy_1.deployAaveLendAdapter(signer, adapterTargetFactory, platform.controller, weth)];
                     case 5:
-                        _c.contract = _f.sent();
-                        return [3 /*break*/, 10];
+                        _c.contract = _j.sent();
+                        return [3 /*break*/, 16];
                     case 6:
-                        if (!(this.type === Adapters.Synthetix)) return [3 /*break*/, 8];
+                        if (!(this.type === Adapters.Balancer)) return [3 /*break*/, 8];
                         _d = this;
-                        return [4 /*yield*/, deploy_1.deploySynthetixAdapter(signer, adapterTargetFactory, weth)];
+                        return [4 /*yield*/, deploy_1.deployBalancerAdapter(signer, adapterTargetFactory, weth)];
                     case 7:
-                        _d.contract = _f.sent();
-                        return [3 /*break*/, 10];
+                        _d.contract = _j.sent();
+                        return [3 /*break*/, 16];
                     case 8:
+                        if (!(this.type === Adapters.Curve)) return [3 /*break*/, 10];
                         _e = this;
-                        return [4 /*yield*/, deploy_1.deployMetaStrategyAdapter(signer, platform.controller, adapterTargetFactory, weth)];
+                        return [4 /*yield*/, deploy_1.deployCurveAdapter(signer, adapterTargetFactory, weth)];
                     case 9:
-                        _e.contract = _f.sent();
-                        _f.label = 10;
-                    case 10: return [4 /*yield*/, platform.administration.whitelist.connect(signer).approve(this.contract.address)];
+                        _e.contract = _j.sent();
+                        return [3 /*break*/, 16];
+                    case 10:
+                        if (!(this.type === Adapters.Leverage && adapters !== undefined)) return [3 /*break*/, 12];
+                        _f = this;
+                        return [4 /*yield*/, deploy_1.deployLeverage2XAdapter(signer, adapters.uniswap.contract || NULL_CONTRACT, adapters.aavelend.contract || NULL_CONTRACT, adapters.aaveborrow.contract || NULL_CONTRACT, adapterTargetFactory, weth)];
                     case 11:
-                        _f.sent();
-                        return [2 /*return*/];
+                        _f.contract = _j.sent();
+                        return [3 /*break*/, 16];
+                    case 12:
+                        if (!(this.type === Adapters.Synthetix)) return [3 /*break*/, 14];
+                        _g = this;
+                        return [4 /*yield*/, deploy_1.deploySynthetixAdapter(signer, adapterTargetFactory, weth)];
+                    case 13:
+                        _g.contract = _j.sent();
+                        return [3 /*break*/, 16];
+                    case 14:
+                        if (!(this.type === Adapters.MetaStrategy)) return [3 /*break*/, 16];
+                        _h = this;
+                        return [4 /*yield*/, deploy_1.deployMetaStrategyAdapter(signer, platform.controller, adapterTargetFactory, weth)];
+                    case 15:
+                        _h.contract = _j.sent();
+                        _j.label = 16;
+                    case 16:
+                        if (!(this.contract !== undefined)) return [3 /*break*/, 18];
+                        return [4 /*yield*/, platform.administration.whitelist.connect(signer).approve(this.contract.address)];
+                    case 17:
+                        _j.sent();
+                        _j.label = 18;
+                    case 18: return [2 /*return*/];
                 }
             });
         });
@@ -415,7 +504,7 @@ var Router = /** @class */ (function () {
                     case 2:
                         if (!(this.type == Routers.Full)) return [3 /*break*/, 4];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, controller)];
+                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller)];
                     case 3:
                         _b.contract = _d.sent();
                         return [3 /*break*/, 6];

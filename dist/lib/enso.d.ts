@@ -3,8 +3,11 @@ import { BigNumber, Contract } from 'ethers';
 import { Platform } from './deploy';
 export declare const wethPerToken: (numTokens: number) => BigNumber;
 export declare type EnsoAdapters = {
+    aavelend: Adapter;
+    aaveborrow: Adapter;
     balancer: Adapter;
     curve: Adapter;
+    leverage: Adapter;
     synthetix: Adapter;
     metastrategy: Adapter;
     uniswap: Adapter;
@@ -58,13 +61,16 @@ export declare enum Adapters {
     Curve = "curve",
     MetaStrategy = "metastrategy",
     Synthetix = "synthetix",
-    Uniswap = "uniswap"
+    Uniswap = "uniswap",
+    AaveLend = "aavelend",
+    AaveBorrow = "aaveborrow",
+    Leverage = "leverage"
 }
 export declare class Adapter {
     type: Adapters;
     contract?: Contract;
     constructor(adapterType: string);
-    deploy(signer: SignerWithAddress, platform: Platform, adapterTargetFactory: Contract, weth: Contract): Promise<void>;
+    deploy(signer: SignerWithAddress, platform: Platform, adapterTargetFactory: Contract, weth: Contract, adapters?: EnsoAdapters): Promise<void>;
 }
 export declare enum Routers {
     Generic = 0,

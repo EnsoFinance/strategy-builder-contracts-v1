@@ -7,7 +7,7 @@
   "scripts": {
     "start": "yarn hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/5IIoZbDFo-8QzhVpR2JDHma79j9_HbIX --hostname 0.0.0.0",
     "build": "yarn hardhat compile && tsc --build",
-    "coverage": "yarn hardhat coverage",
+    "coverage": "rm -r artifacts && rm -r typechain && TS_NODE_TRANSPILE_ONLY=true yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
     "register-tokens": "yarn hardhat run scripts/register-token.ts --network",
     "register-dictionary": "yarn hardhat run scripts/register-dictionary.js --network",
@@ -61,7 +61,7 @@
     "prettier-plugin-solidity": "~1.0.0-beta.5",
     "sol2uml": "~1.1.25",
     "solhint": "~3.3.2",
-    "solidity-coverage": "~0.7.13",
+    "solidity-coverage": "~0.7.17",
     "solidity-docgen": "~0.5.11",
     "ts-node": "~9.1.1",
     "typechain": "~3.0.0",

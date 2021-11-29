@@ -163,8 +163,14 @@ describe('CompoundAdapter', function () {
 		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cDAI, tokens.dai)
 		expect(price.gt(0)).to.equal(true)
 	})
+
 	it('Should check spot price: same', async function () {
 		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cDAI, tokens.cDAI)
 		expect(price.eq(WeiPerEther)).to.equal(true)
+	})
+
+	it('Should check spot price: zero', async function () {
+		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.dai, weth.address)
+		expect(price.eq(0)).to.equal(true)
 	})
 })

@@ -127,6 +127,15 @@ describe('UniswapV3Oracle', function() {
 		const pool = await registry.pools(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
 		expect(pool).to.equal(await uniswapFactory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
+		expect(pool).to.equal(await registry.getPool(tokens[1].address, weth.address))
+	})
+
+	it('Should get default pool', async function() {
+		expect(await registry.getPool(tokens[2].address, weth.address)).to.equal(await uniswapFactory.getPool(tokens[2].address, weth.address, UNI_V3_FEE))
+	})
+
+	it('Should get no pool', async function() {
+		expect(await registry.getPool(tokens[1].address, tokens[2].address)).to.equal(AddressZero)
 	})
 
 	it('Should initialize all tokens', async function() {

@@ -1,0 +1,2486 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/StrategyController.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">all files</a> / <a href="index.html">contracts/</a> StrategyController.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">98.99% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>294/297</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">96.38% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>133/138</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>40/40</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">98.35% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>298/303</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487
+488
+489
+490
+491
+492
+493
+494
+495
+496
+497
+498
+499
+500
+501
+502
+503
+504
+505
+506
+507
+508
+509
+510
+511
+512
+513
+514
+515
+516
+517
+518
+519
+520
+521
+522
+523
+524
+525
+526
+527
+528
+529
+530
+531
+532
+533
+534
+535
+536
+537
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+549
+550
+551
+552
+553
+554
+555
+556
+557
+558
+559
+560
+561
+562
+563
+564
+565
+566
+567
+568
+569
+570
+571
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676
+677
+678
+679
+680
+681
+682
+683
+684
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698
+699
+700
+701
+702
+703
+704
+705
+706
+707
+708
+709
+710
+711
+712
+713
+714
+715
+716
+717
+718
+719
+720
+721
+722
+723
+724
+725
+726
+727
+728
+729
+730
+731
+732
+733
+734
+735
+736
+737
+738
+739
+740
+741
+742
+743
+744
+745
+746
+747
+748
+749
+750
+751
+752
+753
+754
+755
+756
+757
+758
+759
+760
+761
+762
+763
+764
+765
+766
+767
+768
+769
+770
+771
+772
+773
+774
+775
+776
+777
+778
+779
+780
+781
+782
+783
+784
+785
+786
+787
+788
+789
+790
+791
+792
+793
+794
+795
+796
+797
+798
+799
+800
+801
+802
+803
+804
+805
+806
+807
+808</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">436×</span>
+<span class="cline-any cline-yes">436×</span>
+<span class="cline-any cline-yes">436×</span>
+<span class="cline-any cline-yes">435×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">429×</span>
+<span class="cline-any cline-yes">405×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">321×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">341×</span>
+<span class="cline-any cline-yes">338×</span>
+<span class="cline-any cline-yes">337×</span>
+<span class="cline-any cline-yes">337×</span>
+<span class="cline-any cline-yes">337×</span>
+<span class="cline-any cline-yes">335×</span>
+<span class="cline-any cline-yes">335×</span>
+<span class="cline-any cline-yes">275×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">8×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">55×</span>
+<span class="cline-any cline-yes">54×</span>
+<span class="cline-any cline-yes">46×</span>
+<span class="cline-any cline-yes">43×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">493×</span>
+<span class="cline-any cline-yes">493×</span>
+<span class="cline-any cline-yes">492×</span>
+<span class="cline-any cline-yes">491×</span>
+<span class="cline-any cline-yes">491×</span>
+<span class="cline-any cline-yes">491×</span>
+<span class="cline-any cline-yes">488×</span>
+<span class="cline-any cline-yes">458×</span>
+<span class="cline-any cline-yes">488×</span>
+<span class="cline-any cline-yes">488×</span>
+<span class="cline-any cline-yes">488×</span>
+<span class="cline-any cline-yes">428×</span>
+<span class="cline-any cline-yes">379×</span>
+<span class="cline-any cline-yes">361×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">77×</span>
+<span class="cline-any cline-yes">77×</span>
+<span class="cline-any cline-yes">77×</span>
+<span class="cline-any cline-yes">76×</span>
+<span class="cline-any cline-yes">76×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-yes">60×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">47×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">121×</span>
+<span class="cline-any cline-yes">120×</span>
+<span class="cline-any cline-yes">120×</span>
+<span class="cline-any cline-yes">119×</span>
+<span class="cline-any cline-yes">119×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">118×</span>
+<span class="cline-any cline-yes">116×</span>
+<span class="cline-any cline-yes">116×</span>
+<span class="cline-any cline-yes">116×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">108×</span>
+<span class="cline-any cline-yes">101×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">93×</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">81×</span>
+<span class="cline-any cline-yes">81×</span>
+<span class="cline-any cline-yes">81×</span>
+<span class="cline-any cline-yes">72×</span>
+<span class="cline-any cline-yes">65×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">72×</span>
+<span class="cline-any cline-yes">72×</span>
+<span class="cline-any cline-yes">68×</span>
+<span class="cline-any cline-yes">68×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">67×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">63×</span>
+<span class="cline-any cline-yes">63×</span>
+<span class="cline-any cline-yes">63×</span>
+<span class="cline-any cline-yes">56×</span>
+<span class="cline-any cline-yes">53×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">51×</span>
+<span class="cline-any cline-yes">50×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">49×</span>
+<span class="cline-any cline-yes">49×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">45×</span>
+<span class="cline-any cline-yes">45×</span>
+<span class="cline-any cline-yes">45×</span>
+<span class="cline-any cline-yes">45×</span>
+<span class="cline-any cline-yes">44×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">179×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1889×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">943×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">544×</span>
+<span class="cline-any cline-yes">543×</span>
+<span class="cline-any cline-yes">542×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">541×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">541×</span>
+<span class="cline-any cline-yes">541×</span>
+<span class="cline-any cline-yes">1900×</span>
+<span class="cline-any cline-yes">1900×</span>
+<span class="cline-any cline-yes">1899×</span>
+<span class="cline-any cline-yes">1899×</span>
+<span class="cline-any cline-yes">1898×</span>
+<span class="cline-any cline-yes">29×</span>
+<span class="cline-any cline-yes">1896×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">537×</span>
+<span class="cline-any cline-yes">536×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4474×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6669×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">740×</span>
+<span class="cline-any cline-yes">739×</span>
+<span class="cline-any cline-yes">739×</span>
+<span class="cline-any cline-yes">739×</span>
+<span class="cline-any cline-yes">633×</span>
+<span class="cline-any cline-yes">633×</span>
+<span class="cline-any cline-yes">633×</span>
+<span class="cline-any cline-yes">633×</span>
+<span class="cline-any cline-yes">633×</span>
+<span class="cline-any cline-yes">548×</span>
+<span class="cline-any cline-yes">633×</span>
+<span class="cline-any cline-yes">619×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">106×</span>
+<span class="cline-any cline-yes">106×</span>
+<span class="cline-any cline-yes">106×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">725×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">725×</span>
+<span class="cline-any cline-yes">708×</span>
+<span class="cline-any cline-yes">706×</span>
+<span class="cline-any cline-yes">689×</span>
+<span class="cline-any cline-yes">689×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">687×</span>
+<span class="cline-any cline-yes">687×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">687×</span>
+<span class="cline-any cline-yes">683×</span>
+<span class="cline-any cline-yes">573×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">67×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">65×</span>
+<span class="cline-any cline-yes">65×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">66×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">62×</span>
+<span class="cline-any cline-yes">61×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-yes">59×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-yes">58×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-yes">57×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">488×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">459×</span>
+<span class="cline-any cline-yes">436×</span>
+<span class="cline-any cline-yes">435×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">434×</span>
+<span class="cline-any cline-yes">429×</span>
+<span class="cline-any cline-yes">429×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">435×</span>
+<span class="cline-any cline-yes">434×</span>
+<span class="cline-any cline-yes">433×</span>
+<span class="cline-any cline-yes">432×</span>
+<span class="cline-any cline-yes">430×</span>
+<span class="cline-any cline-yes">430×</span>
+<span class="cline-any cline-yes">430×</span>
+<span class="cline-any cline-yes">429×</span>
+<span class="cline-any cline-yes">429×</span>
+<span class="cline-any cline-yes">429×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1034×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1012×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1012×</span>
+<span class="cline-any cline-yes">1012×</span>
+<span class="cline-any cline-yes">1012×</span>
+<span class="cline-any cline-yes">1768×</span>
+<span class="cline-any cline-yes">1766×</span>
+<span class="cline-any cline-yes">1672×</span>
+<span class="cline-any cline-yes">1672×</span>
+<span class="cline-any cline-yes">262×</span>
+<span class="cline-any cline-yes">262×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1410×</span>
+<span class="cline-any cline-yes">213×</span>
+<span class="cline-any cline-yes">213×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">94×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-yes">15×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1010×</span>
+<span class="cline-any cline-yes">520×</span>
+<span class="cline-any cline-yes">520×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">36×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1010×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1164×</span>
+<span class="cline-any cline-yes">1150×</span>
+<span class="cline-any cline-yes">1150×</span>
+<span class="cline-any cline-yes">1150×</span>
+<span class="cline-any cline-yes">4418×</span>
+<span class="cline-any cline-yes">4404×</span>
+<span class="cline-any cline-yes">1704×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2503×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1136×</span>
+<span class="cline-any cline-yes">1134×</span>
+<span class="cline-any cline-yes">83×</span>
+<span class="cline-any cline-yes">83×</span>
+<span class="cline-any cline-yes">83×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">83×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1134×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">77×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">92×</span>
+<span class="cline-any cline-yes">84×</span>
+<span class="cline-any cline-yes">84×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">84×</span>
+<span class="cline-any cline-yes">83×</span>
+<span class="cline-any cline-yes">82×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">81×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1218×</span>
+<span class="cline-any cline-yes">1204×</span>
+<span class="cline-any cline-yes">3515×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2630×</span>
+<span class="cline-any cline-yes">98×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2619×</span>
+<span class="cline-any cline-yes">198×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">764×</span>
+<span class="cline-any cline-yes">747×</span>
+<span class="cline-any cline-yes">89×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">43×</span>
+<span class="cline-any cline-yes">42×</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-yes">41×</span>
+<span class="cline-any cline-yes">109×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1327×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">882×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">338×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">215×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1781×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1340×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+&nbsp;
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+import "./interfaces/IStrategyController.sol";
+import "./interfaces/IStrategyProxyFactory.sol";
+import "./libraries/StrategyLibrary.sol";
+import "./StrategyControllerStorage.sol";
+&nbsp;
+/**
+ * @notice This contract controls multiple Strategy contracts.
+ * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
+ * @dev To avoid someone from repeatedly skimming off this slippage value, threshold should be set sufficiently high
+ */
+contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable {
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
+    using SafeERC20 for IERC20;
+&nbsp;
+    uint256 private constant DIVISOR = 1000;
+&nbsp;
+    event Withdraw(address indexed strategy, uint256 value, uint256 amount);
+    event Deposit(address indexed strategy, uint256 value, uint256 amount);
+    event Balanced(address indexed strategy, uint256 total, address caller);
+    event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
+    event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
+    event StrategyOpen(address indexed strategy, uint256 performanceFee);
+    event StrategySet(address indexed strategy);
+    event Received(address sender, uint256 value);
+&nbsp;
+    // Initialize constructor to disable implementation
+    constructor() public initializer {}
+&nbsp;
+    /**
+     * @dev Called to initialize proxy
+     * @param factory The address of the StrategyProxyFactory
+     */
+    function initialize(address factory) external initializer returns (bool) {
+        _factory = factory;
+    }
+&nbsp;
+    /**
+     * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
+     * @param creator_ The address that created the strategy
+     * @param strategy_ The address of the strategy
+     * @param state_ The strategy state variables
+     * @param router_ The router in charge of swapping items for this strategy
+     * @param data_ Encoded values parsed by the different routers to execute swaps
+     */
+    function setupStrategy(
+        address creator_,
+        address strategy_,
+        StrategyState memory state_,
+        address router_,
+        bytes memory data_
+    ) external payable override {
+        IStrategy strategy = IStrategy(strategy_);
+        _setStrategyLock(strategy);
+        require(msg.sender == _factory, "Not factory");
+        _setInitialState(strategy_, state_);
+        // Deposit
+        if (msg.value &gt; 0)
+            _deposit(
+                strategy,
+                IStrategyRouter(router_),
+                creator_,
+                0,
+                0,
+                uint256(-1),
+                data_
+            );
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Deposit ETH, which is traded for the underlying assets, and mint strategy tokens
+     * @param strategy The address of the strategy being deposited into
+     * @param router The address of the router that will be doing the handling the trading logic
+     * @param amount The deposit amount as valued in ETH (not used if msg.value &gt; 0)
+     * @param data The calldata for the router's deposit function
+     */
+    function deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external payable override {
+        _setStrategyLock(strategy);
+        _socialOrManager(strategy);
+        strategy.settleSynths();
+        strategy.withdrawStreamingFee();
+        (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
+        uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimates);
+        _deposit(strategy, router, msg.sender, amount, totalBefore, balanceBefore, data);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Withdraw ETH by trading underling assets for ETH
+     * @param strategy The address of the strategy being withdrawn from
+     * @param router The address of the router that will be doing the handling the trading logic
+     * @param amount The amount of strategy tokens that are being redeemed
+     * @param data The calldata for the router's withdraw function
+     */
+    function withdrawETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external override {
+        _setStrategyLock(strategy);
+        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, data);
+        IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
+        IWETH(weth).withdraw(wethAmount);
+        msg.sender.transfer(wethAmount);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Withdraw WETH by trading underling assets for WETH
+     * @param strategy The address of the strategy being withdrawn from
+     * @param router The address of the router that will be doing the handling the trading logic
+     * @param amount The amount of strategy tokens that are being redeemed
+     * @param data The calldata for the router's withdraw function
+     */
+    function withdrawWETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external override {
+        _setStrategyLock(strategy);
+        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, data);
+        IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Rebalance the strategy to match the current structure
+     * @dev The calldata that gets passed to this function can differ depending on which router is being used
+     * @param router The address of the router that will be doing the handling the trading logic
+     * @param data Calldata that gets passed the the router's rebalance function
+     */
+    function rebalance(
+        IStrategy strategy,
+        IStrategyRouter router,
+        bytes memory data
+    ) external override {
+        _setStrategyLock(strategy);
+        _onlyApproved(address(router));
+        _onlyManager(strategy);
+        strategy.settleSynths();
+        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = _verifyBalance(strategy);
+        require(!balancedBefore, "Balanced");
+        if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+            data = abi.encode(totalBefore, estimates);
+        _approveItems(strategy, strategy.items(), address(router), uint256(-1));
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+        _rebalance(strategy, router, totalBefore, data);
+        _approveItems(strategy, strategy.items(), address(router), uint256(0));
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(0));
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
+               In order to rebalance the strategy, all Synths must first be converted into sUSD
+     * @param strategy The address of the strategy being withdrawn from
+     * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
+     * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
+     */
+    function repositionSynths(IStrategy strategy, address adapter, address token) external {
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        strategy.settleSynths();
+        address susd = oracle().susd();
+        if (token == susd) {
+            address[] memory synths = strategy.synths();
+            for (uint256 i = 0; i &lt; synths.length; i++) {
+                strategy.delegateSwap(
+                    adapter,
+                    IERC20(synths[i]).balanceOf(address(strategy)),
+                    synths[i],
+                    susd
+                );
+            }
+        } else if (token == address(-1)) {
+            uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
+            int256 percentTotal = strategy.getPercentage(address(-1));
+            address[] memory synths = strategy.synths();
+            for (uint256 i = 0; i &lt; synths.length; i++) {
+                strategy.delegateSwap(
+                    adapter,
+                    uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal)),
+                    susd,
+                    synths[i]
+                );
+            }
+        } else {
+            revert("Unsupported token");
+        }
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Initiate a restructure of the strategy items. This gives users a chance to withdraw before restructure
+     * @dev We store the new structure as a bytes32 hash and then check that the
+            values are correct when finalizeStructure is called.
+     * @param strategyItems An array of Item structs that will comprise the strategy
+     */
+    function restructure(
+        IStrategy strategy,
+        StrategyItem[] memory strategyItems
+    ) external override {
+        _notSet(address(strategy)); // Set strategies cannot restructure
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        Timelock storage lock = _timelocks[address(strategy)];
+        require(
+            lock.timestamp == 0 ||
+                block.timestamp &gt;
+                lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
+            "Timelock active"
+        );
+        require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
+        lock.category = TimelockCategory.RESTRUCTURE;
+        lock.timestamp = block.timestamp;
+        lock.data = abi.encode(strategyItems);
+&nbsp;
+        emit NewStructure(address(strategy), strategyItems, false);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Finalize a restructure by setting the new values and trading the strategyItems
+     * @dev We confirm that the same structure is sent by checking the bytes32 hash against _restructureProof
+     * @param router The address of the router that will be doing the handling the trading logic
+     * @param data Calldata for the router's restructure function
+     */
+    function finalizeStructure(
+        IStrategy strategy,
+        IStrategyRouter router,
+        bytes memory data
+    ) external override {
+        _notSet(address(strategy));  // Set strategies cannot restructure
+        _setStrategyLock(strategy);
+        _onlyApproved(address(router));
+        _onlyManager(strategy);
+        strategy.settleSynths();
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        Timelock storage lock = _timelocks[address(strategy)];
+        require(
+            !strategyState.social ||
+                block.timestamp &gt; lock.timestamp.add(uint256(strategyState.timelock)),
+            "Timelock active"
+        );
+        require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
+        (StrategyItem[] memory strategyItems) =
+            abi.decode(lock.data, (StrategyItem[]));
+        _finalizeStructure(strategy, router, strategyItems, data);
+        delete lock.category;
+        delete lock.timestamp;
+        delete lock.data;
+        emit NewStructure(address(strategy), strategyItems, true);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Initiate an update of a StrategyState value. This gives users a chance to withdraw before changes are finalized
+     * @param category The TimelockCategory of the value we want to change
+     * @param newValue The new value that we are updating the state to
+     */
+    function updateValue(
+        IStrategy strategy,
+        TimelockCategory category,
+        uint256 newValue
+    ) external override {
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        Timelock storage lock = _timelocks[address(strategy)];
+        require(
+            lock.timestamp == 0 ||
+                block.timestamp &gt;
+                lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
+            "Timelock active"
+        );
+        //TimelockCategory category = TimelockCategory(categoryIndex);
+        require(category != TimelockCategory.RESTRUCTURE);
+        if (category != TimelockCategory.TIMELOCK)
+            require(newValue &lt;= DIVISOR, "Value too high");
+        lock.category = category;
+        lock.timestamp = block.timestamp;
+        lock.data = abi.encode(newValue);
+        emit NewValue(address(strategy), category, newValue, false);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Finalize the value that was set in the timelock
+     * @param strategy The address of the strategy that is being updated
+     */
+    function finalizeValue(address strategy) external override {
+        _setStrategyLock(IStrategy(strategy));
+        StrategyState storage strategyState = _strategyStates[strategy];
+        Timelock storage lock = _timelocks[strategy];
+        require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
+        require(
+            !strategyState.social ||
+                block.timestamp &gt; lock.timestamp.add(uint256(strategyState.timelock)),
+            "Timelock active"
+        );
+        uint256 newValue = abi.decode(lock.data, (uint256));
+        if (lock.category == TimelockCategory.THRESHOLD) {
+            strategyState.rebalanceThreshold = uint16(newValue);
+        } else if (lock.category == TimelockCategory.SLIPPAGE) {
+            strategyState.slippage = uint16(newValue);
+        } else if (lock.category == TimelockCategory.TIMELOCK) {
+            strategyState.timelock = uint32(newValue);
+        } else { // lock.category == TimelockCategory.PERFORMANCE
+            strategyState.performanceFee = uint16(newValue);
+        }
+        emit NewValue(strategy, lock.category, newValue, true);
+        delete lock.category;
+        delete lock.timestamp;
+        delete lock.data;
+        _removeStrategyLock(IStrategy(strategy));
+    }
+&nbsp;
+    /**
+     * @notice Change strategy to 'social'. Cannot be undone.
+     * @dev A social profile allows other users to deposit and rebalance the strategy
+     */
+    function openStrategy(IStrategy strategy, uint256 fee) external override {
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        require(fee &lt; DIVISOR, "Fee too high");
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        require(!strategyState.social, "Strategy already open");
+        strategyState.social = true;
+        strategyState.performanceFee = uint16(fee);
+        emit StrategyOpen(address(strategy), fee);
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Change strategy to 'set'. Cannot be undone.
+     * @dev A set strategy cannot be restructured
+     */
+    function setStrategy(IStrategy strategy) external override {
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        require(!strategyState.set, "Strategy already set");
+        strategyState.set = true;
+        emit StrategySet(address(strategy));
+        _removeStrategyLock(strategy);
+    }
+&nbsp;
+    /**
+     * @notice Initialized getter
+     */
+     function initialized(address strategy) external view override returns (bool) {
+         return _initialized[strategy] &gt; 0;
+     }
+&nbsp;
+    /**
+     * @notice Social bool getter
+     * @dev This value determines whether other account may deposit into this strategy
+     */
+    function social(address strategy) external view override returns (bool) {
+        return _strategyStates[strategy].social;
+    }
+&nbsp;
+    /**
+     * @notice Rebalance threshold getter
+     */
+    function rebalanceThreshold(address strategy) external view override returns (uint256) {
+        return uint256(_strategyStates[strategy].rebalanceThreshold);
+    }
+&nbsp;
+    /**
+     * @notice Slippage getter
+     */
+    function slippage(address strategy) external view override returns (uint256) {
+        return uint256(_strategyStates[strategy].slippage);
+    }
+&nbsp;
+    /**
+     * @notice Timelock getter
+     */
+    function timelock(address strategy) external view override returns (uint256) {
+        return uint256(_strategyStates[strategy].timelock);
+    }
+&nbsp;
+    /**
+     * @notice Performance fee getter
+     */
+    function performanceFee(address strategy) external view override returns (uint256) {
+        return uint256(_strategyStates[strategy].performanceFee);
+    }
+&nbsp;
+    /**
+     * @notice This function verifies that the structure passed in parameters is valid
+     * @dev We check that the array lengths match, that the percentages add 100%,
+     *      no zero addresses, and no duplicates
+     * @dev Token addresses must be passed in, according to increasing byte value
+     */
+    function verifyStructure(address strategy, StrategyItem[] memory newItems)
+        public
+        view
+        override
+        returns (bool)
+    {
+        require(newItems.length &gt; 0, "Cannot set empty structure");
+        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught be the ordering requirement below
+        require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
+&nbsp;
+        ITokenRegistry registry = oracle().tokenRegistry();
+&nbsp;
+        int256 total = 0;
+        for (uint256 i = 0; i &lt; newItems.length; i++) {
+            address item = newItems[i].item;
+            require(i == 0 || newItems[i].item &gt; newItems[i - 1].item, "Item ordering");
+            EstimatorCategory category = EstimatorCategory(registry.estimatorCategories(item));
+            require(category != EstimatorCategory.BLOCKED, "Token blocked");
+            if (category == EstimatorCategory.STRATEGY)
+                _checkCyclicDependency(strategy, IStrategy(item), registry);
+            total = total.add(newItems[i].percentage);
+        }
+        require(uint256(total) == DIVISOR, "Total percentage wrong");
+        return true;
+    }
+&nbsp;
+    function oracle() public view override returns (IOracle) {
+        return IOracle(IStrategyProxyFactory(_factory).oracle());
+    }
+&nbsp;
+    function whitelist() public view override returns (IWhitelist) {
+        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
+    }
+&nbsp;
+    // Internal Strategy Functions
+    /**
+     * @notice Deposit eth or weth into strategy
+     * @dev Calldata is only needed for the generic router
+     */
+    function _deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        address account,
+        uint256 amount,
+        uint256 totalBefore,
+        uint256 balanceBefore,
+        bytes memory data
+    ) internal {
+        _onlyApproved(address(router));
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+        IOracle o = oracle();
+        if (msg.value &gt; 0) {
+          amount = msg.value;
+          address weth = o.weth();
+          IWETH(weth).deposit{value: amount}();
+          IERC20(weth).safeApprove(address(router), amount);
+          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+              data = abi.encode(address(this), amount);
+          router.deposit(address(strategy), data);
+          IERC20(weth).safeApprove(address(router), 0);
+        } else {
+          <span class="missing-if-branch" title="else path not taken" >E</span>if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+              data = abi.encode(account, amount);
+          router.deposit(address(strategy), data);
+        }
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
+        // Recheck total
+        (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
+        require(totalAfter &gt; totalBefore, "Lost value");
+        _checkBalance(strategy, balanceBefore, totalAfter, estimates);
+        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
+        require(
+            valueAdded &gt;=
+                amount.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+            "Too much slippage"
+        );
+        uint256 totalSupply = strategy.totalSupply();
+        uint256 relativeTokens =
+            totalSupply &gt; 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+        strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+        strategy.mint(account, relativeTokens);
+        emit Deposit(address(strategy), amount, relativeTokens);
+    }
+&nbsp;
+    /**
+     * @notice Trade tokens for weth
+     * @dev Calldata is only needed for the generic router
+     */
+    function _withdraw(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) internal returns (address weth, uint256 wethAmount) {
+        require(amount &gt; 0, "0 amount");
+        strategy.settleSynths();
+        IOracle o = oracle();
+        (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
+        uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimatesBefore);
+        uint256 totalSupply = strategy.totalSupply();
+        // Deduct fee and burn strategy tokens
+        amount = strategy.burn(msg.sender, amount);
+        {
+            // Setup data
+            if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
+                uint256 percentage = amount.mul(10**18).div(totalSupply);
+                data = abi.encode(percentage, totalBefore, estimatesBefore);
+            }
+            // Approve items
+            _approveItems(strategy, strategy.items(), address(router), uint256(-1));
+            _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+            // Withdraw
+            router.withdraw(address(strategy), data);
+            // Revoke items approval
+            _approveItems(strategy, strategy.items(), address(router), uint256(0));
+            _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(0));
+        }
+        // Check value and balance
+        (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
+        {
+            StrategyState storage strategyState = _strategyStates[address(strategy)];
+            require(
+                totalAfter &gt;=
+                    totalBefore.mul(strategyState.slippage).div(DIVISOR),
+                "Too much slippage"
+            );
+        }
+        wethAmount = totalBefore.mul(amount).div(totalSupply).sub(totalBefore.sub(totalAfter)); // remove slippage from expected weth
+        _checkBalance(strategy, balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        // Approve weth amount
+        weth = o.weth();
+        strategy.approveToken(weth, address(this), wethAmount);
+        emit Withdraw(address(strategy), wethAmount, amount);
+        return (weth, wethAmount);
+    }
+&nbsp;
+    /**
+     * @notice Rebalance the strategy to match the current structure
+     * @dev The calldata that gets passed to this function can differ depending on which router is being used
+     * @param totalBefore The valuation of the strategy before rebalance
+     * @param data Calldata that gets passed the the router's rebalance function
+     * @param router The address of the router that will be doing the handling the trading logic
+     */
+    function _rebalance(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 totalBefore,
+        bytes memory data
+    ) internal returns (uint256) {
+        router.rebalance(address(strategy), data);
+        // Recheck total
+        (bool balancedAfter, uint256 totalAfter, ) = _verifyBalance(strategy);
+        require(balancedAfter, "Not balanced");
+        require(
+            totalAfter &gt;=
+                totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+            "Too much slippage"
+        );
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        emit Balanced(address(strategy), totalAfter, msg.sender);
+        return totalAfter;
+    }
+&nbsp;
+    function _setInitialState(address strategy, StrategyState memory state) private {
+        require(uint256(state.rebalanceThreshold) &lt;= DIVISOR, "Threshold high");
+        require(uint256(state.slippage) &lt;= DIVISOR, "Slippage high");
+        require(uint256(state.performanceFee) &lt; DIVISOR, "Fee too high");
+        _initialized[strategy] = 1;
+        _strategyStates[strategy] = state;
+        emit NewValue(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
+        emit NewValue(strategy, TimelockCategory.SLIPPAGE, uint256(state.slippage), true);
+        emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
+        if (state.social) emit StrategyOpen(address(strategy), state.performanceFee);
+        if (state.set) emit StrategySet(address(strategy));
+    }
+&nbsp;
+    /**
+     * @notice This function gets the strategy value from the oracle and checks
+     *         whether the strategy is balanced. Necessary to confirm the balance
+     *         before and after a rebalance to ensure nothing fishy happened
+     */
+    function _verifyBalance(IStrategy strategy) internal view returns (bool, uint256, int256[] memory) {
+        (uint256 total, int256[] memory estimates) =
+            oracle().estimateStrategy(strategy);
+        uint256 threshold = _strategyStates[address(strategy)].rebalanceThreshold;
+&nbsp;
+        bool balanced = true;
+        address[] memory strategyItems = strategy.items();
+        for (uint256 i = 0; i &lt; strategyItems.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
+            if (expectedValue &gt; 0) {
+                int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
+                if (estimates[i] &gt; expectedValue.add(rebalanceRange)) {
+                    balanced = false;
+                    break;
+                }
+                if (estimates[i] &lt; expectedValue.sub(rebalanceRange)) {
+                    balanced = false;
+                    break;
+                }
+            } else {
+                // Token has an expected value of 0, so any value can cause the contract
+                // to be 'unbalanced' so we need an alternative way to determine balance.
+                // Min percent = 0.1%. If token value is above, consider it unbalanced
+                if (estimates[i] &gt; StrategyLibrary.getRange(int256(total), 1)) {
+                    balanced = false;
+                    break;
+                }
+            }
+        }
+        if (balanced) {
+            address[] memory strategyDebt = strategy.debt();
+            for (uint256 i = 0; i &lt; strategyDebt.length; i++) {
+              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
+              int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
+              uint256 index = strategyItems.length + i;
+               // Debt
+               <span class="missing-if-branch" title="if path not taken" >I</span>if (estimates[index] &lt; expectedValue.add(rebalanceRange)) {
+<span class="cstat-no" title="statement not covered" >                   balanced = false</span>;
+                   break;
+               }
+               <span class="missing-if-branch" title="if path not taken" >I</span>if (estimates[index] &gt; expectedValue.sub(rebalanceRange)) {
+<span class="cstat-no" title="statement not covered" >                   balanced = false</span>;
+                   break;
+               }
+            }
+        }
+        return (balanced, total, estimates);
+    }
+&nbsp;
+    /**
+     * @notice This function gets the strategy value from the oracle and determines
+     *         how out of balance the strategy using an absolute value.
+     */
+    function _amountOutOfBalance(IStrategy strategy, uint256 total, int256[] memory estimates) internal view returns (uint256) {
+        if (total == 0) return 0;
+        uint256 amountOutOfBalance = 0;
+        address[] memory strategyItems = strategy.items();
+        for (uint256 i = 0; i &lt; strategyItems.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
+            if (estimates[i] &gt; expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(estimates[i].sub(expectedValue)));
+            } else if (estimates[i] &lt; expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(expectedValue.sub(estimates[i])));
+            }
+        }
+        address[] memory strategyDebt = strategy.debt();
+        for (uint256 i = 0; i &lt; strategyDebt.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
+            uint256 index = strategyItems.length + i;
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (estimates[index] &gt; expectedValue) {
+<span class="cstat-no" title="statement not covered" >                amountOutOfBalance = amountOutOfBalance.add(uint256(estimates[index].sub(expectedValue)))</span>;
+            } else <span class="missing-if-branch" title="else path not taken" >E</span>if (estimates[index] &lt; expectedValue) {
+                amountOutOfBalance = amountOutOfBalance.add(uint256(expectedValue.sub(estimates[index])));
+            }
+        }
+        return (amountOutOfBalance.mul(10**18).div(total));
+    }
+&nbsp;
+    /**
+     * @notice Finalize the structure by selling current posiition, setting new structure, and buying new position
+     * @param strategy The strategy contract
+     * @param router The router contract that will handle the trading
+     * @param newItems An array of Item structs that will comprise the strategy
+     * @param data Calldata for the router's restructure function
+     */
+    function _finalizeStructure(
+        IStrategy strategy,
+        IStrategyRouter router,
+        StrategyItem[] memory newItems,
+        bytes memory data
+    ) internal {
+        // Get strategy value
+        IOracle o = oracle();
+        (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
+        // Get current items
+        address[] memory currentItems = strategy.items();
+        address[] memory currentDebt = strategy.debt();
+        // Conditionally set data
+        if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+            data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
+        // Set new structure
+        strategy.setStructure(newItems);
+        // Liquidate unused tokens
+        _approveItems(strategy, currentItems, address(router), uint256(-1));
+        _approveSynthsAndDebt(strategy, currentDebt, address(router), uint256(-1));
+        router.restructure(address(strategy), data);
+        _approveItems(strategy, currentItems, address(router), uint256(0));
+        _approveSynthsAndDebt(strategy, currentDebt, address(router), uint256(0));
+&nbsp;
+        (bool balancedAfter, uint256 totalAfter, ) = _verifyBalance(strategy);
+        require(balancedAfter, "Not balanced");
+        require(
+            totalAfter &gt;=
+                totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+            "Too much slippage"
+        );
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+    }
+&nbsp;
+    /**
+     * @notice Batch approve items
+     * @param spender The address that will be approved to spend tokens
+     * @param amount The amount the each token will be approved for
+     */
+    function _approveItems(
+        IStrategy strategy,
+        address[] memory strategyItems,
+        address spender,
+        uint256 amount
+    ) internal {
+        strategy.approveToken(oracle().weth(), spender, amount);
+        for (uint256 i = 0; i &lt; strategyItems.length; i++) {
+            strategy.approveToken(strategyItems[i], spender, amount);
+        }
+    }
+&nbsp;
+    /**
+     * @notice Batch approve synths and debt
+     * @param spender The address that will be approved to spend tokens
+     * @param amount The amount the each token will be approved for
+     */
+    function _approveSynthsAndDebt(
+        IStrategy strategy,
+        address[] memory strategyDebt,
+        address spender,
+        uint256 amount
+    ) internal {
+        if (strategy.supportsSynths()) {
+            strategy.approveSynths(spender, amount);
+        }
+        for (uint256 i = 0; i &lt; strategyDebt.length; i++) {
+            strategy.approveDebt(strategyDebt[i], spender, amount);
+        }
+    }
+&nbsp;
+    function _checkBalance(IStrategy strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) internal view {
+        uint256 balanceAfter = _amountOutOfBalance(strategy, total, estimates);
+        if (balanceAfter &gt; uint256(10**18).mul(_strategyStates[address(strategy)].rebalanceThreshold).div(DIVISOR))
+            require(balanceAfter &lt;= balanceBefore, "Lost balance");
+    }
+&nbsp;
+    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) internal view {
+        require(address(strategy) != test, "Cyclic dependency");
+        require(!strategy.supportsSynths(), "Synths not supported");
+        address[] memory strategyItems = strategy.items();
+        for (uint256 i = 0; i &lt; strategyItems.length; i++) {
+          if (EstimatorCategory(registry.estimatorCategories(strategyItems[i])) == EstimatorCategory.STRATEGY)
+              _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
+        }
+    }
+&nbsp;
+    /**
+     * @notice Checks that router is whitelisted
+     */
+    function _onlyApproved(address account) internal view {
+        require(whitelist().approved(account), "Not approved");
+    }
+&nbsp;
+    function _onlyManager(IStrategy strategy) internal view {
+        require(msg.sender == strategy.manager(), "Not manager");
+    }
+&nbsp;
+    /**
+     * @notice Checks if strategy is social or else require msg.sender is manager
+     */
+    function _socialOrManager(IStrategy strategy) internal view {
+        require(
+            msg.sender == strategy.manager() || _strategyStates[address(strategy)].social,
+            "Not manager"
+        );
+    }
+&nbsp;
+    function _notSet(address strategy) internal view {
+        require(!_strategyStates[strategy].set, "Strategy cannot change");
+    }
+&nbsp;
+    /**
+     * @notice Sets Reentrancy guard
+     */
+    function _setStrategyLock(IStrategy strategy) internal {
+        strategy.lock();
+    }
+&nbsp;
+    /**
+     * @notice Removes reentrancy guard.
+     */
+    function _removeStrategyLock(IStrategy strategy) internal {
+        strategy.unlock();
+    }
+&nbsp;
+    receive() external payable {
+        emit Received(msg.sender, msg.value);
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 12 2021 10:44:37 GMT-0800 (Pacific Standard Time)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>

@@ -11,7 +11,7 @@ const { WeiPerEther } = constants
 
 const NUM_TOKENS = 2
 
-describe('UniswapAdapter', function () {
+describe('UniswapV2Adapter', function () {
 	let tokens: Contract[], accounts: SignerWithAddress[], uniswapFactory: Contract, adapter: Contract
 
 	before('Setup Uniswap, Factory, GenericRouter', async function () {

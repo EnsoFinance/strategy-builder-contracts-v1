@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/adapters/Leverage2XAdapter.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/adapters/</a> Leverage2XAdapter.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">88.89% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>24/27</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">50% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>7/14</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">80% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>4/5</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">86.67% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>26/30</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">96×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">14×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+&nbsp;
+import "./BaseAdapter.sol";
+import "../interfaces/aave/IAToken.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+&nbsp;
+contract Leverage2XAdapter is BaseAdapter {
+    using SafeMath for uint256;
+    using SafeERC20 for IERC20;
+&nbsp;
+    address public immutable defaultAdapter;
+    address public immutable aaveLendAdapter;
+    address public immutable aaveBorrowAdapter;
+    address public immutable debtToken; // Token that is being borrowed against collateral
+&nbsp;
+    constructor(
+        address defaultAdapter_,
+        address aaveLendAdapter_,
+        address aaveBorrowAdapter_,
+        address debtToken_,
+        address weth_
+    ) public BaseAdapter(weth_) {
+        defaultAdapter = defaultAdapter_;
+        aaveLendAdapter = aaveLendAdapter_;
+        aaveBorrowAdapter = aaveBorrowAdapter_;
+        debtToken = debtToken_;
+    }
+&nbsp;
+<span class="fstat-no" title="function not covered" >    function spotPrice(</span>
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) external view override returns (uint256) {
+        (tokenIn, tokenOut); // Assume correct tokens are submitted
+<span class="cstat-no" title="statement not covered" >        if (_checkAToken(tokenOut)) {</span>
+<span class="cstat-no" title="statement not covered" >          return amount.mul(2);</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >          return 0;</span>
+        }
+    }
+&nbsp;
+    // Swap to support 2X leverage called from generic router
+    function swap(
+        uint256 amount,
+        uint256 expected,
+        address tokenIn,
+        address tokenOut,
+        address from,
+        address to
+    ) public override {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(tokenIn != tokenOut, "Tokens cannot match");
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(amount &gt;= expected, "Insufficient tokenOut amount");
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (from != address(this))
+            IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+&nbsp;
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(_checkAToken(tokenOut), "Only supports deposit");
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");
+        // Lend all underlying tokens (Amount received will equal amount sent)
+        _delegateSwap(aaveLendAdapter, amount, 1, tokenIn, tokenOut, address(this), to);
+        //Take out equivalent of 50% debt
+        _delegateSwap(aaveBorrowAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
+        //Trade debt for underlying
+        _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
+        // Lend all underlying tokens
+        _delegateSwap(aaveLendAdapter, IERC20(tokenIn).balanceOf(address(this)), 1, tokenIn, tokenOut, address(this), to);
+        //Take out equivalent of 50% debt (should be able to borrow another 50% since we've added to our reserve)
+        _delegateSwap(aaveBorrowAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
+        //Trade debt for underlying
+        _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
+        // Lend all underlying tokens
+        _delegateSwap(aaveLendAdapter, IERC20(tokenIn).balanceOf(address(this)), expected, tokenIn, tokenOut, address(this), to);
+    }
+&nbsp;
+    function _delegateSwap(
+        address adapter,
+        uint256 amount,
+        uint256 expected,
+        address tokenIn,
+        address tokenOut,
+        address from,
+        address to
+    ) internal {
+        //No need to check adapters since they are set at time of deployment and can't be changed
+        bool success;
+        bytes memory swapData =
+            abi.encodeWithSelector(
+                bytes4(
+                    keccak256("swap(uint256,uint256,address,address,address,address)")
+                ),
+                amount,
+                expected,
+                tokenIn,
+                tokenOut,
+                from,
+                to
+            );
+        uint256 txGas = gasleft();
+        assembly {
+            success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
+        }
+        require(success, "Swap failed");
+    }
+&nbsp;
+    function _checkAToken(address token) internal view returns (bool) {
+        bytes32 selector = keccak256("UNDERLYING_ASSET_ADDRESS()");
+&nbsp;
+        bool success;
+        assembly {
+            let ptr := mload(0x40)
+            mstore(0x40, add(ptr, 32))
+            mstore(ptr, selector)
+            success := staticcall(
+                6000, //estimated gas costs
+                token,
+                ptr,
+                4,
+                ptr,
+                32
+            )
+        }
+        return success;
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 12 2021 09:03:26 GMT-0800 (Pacific Standard Time)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

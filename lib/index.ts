@@ -1,5 +1,5 @@
 import { EnsoBuilder, EnsoEnvironment } from './enso'
-//import { Tokens } from './tokens'
+import { Tokens } from './tokens'
 import {
   StrategyItem,
   Item,
@@ -21,10 +21,16 @@ import {
   encodeApprove
 } from './encode'
 
+import {
+  TIMELOCK_CATEGORY,
+  ITEM_CATEGORY,
+  ESTIMATOR_CATEGORY
+} from './utils'
+
 export {
   EnsoBuilder,
   EnsoEnvironment,
-  //Tokens,
+  Tokens,
   StrategyItem,
   Item,
   ItemData,
@@ -42,5 +48,8 @@ export {
   encodeSettleTransfer,
   encodeTransfer,
   encodeTransferFrom,
-  encodeApprove
+  encodeApprove,
+  TIMELOCK_CATEGORY,
+  ITEM_CATEGORY,
+  ESTIMATOR_CATEGORY
 }

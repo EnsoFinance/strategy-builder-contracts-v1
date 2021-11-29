@@ -148,7 +148,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             );
         }
         int256 percentage = IStrategy(strategy).getPercentage(weth);
-        if (percentage > 0) {
+        if (percentage > 0 && from != strategy) {
             if (from == address(this)) {
               // Send all WETH
               IERC20(weth).safeTransfer(strategy, IERC20(weth).balanceOf(from));

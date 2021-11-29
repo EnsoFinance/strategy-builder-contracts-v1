@@ -53,16 +53,16 @@ describe('YEarnV2Adapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 
-		const chainlinkOracle = platform.oracles.protocols.chainlinkOracle
-		const curvePoolRegistry = platform.oracles.registries.curvePoolRegistry
-		await tokens.registerTokens(accounts[0], strategyFactory, curvePoolRegistry, chainlinkOracle)
+		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
+		await tokens.registerTokens(accounts[0], strategyFactory, curveDepositZapRegistry, chainlinkRegistry)
 
+		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		const whitelist = platform.administration.whitelist
 		router = await deployLoopRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		curveAdapter = await deployCurveLPAdapter(accounts[0], curvePoolRegistry, weth)
+		curveAdapter = await deployCurveLPAdapter(accounts[0], addressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		yearnAdapter = await deployYEarnAdapter(accounts[0], weth)
 		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
@@ -81,7 +81,7 @@ describe('YEarnV2Adapter', function () {
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
-			rebalanceThreshold: BigNumber.from(10),
+			rebalanceThreshold: BigNumber.from(50),
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
@@ -163,8 +163,14 @@ describe('YEarnV2Adapter', function () {
 		const price = await yearnAdapter.spotPrice(WeiPerEther, tokens.ycrvSUSD, tokens.crvSUSD)
 		expect(price.gt(0)).to.equal(true)
 	})
+
 	it('Should check spot price: same', async function () {
 		const price = await yearnAdapter.spotPrice(WeiPerEther, tokens.ycrvSUSD, tokens.ycrvSUSD)
 		expect(price.eq(WeiPerEther)).to.equal(true)
+	})
+
+	it('Should check spot price: zero', async function () {
+		const price = await yearnAdapter.spotPrice(WeiPerEther, crv.address, weth.address)
+		expect(price.eq(0)).to.equal(true)
 	})
 })

@@ -145,6 +145,25 @@ describe('StrategyProxyFactory', function () {
 		expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
 	})
 
+	it('Should fail to update pool: not owner', async function () {
+		await expect(strategyFactory.connect(accounts[1]).updatePool(accounts[1].address)).to.be.revertedWith(
+			'Not owner'
+		)
+	})
+
+	it('Should update pool', async function () {
+		await strategyFactory.connect(accounts[10]).updatePool(accounts[0].address)
+		expect(await strategyFactory.pool()).to.equal(accounts[0].address)
+	})
+
+	it('Should fail to add item: not owner', async function () {
+		await expect(strategyFactory.connect(accounts[1]).addItemToRegistry(0, 0, tokens[1].address)).to.be.revertedWith('Not owner')
+	})
+
+	it('Should fail to add item: invalid category', async function () {
+		await expect(strategyFactory.connect(accounts[10]).addItemToRegistry(0, 100, tokens[1].address)).to.be.revertedWith('Invalid category')
+	})
+
 	it('Should fail to update implementation: not owner', async function () {
 		await expect(
 			strategyFactory.connect(accounts[1]).updateImplementation(newImplementationAddress, '2')

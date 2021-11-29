@@ -6,12 +6,12 @@ import {
 	prepareStrategy,
 	prepareRebalanceMulticall,
 	prepareDepositMulticall,
-	prepareUniswapSwap,
 	calculateAddress,
 	getExpectedTokenValue,
 	encodeSettleSwap,
 	encodeSettleTransfer,
 	encodeSettleTransferFrom,
+	encodeTransfer,
 	encodeTransferFrom,
 	encodeDelegateSwap,
 	Multicall,
@@ -63,32 +63,6 @@ describe('GenericRouter', function () {
 		genericRouter = await deployGenericRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(genericRouter.address)
 	})
-
-	/*
-	it('Should fail to deploy strategy: no value', async function () {
-		const calls = []
-		calls.push(await encodeTransferFrom(weth, controller.address, accounts[1].address, WeiPerEther))
-		const data = await genericRouter.encodeCalls(calls)
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					'Fail Strategy',
-					'FAIL',
-					[],
-					false,
-					0,
-					REBALANCE_THRESHOLD,
-					SLIPPAGE,
-					TIMELOCK,
-					genericRouter.address,
-					data,
-					{ value: WeiPerEther }
-				)
-		).to.be.revertedWith('No value')
-	})
-	*/
 
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
@@ -185,42 +159,22 @@ describe('GenericRouter', function () {
 	})
 
 	it('Should fail to rebalance: no reentrancy', async function () {
-		//Swap funds from token 1 to weth and send to router
-		const balance = await tokens[1].balanceOf(strategy.address)
-		const amount = (await oracle.estimateItem(balance, tokens[1].address)).div(2) //Div by 2 to avoid any price slippage
-		const uniswapCalls = (await prepareUniswapSwap(
-			genericRouter,
-			adapter,
-			uniswapFactory,
-			strategy.address,
-			genericRouter.address,
-			balance,
-			tokens[1],
-			weth
-		)) as Multicall[]
-		//Withdraw weth in eth
-		const withdrawEncoded = await weth.interface.encodeFunctionData('withdraw', [amount])
-		const wethCalls = [{ target: weth.address, callData: withdrawEncoded, value: 0 }]
-		//Deposit eth to receive strategy tokens (should fail here because function will be locked)
-		const depositCalls = await prepareDepositMulticall(
-			strategy,
-			controller,
-			genericRouter,
-			adapter,
-			weth,
-			amount,
-			strategyItems
-		)
-		const depositData = await genericRouter.encodeCalls(depositCalls)
+		//Transfer funds out of strategy during rebalance
+		const transferCall = await encodeSettleTransferFrom(genericRouter, tokens[1].address, strategy.address, genericRouter.address)
+		//Return funds to strategy during deposit, thus earning strategy tokens for the value increase
+		const depositCall = await encodeSettleTransfer(genericRouter, tokens[1].address, strategy.address)
+		const depositData = await genericRouter.encodeCalls([depositCall])
 		const depositEncoded = await controller.interface.encodeFunctionData('deposit', [
 			strategy.address,
 			genericRouter.address,
 			0,
 			depositData,
 		])
-		const reentrancyCalls = [{ target: controller.address, callData: depositEncoded, value: amount }]
-
-		const calls = [...uniswapCalls, ...wethCalls, ...reentrancyCalls]
+		const reentrancyCall = { target: controller.address, callData: depositEncoded }
+		// Note: Normally for this attack to succeed we would also need to include
+		// swap calls to properly rebalance the strategy. But that doesn't matter as
+		// it should fail before that check is made
+		const calls = [transferCall, reentrancyCall]
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, genericRouter.address, data)
@@ -354,7 +308,7 @@ describe('GenericRouter', function () {
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, genericRouter.address, data)
-		).to.be.revertedWith('Value slipped')
+		).to.be.revertedWith('Too much slippage')
 	})
 
 	it('Should rebalance strategy with multicall', async function () {
@@ -373,6 +327,21 @@ describe('GenericRouter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+	})
+
+	it('Should fail to withdraw: too much slippage', async function () {
+		const calls = (await Promise.all(tokens.map(async (token) => {
+			const balance = await token.balanceOf(strategy.address)
+			if (balance.gt(0)) {
+				return encodeTransferFrom(token, strategy.address, accounts[1].address, balance)
+			} else {
+				return null
+			}
+		}))).filter(call => call)
+		const data = await genericRouter.encodeCalls(calls)
+		await expect(
+			controller.connect(accounts[1]).withdrawWETH(strategy.address, genericRouter.address, 1, data)
+		).to.be.revertedWith('Too much slippage')
 	})
 
 	it('Should fail to call delegateSwap: only internal', async function () {
@@ -453,32 +422,113 @@ describe('GenericRouter', function () {
 		).to.be.revertedWith('')
 	})
 
-	it('Should restructure to just weth', async function () {
-		const positions = [{ token: tokens[0].address, percentage: BigNumber.from(1000) }] as Position[]
+	it('Should restructure to just token', async function () {
+		const positions = [{ token: tokens[1].address, percentage: BigNumber.from(1000) }] as Position[]
 		const newItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, newItems)
+	})
 
+	it('Should fail to restructure: too much slippage', async function () {
 		const currentItems = await strategy.items()
 		const calls = [] as Multicall[]
 		const Erc20Factory = await getContractFactory('ERC20Mock')
 		for (let i = 0; i < currentItems.length; i++) {
-			if (currentItems[i] !== weth.address) {
-					const token = Erc20Factory.attach(currentItems[i])
-					const amount = await token.balanceOf(strategy.address)
-					calls.push(
-						encodeDelegateSwap(
-							genericRouter,
-							adapter.address,
-							amount,
-							BigNumber.from(0),
-							currentItems[i],
-							weth.address,
-							strategy.address,
-							strategy.address
-						)
+			if (currentItems[i] !== tokens[1].address && currentItems[i] !== weth.address) {
+				const token = Erc20Factory.attach(currentItems[i])
+				const amount = await token.balanceOf(strategy.address)
+				calls.push(
+					encodeDelegateSwap(
+						genericRouter,
+						adapter.address,
+						amount,
+						BigNumber.from(0),
+						currentItems[i],
+						weth.address,
+						strategy.address,
+						genericRouter.address
 					)
+				)
 			}
 		}
+		calls.push(encodeTransfer(weth, accounts[1].address, WeiPerEther.div(100)))
+		calls.push(encodeSettleSwap(
+			genericRouter,
+			adapter.address,
+			weth.address,
+			tokens[1].address,
+			genericRouter.address,
+			strategy.address
+		))
+		const data = await genericRouter.encodeCalls(calls)
+
+		await expect(
+			controller
+				.connect(accounts[1])
+				.finalizeStructure(strategy.address, genericRouter.address, data)
+			).to.be.revertedWith('Too much slippage')
+	})
+
+	it('Should fail to restructure: out of balance', async function () {
+		const currentItems = await strategy.items()
+		const calls = [] as Multicall[]
+		const Erc20Factory = await getContractFactory('ERC20Mock')
+		for (let i = 0; i < currentItems.length; i++) {
+			if (currentItems[i] !== tokens[1].address && currentItems[i] !== weth.address) {
+				const token = Erc20Factory.attach(currentItems[i])
+				const amount = await token.balanceOf(strategy.address)
+				calls.push(
+					encodeDelegateSwap(
+						genericRouter,
+						adapter.address,
+						amount,
+						BigNumber.from(0),
+						currentItems[i],
+						weth.address,
+						strategy.address,
+						strategy.address
+					)
+				)
+			}
+		}
+		const data = await genericRouter.encodeCalls(calls)
+
+		await expect(
+			controller
+				.connect(accounts[1])
+				.finalizeStructure(strategy.address, genericRouter.address, data)
+			).to.be.revertedWith('Not balanced')
+	})
+
+	it('Should finalize structure', async function () {
+		const currentItems = await strategy.items()
+		const calls = [] as Multicall[]
+		const Erc20Factory = await getContractFactory('ERC20Mock')
+		for (let i = 0; i < currentItems.length; i++) {
+			if (currentItems[i] !== tokens[1].address && currentItems[i] !== weth.address) {
+				const token = Erc20Factory.attach(currentItems[i])
+				const amount = await token.balanceOf(strategy.address)
+				calls.push(
+					encodeDelegateSwap(
+						genericRouter,
+						adapter.address,
+						amount,
+						BigNumber.from(0),
+						currentItems[i],
+						weth.address,
+						strategy.address,
+						genericRouter.address
+					)
+				)
+			}
+		}
+		calls.push(encodeSettleSwap(
+			genericRouter,
+			adapter.address,
+			weth.address,
+			tokens[1].address,
+			genericRouter.address,
+			strategy.address
+		))
 
 		const data = await genericRouter.encodeCalls(calls)
 
@@ -486,20 +536,8 @@ describe('GenericRouter', function () {
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, genericRouter.address, data)
 	})
-	/*
-	it('Should fail to send multicall with value transfer', async function () {
-		const amount = WeiPerEther
-		const calls = []
-		calls.push(encodeSettleTransferFrom(genericRouter, weth.address, controller.address, strategy.address)) //Transfer from controller to strategy
-		calls[0].value = amount //Transferring ETH when there is none
-		const data = await genericRouter.encodeCalls(calls)
-		await expect(
-			strategy.connect(accounts[1]).deposit(0, genericRouter.address, data, { value: amount })
-		).to.be.revertedWith('')
-	})
-	*/
 
-	it('Should succeed in calling settleTransfer and settleTransferFrom when balances are in router or controller respectively', async function () {
+	it('Should fail to deposit: out of balance', async function () {
 		const amount = WeiPerEther
 		const calls = []
 		calls.push(
@@ -508,7 +546,9 @@ describe('GenericRouter', function () {
 		calls.push(encodeSettleTransfer(genericRouter, weth.address, strategy.address)) //Transfer to strategy
 
 		const data = await genericRouter.encodeCalls(calls)
-		await controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
+		await expect(
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
+		).to.be.revertedWith('Lost balance')
 	})
 
 	it('Should fail to call router directly', async function () {
@@ -519,4 +559,6 @@ describe('GenericRouter', function () {
 			'Only controller'
 		)
 	})
+
+
 })

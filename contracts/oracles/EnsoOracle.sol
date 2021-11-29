@@ -6,29 +6,24 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
+import "../helpers/StrategyTypes.sol";
 
-contract EnsoOracle is IOracle {
+contract EnsoOracle is IOracle, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
     address public override weth;
     address public override susd;
-    IProtocolOracle public override uniswapOracle;
-    IProtocolOracle public override chainlinkOracle;
     ITokenRegistry public override tokenRegistry;
 
     event NewPrice(address token, uint256 price);
 
     constructor(
         address tokenRegistry_,
-        address uniswapOracle_,
-        address chainlinkOracle_,
         address weth_,
         address susd_
     ) public {
         tokenRegistry = ITokenRegistry(tokenRegistry_);
-        uniswapOracle = IProtocolOracle(uniswapOracle_);
-        chainlinkOracle = IProtocolOracle(chainlinkOracle_);
         weth = weth_;
         susd = susd_;
     }
@@ -54,14 +49,23 @@ contract EnsoOracle is IOracle {
             total = total.add(estimate);
             estimates[i + strategyItems.length] = estimate;
         }
-        if (strategy.supportsSynths()) {
-            total = total.add(int256(chainlinkOracle.consult(
+        address[] memory strategySynths = strategy.synths();
+        if (strategySynths.length > 0) {
+            // All synths rely on the chainlink oracle
+            IEstimator chainlinkEstimator = tokenRegistry.estimators(uint256(EstimatorCategory.CHAINLINK_ORACLE));
+            int256 estimate = 0;
+            for (uint256 i = 0; i < strategySynths.length; i++) {
+                estimate = estimate.add(chainlinkEstimator.estimateItem(
+                    IERC20(strategySynths[i]).balanceOf(address(strategy)),
+                    strategySynths[i]
+                ));
+            }
+            estimate = estimate.add(chainlinkEstimator.estimateItem(
                 IERC20(susd).balanceOf(address(strategy)),
                 susd
-            ))); //SUSD is never part of synths array but always included in total value
-            (uint256 estimate, ) = chainlinkOracle.estimateTotal(address(strategy), strategy.synths());
-            total = total.add(int256(estimate));
-            estimates[estimates.length - 1] = int256(estimate);
+            )); //SUSD is never part of synths array but always included in total value
+            total = total.add(estimate);
+            estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
         }
         return (uint256(total), estimates);
     }

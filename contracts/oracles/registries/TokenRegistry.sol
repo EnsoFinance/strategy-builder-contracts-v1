@@ -2,7 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../../interfaces/ITokenRegistry.sol";
+import "../../interfaces/registries/ITokenRegistry.sol";
 
 contract TokenRegistry is ITokenRegistry, Ownable {
     mapping(address => uint256) public override itemCategories;

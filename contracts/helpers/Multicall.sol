@@ -7,7 +7,7 @@ import "./RevertDebug.sol";
 /// @title Multicall - Aggregate internal calls + show revert message
 contract Multicall is RevertDebug {
     struct Call {
-        address payable target;
+        address target;
         bytes callData;
     }
 

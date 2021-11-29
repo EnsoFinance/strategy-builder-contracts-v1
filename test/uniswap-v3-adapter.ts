@@ -92,17 +92,17 @@ describe('UniswapV3Adapter', function() {
 		const tokenRegistry = await TokenRegistry.connect(owner).deploy()
 
 		const BasicEstimator = await getContractFactory('BasicEstimator')
-		const basicEstimator = await BasicEstimator.connect(owner).deploy()
+		const basicEstimator = await BasicEstimator.connect(owner).deploy(uniswapOracle.address)
 
 		const StrategyEstimator = await getContractFactory('StrategyEstimator')
 		const strategyEstimator = await StrategyEstimator.connect(owner).deploy()
 
-		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.BASIC, basicEstimator.address)
+		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, basicEstimator.address)
 		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
-		await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BASIC, weth.address)
+		await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 
 		const EnsoOracle = await getContractFactory('EnsoOracle')
-		oracle = await EnsoOracle.connect(owner).deploy(tokenRegistry.address, uniswapOracle.address, AddressZero, weth.address, AddressZero)
+		oracle = await EnsoOracle.connect(owner).deploy(tokenRegistry.address, weth.address, AddressZero)
 		await oracle.deployed()
 
 		const Whitelist = await getContractFactory('Whitelist')
@@ -220,6 +220,16 @@ describe('UniswapV3Adapter', function() {
 		const oraclePrice = await uniswapOracle.consult(WeiPerEther, tokens[1].address)
 		console.log('Oracle Price: ', oraclePrice.toString())
 		expect(price.gt(0)).to.equal(true)
+	})
+
+	it('Should check spot price', async function () {
+		const price = await adapter.spotPrice(WeiPerEther, AddressZero, weth.address)
+		expect(price.eq(0)).to.equal(true)
+	})
+
+	it('Should check spot price', async function () {
+		const price = await adapter.spotPrice(WeiPerEther, weth.address, weth.address)
+		expect(price.eq(WeiPerEther)).to.equal(true)
 	})
 
 	it('Should rebalance strategy', async function () {

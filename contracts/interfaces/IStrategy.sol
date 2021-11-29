@@ -44,7 +44,9 @@ interface IStrategy is IStrategyToken, StrategyTypes {
         address tokenOut
     ) external;
 
-    function updateTokenValue(uint256 total) external;
+    function settleSynths() external;
+
+    function updateTokenValue(uint256 total, uint256 supply) external;
 
     function updateTradeData(address item, TradeData memory data) external;
 
@@ -63,6 +65,8 @@ interface IStrategy is IStrategyToken, StrategyTypes {
     function getPercentage(address item) external view returns (int256);
 
     function getTradeData(address item) external view returns (TradeData memory);
+
+    function getPerformanceFeeOwed(address account) external view returns (uint256);
 
     function controller() external view returns (address);
 

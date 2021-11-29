@@ -18,7 +18,8 @@ export async function displayBalances(wrapper: Contract, tokens: string[], weth:
 	for (let i = 0; i < tokens.length; i++) {
 		const balance = BigNumber((await wrapper.getTokenValue(tokens[i])).toString())
 		const percent = balance.times(100).div(total)
-		console.log(`\nTOK${i} Balance: `, balance.toString())
+		console.log(`\nTOK${i}: `, tokens[i])
+		console.log(`TOK${i} Balance: `, balance.toString())
 		console.log(`TOK${i} Percent: `, `${percent.toFixed(4)}%`)
 	}
 }

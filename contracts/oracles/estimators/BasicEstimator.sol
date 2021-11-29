@@ -2,10 +2,16 @@
 pragma solidity 0.6.12;
 
 import "../../interfaces/IEstimator.sol";
-import "../../interfaces/IOracle.sol";
+import "../../interfaces/IProtocolOracle.sol";
 
 contract BasicEstimator is IEstimator {
+    IProtocolOracle public protocolOracle;
+
+    constructor(address protocolOracle_) public {
+      protocolOracle = IProtocolOracle(protocolOracle_);
+    }
+
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return int256(IOracle(msg.sender).uniswapOracle().consult(balance, token));
+        return int256(protocolOracle.consult(balance, token));
     }
 }

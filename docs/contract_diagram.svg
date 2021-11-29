@@ -498,7 +498,7 @@
 <title>9</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="2544.4235,-749.1 2544.4235,-991.5 3437.9967,-991.5 3437.9967,-749.1 2544.4235,-749.1"/>
 <text text-anchor="middle" x="2991.2101" y="-974.9" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Abstract&gt;&gt;</text>
-<text text-anchor="middle" x="2991.2101" y="-958.1" font-family="Times,serif" font-size="14.00" fill="#000000">ExchangeAdapter</text>
+<text text-anchor="middle" x="2991.2101" y="-958.1" font-family="Times,serif" font-size="14.00" fill="#000000">BaseAdapter</text>
 <polyline fill="none" stroke="#000000" points="2544.4235,-949.9 3437.9967,-949.9 "/>
 <text text-anchor="start" x="2552.4235" y="-933.3" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="2552.4235" y="-916.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;_package: bytes</text>
@@ -518,7 +518,7 @@
 <title>13</title>
 <polygon fill="#f2f2f2" stroke="#000000" points="4478.9778,-1339.3 4478.9778,-1514.5 5297.4424,-1514.5 5297.4424,-1339.3 4478.9778,-1339.3"/>
 <text text-anchor="middle" x="4888.2101" y="-1497.9" font-family="Times,serif" font-size="14.00" fill="#000000">&lt;&lt;Interface&gt;&gt;</text>
-<text text-anchor="middle" x="4888.2101" y="-1481.1" font-family="Times,serif" font-size="14.00" fill="#000000">IExchangeAdapter</text>
+<text text-anchor="middle" x="4888.2101" y="-1481.1" font-family="Times,serif" font-size="14.00" fill="#000000">IBaseAdapter</text>
 <polyline fill="none" stroke="#000000" points="4478.9778,-1472.9 5297.4424,-1472.9 "/>
 <text text-anchor="middle" x="4888.2101" y="-1456.3" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="4478.9778,-1448.1 5297.4424,-1448.1 "/>
@@ -980,7 +980,7 @@
 <text text-anchor="start" x="6777.4137" y="-343.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;FEE: uint256</text>
 <text text-anchor="start" x="6777.4137" y="-326.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;DIVISOR: uint256</text>
 <text text-anchor="start" x="6777.4137" y="-309.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;factory: address</text>
-<text text-anchor="start" x="6777.4137" y="-292.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;adapter: IExchangeAdapter</text>
+<text text-anchor="start" x="6777.4137" y="-292.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;adapter: IBaseAdapter</text>
 <polyline fill="none" stroke="#000000" points="6769.4137,-284.5 7425.0065,-284.5 "/>
 <text text-anchor="start" x="6777.4137" y="-267.9" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="6777.4137" y="-251.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_sellToken(strategy: address, tokenAddress: address, estimatedValue: uint256, total: uint256): bool</text>
@@ -1025,7 +1025,7 @@
 <text text-anchor="start" x="7450.5504" y="-368.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;FEE: uint256</text>
 <text text-anchor="start" x="7450.5504" y="-351.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;DIVISOR: uint256</text>
 <text text-anchor="start" x="7450.5504" y="-334.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;factory: address</text>
-<text text-anchor="start" x="7450.5504" y="-317.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;adapter: IExchangeAdapter</text>
+<text text-anchor="start" x="7450.5504" y="-317.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;adapter: IBaseAdapter</text>
 <polyline fill="none" stroke="#000000" points="7442.5504,-309.7 8273.8698,-309.7 "/>
 <text text-anchor="start" x="7450.5504" y="-293.1" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
 <text text-anchor="start" x="7450.5504" y="-276.3" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_pairSwap(tokenAOut: uint256, tokenBOut: uint256, tokenA: address, tokenB: address, to: address, data: bytes)</text>
@@ -1066,11 +1066,11 @@
 <text text-anchor="middle" x="4649.2101" y="-916.5" font-family="Times,serif" font-size="14.00" fill="#000000"> </text>
 <polyline fill="none" stroke="#000000" points="4194.9125,-908.3 5103.5077,-908.3 "/>
 <text text-anchor="start" x="4202.9125" y="-891.7" font-family="Times,serif" font-size="14.00" fill="#000000">Internal:</text>
-<text text-anchor="start" x="4202.9125" y="-874.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_arbitrage(amount: uint256, arbToken: IERC20, pairToken: IERC20, sellAdapter: IExchangeAdapter, buyAdapter: IExchangeAdapter)</text>
+<text text-anchor="start" x="4202.9125" y="-874.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_arbitrage(amount: uint256, arbToken: IERC20, pairToken: IERC20, sellAdapter: IBaseAdapter, buyAdapter: IBaseAdapter)</text>
 <text text-anchor="start" x="4202.9125" y="-858.1" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;_withdraw(token: IERC20)</text>
 <text text-anchor="start" x="4202.9125" y="-841.3" font-family="Times,serif" font-size="14.00" fill="#000000">External:</text>
-<text text-anchor="start" x="4202.9125" y="-824.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;arbitrageLoan(lender: address, amount: uint256, loanToken: IERC20, pairToken: IERC20, sellAdapter: IExchangeAdapter, buyAdapter: IExchangeAdapter)</text>
-<text text-anchor="start" x="4202.9125" y="-807.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;arbitrage(amount: uint256, arbToken: IERC20, pairToken: IERC20, sellAdapter: IExchangeAdapter, buyAdapter: IExchangeAdapter)</text>
+<text text-anchor="start" x="4202.9125" y="-824.5" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;arbitrageLoan(lender: address, amount: uint256, loanToken: IERC20, pairToken: IERC20, sellAdapter: IBaseAdapter, buyAdapter: IBaseAdapter)</text>
+<text text-anchor="start" x="4202.9125" y="-807.7" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;arbitrage(amount: uint256, arbToken: IERC20, pairToken: IERC20, sellAdapter: IBaseAdapter, buyAdapter: IBaseAdapter)</text>
 <text text-anchor="start" x="4202.9125" y="-790.9" font-family="Times,serif" font-size="14.00" fill="#000000"> &#160;&#160;&#160;withdraw(token: IERC20)</text>
 </g>
 <!-- 31&#45;&gt;13 -->

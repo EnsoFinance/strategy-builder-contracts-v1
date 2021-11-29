@@ -24,7 +24,14 @@ interface IStrategyController is StrategyTypes {
         bytes memory data
     ) external payable;
 
-    function withdraw(
+    function withdrawETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        bytes memory data
+    ) external;
+
+    function withdrawWETH(
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,

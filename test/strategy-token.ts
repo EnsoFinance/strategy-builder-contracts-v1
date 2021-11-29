@@ -74,7 +74,7 @@ describe('StrategyToken', function () {
 			slippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: true
 		}
 
 		amount = BigNumber.from('10000000000000000')

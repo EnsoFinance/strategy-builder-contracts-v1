@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IStrategy.sol";
-import "../interfaces/IExchangeAdapter.sol";
+import "../interfaces/IBaseAdapter.sol";
 import "../libraries/StrategyLibrary.sol";
 import "../helpers/StrategyTypes.sol";
 
@@ -178,7 +178,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
             } else {
                 tokenOut = data.path[i];
             }
-            amount = IExchangeAdapter(data.adapters[i]).spotPrice(amount, tokenIn, tokenOut);
+            amount = IBaseAdapter(data.adapters[i]).spotPrice(amount, tokenIn, tokenOut);
         }
         return amount;
     }

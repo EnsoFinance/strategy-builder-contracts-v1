@@ -8,9 +8,11 @@ export declare class Tokens {
     usdt: string;
     usdp: string;
     tusd: string;
+    usdn: string;
     link: string;
     crv: string;
     knc: string;
+    renBTC: string;
     sUSD: string;
     sEUR: string;
     sLINK: string;
@@ -24,9 +26,11 @@ export declare class Tokens {
     aDAI: string;
     aUSDC: string;
     aUSDT: string;
+    aCRV: string;
     cDAI: string;
     cUSDC: string;
     crv3: string;
+    crv3Crypto: string;
     crvUSDP: string;
     crvSUSD: string;
     crvAAVE: string;
@@ -34,6 +38,9 @@ export declare class Tokens {
     crvLINK: string;
     crvCOMP: string;
     crvY: string;
+    crvUSDN: string;
+    crvSETH: string;
+    crvREN: string;
     crv3Gauge: string;
     crvUSDPGauge: string;
     crvSUSDGauge: string;
@@ -43,6 +50,7 @@ export declare class Tokens {
     crvCOMPGauge: string;
     crvYGauge: string;
     ycrv3: string;
+    ycrv3Crypto: string;
     ycrvUSDP: string;
     yDAI: string;
     yUSDC: string;
@@ -50,6 +58,7 @@ export declare class Tokens {
     debtDAI: string;
     debtUSDC: string;
     debtWBTC: string;
+    debtWETH: string;
     constructor();
-    registerTokens(owner: SignerWithAddress, strategyFactory: Contract, curvePoolRegistry?: Contract, chainlinkOracle?: Contract): Promise<void>;
+    registerTokens(owner: SignerWithAddress, strategyFactory: Contract, curveDepositZapRegistry?: Contract, chainlinkRegistry?: Contract): Promise<void>;
 }

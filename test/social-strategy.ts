@@ -84,8 +84,6 @@ describe('StrategyController - Social', function () {
 		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		//await displayBalances(wrapper, strategyItems, weth)
-		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 

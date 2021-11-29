@@ -27,7 +27,7 @@ import {
 	deployLoopRouter,
 	deployGenericRouter
 } from '../lib/deploy'
-import { displayBalances } from '../lib/logging'
+//import { displayBalances } from '../lib/logging'
 
 const NUM_TOKENS = 15
 const STRATEGY_STATE: StrategyState = {
@@ -122,7 +122,7 @@ describe('MetaStrategyAdapter', function () {
 	})
 
 	it('Should deploy meta strategy', async function () {
-		await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		const name = 'Meta Strategy'
 		const symbol = 'META'
 		const positions = [
@@ -156,7 +156,7 @@ describe('MetaStrategyAdapter', function () {
 		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await metaWrapper.deployed()
 
-		await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 	})
 
@@ -229,34 +229,34 @@ describe('MetaStrategyAdapter', function () {
 		await uniswapAdapter
 			.connect(accounts[2])
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
-		//await displayBalances(wrapper, strategyTokens, weth)
+		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(false)
 		expect(await basicWrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should rebalance strategy: selling basic strategy tokens', async function () {
-		await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await basicStrategy.balanceOf(metaStrategy.address)
-		await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.lt(balanceBefore)).to.equal(true)
 	})
 
 	it('Should rebalance strategy: selling meta strategy tokens', async function () {
-		await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
-		await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		const balanceBefore = await metaStrategy.balanceOf(metaMetaStrategy.address)
 		const tx = await controller.connect(accounts[1]).rebalance(metaMetaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await metaStrategy.balanceOf(metaMetaStrategy.address)
-		//await displayBalances(wrapper, strategyTokens, weth)
-		await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
-		await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
+		////await displayBalances(wrapper, strategyTokens, weth)
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		expect(await metaMetaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.lt(balanceBefore)).to.equal(true)
 	})
@@ -268,7 +268,7 @@ describe('MetaStrategyAdapter', function () {
 		await uniswapAdapter
 			.connect(accounts[0])
 			.swap(value, 0, tokens[2].address, weth.address, accounts[0].address, accounts[0].address)
-		//await displayBalances(wrapper, strategyTokens, weth)
+		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(false)
 	})
 
@@ -278,9 +278,17 @@ describe('MetaStrategyAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await basicStrategy.balanceOf(metaStrategy.address)
-		//await displayBalances(wrapper, strategyTokens, weth)
+		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+	})
+
+	it('Should estimate all strategies', async function () {
+		const estimates = await oracle.estimateStrategies([basicStrategy.address, metaStrategy.address, metaMetaStrategy.address])
+		expect(estimates.length).to.equal(3)
+		estimates.forEach((estimate: BigNumber) => {
+			expect(estimate.gt(0)).to.equal(true)
+		})
 	})
 
 	it('Should check spot price', async function () {
@@ -359,13 +367,13 @@ describe('MetaStrategyAdapter', function () {
 	it('Should swap for meta token using MetaStrategyAdapter', async function () {
 		// Approve the user to use the adapter
 		const balanceBefore = await metaStrategy.balanceOf(accounts[2].address)
-		const value = WeiPerEther.mul(50)
+		const value = WeiPerEther
 		await weth.connect(accounts[2]).deposit({value: value})
 		await weth.connect(accounts[2]).approve(metaStrategyAdapter.address, value)
 		await metaStrategyAdapter
 			.connect(accounts[2])
 			.swap(value, 0, weth.address, metaStrategy.address, accounts[2].address, accounts[2].address)
-		await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
+		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		const balanceAfter = await metaStrategy.balanceOf(accounts[2].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})

@@ -16,10 +16,11 @@ contract StrategyTokenStorage is StrategyTypes {
     string internal _version;
     uint8 internal _decimals;
 
+    uint256 internal _streamingFeeRate;
     uint256 internal _lastStreamTimestamp;
     uint256 internal _lastTokenValue;
     mapping(address => uint256) internal _paidTokenValues;
-    
+
     uint256 internal _locked;
     address internal _controller;
     address internal _factory;

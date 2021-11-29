@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "../interfaces/IExchangeAdapter.sol";
+import "../interfaces/IBaseAdapter.sol";
 
 contract Arbitrager is Ownable {
     using SafeERC20 for IERC20;
@@ -14,8 +14,8 @@ contract Arbitrager is Ownable {
         uint256 amount,
         IERC20 loanToken,
         IERC20 pairToken,
-        IExchangeAdapter sellAdapter,
-        IExchangeAdapter buyAdapter
+        IBaseAdapter sellAdapter,
+        IBaseAdapter buyAdapter
     ) external {
         // Do arbitrage trades
         _arbitrage(amount, loanToken, pairToken, sellAdapter, buyAdapter);
@@ -29,8 +29,8 @@ contract Arbitrager is Ownable {
         uint256 amount,
         IERC20 arbToken,
         IERC20 pairToken,
-        IExchangeAdapter sellAdapter,
-        IExchangeAdapter buyAdapter
+        IBaseAdapter sellAdapter,
+        IBaseAdapter buyAdapter
     ) external onlyOwner {
         _arbitrage(amount, arbToken, pairToken, sellAdapter, buyAdapter);
     }
@@ -43,8 +43,8 @@ contract Arbitrager is Ownable {
         uint256 amount,
         IERC20 arbToken,
         IERC20 pairToken,
-        IExchangeAdapter sellAdapter,
-        IExchangeAdapter buyAdapter
+        IBaseAdapter sellAdapter,
+        IBaseAdapter buyAdapter
     ) internal {
         arbToken.safeApprove(address(sellAdapter), amount);
         sellAdapter.swap(

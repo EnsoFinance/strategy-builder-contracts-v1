@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for contracts/routers/StrategyRouter.sol</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">all files</a> / <a href="index.html">contracts/routers/</a> StrategyRouter.sol
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>58/58</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">95.83% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>23/24</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>6/6</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>60/60</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-yes">34×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1387×</span>
+<span class="cline-any cline-yes">1385×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5342×</span>
+<span class="cline-any cline-yes">5342×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5342×</span>
+<span class="cline-any cline-yes">5342×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">788×</span>
+<span class="cline-any cline-yes">759×</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">759×</span>
+<span class="cline-any cline-yes">759×</span>
+<span class="cline-any cline-yes">759×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">182×</span>
+<span class="cline-any cline-yes">182×</span>
+<span class="cline-any cline-yes">182×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-yes">757×</span>
+<span class="cline-any cline-yes">757×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">184×</span>
+<span class="cline-any cline-yes">184×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">941×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2885×</span>
+<span class="cline-any cline-yes">2831×</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">2831×</span>
+<span class="cline-any cline-yes">2831×</span>
+<span class="cline-any cline-yes">2831×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">297×</span>
+<span class="cline-any cline-yes">297×</span>
+<span class="cline-any cline-yes">297×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-yes">2830×</span>
+<span class="cline-any cline-yes">2830×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">298×</span>
+<span class="cline-any cline-yes">298×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3128×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">624×</span>
+<span class="cline-any cline-yes">808×</span>
+<span class="cline-any cline-yes">808×</span>
+<span class="cline-any cline-yes">808×</span>
+<span class="cline-any cline-yes">624×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">184×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">808×</span>
+<span class="cline-any cline-yes">624×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">184×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">808×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">624×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">//SPDX-License-Identifier: GPL-3.0-or-later
+pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
+&nbsp;
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../interfaces/IStrategyRouter.sol";
+import "../interfaces/IStrategy.sol";
+import "../interfaces/IBaseAdapter.sol";
+import "../libraries/StrategyLibrary.sol";
+import "../helpers/StrategyTypes.sol";
+&nbsp;
+abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
+    using SafeMath for uint256;
+    using SignedSafeMath for int256;
+    using SafeERC20 for IERC20;
+&nbsp;
+    uint256 internal constant DIVISOR = 1000;
+&nbsp;
+    RouterCategory public override category;
+    IStrategyController public override controller;
+    address public weth;
+&nbsp;
+    constructor(RouterCategory category_, address controller_) public {
+        category = category_;
+        controller = IStrategyController(controller_);
+        weth = controller.oracle().weth();
+    }
+&nbsp;
+    /**
+     * @dev Throws if called by any account other than the controller.
+     */
+    modifier onlyController() {
+        require(address(controller) == msg.sender, "Only controller");
+        _;
+    }
+&nbsp;
+    // Abstract external functions to be defined by inheritor
+    function deposit(address strategy, bytes calldata data) external virtual override;
+&nbsp;
+    function withdraw(address strategy, bytes calldata data) external virtual override;
+&nbsp;
+    function rebalance(address strategy, bytes calldata data) external virtual override;
+&nbsp;
+    function restructure(address strategy, bytes calldata data) external virtual override;
+&nbsp;
+    function _delegateSwap(
+        address adapter,
+        uint256 amount,
+        uint256 expected,
+        address tokenIn,
+        address tokenOut,
+        address from,
+        address to
+    ) internal returns (bool success) {
+        <span class="missing-if-branch" title="else path not taken" >E</span>require(controller.whitelist().approved(adapter), "Not approved");
+        bytes memory swapData =
+            abi.encodeWithSelector(
+                bytes4(
+                    keccak256("swap(uint256,uint256,address,address,address,address)")
+                ),
+                amount,
+                expected,
+                tokenIn,
+                tokenOut,
+                from,
+                to
+            );
+        uint256 txGas = gasleft();
+        assembly {
+            success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
+        }
+    }
+&nbsp;
+    function _sellPath(
+        TradeData memory data,
+        uint256 amount,
+        address token,
+        address strategy
+    ) internal {
+        if (amount &gt; 0) {
+            for (int256 i = int256(data.adapters.length-1); i &gt;= 0; i--) { //this doesn't work with uint256?? wtf solidity
+                uint256 _amount;
+                address _tokenIn;
+                address _tokenOut;
+                address _from;
+                address _to;
+                if (uint256(i) == data.adapters.length-1) {
+                    _tokenIn = token;
+                    _amount = amount;
+                    _from = strategy;
+                } else {
+                    _tokenIn = data.path[uint256(i)];
+                    _from = address(this);
+                    _amount = IERC20(_tokenIn).balanceOf(_from);
+                }
+                if (uint256(i) == 0) {
+                    _tokenOut = weth;
+                    _to = strategy;
+                } else {
+                    _tokenOut = data.path[uint256(i-1)];
+                    _to = address(this);
+                }
+                require(
+                    _delegateSwap(
+                        data.adapters[uint256(i)],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
+                    ),
+                    "Swap failed"
+                );
+            }
+        }
+    }
+&nbsp;
+    function _buyPath(
+        TradeData memory data,
+        uint256 amount,
+        address token,
+        address strategy,
+        address from
+    ) internal {
+        if (amount &gt; 0) {
+            for (uint256 i = 0; i &lt; data.adapters.length; i++) {
+                uint256 _amount;
+                address _tokenIn;
+                address _tokenOut;
+                address _from;
+                address _to;
+                if (i == 0) {
+                    _tokenIn = weth;
+                    _amount = amount;
+                    _from = from;
+                } else {
+                    _tokenIn = data.path[i-1];
+                    _from = address(this);
+                    _amount = IERC20(_tokenIn).balanceOf(_from);
+                }
+                if (i == data.adapters.length-1) {
+                    _tokenOut = token;
+                    _to = strategy;
+                } else {
+                    _tokenOut = data.path[i];
+                    _to = address(this);
+                }
+                require(
+                    _delegateSwap(
+                        data.adapters[i],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
+                    ),
+                    "Swap failed"
+                );
+            }
+        }
+    }
+&nbsp;
+    function _pathPrice(TradeData memory data, uint256 amount, address token) internal view returns (uint256){
+        for (uint256 i = 0; i &lt; data.adapters.length; i++) {
+            address tokenIn;
+            address tokenOut;
+            if (i == 0) {
+                tokenIn = weth;
+            } else {
+                tokenIn = data.path[i-1];
+            }
+            if (i == data.adapters.length-1) {
+                tokenOut = token;
+            } else {
+                tokenOut = data.path[i];
+            }
+            amount = IBaseAdapter(data.adapters[i]).spotPrice(amount, tokenIn, tokenOut);
+        }
+        return amount;
+    }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Fri Nov 12 2021 10:44:37 GMT-0800 (Pacific Standard Time)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

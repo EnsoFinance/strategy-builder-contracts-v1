@@ -4,7 +4,26 @@ pragma solidity >=0.6.0 <0.9.0;
 interface StrategyTypes {
 
     enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE}
-    enum EstimatorCategory {BASIC, STRATEGY, SYNTH, COMPOUND, AAVE, AAVE_DEBT, YEARN_V1, YEARN_V2, CURVE, CURVE_GAUGE, BALANCER, UNISWAP_V2, UNISWAP_V3, SUSHI, SUSHI_FARM, BLOCKED}
+    enum EstimatorCategory {
+      DEFAULT_ORACLE,
+      CHAINLINK_ORACLE,
+      UNISWAP_TWAP_ORACLE,
+      SUSHI_TWAP_ORACLE,
+      STRATEGY,
+      BLOCKED,
+      AAVE,
+      AAVE_DEBT,
+      BALANCER,
+      COMPOUND,
+      CURVE,
+      CURVE_GAUGE,
+      SUSHI_LP,
+      SUSHI_FARM,
+      UNISWAP_V2_LP,
+      UNISWAP_V3_LP,
+      YEARN_V1,
+      YEARN_V2
+    }
     enum TimelockCategory {RESTRUCTURE, THRESHOLD, SLIPPAGE, TIMELOCK, PERFORMANCE}
 
     struct StrategyItem {

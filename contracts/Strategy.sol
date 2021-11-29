@@ -15,8 +15,18 @@ import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
+import "./interfaces/synthetix/IExchanger.sol";
+import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
+
+interface ISynthetixAddressResolver {
+    function getAddress(bytes32 name) external returns (address);
+}
+
+interface IAaveAddressResolver {
+    function getLendingPool() external returns (address);
+}
 
 /**
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
@@ -27,14 +37,20 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    IDelegateApprovals private constant SYNTH_DELEGATE = IDelegateApprovals(0x15fd6e554874B9e70F832Ed37f231Ac5E142362f);
-    ILendingPool private constant AAVE_LENDING_POOL = ILendingPool(0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9);
+    ISynthetixAddressResolver private constant SYNTH_RESOLVER = ISynthetixAddressResolver(0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83);
+    IAaveAddressResolver private constant AAVE_RESOLVER = IAaveAddressResolver(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
     uint256 public constant WITHDRAWAL_FEE = 2*10**15; // 0.2% per withdraw
-    uint256 public constant STREAM_FEE = 10**16; //uint256(10**34)/(uint256(10**18)-uint256(10**16)); // 1% per year
+    uint256 public constant STREAM_FEE = uint256(10**34)/uint256(10**18-10**16); // 0.1% yearly inflation
     uint256 private constant YEAR = 365 days;
     uint256 private constant DIVISOR = 1000;
 
+
     event Withdraw(uint256 amount, uint256[] amounts);
+    event UpdateManager(address manager);
+    event UpdateSigner(address signer, bool added);
+    event PerformanceFee(address account, uint256 amount);
+    event WithdrawalFee(address account, uint256 amount);
+    event StreamingFee(uint256 amount);
 
     // Initialize constructor to disable implementation
     constructor() public initializer {}
@@ -80,6 +96,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         return true;
     }
 
+    /**
+     * @notice Strategy gives a token approval to another account. Only called by controller
+     * @param token The address of the ERC-20 token
+     * @param account The address of the account to be approved
+     * @param amount The amount to be approved
+     */
     function approveToken(
         address token,
         address account,
@@ -88,6 +110,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         IERC20(token).safeApprove(account, amount);
     }
 
+    /**
+     * @notice Strategy approves another account to take out debt. Only called by controller
+     * @param token The address of the Aave DebtToken
+     * @param account The address of the account to be approved
+     * @param amount The amount to be approved
+     */
     function approveDebt(
         address token,
         address account,
@@ -96,15 +124,21 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         IDebtToken(token).approveDelegation(account, amount);
     }
 
+    /**
+     * @notice Strategy gives approves another account to trade its Synths. Only called by controller
+     * @param account The address of the account to be approved
+     * @param amount The amount to be approved (in this case its a binary choice -- 0 removes approval)
+     */
     function approveSynths(
         address account,
         uint256 amount
     ) external override onlyController {
         IERC20(oracle().susd()).safeApprove(account, amount);
+        IDelegateApprovals delegateApprovals = IDelegateApprovals(SYNTH_RESOLVER.getAddress("DelegateApprovals"));
         if (amount == 0) {
-            SYNTH_DELEGATE.removeExchangeOnBehalf(account);
+            delegateApprovals.removeExchangeOnBehalf(account);
         } else {
-            SYNTH_DELEGATE.approveExchangeOnBehalf(account);
+            delegateApprovals.approveExchangeOnBehalf(account);
         }
     }
 
@@ -122,7 +156,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
 
     function setCollateral(address token) external override {
         _onlyApproved(msg.sender);
-        AAVE_LENDING_POOL.setUserUseReserveAsCollateral(token, true);
+        ILendingPool(AAVE_RESOLVER.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
     /**
@@ -133,10 +167,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _setLock();
         require(_debt.length == 0, "Cannot withdraw debt");
         require(amount > 0, "0 amount");
-        amount = _deductWithdrawalFee(msg.sender, amount);
-        uint256 percentage = amount.mul(10**18).div(_totalSupply);
-        // Burn strategy tokens
-        _burn(msg.sender, amount);
+        settleSynths();
+        uint256 percentage;
+        {
+            // Deduct withdrawal fee, burn tokens, and calculate percentage
+            uint256 totalSupplyBefore = _totalSupply; // Need to get total supply before burn to properly calculate percentage
+            amount = _deductFeeAndBurn(msg.sender, amount);
+            percentage = amount.mul(10**18).div(totalSupplyBefore);
+        }
         // Withdraw funds
         IOracle o = oracle();
         uint256 numTokens = supportsSynths() ? _items.length + _synths.length + 2 : _items.length + 1;
@@ -150,17 +188,17 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
             tokens[i] = token;
         }
         if (supportsSynths()) {
-          for (uint256 i = _items.length; i < numTokens; i ++) {
-              IERC20 synth = IERC20(_synths[i - _items.length]);
-              uint256 currentBalance = synth.balanceOf(address(this));
-              amounts[i] = currentBalance.mul(percentage).div(10**18);
-              tokens[i] = synth;
-          }
-          // Include SUSD
-          IERC20 susd = IERC20(o.susd());
-          uint256 susdBalance = susd.balanceOf(address(this));
-          amounts[numTokens - 2] = susdBalance.mul(percentage).div(10**18);
-          tokens[numTokens - 2] = susd;
+            for (uint256 i = _items.length; i < numTokens - 2; i ++) {
+                IERC20 synth = IERC20(_synths[i - _items.length]);
+                uint256 currentBalance = synth.balanceOf(address(this));
+                amounts[i] = currentBalance.mul(percentage).div(10**18);
+                tokens[i] = synth;
+            }
+            // Include SUSD
+            IERC20 susd = IERC20(o.susd());
+            uint256 susdBalance = susd.balanceOf(address(this));
+            amounts[numTokens - 2] = susdBalance.mul(percentage).div(10**18);
+            tokens[numTokens - 2] = susd;
         }
         // Include WETH
         IERC20 weth = IERC20(o.weth());
@@ -175,6 +213,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _removeLock();
     }
 
+    /**
+     * @notice Withdraws the performance fee to the manager and the fee pool
+     * @param holders An array of accounts that will have the performance fees removed
+     */
     function withdrawPerformanceFee(address[] memory holders) external {
         _setLock();
         _onlyManager();
@@ -187,13 +229,22 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         }
         require(amount > 0, "No earnings");
         _distributePerformanceFee(pool, amount);
+        _updateStreamingFeeRate(pool);
         _removeLock();
     }
 
+    /**
+     * @notice Withdraws the streaming fee to the fee pool
+     */
     function withdrawStreamingFee() external override {
         _issueStreamingFee(IStrategyProxyFactory(_factory).pool());
     }
 
+    /**
+     * @notice Mint new tokens. Only callable by controller
+     * @param account The address of the account getting new tokens
+     * @param amount The amount of tokens being minted
+     */
     function mint(address account, uint256 amount) external override onlyController {
         //Assumes updateTokenValue has been called
         address pool = IStrategyProxyFactory(_factory).pool();
@@ -204,17 +255,25 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         );
         if (fee > 0) _distributePerformanceFee(pool, fee);
         _mint(account, amount);
+        _updateStreamingFeeRate(pool);
         _paidTokenValues[account] = _lastTokenValue;
     }
 
+    /**
+     * @notice Burn tokens. Only callable by controller
+     * @param account The address of the account getting tokens removed
+     * @param amount The amount of tokens being burned
+     */
     function burn(address account, uint256 amount) external override onlyController returns (uint256){
-        amount = _deductWithdrawalFee(account, amount);
-        _burn(account, amount);
-        return amount;
+        return _deductFeeAndBurn(account, amount);
     }
 
-    /*
-     *
+    /**
+     * @notice Swap tokens directly from this contract using a delegate call to an adapter. Only callable by controller
+     * @param adapter The address of the adapter that this function does a delegate call to. It must support the IBaseAdapter interface and be whitelisted
+     * @param amount The amount of tokenIn tokens that are being exchanged
+     * @param tokenIn The address of the token that is being sent
+     * @param tokenOut The address of the token that is being received
      */
     function delegateSwap(
         address adapter,
@@ -222,7 +281,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         address tokenIn,
         address tokenOut
     ) external override onlyController {
-        // Note: No reentrancy lock since only callable by _settleSynths function in controller which already locks
+        // Note: No reentrancy lock since only callable by repositionSynths function in controller which already locks
         _onlyApproved(adapter);
         bytes memory swapData =
             abi.encodeWithSelector(
@@ -244,6 +303,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         require(success, "Swap failed");
     }
 
+    /**
+     * @notice Claim rewards using a delegate call to an adapter
+     * @param adapter The address of the adapter that this function does a delegate call to. It must support the IRewardsAdapter interface and be whitelisted
+     * @param token The address of the token being claimed
+     */
     function delegateClaimRewards(address adapter, address token) external {
         _setLock();
         _onlyManager();
@@ -262,13 +326,35 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         _removeLock();
     }
 
-    function updateTokenValue() public {
-        (uint256 total, ) = oracle().estimateStrategy(this);
-        _setTokenValue(total);
+    /**
+     * @notice Settle the amount held for each Synth after an exchange has occured and the oracles have resolved a price
+     */
+    function settleSynths() public override {
+        if (supportsSynths()) {
+            IExchanger exchanger = IExchanger(SYNTH_RESOLVER.getAddress("Exchanger"));
+            IIssuer issuer = IIssuer(SYNTH_RESOLVER.getAddress("Issuer"));
+            exchanger.settle(address(this), "sUSD");
+            for (uint256 i = 0; i < _synths.length; i++) {
+                exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
+            }
+        }
     }
 
-    function updateTokenValue(uint256 total) external override onlyController {
-        _setTokenValue(total);
+    /**
+     * @notice Update the per token value based on the most recent strategy value.
+     */
+    function updateTokenValue() public {
+        (uint256 total, ) = oracle().estimateStrategy(this);
+        _setTokenValue(total, _totalSupply);
+    }
+
+    /**
+     * @notice Update the per token value based on the most recent strategy value. Only callable by controller
+     * @param total The current total value of the strategy in WETH
+     * @param supply The new supply of the token (updateTokenValue needs to be called before mint, so the new supply has to be passed in)
+     */
+    function updateTokenValue(uint256 total, uint256 supply) external override onlyController {
+        _setTokenValue(total, supply);
     }
 
     /**
@@ -277,11 +363,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
     function updateManager(address newManager) external override {
         _onlyManager();
         _manager = newManager;
+        emit UpdateManager(newManager);
     }
 
     function updateSigner(address signer, bool add) external {
         _onlyManager();
         _signers[signer] = add ? 1 : 0;
+        emit UpdateSigner(signer, add);
     }
 
     /**
@@ -333,6 +421,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         return _tradeData[item];
     }
 
+    function getPerformanceFeeOwed(address account) external view override returns (uint256) {
+        return _getPerformanceFee(account);
+    }
+
     function controller() external view override returns (address) {
         return _controller;
     }
@@ -354,21 +446,16 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
     }
 
     function balanceOf(address account) external view override(StrategyToken, IERC20NonStandard) returns (uint256) {
-        uint256 balance = _balances[account];
-        if (balance == 0) return 0;
-        if (account == IStrategyProxyFactory(_factory).pool()) return balance;
-        if (_lastTokenValue > _paidTokenValues[account])
-            return balance.sub(_calcPerformanceFee(
-                balance,
-                _paidTokenValues[account],
-                _lastTokenValue,
-                IStrategyController(_controller).performanceFee(address(this)))
-            );
-        return balance;
+        uint256 performanceFee = _getPerformanceFee(account);
+        return _balances[account].sub(performanceFee);
     }
 
-    function _setTokenValue(uint256 total) internal {
-        if(_totalSupply > 0) _lastTokenValue = total.mul(10**18).div(_totalSupply);
+    function lastTokenValue() external view returns (uint256) {
+        return _lastTokenValue;
+    }
+
+    function paidTokenValue(address account) external view returns (uint256) {
+        return _paidTokenValues[account];
     }
 
     function _setDomainSeperator() internal {
@@ -398,14 +485,22 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         // Remove old percentages
         delete _percentage[weth];
         delete _percentage[susd];
+        delete _percentage[address(-1)];
         for (uint256 i = 0; i < _items.length; i++) {
             delete _percentage[_items[i]];
+        }
+        for (uint256 i = 0; i < _debt.length; i++) {
+            delete _percentage[_debt[i]];
+        }
+        for (uint256 i = 0; i < _synths.length; i++) {
+            delete _percentage[_synths[i]];
         }
         delete _debt;
         delete _items;
         delete _synths;
 
         // Set new structure
+
         int256 virtualPercentage = 0;
         //Set new items
         for (uint256 i = 0; i < newItems.length; i++) {
@@ -432,35 +527,77 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         }
     }
 
+    /**
+     * @notice Sets the new _lastTokenValue based on the total price and token supply
+     */
+    function _setTokenValue(uint256 total, uint256 supply) internal {
+        if (supply > 0) _lastTokenValue = total.mul(10**18).div(supply);
+    }
+
+    /**
+     * @notice Called any time there is a transfer to settle the performance and streaming fees
+     */
     function _handleFees(address sender, address recipient) internal override {
-        // Streaming fee
+        // Get fee pool
         address pool = IStrategyProxyFactory(_factory).pool();
+        // Streaming fee
         _issueStreamingFee(pool);
         // Performance fees
         uint256 performanceFee = IStrategyController(_controller).performanceFee(address(this));
         uint256 amount = _deductPerformanceFee(sender, pool, performanceFee);
         amount = amount.add(_deductPerformanceFee(recipient, pool, performanceFee));
-        if (amount > 0) _distributePerformanceFee(pool, amount);
-    }
-
-    function _issueStreamingFee(address pool) internal {
-        uint256 timePassed = block.timestamp.sub(_lastStreamTimestamp);
-        if (timePassed > 0) {
-            uint256 feePercent = uint256(10**36).div(uint256(10**18).sub(STREAM_FEE.mul(timePassed).div(YEAR))).sub(10**18);
-            uint256 amountToMint = _totalSupply.mul(feePercent).div(10**18);
-            _mint(pool, amountToMint);
-            _lastStreamTimestamp = block.timestamp;
+        if (amount > 0) {
+            _distributePerformanceFee(pool, amount);
+            _updateStreamingFeeRate(pool);
         }
     }
 
-    function _deductWithdrawalFee(address account, uint256 amount) internal returns (uint256) {
+    /**
+     * @notice Sets the new _streamingFeeRate which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
+     */
+    function _updateStreamingFeeRate(address pool) internal {
+        _streamingFeeRate = _totalSupply.sub(_balances[pool]).mul(STREAM_FEE);
+    }
+
+    /**
+     * @notice Mints new tokens to cover the streaming fee based on the time passed since last payment and the current streaming fee rate
+     */
+    function _issueStreamingFee(address pool) internal {
+        uint256 timePassed = block.timestamp.sub(_lastStreamTimestamp);
+        if (timePassed > 0) {
+            uint256 amountToMint = _streamingFeeRate.mul(timePassed).div(YEAR).div(10**18);
+            _mint(pool, amountToMint);
+            // Note: No need to update _streamingFeeRate as the change in totalSupply and pool balance are equal, causing no change in rate
+            _lastStreamTimestamp = block.timestamp;
+            emit StreamingFee(amountToMint);
+        }
+    }
+
+    /**
+     * @notice Deduct withdrawal fee and burn remaining tokens. Returns the amount of tokens that have been burned
+     */
+    function _deductFeeAndBurn(address account, uint256 amount) internal returns (uint256) {
         address pool = IStrategyProxyFactory(_factory).pool();
+        amount = _deductWithdrawalFee(account, pool, amount);
+        _burn(account, amount);
+        _updateStreamingFeeRate(pool);
+        return amount;
+    }
+
+    /**
+     * @notice Deducts the withdrawal fee and returns the remaining token amount
+     */
+    function _deductWithdrawalFee(address account, address pool, uint256 amount) internal returns (uint256) {
         if (account == pool) return amount;
         uint256 fee = amount.mul(WITHDRAWAL_FEE).div(10**18);
         _transfer(account, pool, fee);
+        emit WithdrawalFee(account, fee);
         return amount.sub(fee);
     }
 
+    /**
+     * @notice Deducts the performance fee from the account balance and returns the amount deducted
+     */
     function _deductPerformanceFee(address account, address pool, uint256 performanceFee) internal returns (uint256){
         if (account == pool) return 0;
         uint256 paidTokenValue = _paidTokenValues[account];
@@ -474,12 +611,16 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
               _paidTokenValues[account] = _lastTokenValue;
               _balances[account] = balance.sub(amount);
               emit Transfer(account, _manager, amount);
+              emit PerformanceFee(account, amount);
               return amount;
             }
         }
         return 0;
     }
 
+    /**
+     * @notice Distributes performance fees that have already been deducted by _deductPerformanceFee and sends them to the manager and fee pool
+     */
     function _distributePerformanceFee(address pool, uint256 amount) internal {
         uint256 poolAmount = amount.mul(300).div(DIVISOR);
         _balances[_manager] = _balances[_manager].add(amount.sub(poolAmount));
@@ -487,9 +628,29 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         emit Transfer(_manager, pool, poolAmount);
     }
 
-    function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 performanceFee) internal pure returns (uint256){
+    /**
+     * @notice Returns the current amount of performance fees owed by the account
+     */
+    function _getPerformanceFee(address account) internal view returns (uint256) {
+        if (_balances[account] > 0) {
+          if (account == IStrategyProxyFactory(_factory).pool()) return 0;
+          if (_lastTokenValue > _paidTokenValues[account])
+              return _calcPerformanceFee(
+                  _balances[account],
+                  _paidTokenValues[account],
+                  _lastTokenValue,
+                  IStrategyController(_controller).performanceFee(address(this))
+              );
+        }
+        return 0;
+    }
+
+    /**
+     * @notice Calculated performance fee based on the current token value and the amount the user has already paid for
+     */
+    function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 performanceFee) internal pure returns (uint256) {
         uint256 diff = tokenValue.sub(paidTokenValue);
-        return balance.mul(diff).mul(performanceFee).div(DIVISOR).div(10**18);
+        return balance.mul(diff).mul(performanceFee).div(DIVISOR).div(tokenValue);
     }
 
     /**

@@ -73,7 +73,8 @@ function displayBalances(wrapper, tokens, weth) {
                 case 5:
                     balance = _c.apply(void 0, [(_d.sent()).toString()]);
                     percent = balance.times(100).div(total);
-                    console.log("\nTOK" + i + " Balance: ", balance.toString());
+                    console.log("\nTOK" + i + ": ", tokens[i]);
+                    console.log("TOK" + i + " Balance: ", balance.toString());
                     console.log("TOK" + i + " Percent: ", percent.toFixed(4) + "%");
                     _d.label = 6;
                 case 6:

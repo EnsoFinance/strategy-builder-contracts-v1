@@ -8,16 +8,16 @@ async function main() {
   const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
   const factory = await StrategyProxyFactory.attach(deployedContracts['StrategyProxyFactory'])
 
-  const ChainlinkOracle = await hre.ethers.getContractFactory('ChainlinkOracle')
-  const chainlinkOracle = await ChainlinkOracle.attach(deployedContracts['ChainlinkOracle'])
+  const ChainlinkRegistry = await hre.ethers.getContractFactory('ChainlinkRegistry')
+  const chainlinkRegistry = await ChainlinkRegistry.attach(deployedContracts['ChainlinkRegistry'])
 
-  const CurvePoolRegistry = await hre.ethers.getContractFactory('CurvePoolRegistry')
-  const curveRegistry = await CurvePoolRegistry.attach(deployedContracts['CurvePoolRegistry'])
+  const CurveDepositZapRegistry = await hre.ethers.getContractFactory('CurveDepositZapRegistry')
+  const curveRegistry = await CurveDepositZapRegistry.attach(deployedContracts['CurveDepositZapRegistry'])
 
   const accounts = await hre.ethers.getSigners()
   const tokens = new Tokens()
   console.log("Registering tokens...")
-  await tokens.registerTokens(accounts[0], factory, curveRegistry, chainlinkOracle)
+  await tokens.registerTokens(accounts[0], factory, curveRegistry, chainlinkRegistry)
   console.log("Tokens registered")
 }
 
