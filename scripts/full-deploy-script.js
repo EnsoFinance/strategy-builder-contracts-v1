@@ -10,36 +10,38 @@ const fs = require('fs')
 const network = process.env.HARDHAT_NETWORK
 
 const deployedContracts = {
-  mainnet: {
-    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-    aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
-    synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+	mainnet: {
+		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+		synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-    ensoPool: ''
-  },
-  localhost: {
-    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-    aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
-    synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+		ensoPool: '',
+	},
+	localhost: {
+		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+		synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-    ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b' // template address
-  },
-  kovan: {
-    weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
-    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-    usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
-    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-    aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
-    synthetixAddressResolver: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
+		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b', // template address
+	},
+	kovan: {
+		weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
+		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+		usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
+		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
+		synthetixAddressResolver: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
 		compoundComptroller: '',
-    ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b'
-  },
+		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b',
+	},
 }
 
 async function main() {
@@ -62,13 +64,13 @@ async function main() {
 
 	add2Deployments('CurveDepositZapRegistry', curveDepositZapRegistry.address)
 
-  const ChainlinkRegistry = await hre.ethers.getContractFactory('ChainlinkRegistry')
+	const ChainlinkRegistry = await hre.ethers.getContractFactory('ChainlinkRegistry')
 	const chainlinkRegistry = await ChainlinkRegistry.deploy()
 	await chainlinkRegistry.deployed()
 
 	add2Deployments('ChainlinkRegistry', chainlinkRegistry.address)
 
-  // Add oracles
+	// Add oracles
 	const UniswapOracle = await hre.ethers.getContractFactory('UniswapNaiveOracle')
 	const uniswapOracle = await UniswapOracle.deploy(
 		deployedContracts[network].uniswapFactory,
@@ -136,7 +138,7 @@ async function main() {
 	add2Deployments('CompoundEstimator', compoundEstimator.address)
 
 	const CurveEstimator = await hre.ethers.getContractFactory('CurveEstimator')
-	const curveEstimator = await CurveEstimator.deploy(curveDepositZapRegistry.address)
+	const curveEstimator = await CurveEstimator.deploy()
 	await curveEstimator.deployed()
 	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)
 	await tx.wait()
@@ -169,8 +171,9 @@ async function main() {
 
 	const UniswapV2Estimator = await hre.ethers.getContractFactory('UniswapV2Estimator')
 	const uniswapV2Estimator = await UniswapV2Estimator.deploy()
+
 	await uniswapV2Estimator.deployed()
-	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2, uniswapV2Estimator.address)
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2Estimator.address)
 	await tx.wait()
 
 	add2Deployments('UniswapV2Estimator', uniswapV2Estimator.address)
@@ -183,9 +186,17 @@ async function main() {
 
 	add2Deployments('YEarnV2Estimator', yearnV2Estimator.address)
 
-	tx = await tokenRegistry.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BASIC, deployedContracts[network].weth)
+	tx = await tokenRegistry.addItem(
+		ITEM_CATEGORY.RESERVE,
+		ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+		deployedContracts[network].weth
+	)
 	await tx.wait()
-	tx = await tokenRegistry.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.SYNTH, deployedContracts[network].susd)
+	tx = await tokenRegistry.addItem(
+		ITEM_CATEGORY.RESERVE,
+		ESTIMATOR_CATEGORY.CHAINLINK_ORACLE,
+		deployedContracts[network].susd
+	)
 	await tx.wait()
 
 	const Whitelist = await hre.ethers.getContractFactory('Whitelist')
@@ -242,7 +253,7 @@ async function main() {
 	await tx.wait()
 
 	const FullRouter = await hre.ethers.getContractFactory('FullRouter')
-	const fullRouter = await FullRouter.deploy(controllerAddress)
+	const fullRouter = await FullRouter.deploy(deployedContracts[network].aaveAddressProvider, controllerAddress)
 	await fullRouter.deployed()
 
 	add2Deployments('FullRouter', fullRouter.address)
@@ -315,7 +326,11 @@ async function main() {
 	await tx.wait()
 
 	const CurveLPAdapter = await hre.ethers.getContractFactory('CurveLPAdapter')
-	const curveLPAdapter = await CurveLPAdapter.deploy(curveDepositZapRegistry.address, deployedContracts[network].weth)
+	const curveLPAdapter = await CurveLPAdapter.deploy(
+		deployedContracts[network].curveAddressProvider,
+		curveDepositZapRegistry.address,
+		deployedContracts[network].weth
+	)
 	await curveLPAdapter.deployed()
 
 	add2Deployments('CurveLPAdapter', curveLPAdapter.address)
@@ -361,7 +376,10 @@ async function main() {
 	await tx.wait()
 
 	const CompoundAdapter = await hre.ethers.getContractFactory('CompoundAdapter')
-	const compoundAdapter = await CompoundAdapter.deploy(deployedContracts[network].compoundComptroller, deployedContracts[network].weth)
+	const compoundAdapter = await CompoundAdapter.deploy(
+		deployedContracts[network].compoundComptroller,
+		deployedContracts[network].weth
+	)
 	await compoundAdapter.deployed()
 
 	add2Deployments('CompoundAdapter', compoundAdapter.address)
@@ -379,19 +397,19 @@ async function main() {
 	await tx.wait()
 
 	const Leverage2XAdapter = await hre.ethers.getContractFactory('Leverage2XAdapter')
-  const leverageAdapter = await Leverage2XAdapter.deploy(
-    uniswapV2Adapter.address,
-    aaveLendAdapter.address,
-    aaveBorrowAdapter.address,
-    deployedContracts[process.env.HARDHAT_NETWORK].usdc,
-    deployedContracts[process.env.HARDHAT_NETWORK].weth
-  )
-  await leverageAdapter.deployed()
+	const leverageAdapter = await Leverage2XAdapter.deploy(
+		uniswapV2Adapter.address,
+		aaveLendAdapter.address,
+		aaveBorrowAdapter.address,
+		deployedContracts[process.env.HARDHAT_NETWORK].usdc,
+		deployedContracts[process.env.HARDHAT_NETWORK].weth
+	)
+	await leverageAdapter.deployed()
 
-  add2Deployments('Leverage2XAdapter', leverageAdapter.address)
+	add2Deployments('Leverage2XAdapter', leverageAdapter.address)
 
-  tx = await whitelist.approve(leverageAdapter.address)
-  await tx.wait()
+	tx = await whitelist.approve(leverageAdapter.address)
+	await tx.wait()
 
 	write2File()
 }

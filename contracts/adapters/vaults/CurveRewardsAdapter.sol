@@ -64,7 +64,7 @@ contract CurveRewardsAdapter is BaseAdapter, IRewardsAdapter {
     }
 
     // Intended to be called via delegateCall
-    function claim(address token) public override {
+    function claim(address token) external override {
         ICurveGauge gauge = ICurveGauge(token);
         gauge.claim_rewards(address(this));
     }
