@@ -317,7 +317,7 @@ async function main() {
 	await tx.wait()
 
 	const CurveAdapter = await hre.ethers.getContractFactory('CurveAdapter')
-	const curveAdapter = await CurveAdapter.deploy(curveDepositZapRegistry.address, deployedContracts[network].weth)
+	const curveAdapter = await CurveAdapter.deploy(deployedContracts[network].curveAddressProvider, deployedContracts[network].weth)
 	await curveAdapter.deployed()
 
 	add2Deployments('CurveAdapter', curveAdapter.address)
@@ -340,7 +340,7 @@ async function main() {
 
 	const CurveRewardsAdapter = await hre.ethers.getContractFactory('CurveRewardsAdapter')
 	const curveRewardsAdapter = await CurveRewardsAdapter.deploy(
-		curveDepositZapRegistry.address,
+		deployedContracts[network].curveAddressProvider,
 		deployedContracts[network].weth
 	)
 	await curveRewardsAdapter.deployed()
