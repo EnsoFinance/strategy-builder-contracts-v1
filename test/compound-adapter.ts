@@ -15,7 +15,7 @@ import {
 	deployLoopRouter
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES } from '../lib/utils'
-//import { displayBalances } from '../lib/logging'
+// import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -24,7 +24,7 @@ chai.use(solidity)
 
 describe('CompoundAdapter', function () {
 	let	weth: Contract,
-		dai: Contract,
+		usdc: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
@@ -43,7 +43,7 @@ describe('CompoundAdapter', function () {
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
-		dai = new Contract(tokens.dai, ERC20.abi, accounts[0])
+		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
 		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
 		controller = platform.controller
@@ -62,13 +62,13 @@ describe('CompoundAdapter', function () {
 	})
 
 	it('Should deploy strategy', async function () {
-		cToken = tokens.cDAI
+		cToken = tokens.cUSDC
 
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.dai] }
+			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdc] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: StrategyState = {
@@ -105,7 +105,7 @@ describe('CompoundAdapter', function () {
 		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -116,9 +116,9 @@ describe('CompoundAdapter', function () {
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
-			.swap(value, 0, weth.address, dai.address, accounts[19].address, accounts[19].address)
+			.swap(value, 0, weth.address, usdc.address, accounts[19].address, accounts[19].address)
 
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
@@ -126,17 +126,17 @@ describe('CompoundAdapter', function () {
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = await dai.balanceOf(accounts[19].address)
-		await dai.connect(accounts[19]).approve(uniswapAdapter.address, value)
+		const value = await usdc.balanceOf(accounts[19].address)
+		await usdc.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
-			.swap(value, 0, dai.address, weth.address, accounts[19].address, accounts[19].address)
+			.swap(value, 0, usdc.address, weth.address, accounts[19].address, accounts[19].address)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -155,22 +155,22 @@ describe('CompoundAdapter', function () {
 	})
 
 	it('Should check spot price (deposit)', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.dai, tokens.cDAI)
+		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.usdc, tokens.cUSDC)
 		expect(price.gt(0)).to.equal(true)
 	})
 
 	it('Should check spot price (withdraw)', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cDAI, tokens.dai)
+		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cUSDC, tokens.usdc)
 		expect(price.gt(0)).to.equal(true)
 	})
 
 	it('Should check spot price: same', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cDAI, tokens.cDAI)
+		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cUSDC, tokens.cUSDC)
 		expect(price.eq(WeiPerEther)).to.equal(true)
 	})
 
 	it('Should check spot price: zero', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.dai, weth.address)
+		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.usdc, weth.address)
 		expect(price.eq(0)).to.equal(true)
 	})
 })

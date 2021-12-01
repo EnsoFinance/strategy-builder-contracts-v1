@@ -6,7 +6,6 @@ import "../BaseAdapter.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
-import "../../interfaces/IERC20NonStandard.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
@@ -29,11 +28,11 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
         if (_checkCToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);
             if (cToken.underlying() == tokenIn)
-                return amount.mul(10**uint256(IERC20NonStandard(tokenIn).decimals())).div(cToken.exchangeRateStored());
+                return amount.mul(10**18).div(cToken.exchangeRateStored());
         } else if (_checkCToken(tokenIn)) {
             ICToken cToken = ICToken(tokenIn);
             if (cToken.underlying() == tokenOut)
-                return amount.mul(cToken.exchangeRateStored()).div(10**uint256(IERC20NonStandard(tokenOut).decimals()));
+                return amount.mul(cToken.exchangeRateStored()).div(10**18);
         }
         return 0;
     }
