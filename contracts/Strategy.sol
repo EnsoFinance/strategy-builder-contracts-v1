@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
-import "./ERC1271.sol";
 import "./StrategyToken.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./interfaces/IStrategy.sol";
@@ -32,7 +31,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Initializable {
+contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -47,7 +46,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
 
     event Withdraw(uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
-    event UpdateSigner(address signer, bool added);
     event PerformanceFee(address account, uint256 amount);
     event WithdrawalFee(address account, uint256 amount);
     event StreamingFee(uint256 amount);
@@ -366,12 +364,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
         emit UpdateManager(newManager);
     }
 
-    function updateSigner(address signer, bool add) external {
-        _onlyManager();
-        _signers[signer] = add ? 1 : 0;
-        emit UpdateSigner(signer, add);
-    }
-
     /**
         @notice Update an item's trade data
      */
@@ -651,16 +643,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, ERC1271, Ini
     function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 performanceFee) internal pure returns (uint256) {
         uint256 diff = tokenValue.sub(paidTokenValue);
         return balance.mul(diff).mul(performanceFee).div(DIVISOR).div(tokenValue);
-    }
-
-    /**
-     * @notice Confirm signer is permitted to sign on behalf of contract
-     * @param signer The address of the message signer
-     * @return Bool confirming whether signer is permitted
-     */
-    function _checkSigner(address signer) internal view override returns (bool) {
-        if (signer == _manager) return true;
-        return _signers[signer] > 0;
     }
 
     /**

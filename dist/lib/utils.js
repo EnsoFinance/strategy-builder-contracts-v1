@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDeadline = exports.getMaxTick = exports.getMinTick = exports.encodePriceSqrt = exports.increaseTime = exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.MAINNET_ADDRESSES = exports.ORACLE_TIME_WINDOW = exports.UNI_V3_FEE = exports.DIVISOR = exports.FEE = void 0;
+exports.getDeadline = exports.getMaxTick = exports.getMinTick = exports.encodePriceSqrt = exports.increaseTime = exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.MAINNET_ADDRESSES = exports.DEFAULT_DEPOSIT_SLIPPAGE = exports.ORACLE_TIME_WINDOW = exports.UNI_V3_FEE = exports.DIVISOR = exports.FEE = void 0;
 var bn = require('bignumber.js');
 var hre = require('hardhat');
 var waffle = hre.waffle;
@@ -46,6 +46,7 @@ exports.FEE = 997;
 exports.DIVISOR = 1000;
 exports.UNI_V3_FEE = 3000;
 exports.ORACLE_TIME_WINDOW = 1;
+exports.DEFAULT_DEPOSIT_SLIPPAGE = 995;
 exports.MAINNET_ADDRESSES = {
     WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
     SUSD: '0x57ab1ec28d129707052df4df418d58a2d46d5f51',
@@ -61,9 +62,10 @@ var TIMELOCK_CATEGORY;
 (function (TIMELOCK_CATEGORY) {
     TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["RESTRUCTURE"] = 0] = "RESTRUCTURE";
     TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["THRESHOLD"] = 1] = "THRESHOLD";
-    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["SLIPPAGE"] = 2] = "SLIPPAGE";
-    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["TIMELOCK"] = 3] = "TIMELOCK";
-    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["PERFORMANCE"] = 4] = "PERFORMANCE";
+    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["REBALANCE_SLIPPAGE"] = 2] = "REBALANCE_SLIPPAGE";
+    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["RESTRUCTURE_SLIPPAGE"] = 3] = "RESTRUCTURE_SLIPPAGE";
+    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["TIMELOCK"] = 4] = "TIMELOCK";
+    TIMELOCK_CATEGORY[TIMELOCK_CATEGORY["PERFORMANCE"] = 5] = "PERFORMANCE";
 })(TIMELOCK_CATEGORY = exports.TIMELOCK_CATEGORY || (exports.TIMELOCK_CATEGORY = {}));
 var ITEM_CATEGORY;
 (function (ITEM_CATEGORY) {

@@ -3,6 +3,7 @@ export declare const FEE = 997;
 export declare const DIVISOR = 1000;
 export declare const UNI_V3_FEE = 3000;
 export declare const ORACLE_TIME_WINDOW = 1;
+export declare const DEFAULT_DEPOSIT_SLIPPAGE = 995;
 export declare const MAINNET_ADDRESSES: {
     WETH: string;
     SUSD: string;
@@ -17,9 +18,10 @@ export declare const MAINNET_ADDRESSES: {
 export declare enum TIMELOCK_CATEGORY {
     RESTRUCTURE = 0,
     THRESHOLD = 1,
-    SLIPPAGE = 2,
-    TIMELOCK = 3,
-    PERFORMANCE = 4
+    REBALANCE_SLIPPAGE = 2,
+    RESTRUCTURE_SLIPPAGE = 3,
+    TIMELOCK = 4,
+    PERFORMANCE = 5
 }
 export declare enum ITEM_CATEGORY {
     BASIC = 0,

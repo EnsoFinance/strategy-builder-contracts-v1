@@ -109,9 +109,9 @@ function prepareUniswapSwap(router, adapter, factory, from, to, amount, tokenIn,
     });
 }
 exports.prepareUniswapSwap = prepareUniswapSwap;
-function prepareRebalanceMulticall(strategy, controller, router, adapter, oracle, weth) {
+function prepareRebalanceMulticall(strategy, router, adapter, oracle, weth) {
     return __awaiter(this, void 0, void 0, function () {
-        var calls, buyLoop, tokens, _a, total, estimates, slippage, wethInStrategy, i, token, estimatedValue, expectedValue, _b, _c, diff, expected, i, token, estimatedValue, expectedValue, _d, _e, diff, expected, _f, _g;
+        var calls, buyLoop, tokens, _a, total, estimates, wethInStrategy, i, token, estimatedValue, expectedValue, _b, _c, diff, expected, i, token, estimatedValue, expectedValue, _d, _e, diff, expected, _f, _g;
         return __generator(this, function (_h) {
             switch (_h.label) {
                 case 0:
@@ -123,76 +123,73 @@ function prepareRebalanceMulticall(strategy, controller, router, adapter, oracle
                     return [4 /*yield*/, oracle.estimateStrategy(strategy.address)];
                 case 2:
                     _a = _h.sent(), total = _a[0], estimates = _a[1];
-                    return [4 /*yield*/, controller.slippage(strategy.address)];
-                case 3:
-                    slippage = _h.sent();
                     wethInStrategy = false;
                     i = 0;
-                    _h.label = 4;
-                case 4:
-                    if (!(i < tokens.length)) return [3 /*break*/, 12];
+                    _h.label = 3;
+                case 3:
+                    if (!(i < tokens.length)) return [3 /*break*/, 11];
                     return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, tokens[i])];
-                case 5:
+                case 4:
                     token = _h.sent();
                     estimatedValue = ethers.BigNumber.from(estimates[i]);
                     _c = (_b = ethers.BigNumber).from;
                     return [4 /*yield*/, getExpectedTokenValue(total, token.address, strategy)];
-                case 6:
+                case 5:
                     expectedValue = _c.apply(_b, [_h.sent()]);
-                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 10];
-                    if (!estimatedValue.gt(expectedValue)) return [3 /*break*/, 8];
+                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 9];
+                    if (!estimatedValue.gt(expectedValue)) return [3 /*break*/, 7];
                     return [4 /*yield*/, adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)];
-                case 7:
+                case 6:
                     diff = _h.sent();
-                    expected = estimatedValue.sub(expectedValue).mul(slippage).div(utils_1.DIVISOR);
+                    expected = estimatedValue.sub(expectedValue).mul(utils_1.DEFAULT_DEPOSIT_SLIPPAGE).div(utils_1.DIVISOR);
                     calls.push(encodeDelegateSwap(router, adapter.address, diff, expected, token.address, weth.address, strategy.address, strategy.address));
-                    return [3 /*break*/, 9];
-                case 8:
+                    return [3 /*break*/, 8];
+                case 7:
                     buyLoop.push({
                         token: tokens[i],
                         estimate: estimates[i],
                     });
-                    _h.label = 9;
-                case 9: return [3 /*break*/, 11];
-                case 10:
+                    _h.label = 8;
+                case 8: return [3 /*break*/, 10];
+                case 9:
                     if (expectedValue.gt(0))
                         wethInStrategy = true;
-                    _h.label = 11;
-                case 11:
+                    _h.label = 10;
+                case 10:
                     i++;
-                    return [3 /*break*/, 4];
-                case 12:
+                    return [3 /*break*/, 3];
+                case 11:
                     i = 0;
-                    _h.label = 13;
-                case 13:
-                    if (!(i < buyLoop.length)) return [3 /*break*/, 19];
+                    _h.label = 12;
+                case 12:
+                    if (!(i < buyLoop.length)) return [3 /*break*/, 18];
                     return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, buyLoop[i].token)];
-                case 14:
+                case 13:
                     token = _h.sent();
                     estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate);
-                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 18];
-                    if (!(!wethInStrategy && i == buyLoop.length - 1)) return [3 /*break*/, 15];
+                    if (!(token.address.toLowerCase() != weth.address.toLowerCase())) return [3 /*break*/, 17];
+                    if (!(!wethInStrategy && i == buyLoop.length - 1)) return [3 /*break*/, 14];
                     //console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
                     // The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
                     calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, strategy.address, strategy.address));
-                    return [3 /*break*/, 18];
-                case 15:
+                    return [3 /*break*/, 17];
+                case 14:
                     _e = (_d = ethers.BigNumber).from;
                     return [4 /*yield*/, getExpectedTokenValue(total, token.address, strategy)];
-                case 16:
+                case 15:
                     expectedValue = _e.apply(_d, [_h.sent()]);
-                    if (!estimatedValue.lt(expectedValue)) return [3 /*break*/, 18];
+                    if (!estimatedValue.lt(expectedValue)) return [3 /*break*/, 17];
                     diff = expectedValue.sub(estimatedValue);
                     _g = (_f = ethers_1.BigNumber).from;
                     return [4 /*yield*/, adapter.spotPrice(diff, weth.address, token.address)];
-                case 17:
-                    expected = _g.apply(_f, [_h.sent()]).mul(slippage).div(utils_1.DIVISOR);
+                case 16:
+                    expected = _g.apply(_f, [_h.sent()]).mul(utils_1.DEFAULT_DEPOSIT_SLIPPAGE).div(utils_1.DIVISOR);
                     calls.push(encodeDelegateSwap(router, adapter.address, diff, expected, weth.address, token.address, strategy.address, strategy.address));
-                    _h.label = 18;
-                case 18:
+                    _h.label = 17;
+                case 17:
                     i++;
-                    return [3 /*break*/, 13];
-                case 19: return [2 /*return*/, calls];
+                    return [3 /*break*/, 12];
+                case 18: return [2 /*return*/, calls];
             }
         });
     });
@@ -200,52 +197,49 @@ function prepareRebalanceMulticall(strategy, controller, router, adapter, oracle
 exports.prepareRebalanceMulticall = prepareRebalanceMulticall;
 function prepareDepositMulticall(strategy, controller, router, adapter, weth, total, strategyItems) {
     return __awaiter(this, void 0, void 0, function () {
-        var calls, slippage, wethInStrategy, i, category, token, percentage, amount, expected, _a, _b;
+        var calls, wethInStrategy, i, category, token, percentage, amount, expected, _a, _b;
         return __generator(this, function (_c) {
             switch (_c.label) {
                 case 0:
                     calls = [];
-                    return [4 /*yield*/, controller.slippage(strategy.address)];
-                case 1:
-                    slippage = _c.sent();
                     wethInStrategy = false;
                     i = 0;
-                    _c.label = 2;
-                case 2:
-                    if (!(i < strategyItems.length)) return [3 /*break*/, 10];
+                    _c.label = 1;
+                case 1:
+                    if (!(i < strategyItems.length)) return [3 /*break*/, 9];
                     category = ethers.BigNumber.from(1);
-                    if (!category.eq(1)) return [3 /*break*/, 8];
+                    if (!category.eq(1)) return [3 /*break*/, 7];
                     return [4 /*yield*/, ethers.getContractAt(ERC20_json_1.default.abi, strategyItems[i].item)];
-                case 3:
+                case 2:
                     token = _c.sent();
                     percentage = strategyItems[i].percentage;
-                    if (!(token.address.toLowerCase() !== weth.address.toLowerCase())) return [3 /*break*/, 7];
-                    if (!(!wethInStrategy && i == strategyItems.length - 1)) return [3 /*break*/, 4];
+                    if (!(token.address.toLowerCase() !== weth.address.toLowerCase())) return [3 /*break*/, 6];
+                    if (!(!wethInStrategy && i == strategyItems.length - 1)) return [3 /*break*/, 3];
                     calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, controller.address, strategy.address));
-                    return [3 /*break*/, 6];
-                case 4:
+                    return [3 /*break*/, 5];
+                case 3:
                     amount = ethers_1.BigNumber.from(total).mul(percentage).div(utils_1.DIVISOR);
                     _b = (_a = ethers_1.BigNumber).from;
                     return [4 /*yield*/, adapter.spotPrice(amount, weth.address, token.address)];
-                case 5:
-                    expected = _b.apply(_a, [_c.sent()]).mul(slippage).div(utils_1.DIVISOR);
+                case 4:
+                    expected = _b.apply(_a, [_c.sent()]).mul(utils_1.DEFAULT_DEPOSIT_SLIPPAGE).div(utils_1.DIVISOR);
                     //console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
                     calls.push(encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, controller.address, strategy.address));
-                    _c.label = 6;
-                case 6: return [3 /*break*/, 8];
-                case 7:
+                    _c.label = 5;
+                case 5: return [3 /*break*/, 7];
+                case 6:
                     if (percentage.gt(0))
                         wethInStrategy = true;
-                    _c.label = 8;
-                case 8:
+                    _c.label = 7;
+                case 7:
                     if (category.eq(2)) { //STRATEGY
                         // TODO: Lookup strategy items + item data, then call prepareDepositMulticall
                     }
-                    _c.label = 9;
-                case 9:
+                    _c.label = 8;
+                case 8:
                     i++;
-                    return [3 /*break*/, 2];
-                case 10: 
+                    return [3 /*break*/, 1];
+                case 9: 
                 /*
                 if (wethInStrategy) {
                     calls.push(encodeSettleTransferFrom(router, weth.address, controller.address, strategy.address))

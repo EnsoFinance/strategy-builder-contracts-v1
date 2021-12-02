@@ -25,7 +25,6 @@ contract StrategyTokenStorage is StrategyTypes {
     address internal _controller;
     address internal _factory;
     address internal _manager;
-    mapping(address => uint256) internal _signers;
 
     address[] internal _items;
     address[] internal _synths;

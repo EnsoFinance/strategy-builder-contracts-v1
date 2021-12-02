@@ -33,14 +33,15 @@ export declare type StrategyItem = {
 export declare type StrategyState = {
     timelock: BigNumber;
     rebalanceThreshold: BigNumber;
-    slippage: BigNumber;
+    rebalanceSlippage: BigNumber;
+    restructureSlippage: BigNumber;
     performanceFee: BigNumber;
     social: boolean;
     set: boolean;
 };
 export declare function prepareStrategy(positions: Position[], defaultAdapter: string): StrategyItem[];
 export declare function prepareUniswapSwap(router: Contract, adapter: Contract, factory: Contract, from: string, to: string, amount: BigNumber, tokenIn: Contract, tokenOut: Contract): Promise<Multicall[]>;
-export declare function prepareRebalanceMulticall(strategy: Contract, controller: Contract, router: Contract, adapter: Contract, oracle: Contract, weth: Contract): Promise<Multicall[]>;
+export declare function prepareRebalanceMulticall(strategy: Contract, router: Contract, adapter: Contract, oracle: Contract, weth: Contract): Promise<Multicall[]>;
 export declare function prepareDepositMulticall(strategy: Contract, controller: Contract, router: Contract, adapter: Contract, weth: Contract, total: BigNumber, strategyItems: StrategyItem[]): Promise<Multicall[]>;
 export declare function preparePermit(strategy: Contract, owner: SignerWithAddress, spender: SignerWithAddress, value: BigNumber, deadline: BigNumber): Promise<any>;
 export declare function calculateAddress(strategyFactory: Contract, creator: string, name: string, symbol: string): Promise<any>;
