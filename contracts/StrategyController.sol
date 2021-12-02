@@ -436,6 +436,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
         if (msg.value > 0) {
+          require(amount == 0, "Ambiguous amount");
           amount = msg.value;
           address weth = o.weth();
           IWETH(weth).deposit{value: amount}();
