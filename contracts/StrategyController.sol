@@ -338,7 +338,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Change strategy to 'social'. Cannot be undone.
-     * @dev A social profile allows other users to deposit and rebalance the strategy
+     * @dev A social profile allows other users to deposit into the strategy
      */
     function openStrategy(IStrategy strategy, uint256 fee) external override {
         _setStrategyLock(strategy);
