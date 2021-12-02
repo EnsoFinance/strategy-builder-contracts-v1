@@ -220,7 +220,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _onlyManager();
         updateTokenValue();
         address pool = IStrategyProxyFactory(_factory).pool();
-        uint256 performanceFee = IStrategyController(_controller).performanceFee(address(this));
+        uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
         uint256 amount = 0;
         for (uint256 i = 0; i < holders.length; i++) {
             amount = amount.add(_deductPerformanceFee(holders[i], pool, performanceFee));
@@ -249,7 +249,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 fee = _deductPerformanceFee(
             account,
             pool,
-            IStrategyController(_controller).performanceFee(address(this))
+            IStrategyController(_controller).strategyState(address(this)).performanceFee
         );
         if (fee > 0) _distributePerformanceFee(pool, fee);
         _mint(account, amount);
@@ -535,7 +535,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         // Streaming fee
         _issueStreamingFee(pool);
         // Performance fees
-        uint256 performanceFee = IStrategyController(_controller).performanceFee(address(this));
+        uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
         uint256 amount = _deductPerformanceFee(sender, pool, performanceFee);
         amount = amount.add(_deductPerformanceFee(recipient, pool, performanceFee));
         if (amount > 0) {
@@ -631,7 +631,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                   _balances[account],
                   _paidTokenValues[account],
                   _lastTokenValue,
-                  IStrategyController(_controller).performanceFee(address(this))
+                  IStrategyController(_controller).strategyState(address(this)).performanceFee
               );
         }
         return 0;

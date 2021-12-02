@@ -293,7 +293,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
             "Timelock active"
         );
-        //TimelockCategory category = TimelockCategory(categoryIndex);
         require(category != TimelockCategory.RESTRUCTURE);
         if (category != TimelockCategory.TIMELOCK)
             require(newValue <= DIVISOR, "Value too high");
@@ -367,54 +366,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
-    /**
-     * @notice Initialized getter
-     */
-     function initialized(address strategy) external view override returns (bool) {
-         return _initialized[strategy] > 0;
-     }
-
-    /**
-     * @notice Social bool getter
-     * @dev This value determines whether other account may deposit into this strategy
-     */
-    function social(address strategy) external view override returns (bool) {
-        return _strategyStates[strategy].social;
+    // @notice Initialized getter
+    function initialized(address strategy) external view override returns (bool) {
+        return _initialized[strategy] > 0;
     }
 
-    /**
-     * @notice Rebalance threshold getter
-     */
-    function rebalanceThreshold(address strategy) external view override returns (uint256) {
-        return uint256(_strategyStates[strategy].rebalanceThreshold);
-    }
-
-    /**
-     * @notice Rebalance slippage getter
-     */
-    function rebalanceSlippage(address strategy) external view override returns (uint256) {
-        return uint256(_strategyStates[strategy].rebalanceSlippage);
-    }
-
-    /**
-     * @notice Restructure slippage getter
-     */
-    function restructureSlippage(address strategy) external view override returns (uint256) {
-        return uint256(_strategyStates[strategy].restructureSlippage);
-    }
-
-    /**
-     * @notice Timelock getter
-     */
-    function timelock(address strategy) external view override returns (uint256) {
-        return uint256(_strategyStates[strategy].timelock);
-    }
-
-    /**
-     * @notice Performance fee getter
-     */
-    function performanceFee(address strategy) external view override returns (uint256) {
-        return uint256(_strategyStates[strategy].performanceFee);
+    // @notice StrategyState getter
+    function strategyState(address strategy) external view override returns (StrategyState memory) {
+      return _strategyStates[strategy];
     }
 
     /**
@@ -778,7 +737,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _checkSlippage(uint256 slippage) private pure {
-        require(slippage > 500 && slippage <= 1000, "Slippage out of bounds");
+        require(slippage > 500 && slippage <= DIVISOR, "Slippage out of bounds");
     }
 
     /**

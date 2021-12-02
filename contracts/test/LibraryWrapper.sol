@@ -26,7 +26,7 @@ contract LibraryWrapper is StrategyTypes{
     function isBalanced() external view returns (bool) {
         return
             _checkBalance(
-                IStrategyController(strategy.controller()).rebalanceThreshold(address(strategy))
+                IStrategyController(strategy.controller()).strategyState(address(strategy)).rebalanceThreshold
             );
     }
 
@@ -41,7 +41,7 @@ contract LibraryWrapper is StrategyTypes{
 
     function getRebalanceRange(int256 expectedValue) external view returns (int256) {
         uint256 range =
-            IStrategyController(strategy.controller()).rebalanceThreshold(address(strategy));
+            IStrategyController(strategy.controller()).strategyState(address(strategy)).rebalanceThreshold;
         return StrategyLibrary.getRange(expectedValue, range);
     }
 

@@ -213,8 +213,8 @@ describe('StrategyController', function () {
 		const Strategy = await getContractFactory('Strategy')
 		const emptyStrategy = await Strategy.attach(strategyAddress)
 		expect((await emptyStrategy.items()).length).to.equal(0)
-		expect(await controller.social(emptyStrategy.address)).to.equal(true)
-		expect(BigNumber.from(await controller.performanceFee(emptyStrategy.address)).eq(strategyState.performanceFee)).to.equal(true)
+		expect((await controller.strategyState(emptyStrategy.address)).social).to.equal(true)
+		expect(BigNumber.from((await controller.strategyState(emptyStrategy.address)).performanceFee).eq(strategyState.performanceFee)).to.equal(true)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -376,11 +376,11 @@ describe('StrategyController', function () {
 	})
 
 	it('Should finalize value', async function () {
-		expect(BigNumber.from(await controller.rebalanceThreshold(strategy.address)).eq(REBALANCE_THRESHOLD)).to.equal(
+		expect(BigNumber.from((await controller.strategyState(strategy.address)).rebalanceThreshold).eq(REBALANCE_THRESHOLD)).to.equal(
 			true
 		)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await controller.rebalanceThreshold(strategy.address)).eq(newThreshold)).to.equal(true)
+		expect(BigNumber.from((await controller.strategyState(strategy.address)).rebalanceThreshold).eq(newThreshold)).to.equal(true)
 	})
 
 	it('Should fail to update rebalance slippage: not manager', async function () {
@@ -399,7 +399,7 @@ describe('StrategyController', function () {
 		const slippage = 990
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, slippage)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await controller.rebalanceSlippage(strategy.address)).eq(slippage)).to.equal(true)
+		expect(BigNumber.from((await controller.strategyState(strategy.address)).rebalanceSlippage).eq(slippage)).to.equal(true)
 	})
 
 	it('Should fail to update restructure slippage: not manager', async function () {
@@ -418,7 +418,7 @@ describe('StrategyController', function () {
 		const slippage = 990
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, slippage)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await controller.restructureSlippage(strategy.address)).eq(slippage)).to.equal(true)
+		expect(BigNumber.from((await controller.strategyState(strategy.address)).restructureSlippage).eq(slippage)).to.equal(true)
 	})
 
 
@@ -438,7 +438,7 @@ describe('StrategyController', function () {
 		const fee = 10 // 1% fee
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, fee)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await controller.performanceFee(strategy.address)).eq(fee)).to.equal(true)
+		expect(BigNumber.from((await controller.strategyState(strategy.address)).performanceFee).eq(fee)).to.equal(true)
 	})
 
 	it('Should fail to update timelock: not manager', async function () {
@@ -451,7 +451,7 @@ describe('StrategyController', function () {
 		const timelock = 0
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, timelock)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await controller.timelock(strategy.address)).eq(timelock)).to.equal(true)
+		expect(BigNumber.from((await controller.strategyState(strategy.address)).timelock).eq(timelock)).to.equal(true)
 	})
 
 	it('Should fail to rebalance, already balanced', async function () {
@@ -670,7 +670,7 @@ describe('StrategyController', function () {
 
 	it('Should open strategy', async function () {
 		await controller.connect(accounts[1]).openStrategy(strategy.address, 10)
-		expect(await controller.social(strategy.address)).to.equal(true)
+		expect((await controller.strategyState(strategy.address)).social).to.equal(true)
 	})
 
 	it('Should fail to open strategy: already open', async function () {

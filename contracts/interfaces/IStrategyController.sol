@@ -72,17 +72,7 @@ interface IStrategyController is StrategyTypes {
 
     function initialized(address strategy) external view returns (bool);
 
-    function social(address strategy) external view returns (bool);
-
-    function rebalanceThreshold(address strategy) external view returns (uint256);
-
-    function rebalanceSlippage(address strategy) external view returns (uint256);
-
-    function restructureSlippage(address strategy) external view returns (uint256);
-
-    function timelock(address strategy) external view returns (uint256);
-
-    function performanceFee(address strategy) external view returns (uint256);
+    function strategyState(address strategy) external view returns (StrategyState memory);
 
     function verifyStructure(address strategy, StrategyItem[] memory newItems)
         external
