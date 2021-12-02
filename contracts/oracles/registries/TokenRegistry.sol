@@ -9,6 +9,7 @@ contract TokenRegistry is ITokenRegistry, Ownable {
     mapping(address => uint256) public override estimatorCategories;
     mapping(uint256 => IEstimator) public override estimators;
 
+    event EstimatorAdded(address estimator, uint256 estimatorCategoryIndex);
     event ItemAdded(address token, uint256 itemCategoryIndex, uint256 estimatorCategoryIndex);
 
     function getEstimator(address token) external view override returns (IEstimator) {
@@ -17,6 +18,7 @@ contract TokenRegistry is ITokenRegistry, Ownable {
 
     function addEstimator(uint256 estimatorCategoryIndex, address estimator) external override onlyOwner {
         estimators[estimatorCategoryIndex] = IEstimator(estimator);
+        emit EstimatorAdded(estimator, estimatorCategoryIndex);
     }
 
     function addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) external override onlyOwner {
