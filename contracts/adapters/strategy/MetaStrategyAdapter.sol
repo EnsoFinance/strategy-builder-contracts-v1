@@ -15,8 +15,10 @@ contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    uint256 public constant DEFAULT_SLIPPAGE = 980; //98%
     IStrategyController public immutable controller;
     IStrategyRouter public immutable router;
+
 
     constructor(
         address controller_,
@@ -53,13 +55,13 @@ contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
             if(address(router) != address(this))
                 IERC20(tokenIn).safeApprove(address(router), amount);
             //Assumes the use of LoopRouter when depositing tokens
-            controller.deposit(IStrategy(tokenOut), router, amount, "0x");
+            controller.deposit(IStrategy(tokenOut), router, amount, DEFAULT_SLIPPAGE, "0x");
             if(address(router) != address(this))
                 IERC20(tokenIn).safeApprove(address(router), 0);
         }
 
         if (tokenOut == weth)
-            controller.withdrawWETH(IStrategy(tokenIn), router, amount, "0x");
+            controller.withdrawWETH(IStrategy(tokenIn), router, amount, DEFAULT_SLIPPAGE, "0x");
 
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");

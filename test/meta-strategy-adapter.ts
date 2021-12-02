@@ -27,13 +27,15 @@ import {
 	deployLoopRouter,
 	deployGenericRouter
 } from '../lib/deploy'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 //import { displayBalances } from '../lib/logging'
 
 const NUM_TOKENS = 15
 const STRATEGY_STATE: StrategyState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
-	slippage: BigNumber.from(995),
+	rebalanceSlippage: BigNumber.from(997),
+	restructureSlippage: BigNumber.from(995),
 	performanceFee: BigNumber.from(0),
 	social: true,
 	set: false
@@ -410,7 +412,7 @@ describe('MetaStrategyAdapter', function () {
 		const depositCalls = [] as Multicall[]
 		depositCalls.push(encodeTransfer(weth, metaStrategy.address, depositAmount))
 		const depositData = await genericRouter.encodeCalls(depositCalls)
-		const depositEncoded = controller.interface.encodeFunctionData('deposit', [metaStrategy.address, genericRouter.address, depositAmount, depositData])
+		const depositEncoded = controller.interface.encodeFunctionData('deposit', [metaStrategy.address, genericRouter.address, depositAmount, DEFAULT_DEPOSIT_SLIPPAGE, depositData])
 		maliciousCalls.push({ target: controller.address, callData: depositEncoded })
 		//Send all newly minted strategy tokens to account 1
 		maliciousCalls.push(encodeSettleTransfer(genericRouter, metaStrategy.address, accounts[1].address))
@@ -419,7 +421,7 @@ describe('MetaStrategyAdapter', function () {
 		maliciousCalls.push(encodeTransfer(tokens[2], basicStrategy.address, token2Balance))
 		maliciousCalls.push(encodeTransfer(tokens[3], basicStrategy.address, token3Balance))
 		//Do regular rebalance
-		const rebalanceCalls = await prepareRebalanceMulticall(basicStrategy, controller, genericRouter, uniswapAdapter, oracle, weth)
+		const rebalanceCalls = await prepareRebalanceMulticall(basicStrategy, genericRouter, uniswapAdapter, oracle, weth)
 		//Encode multicalls and rebalance
 		const rebalanceData = await genericRouter.encodeCalls([...maliciousCalls, ...rebalanceCalls])
 		await expect(controller.connect(accounts[1]).rebalance(basicStrategy.address, genericRouter.address, rebalanceData)).to.be.revertedWith('')

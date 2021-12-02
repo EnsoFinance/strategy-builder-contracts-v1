@@ -58,7 +58,8 @@ describe('BalancerAdapter', function () {
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			slippage: BigNumber.from(995),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false

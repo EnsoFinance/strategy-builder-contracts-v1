@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
-import { DIVISOR } from './utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from './utils'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 const hre = require('hardhat')
@@ -48,7 +48,8 @@ export type StrategyItem = {
 export type StrategyState = {
 	timelock: BigNumber
 	rebalanceThreshold: BigNumber
-	slippage: BigNumber
+	rebalanceSlippage: BigNumber
+	restructureSlippage: BigNumber
 	performanceFee: BigNumber
 	social: boolean
 	set: boolean
@@ -107,7 +108,6 @@ export async function prepareUniswapSwap(
 
 export async function prepareRebalanceMulticall(
 	strategy: Contract,
-	controller: Contract,
 	router: Contract,
 	adapter: Contract,
 	oracle: Contract,
@@ -117,8 +117,6 @@ export async function prepareRebalanceMulticall(
 	const buyLoop = []
 	const tokens = await strategy.items()
 	const [total, estimates] = await oracle.estimateStrategy(strategy.address)
-	const slippage = await controller.slippage(strategy.address)
-
 	let wethInStrategy = false
 	// Sell loop
 	for (let i = 0; i < tokens.length; i++) {
@@ -129,7 +127,7 @@ export async function prepareRebalanceMulticall(
 			if (estimatedValue.gt(expectedValue)) {
 				//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 				const diff = await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
-				const expected = estimatedValue.sub(expectedValue).mul(slippage).div(DIVISOR)
+				const expected = estimatedValue.sub(expectedValue).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 				calls.push(
 					encodeDelegateSwap(
 						router,
@@ -175,7 +173,7 @@ export async function prepareRebalanceMulticall(
 				if (estimatedValue.lt(expectedValue)) {
 					//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 					const diff = expectedValue.sub(estimatedValue)
-					const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(slippage).div(DIVISOR)
+					const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 					calls.push(
 						encodeDelegateSwap(
 							router,
@@ -205,7 +203,6 @@ export async function prepareDepositMulticall(
 	strategyItems: StrategyItem[]
 ) {
 	const calls = []
-	const slippage = await controller.slippage(strategy.address)
 	let wethInStrategy = false
 	for (let i = 0; i < strategyItems.length; i++) {
 		//const category = strategyItems[i].category
@@ -228,7 +225,7 @@ export async function prepareDepositMulticall(
 					)
 				} else {
 					const amount = BigNumber.from(total).mul(percentage).div(DIVISOR)
-					const expected = BigNumber.from(await adapter.spotPrice(amount, weth.address, token.address)).mul(slippage).div(DIVISOR)
+					const expected = BigNumber.from(await adapter.spotPrice(amount, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 					//console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
 					calls.push(
 						encodeDelegateSwap(

@@ -21,6 +21,7 @@ interface IStrategyController is StrategyTypes {
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) external payable;
 
@@ -28,6 +29,7 @@ interface IStrategyController is StrategyTypes {
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) external;
 
@@ -35,6 +37,7 @@ interface IStrategyController is StrategyTypes {
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) external;
 
@@ -73,7 +76,9 @@ interface IStrategyController is StrategyTypes {
 
     function rebalanceThreshold(address strategy) external view returns (uint256);
 
-    function slippage(address strategy) external view returns (uint256);
+    function rebalanceSlippage(address strategy) external view returns (uint256);
+
+    function restructureSlippage(address strategy) external view returns (uint256);
 
     function timelock(address strategy) external view returns (uint256);
 

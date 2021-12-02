@@ -3,6 +3,7 @@ import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
@@ -68,7 +69,8 @@ describe('StrategyProxyFactory', function () {
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			slippage: BigNumber.from(995),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -132,7 +134,7 @@ describe('StrategyProxyFactory', function () {
 	it('Should update whitelist', async function () {
 		const oldBalance = await strategy.balanceOf(accounts[1].address)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, '0x', {
+			controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
 				value: ethers.BigNumber.from('10000000000000000'),
 			})
 		).to.be.revertedWith('Not approved')
@@ -140,7 +142,7 @@ describe('StrategyProxyFactory', function () {
 		expect(await strategyFactory.whitelist()).to.equal(newWhitelist.address)
 		await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, newRouter.address, 0, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
 		const newBalance = await strategy.balanceOf(accounts[1].address)
 		expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
 	})

@@ -11,7 +11,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract, Event } from 'ethers'
 import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { increaseTime } from '../lib/utils'
+import { increaseTime, DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 
 const NUM_TOKENS = 15
 const YEAR = 31536000
@@ -75,7 +75,8 @@ describe('StrategyToken Fees', function () {
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			slippage: BigNumber.from(995),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(100),
 			social: true,
 			set: false
@@ -132,7 +133,7 @@ describe('StrategyToken Fees', function () {
 
 	it('Should deposit', async function () {
 		for (let i = 2; i < 10; i ++) {
-			await controller.connect(accounts[i]).deposit(strategy.address, router.address, 0, '0x', { value: BigNumber.from('10000000000000000') })
+			await controller.connect(accounts[i]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		}
 	})
 
@@ -165,7 +166,7 @@ describe('StrategyToken Fees', function () {
 
 	it('Should deposit', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[10].address)
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x', { value: BigNumber.from('10000000000000000') })
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[10].address)

@@ -4,6 +4,7 @@ import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, 
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { StrategyItem, StrategyState, prepareStrategy, prepareDepositMulticall, calculateAddress, encodeSettleSwap } from '../lib/encode'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther } = constants
 
@@ -49,7 +50,8 @@ describe('Reentrancy    ', function () {
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			slippage: BigNumber.from(995),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -130,12 +132,13 @@ describe('Reentrancy    ', function () {
 			strategy.address,
 			genericRouter.address,
 			0,
+			DEFAULT_DEPOSIT_SLIPPAGE,
 			secondDeposit,
 		])
 		calls.push({ target: controller.address, callData: depositCalldata, value: 0 })
 		let data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 	})
 
@@ -168,7 +171,7 @@ describe('Reentrancy    ', function () {
 
 		let data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 
 		// Remove last call
@@ -178,7 +181,7 @@ describe('Reentrancy    ', function () {
 		// Deposit should work now
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, genericRouter.address, 0, data, { value: total })
+			.deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 

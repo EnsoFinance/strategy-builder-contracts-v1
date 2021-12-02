@@ -6,7 +6,7 @@ const hre = require('hardhat')
 const { ethers } = hre
 import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { increaseTime, TIMELOCK_CATEGORY } from '../lib/utils'
+import { increaseTime, DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/utils'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers
@@ -16,7 +16,8 @@ const NUM_TOKENS = 15
 const STRATEGY_STATE: StrategyState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
-	slippage: BigNumber.from(995),
+	rebalanceSlippage: BigNumber.from(997),
+	restructureSlippage: BigNumber.from(995),
 	performanceFee: BigNumber.from(50),
 	social: true,
 	set: false
@@ -120,7 +121,7 @@ describe('StrategyController - Social', function () {
 		const balanceBefore = await strategy.balanceOf(accounts[2].address)
 		const tx = await controller
 			.connect(accounts[2])
-			.deposit(strategy.address, router.address, 0, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[2].address)

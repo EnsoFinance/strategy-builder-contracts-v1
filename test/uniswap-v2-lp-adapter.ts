@@ -24,7 +24,8 @@ const NUM_TOKENS = 3
 const STRATEGY_STATE: StrategyState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
-	slippage: BigNumber.from(995),
+	rebalanceSlippage: BigNumber.from(997),
+	restructureSlippage: BigNumber.from(995),
 	performanceFee: BigNumber.from(50),
 	social: true,
 	set: false

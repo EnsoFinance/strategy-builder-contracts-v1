@@ -24,7 +24,7 @@ interface StrategyTypes {
       YEARN_V1,
       YEARN_V2
     }
-    enum TimelockCategory {RESTRUCTURE, THRESHOLD, SLIPPAGE, TIMELOCK, PERFORMANCE}
+    enum TimelockCategory {RESTRUCTURE, THRESHOLD, REBALANCE_SLIPPAGE, RESTRUCTURE_SLIPPAGE, TIMELOCK, PERFORMANCE}
 
     struct StrategyItem {
         address item;
@@ -41,7 +41,8 @@ interface StrategyTypes {
     struct StrategyState {
         uint32 timelock;
         uint16 rebalanceThreshold;
-        uint16 slippage;
+        uint16 rebalanceSlippage;
+        uint16 restructureSlippage;
         uint16 performanceFee;
         bool social;
         bool set;

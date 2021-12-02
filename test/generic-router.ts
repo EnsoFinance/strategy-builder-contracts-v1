@@ -19,7 +19,7 @@ import {
 	StrategyItem,
 	StrategyState
 } from '../lib/encode'
-import { DIVISOR } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from '../lib/utils'
 
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -87,7 +87,8 @@ describe('GenericRouter', function () {
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			slippage: BigNumber.from(995),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -154,7 +155,7 @@ describe('GenericRouter', function () {
 		const call = await encodeTransferFrom(weth, controller.address, accounts[1].address, BigNumber.from(1))
 		const data = await genericRouter.encodeCalls([call])
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: 1 })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: 1 })
 		).to.be.revertedWith('Lost value')
 	})
 
@@ -168,6 +169,7 @@ describe('GenericRouter', function () {
 			strategy.address,
 			genericRouter.address,
 			0,
+			DEFAULT_DEPOSIT_SLIPPAGE,
 			depositData,
 		])
 		const reentrancyCall = { target: controller.address, callData: depositEncoded }
@@ -218,7 +220,6 @@ describe('GenericRouter', function () {
 	})
 
 	it('Should fail to rebalance: total slipped', async function () {
-		const slippage = await controller.slippage(strategy.address)
 		const amount = ethers.BigNumber.from('100000000000000') //Some arbitrary amount
 		// Setup rebalance
 		const calls = [] as Multicall[]
@@ -237,7 +238,7 @@ describe('GenericRouter', function () {
 				if (estimatedValue.gt(expectedValue)) {
 					//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 					const diff = await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
-					const expected = estimatedValue.sub(expectedValue).mul(slippage).div(DIVISOR)
+					const expected = estimatedValue.sub(expectedValue).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 					calls.push(
 						encodeDelegateSwap(
 							genericRouter,
@@ -287,7 +288,7 @@ describe('GenericRouter', function () {
 					if (estimatedValue.lt(expectedValue)) {
 						//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 						const diff = expectedValue.sub(estimatedValue)
-						const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(slippage).div(DIVISOR)
+						const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 						calls.push(
 							await encodeDelegateSwap(
 								genericRouter,
@@ -315,7 +316,6 @@ describe('GenericRouter', function () {
 		// Multicall gets initial tokens from uniswap
 		const calls = await prepareRebalanceMulticall(
 			strategy,
-			controller,
 			genericRouter,
 			adapter,
 			oracle,
@@ -340,7 +340,7 @@ describe('GenericRouter', function () {
 		}))).filter(call => call)
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).withdrawWETH(strategy.address, genericRouter.address, 1, data)
+			controller.connect(accounts[1]).withdrawWETH(strategy.address, genericRouter.address, 1, DEFAULT_DEPOSIT_SLIPPAGE, data)
 		).to.be.revertedWith('Too much slippage')
 	})
 
@@ -399,7 +399,7 @@ describe('GenericRouter', function () {
 		calls.push(await encodeSettleTransfer(genericRouter, weth.address, accounts[1].address)) // When there isn't balance
 		calls.push(await encodeSettleTransferFrom(genericRouter, weth.address, controller.address, accounts[1].address))
 		const data = await genericRouter.encodeCalls(calls)
-		await controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
+		await controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
 	})
 
 	it('Should fail to deposit: calling settleTransferFrom without approval', async function () {
@@ -418,7 +418,7 @@ describe('GenericRouter', function () {
 		)
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
 		).to.be.revertedWith('')
 	})
 
@@ -547,7 +547,7 @@ describe('GenericRouter', function () {
 
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, data, { value: amount })
+			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
 		).to.be.revertedWith('Lost balance')
 	})
 

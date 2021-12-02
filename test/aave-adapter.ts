@@ -15,7 +15,7 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES } from '../lib/utils'
 import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -105,7 +105,8 @@ describe('AaveAdapter', function () {
 		const strategyState: StrategyState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			slippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -191,7 +192,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
-		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '0x')
+		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -203,7 +204,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, '0x')
+		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

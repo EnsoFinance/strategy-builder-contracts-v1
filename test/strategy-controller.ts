@@ -10,14 +10,15 @@ import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
-import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/utils'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter, Platform } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
 
 
 const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
-const SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
+const REBALANCE_SLIPPAGE = BigNumber.from(997) // 995/1000 = 99.7%
+const RESTRUCTURE_SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
 const TIMELOCK = BigNumber.from(60) // 1 minute
 
 chai.use(solidity)
@@ -73,7 +74,8 @@ describe('StrategyController', function () {
 		const failState: StrategyState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: BigNumber.from(1001),
-			slippage: SLIPPAGE,
+			rebalanceSlippage: REBALANCE_SLIPPAGE,
+			restructureSlippage: RESTRUCTURE_SLIPPAGE,
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -102,7 +104,38 @@ describe('StrategyController', function () {
 		const failState: StrategyState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
-			slippage: BigNumber.from(1001),
+			rebalanceSlippage: BigNumber.from(1001),
+			restructureSlippage: RESTRUCTURE_SLIPPAGE,
+			performanceFee: BigNumber.from(0),
+			social: false,
+			set: false
+		}
+		await expect(
+			strategyFactory
+				.connect(accounts[1])
+				.createStrategy(
+					accounts[1].address,
+					'Fail Strategy',
+					'FAIL',
+					failItems,
+					failState,
+					router.address,
+					'0x'
+				)
+		).to.be.revertedWith('Slippage high')
+	})
+
+	it('Should fail to deploy strategy: slippage too high', async function () {
+		const positions = [
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: tokens[2].address, percentage: BigNumber.from(500) }
+		] as Position[]
+		const failItems = prepareStrategy(positions, adapter.address)
+		const failState: StrategyState = {
+			timelock: TIMELOCK,
+			rebalanceThreshold: REBALANCE_THRESHOLD,
+			rebalanceSlippage: REBALANCE_SLIPPAGE,
+			restructureSlippage: BigNumber.from(1001),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -131,7 +164,8 @@ describe('StrategyController', function () {
 		const failState: StrategyState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
-			slippage: BigNumber.from(995),
+			rebalanceSlippage: REBALANCE_SLIPPAGE,
+			restructureSlippage: RESTRUCTURE_SLIPPAGE,
 			performanceFee: BigNumber.from(1000),
 			social: true,
 			set: false
@@ -155,7 +189,8 @@ describe('StrategyController', function () {
 		const strategyState: StrategyState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
-			slippage: SLIPPAGE,
+			rebalanceSlippage: REBALANCE_SLIPPAGE,
+			restructureSlippage: RESTRUCTURE_SLIPPAGE,
 			performanceFee: BigNumber.from(10), //1% fee
 			social: true, // social
 			set: false
@@ -205,7 +240,8 @@ describe('StrategyController', function () {
 		const strategyState: StrategyState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
-			slippage: SLIPPAGE,
+			rebalanceSlippage: REBALANCE_SLIPPAGE,
+			restructureSlippage: RESTRUCTURE_SLIPPAGE,
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -244,7 +280,8 @@ describe('StrategyController', function () {
 		const failState: StrategyState = {
 			timelock: BigNumber.from(0),
 			rebalanceThreshold: BigNumber.from(0),
-			slippage: BigNumber.from(0),
+			rebalanceSlippage: BigNumber.from(0),
+			restructureSlippage: BigNumber.from(0),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -269,7 +306,8 @@ describe('StrategyController', function () {
 		const failState: StrategyState = {
 			timelock: BigNumber.from(0),
 			rebalanceThreshold: BigNumber.from(0),
-			slippage: BigNumber.from(0),
+			rebalanceSlippage: BigNumber.from(0),
+			restructureSlippage: BigNumber.from(0),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -311,7 +349,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to update value: option out of bounds', async function () {
-		await expect(controller.connect(accounts[1]).updateValue(strategy.address, 5, 0)).to.be.revertedWith('')
+		await expect(controller.connect(accounts[1]).updateValue(strategy.address, 6, 0)).to.be.revertedWith('')
 	})
 
 	it('Should fail to update threshold: not manager', async function () {
@@ -345,24 +383,44 @@ describe('StrategyController', function () {
 		expect(BigNumber.from(await controller.rebalanceThreshold(strategy.address)).eq(newThreshold)).to.equal(true)
 	})
 
-	it('Should fail to update slippage: not manager', async function () {
+	it('Should fail to update rebalance slippage: not manager', async function () {
 		await expect(
-			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.SLIPPAGE, 1)
+			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1)
 		).to.be.revertedWith('Not manager')
 	})
 
-	it('Should fail to update slippage: value too large', async function () {
+	it('Should fail to update rebalance slippage: value too large', async function () {
 		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.SLIPPAGE, 1001)
+			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1001)
 		).to.be.revertedWith('Value too high')
 	})
 
-	it('Should update slippage', async function () {
+	it('Should update rebalance slippage', async function () {
 		const slippage = 990
-		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.SLIPPAGE, slippage)
+		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, slippage)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await controller.slippage(strategy.address)).eq(slippage)).to.equal(true)
+		expect(BigNumber.from(await controller.rebalanceSlippage(strategy.address)).eq(slippage)).to.equal(true)
 	})
+
+	it('Should fail to update restructure slippage: not manager', async function () {
+		await expect(
+			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1)
+		).to.be.revertedWith('Not manager')
+	})
+
+	it('Should fail to update restructure slippage: value too large', async function () {
+		await expect(
+			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1001)
+		).to.be.revertedWith('Value too high')
+	})
+
+	it('Should update restructure slippage', async function () {
+		const slippage = 990
+		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, slippage)
+		await controller.finalizeValue(strategy.address)
+		expect(BigNumber.from(await controller.restructureSlippage(strategy.address)).eq(slippage)).to.equal(true)
+	})
+
 
 	it('Should fail to update performance fee: not manager', async function () {
 		await expect(
@@ -447,25 +505,25 @@ describe('StrategyController', function () {
 
 	it('Should fail to deposit: not manager', async function () {
 		await expect(
-			controller.connect(owner).deposit(strategy.address, router.address, 0, '0x', { value: BigNumber.from('10000000000000000') })
+			controller.connect(owner).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		).to.be.revertedWith('Not manager')
 	})
 
 	it('Should fail to deposit: no funds deposited', async function () {
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x')
+			controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		).to.be.revertedWith('Lost value')
 	})
 
 	it('Should fail to deposit: too much slippage', async function () {
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x', { value: BigNumber.from('1000') })
+			controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, 1000, '0x', { value: BigNumber.from('1000') })
 		).to.be.revertedWith('Too much slippage')
 	})
 
 	it('Should deposit more: ETH', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x', { value: BigNumber.from('10000000000000000') })
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[1].address)
@@ -479,7 +537,7 @@ describe('StrategyController', function () {
 		await weth.connect(accounts[1]).deposit({value: amount})
 		await weth.connect(accounts[1]).approve(router.address, amount)
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, amount, '0x')
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[1].address)
@@ -497,7 +555,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
-		await expect(controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, 0, '0x')).to.be.revertedWith('0 amount')
+		await expect(controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x')).to.be.revertedWith('0 amount')
 	})
 
 	it('Should withdrawAll', async function () {
@@ -691,18 +749,18 @@ describe('StrategyController', function () {
 		tx = await strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, tokens[1].address)
 	  await tx.wait()
 
-		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x', { value: WeiPerEther})).to.be.revertedWith('')
+		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther})).to.be.revertedWith('')
 
 		tx = await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimatorAddress)
 	  await tx.wait()
 
-		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x', { value: WeiPerEther})).to.be.revertedWith('')
+		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther})).to.be.revertedWith('')
 
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
 		const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
 		await emergencyEstimator.setEstimate(tokens[1].address, originalEstimate)
 
-		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '0x', { value: WeiPerEther})).to.emit(controller, 'Deposit')
+		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther})).to.emit(controller, 'Deposit')
 	})
 
 	it('Should set strategy', async function () {

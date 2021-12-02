@@ -70,6 +70,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 IStrategyRouter(router_),
                 creator_,
                 0,
+                state_.restructureSlippage,
                 0,
                 uint256(-1),
                 data_
@@ -88,6 +89,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) external payable override {
         _setStrategyLock(strategy);
@@ -96,7 +98,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.withdrawStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimates);
-        _deposit(strategy, router, msg.sender, amount, totalBefore, balanceBefore, data);
+        _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
         _removeStrategyLock(strategy);
     }
 
@@ -111,10 +113,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) external override {
         _setStrategyLock(strategy);
-        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, data);
+        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
         IWETH(weth).withdraw(wethAmount);
         msg.sender.transfer(wethAmount);
@@ -132,10 +135,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) external override {
         _setStrategyLock(strategy);
-        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, data);
+        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
         _removeStrategyLock(strategy);
     }
@@ -317,8 +321,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 newValue = abi.decode(lock.data, (uint256));
         if (lock.category == TimelockCategory.THRESHOLD) {
             strategyState.rebalanceThreshold = uint16(newValue);
-        } else if (lock.category == TimelockCategory.SLIPPAGE) {
-            strategyState.slippage = uint16(newValue);
+        } else if (lock.category == TimelockCategory.REBALANCE_SLIPPAGE) {
+            strategyState.rebalanceSlippage = uint16(newValue);
+        } else if (lock.category == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
+            strategyState.restructureSlippage = uint16(newValue);
         } else if (lock.category == TimelockCategory.TIMELOCK) {
             strategyState.timelock = uint32(newValue);
         } else { // lock.category == TimelockCategory.PERFORMANCE
@@ -384,10 +390,17 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
-     * @notice Slippage getter
+     * @notice Rebalance slippage getter
      */
-    function slippage(address strategy) external view override returns (uint256) {
-        return uint256(_strategyStates[strategy].slippage);
+    function rebalanceSlippage(address strategy) external view override returns (uint256) {
+        return uint256(_strategyStates[strategy].rebalanceSlippage);
+    }
+
+    /**
+     * @notice Restructure slippage getter
+     */
+    function restructureSlippage(address strategy) external view override returns (uint256) {
+        return uint256(_strategyStates[strategy].restructureSlippage);
     }
 
     /**
@@ -454,11 +467,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         address account,
         uint256 amount,
+        uint256 slippage,
         uint256 totalBefore,
         uint256 balanceBefore,
         bytes memory data
     ) internal {
         _onlyApproved(address(router));
+        _checkSlippage(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
         if (msg.value > 0) {
@@ -483,7 +498,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         require(
             valueAdded >=
-                amount.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+                amount.mul(slippage).div(DIVISOR),
             "Too much slippage"
         );
         uint256 totalSupply = strategy.totalSupply();
@@ -502,14 +517,17 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
+        uint256 slippage,
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
         require(amount > 0, "0 amount");
+        _checkSlippage(slippage);
         strategy.settleSynths();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
         uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimatesBefore);
         uint256 totalSupply = strategy.totalSupply();
+        wethAmount = totalBefore.mul(amount).div(totalSupply);
         // Deduct fee and burn strategy tokens
         amount = strategy.burn(msg.sender, amount);
         {
@@ -529,21 +547,16 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
         // Check value and balance
         (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
-        {
-            StrategyState storage strategyState = _strategyStates[address(strategy)];
-            require(
-                totalAfter >=
-                    totalBefore.mul(strategyState.slippage).div(DIVISOR),
-                "Too much slippage"
-            );
-        }
-        wethAmount = totalBefore.mul(amount).div(totalSupply).sub(totalBefore.sub(totalAfter)); // remove slippage from expected weth
+        require(
+            totalAfter >= totalBefore.mul(slippage).div(DIVISOR),
+            "Too much slippage"
+        );
+        wethAmount = wethAmount.sub(totalBefore.sub(totalAfter)); // remove slippage from expected weth
         _checkBalance(strategy, balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
         // Approve weth amount
         weth = o.weth();
         strategy.approveToken(weth, address(this), wethAmount);
         emit Withdraw(address(strategy), wethAmount, amount);
-        return (weth, wethAmount);
     }
 
     /**
@@ -565,7 +578,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(balancedAfter, "Not balanced");
         require(
             totalAfter >=
-                totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+                totalBefore.mul(_strategyStates[address(strategy)].rebalanceSlippage).div(DIVISOR),
             "Too much slippage"
         );
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
@@ -575,12 +588,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     function _setInitialState(address strategy, StrategyState memory state) private {
         require(uint256(state.rebalanceThreshold) <= DIVISOR, "Threshold high");
-        require(uint256(state.slippage) <= DIVISOR, "Slippage high");
+        require(uint256(state.rebalanceSlippage) <= DIVISOR, "Slippage high");
+        require(uint256(state.restructureSlippage) <= DIVISOR, "Slippage high");
         require(uint256(state.performanceFee) < DIVISOR, "Fee too high");
         _initialized[strategy] = 1;
         _strategyStates[strategy] = state;
         emit NewValue(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
-        emit NewValue(strategy, TimelockCategory.SLIPPAGE, uint256(state.slippage), true);
+        emit NewValue(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
+        emit NewValue(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
         emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
         if (state.social) emit StrategyOpen(address(strategy), state.performanceFee);
         if (state.set) emit StrategySet(address(strategy));
@@ -704,7 +719,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(balancedAfter, "Not balanced");
         require(
             totalAfter >=
-                totalBefore.mul(_strategyStates[address(strategy)].slippage).div(DIVISOR),
+                totalBefore.mul(_strategyStates[address(strategy)].restructureSlippage).div(DIVISOR),
             "Too much slippage"
         );
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
@@ -746,13 +761,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
     }
 
-    function _checkBalance(IStrategy strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) internal view {
+    function _checkBalance(IStrategy strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) private view {
         uint256 balanceAfter = _amountOutOfBalance(strategy, total, estimates);
         if (balanceAfter > uint256(10**18).mul(_strategyStates[address(strategy)].rebalanceThreshold).div(DIVISOR))
             require(balanceAfter <= balanceBefore, "Lost balance");
     }
 
-    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) internal view {
+    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
         require(address(strategy) != test, "Cyclic dependency");
         require(!strategy.supportsSynths(), "Synths not supported");
         address[] memory strategyItems = strategy.items();
@@ -762,42 +777,46 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
     }
 
+    function _checkSlippage(uint256 slippage) private pure {
+        require(slippage > 500 && slippage <= 1000, "Slippage out of bounds");
+    }
+
     /**
      * @notice Checks that router is whitelisted
      */
-    function _onlyApproved(address account) internal view {
+    function _onlyApproved(address account) private view {
         require(whitelist().approved(account), "Not approved");
     }
 
-    function _onlyManager(IStrategy strategy) internal view {
+    function _onlyManager(IStrategy strategy) private view {
         require(msg.sender == strategy.manager(), "Not manager");
     }
 
     /**
      * @notice Checks if strategy is social or else require msg.sender is manager
      */
-    function _socialOrManager(IStrategy strategy) internal view {
+    function _socialOrManager(IStrategy strategy) private view {
         require(
             msg.sender == strategy.manager() || _strategyStates[address(strategy)].social,
             "Not manager"
         );
     }
 
-    function _notSet(address strategy) internal view {
+    function _notSet(address strategy) private view {
         require(!_strategyStates[strategy].set, "Strategy cannot change");
     }
 
     /**
      * @notice Sets Reentrancy guard
      */
-    function _setStrategyLock(IStrategy strategy) internal {
+    function _setStrategyLock(IStrategy strategy) private {
         strategy.lock();
     }
 
     /**
      * @notice Removes reentrancy guard.
      */
-    function _removeStrategyLock(IStrategy strategy) internal {
+    function _removeStrategyLock(IStrategy strategy) private {
         strategy.unlock();
     }
 
