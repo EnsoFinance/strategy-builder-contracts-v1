@@ -92,7 +92,7 @@ describe('StrategyController', function () {
 					router.address,
 					'0x'
 				)
-		).to.be.revertedWith('Threshold high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
@@ -122,7 +122,7 @@ describe('StrategyController', function () {
 					router.address,
 					'0x'
 				)
-		).to.be.revertedWith('Slippage high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
@@ -152,7 +152,7 @@ describe('StrategyController', function () {
 					router.address,
 					'0x'
 				)
-		).to.be.revertedWith('Slippage high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should fail to deploy strategy: fee too high', async function () {
@@ -166,7 +166,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(1000),
+			performanceFee: BigNumber.from(1001),
 			social: true,
 			set: false
 		}
@@ -182,7 +182,7 @@ describe('StrategyController', function () {
 					router.address,
 					'0x'
 				)
-		).to.be.revertedWith('Fee too high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should deploy empty strategy', async function() {
@@ -361,7 +361,7 @@ describe('StrategyController', function () {
 	it('Should fail to update threshold: value too large', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1001)
-		).to.be.revertedWith('Value too high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should update threshold', async function () {
@@ -392,7 +392,7 @@ describe('StrategyController', function () {
 	it('Should fail to update rebalance slippage: value too large', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1001)
-		).to.be.revertedWith('Value too high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should update rebalance slippage', async function () {
@@ -411,7 +411,7 @@ describe('StrategyController', function () {
 	it('Should fail to update restructure slippage: value too large', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1001)
-		).to.be.revertedWith('Value too high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should update restructure slippage', async function () {
@@ -431,7 +431,7 @@ describe('StrategyController', function () {
 	it('Should fail to update performance fee: value too large', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1001)
-		).to.be.revertedWith('Value too high')
+		).to.be.revertedWith('Out of bounds')
 	})
 
 	it('Should update performance fee', async function () {
@@ -663,8 +663,8 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to open strategy: fee too high', async function () {
-		await expect(controller.connect(accounts[1]).openStrategy(strategy.address, 1000)).to.be.revertedWith(
-			'Fee too high'
+		await expect(controller.connect(accounts[1]).openStrategy(strategy.address, 1001)).to.be.revertedWith(
+			'Out of bounds'
 		)
 	})
 

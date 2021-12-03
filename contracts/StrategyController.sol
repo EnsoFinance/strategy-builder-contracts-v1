@@ -22,7 +22,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    uint256 private constant MIN_SLIPPAGE = 500;
     uint256 private constant DIVISOR = 1000;
 
     event Withdraw(address indexed strategy, uint256 value, uint256 amount);
@@ -295,8 +294,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             "Timelock active"
         );
         require(category != TimelockCategory.RESTRUCTURE);
-        if (category != TimelockCategory.TIMELOCK)
-            require(newValue <= DIVISOR, "Value too high");
+        if (category != TimelockCategory.TIMELOCK) _checkDivisor(newValue);
         lock.category = category;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(newValue);
@@ -344,7 +342,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function openStrategy(IStrategy strategy, uint256 fee) external override {
         _setStrategyLock(strategy);
         _onlyManager(strategy);
-        require(fee < DIVISOR, "Fee too high");
+        _checkDivisor(fee);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         require(!strategyState.social, "Strategy already open");
         strategyState.social = true;
@@ -433,7 +431,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) internal {
         _onlyApproved(address(router));
-        _checkSlippage(slippage);
+        _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
         if (msg.value > 0) {
@@ -482,7 +480,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
         require(amount > 0, "0 amount");
-        _checkSlippage(slippage);
+        _checkDivisor(slippage);
         strategy.settleSynths();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
@@ -548,10 +546,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _setInitialState(address strategy, StrategyState memory state) private {
-        require(uint256(state.rebalanceThreshold) <= DIVISOR, "Threshold high");
-        require(uint256(state.rebalanceSlippage) <= DIVISOR, "Slippage high");
-        require(uint256(state.restructureSlippage) <= DIVISOR, "Slippage high");
-        require(uint256(state.performanceFee) < DIVISOR, "Fee too high");
+        _checkDivisor(uint256(state.rebalanceThreshold));
+        _checkDivisor(uint256(state.rebalanceSlippage));
+        _checkDivisor(uint256(state.restructureSlippage));
+        _checkDivisor(uint256(state.performanceFee));
         _initialized[strategy] = 1;
         _strategyStates[strategy] = state;
         emit NewValue(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
@@ -738,8 +736,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
     }
 
-    function _checkSlippage(uint256 slippage) private pure {
-        require(slippage > MIN_SLIPPAGE && slippage <= DIVISOR, "Slippage out of bounds");
+    function _checkDivisor(uint256 value) private pure {
+        require(value <= DIVISOR, "Out of bounds");
     }
 
     /**
