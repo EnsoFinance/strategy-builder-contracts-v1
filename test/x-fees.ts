@@ -125,7 +125,7 @@ describe('StrategyToken Fees', function () {
 		const account1ValueAfter = new BigNumJs((await estimateValue(accounts[1].address)).toString())
 
 		const actualRatio = account1ValueAfter.dividedBy(account1ValueBefore)
-		const expectedRatio = new BigNumJs(Math.pow(0.99, currentTimestamp.minus(lastTimestamp).dividedBy(YEAR).toNumber()))
+		const expectedRatio = new BigNumJs(Math.pow(0.999, currentTimestamp.minus(lastTimestamp).dividedBy(YEAR).toNumber()))
 
 		expect(actualRatio.dp(5).isEqualTo(expectedRatio.dp(5))).to.equal(true)
 		lastTimestamp = currentTimestamp

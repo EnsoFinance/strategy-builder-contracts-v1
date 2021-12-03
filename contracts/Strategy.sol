@@ -39,7 +39,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     ISynthetixAddressResolver private constant SYNTH_RESOLVER = ISynthetixAddressResolver(0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83);
     IAaveAddressResolver private constant AAVE_RESOLVER = IAaveAddressResolver(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
     uint256 public constant WITHDRAWAL_FEE = 2*10**15; // 0.2% per withdraw
-    uint256 public constant STREAM_FEE = uint256(10**34)/uint256(10**18-10**16); // 0.1% yearly inflation
+    uint256 public constant STREAM_FEE = uint256(10**33)/uint256(10**18-10**15); // The streaming fee streams 0.1% of the strategy's value over a year via inflation. The multiplier (0.001001001) is used to calculate the amount of tokens that need to be minted over a year to give the fee pool 0.1% of the tokens (STREAM_FEE*totalSupply)
     uint256 private constant YEAR = 365 days;
     uint256 private constant POOL_SHARE = 300;
     uint256 private constant DIVISOR = 1000;
