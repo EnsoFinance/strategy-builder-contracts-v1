@@ -13,8 +13,8 @@ import "./interfaces/IStrategyProxyFactory.sol";
 contract StrategyProxyAdmin {
     IStrategyProxyFactory private immutable factory;
 
-    constructor(address factory_) public  {
-        factory = IStrategyProxyFactory(factory_);
+    constructor() public  {
+        factory = IStrategyProxyFactory(msg.sender); // Contract is deployed by factory
     }
 
     modifier onlyManager(address proxy) {

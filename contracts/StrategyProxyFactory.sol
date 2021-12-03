@@ -78,7 +78,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         noZeroAddress(pool_)
         returns (bool)
     {
-        admin = address(new StrategyProxyAdmin(address(this)));
+        admin = address(new StrategyProxyAdmin());
         owner = owner_;
         _implementation = implementation_;
         _oracle = oracle_;

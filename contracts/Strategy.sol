@@ -43,7 +43,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     uint256 private constant YEAR = 365 days;
     uint256 private constant DIVISOR = 1000;
 
-
     event Withdraw(uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
     event PerformanceFee(address account, uint256 amount);
@@ -78,14 +77,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _manager = manager_;
         _name = name_;
         _symbol = symbol_;
-        _decimals = 18;
         _version = version_;
         _lastTokenValue = 10**18;
         _lastStreamTimestamp = block.timestamp;
-        PERMIT_TYPEHASH = keccak256(
-            "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-        );
         _setDomainSeperator();
+        updateAddresses();
         // Set structure
         if (strategyItems_.length > 0) {
             IStrategyController(_controller).verifyStructure(address(this), strategyItems_);
@@ -131,7 +127,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address account,
         uint256 amount
     ) external override onlyController {
-        IERC20(oracle().susd()).safeApprove(account, amount);
+        IERC20(_susd).safeApprove(account, amount);
         IDelegateApprovals delegateApprovals = IDelegateApprovals(SYNTH_RESOLVER.getAddress("DelegateApprovals"));
         if (amount == 0) {
             delegateApprovals.removeExchangeOnBehalf(account);
@@ -174,32 +170,34 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             percentage = amount.mul(10**18).div(totalSupplyBefore);
         }
         // Withdraw funds
-        IOracle o = oracle();
-        uint256 numTokens = supportsSynths() ? _items.length + _synths.length + 2 : _items.length + 1;
+        uint256 itemsLength = _items.length;
+        uint256 synthsLength = _synths.length;
+        bool isSynths = synthsLength > 0;
+        uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
-        for (uint256 i = 0; i < _items.length; i++) {
+        for (uint256 i = 0; i < itemsLength; i++) {
             // Should not be possible to have address(0) since the Strategy will check for it
             IERC20 token = IERC20(_items[i]);
             uint256 currentBalance = token.balanceOf(address(this));
             amounts[i] = currentBalance.mul(percentage).div(10**18);
             tokens[i] = token;
         }
-        if (supportsSynths()) {
-            for (uint256 i = _items.length; i < numTokens - 2; i ++) {
-                IERC20 synth = IERC20(_synths[i - _items.length]);
+        if (isSynths) {
+            for (uint256 i = itemsLength; i < numTokens - 2; i ++) {
+                IERC20 synth = IERC20(_synths[i - itemsLength]);
                 uint256 currentBalance = synth.balanceOf(address(this));
                 amounts[i] = currentBalance.mul(percentage).div(10**18);
                 tokens[i] = synth;
             }
             // Include SUSD
-            IERC20 susd = IERC20(o.susd());
+            IERC20 susd = IERC20(_susd);
             uint256 susdBalance = susd.balanceOf(address(this));
             amounts[numTokens - 2] = susdBalance.mul(percentage).div(10**18);
             tokens[numTokens - 2] = susd;
         }
         // Include WETH
-        IERC20 weth = IERC20(o.weth());
+        IERC20 weth = IERC20(_weth);
         uint256 wethBalance = weth.balanceOf(address(this));
         amounts[numTokens - 1] = wethBalance.mul(percentage).div(10**18);
         tokens[numTokens - 1] = weth;
@@ -373,6 +371,18 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
+        @notice Refresh Strategy's addresses
+     */
+    function updateAddresses() public {
+        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        _whitelist = f.whitelist();
+        _oracle = f.oracle();
+        IOracle o = oracle();
+        _weth = o.weth();
+        _susd = o.susd();
+    }
+
+    /**
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
@@ -426,11 +436,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function oracle() public view override returns (IOracle) {
-        return IOracle(IStrategyProxyFactory(_factory).oracle());
+        return IOracle(_oracle);
     }
 
     function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
+        return IWhitelist(_whitelist);
     }
 
     function supportsSynths() public view override returns (bool) {
@@ -469,11 +479,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @param newItems An array of Item structs that will comprise the strategy
      */
     function _setStructure(StrategyItem[] memory newItems) internal {
-        IOracle o = oracle();
-        ITokenRegistry registry = o.tokenRegistry();
-        address weth = o.weth();
-        address susd = o.susd();
-
+        address weth = _weth;
+        address susd = _susd;
         // Remove old percentages
         delete _percentage[weth];
         delete _percentage[susd];
@@ -491,15 +498,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         delete _items;
         delete _synths;
 
-        // Set new structure
-
+        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
+        // Set new items
         int256 virtualPercentage = 0;
-        //Set new items
         for (uint256 i = 0; i < newItems.length; i++) {
             address newItem = newItems[i].item;
             _tradeData[newItem] = newItems[i].data;
             _percentage[newItem] = newItems[i].percentage;
-            ItemCategory category = ItemCategory(registry.itemCategories(newItem));
+            ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
             if (category == ItemCategory.BASIC) {
                 _items.push(newItem);
             } else if (category == ItemCategory.SYNTH) {

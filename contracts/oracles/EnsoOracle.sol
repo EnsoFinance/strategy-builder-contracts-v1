@@ -12,8 +12,8 @@ contract EnsoOracle is IOracle, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
-    address public override weth;
-    address public override susd;
+    address public immutable override weth;
+    address public immutable override susd;
     ITokenRegistry public override tokenRegistry;
 
     event NewPrice(address token, uint256 price);

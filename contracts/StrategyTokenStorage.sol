@@ -5,7 +5,6 @@ import "./helpers/StrategyTypes.sol";
 
 contract StrategyTokenStorage is StrategyTypes {
     bytes32 public DOMAIN_SEPARATOR;
-    bytes32 public PERMIT_TYPEHASH;
 
     mapping(address => mapping(address => uint256)) internal _allowances;
     mapping(address => uint256) internal _balances;
@@ -14,7 +13,6 @@ contract StrategyTokenStorage is StrategyTypes {
     string internal _name;
     string internal _symbol;
     string internal _version;
-    uint8 internal _decimals;
 
     uint256 internal _streamingFeeRate;
     uint256 internal _lastStreamTimestamp;
@@ -22,9 +20,13 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(address => uint256) internal _paidTokenValues;
 
     uint256 internal _locked;
+    address internal _manager;
     address internal _controller;
     address internal _factory;
-    address internal _manager;
+    address internal _oracle;
+    address internal _whitelist;
+    address internal _weth;
+    address internal _susd;
 
     address[] internal _items;
     address[] internal _synths;

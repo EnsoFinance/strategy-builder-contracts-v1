@@ -8,7 +8,11 @@ import "./StrategyTokenStorage.sol";
 abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     using SafeMath for uint256;
 
+    bytes32 public constant PERMIT_TYPEHASH = keccak256(
+        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
+    );
     string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";
+    uint8 public constant override decimals = 18;
 
     /**
      * @dev See {IERC20-transfer}.
@@ -165,23 +169,6 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
      function version() external view returns (string memory) {
          return _version;
      }
-
-    /**
-     * @dev Returns the number of decimals used to get its user representation.
-     * For example, if `decimals` equals `2`, a balance of `505` tokens should
-     * be displayed to a user as `5,05` (`505 / 10 ** 2`).
-     *
-     * Tokens usually opt for a value of 18, imitating the relationship between
-     * Ether and Wei. This is the value {ERC20} uses, unless {_setupDecimals} is
-     * called.
-     *
-     * NOTE: This information is only used for _display_ purposes: it in
-     * no way affects any of the arithmetic of the contract, including
-     * {IERC20-balanceOf} and {IERC20-transfer}.
-     */
-    function decimals() external view override returns (uint8) {
-        return _decimals;
-    }
 
     /**
      * @dev See {IERC20-totalSupply}.
