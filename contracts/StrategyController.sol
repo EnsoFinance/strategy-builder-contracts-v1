@@ -24,9 +24,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     uint256 private constant DIVISOR = 1000;
 
-    event Withdraw(address indexed strategy, uint256 value, uint256 amount);
-    event Deposit(address indexed strategy, uint256 value, uint256 amount);
-    event Balanced(address indexed strategy, uint256 total, address caller);
+    event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    event Balanced(address indexed strategy, uint256 total);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
     event StrategyOpen(address indexed strategy, uint256 performanceFee);
@@ -465,7 +465,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
-        emit Deposit(address(strategy), amount, relativeTokens);
+        emit Deposit(address(strategy), account, amount, relativeTokens);
     }
 
     /**
@@ -515,7 +515,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Approve weth amount
         weth = o.weth();
         strategy.approveToken(weth, address(this), wethAmount);
-        emit Withdraw(address(strategy), wethAmount, amount);
+        emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
     /**
@@ -541,7 +541,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             "Too much slippage"
         );
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
-        emit Balanced(address(strategy), totalAfter, msg.sender);
+        emit Balanced(address(strategy), totalAfter);
         return totalAfter;
     }
 
