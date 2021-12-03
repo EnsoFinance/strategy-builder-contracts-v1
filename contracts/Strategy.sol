@@ -41,6 +41,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     uint256 public constant WITHDRAWAL_FEE = 2*10**15; // 0.2% per withdraw
     uint256 public constant STREAM_FEE = uint256(10**34)/uint256(10**18-10**16); // 0.1% yearly inflation
     uint256 private constant YEAR = 365 days;
+    uint256 private constant POOL_SHARE = 300;
     uint256 private constant DIVISOR = 1000;
 
     event Withdraw(uint256 amount, uint256[] amounts);
@@ -620,7 +621,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Distributes performance fees that have already been deducted by _deductPerformanceFee and sends them to the manager and fee pool
      */
     function _distributePerformanceFee(address pool, uint256 amount) internal {
-        uint256 poolAmount = amount.mul(300).div(DIVISOR);
+        uint256 poolAmount = amount.mul(POOL_SHARE).div(DIVISOR);
         _balances[_manager] = _balances[_manager].add(amount.sub(poolAmount));
         _balances[pool] = _balances[pool].add(poolAmount);
         emit Transfer(_manager, pool, poolAmount);

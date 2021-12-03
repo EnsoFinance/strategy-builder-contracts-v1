@@ -22,6 +22,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
+    uint256 private constant MIN_SLIPPAGE = 500;
     uint256 private constant DIVISOR = 1000;
 
     event Withdraw(address indexed strategy, uint256 value, uint256 amount);
@@ -738,7 +739,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _checkSlippage(uint256 slippage) private pure {
-        require(slippage > 500 && slippage <= DIVISOR, "Slippage out of bounds");
+        require(slippage > MIN_SLIPPAGE && slippage <= DIVISOR, "Slippage out of bounds");
     }
 
     /**
