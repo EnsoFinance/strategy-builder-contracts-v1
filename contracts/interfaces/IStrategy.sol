@@ -31,8 +31,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function withdrawAll(uint256 amount) external;
 
-    function withdrawStreamingFee() external;
-
     function mint(address account, uint256 amount) external;
 
     function burn(address account, uint256 amount) external returns (uint256);
@@ -45,6 +43,8 @@ interface IStrategy is IStrategyToken, StrategyTypes {
     ) external;
 
     function settleSynths() external;
+
+    function issueStreamingFee() external;
 
     function updateTokenValue(uint256 total, uint256 supply) external;
 

@@ -212,20 +212,20 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     /**
      * @notice Withdraws the performance fee to the manager and the fee pool
-     * @param holders An array of accounts that will have the performance fees removed
+     * @param holders An array of accounts that will be used to calculate the performance fee
      */
     function withdrawPerformanceFee(address[] memory holders) external {
         _setLock();
         _onlyManager();
-        updateTokenValue();
-        address pool = IStrategyProxyFactory(_factory).pool();
+        _updateTokenValue();
         uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
         uint256 amount = 0;
         for (uint256 i = 0; i < holders.length; i++) {
-            amount = amount.add(_deductPerformanceFee(holders[i], pool, performanceFee));
+            amount = amount.add(_settlePerformanceFee(holders[i], performanceFee));
         }
         require(amount > 0, "No earnings");
-        _distributePerformanceFee(pool, amount);
+        address pool = _pool;
+        _issuePerformanceFee(pool, amount);
         _updateStreamingFeeRate(pool);
         _removeLock();
     }
@@ -233,8 +233,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     /**
      * @notice Withdraws the streaming fee to the fee pool
      */
-    function withdrawStreamingFee() external override {
-        _issueStreamingFee(IStrategyProxyFactory(_factory).pool());
+    function withdrawStreamingFee() external {
+        _setLock();
+        _issueStreamingFee(_pool);
+        _removeLock();
     }
 
     /**
@@ -244,16 +246,16 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function mint(address account, uint256 amount) external override onlyController {
         //Assumes updateTokenValue has been called
-        address pool = IStrategyProxyFactory(_factory).pool();
-        uint256 fee = _deductPerformanceFee(
+        address pool = _pool;
+        uint256 fee = _settlePerformanceFeeRecipient(
             account,
-            pool,
+            amount,
+            _lastTokenValue,
             IStrategyController(_controller).strategyState(address(this)).performanceFee
         );
-        if (fee > 0) _distributePerformanceFee(pool, fee);
+        if (fee > 0) _issuePerformanceFee(pool, fee);
         _mint(account, amount);
         _updateStreamingFeeRate(pool);
-        _paidTokenValues[account] = _lastTokenValue;
     }
 
     /**
@@ -338,11 +340,20 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
+     * @notice Issues the streaming fee to the fee pool. Only callable by controller
+     */
+    function issueStreamingFee() external override onlyController {
+        _issueStreamingFee(_pool);
+    }
+
+    /**
      * @notice Update the per token value based on the most recent strategy value.
      */
-    function updateTokenValue() public {
-        (uint256 total, ) = oracle().estimateStrategy(this);
-        _setTokenValue(total, _totalSupply);
+    function updateTokenValue() external {
+        _setLock();
+        _onlyManager();
+        _updateTokenValue();
+        _removeLock();
     }
 
     /**
@@ -376,6 +387,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateAddresses() public {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        _pool = f.pool();
         _whitelist = f.whitelist();
         _oracle = f.oracle();
         IOracle o = oracle();
@@ -425,7 +437,16 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function getPerformanceFeeOwed(address account) external view override returns (uint256) {
-        return _getPerformanceFee(account);
+        uint256 fee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
+        return _getPerformanceFee(account, fee);
+    }
+
+    function getPaidTokenValue(address account) external view returns (uint256) {
+        return _paidTokenValues[account];
+    }
+
+    function getLastTokenValue() external view returns (uint256) {
+        return _lastTokenValue;
     }
 
     function controller() external view override returns (address) {
@@ -446,33 +467,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function supportsSynths() public view override returns (bool) {
         return _synths.length > 0;
-    }
-
-    function balanceOf(address account) external view override(StrategyToken, IERC20NonStandard) returns (uint256) {
-        uint256 performanceFee = _getPerformanceFee(account);
-        return _balances[account].sub(performanceFee);
-    }
-
-    function lastTokenValue() external view returns (uint256) {
-        return _lastTokenValue;
-    }
-
-    function paidTokenValue(address account) external view returns (uint256) {
-        return _paidTokenValues[account];
-    }
-
-    function _setDomainSeperator() internal {
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes(_name)),
-                keccak256(bytes(_version)),
-                chainId(),
-                address(this)
-            )
-        );
     }
 
     /**
@@ -534,28 +528,55 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
+     * @notice Update the per token value based on the most recent strategy value.
+     */
+    function _updateTokenValue() internal {
+        (uint256 total, ) = oracle().estimateStrategy(this);
+        _setTokenValue(total, _totalSupply);
+    }
+
+    /**
      * @notice Called any time there is a transfer to settle the performance and streaming fees
      */
-    function _handleFees(address sender, address recipient) internal override {
-        // Get fee pool
-        address pool = IStrategyProxyFactory(_factory).pool();
-        // Streaming fee
-        _issueStreamingFee(pool);
-        // Performance fees
-        uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
-        uint256 amount = _deductPerformanceFee(sender, pool, performanceFee);
-        amount = amount.add(_deductPerformanceFee(recipient, pool, performanceFee));
-        if (amount > 0) {
-            _distributePerformanceFee(pool, amount);
-            _updateStreamingFeeRate(pool);
+    function _handleFees(uint256 amount, address sender,address recipient) internal override {
+        uint256 senderPaidValue = _paidTokenValues[sender];
+        uint256 recipientPaidValue = _paidTokenValues[recipient];
+        if (recipientPaidValue == 0 && senderPaidValue < uint256(-1)) {
+            // Note: Since the recipient doesn't have a balance, they can just inherit
+            // the sender's balance without having to settle the performance fees and
+            // tokens for the manager/fee pool. This only works because we pay fees via
+            // inflation, issuing fees now or later dilutes receiver's value either way
+            _paidTokenValues[recipient] = senderPaidValue;
+        } else {
+            // Performance fees
+            uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
+            uint256 mintAmount = _settlePerformanceFee(sender, performanceFee); // Sender's paid token value may be updated here
+            mintAmount = mintAmount.add(_settlePerformanceFeeRecipient(
+              recipient,
+              amount,
+              senderPaidValue < uint256(-1) // Pass sender's paid value unless sender is manager/pool
+                  ? _paidTokenValues[sender] // This will equal _lastTokenValue or higher
+                  : _lastTokenValue,
+              performanceFee));
+            if (amount > 0) {
+                address pool = _pool;
+                // Stream fee before any tokens are minted (since change in supply changes rate)
+                _issueStreamingFee(pool);
+                // Mint prformance fee
+                _issuePerformanceFee(pool, mintAmount);
+                // Update streaming fee rate for the new total supply
+                _updateStreamingFeeRate(pool);
+            }
         }
     }
 
     /**
-     * @notice Sets the new _streamingFeeRate which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
+     * @notice Mints performance fee to the manager and fee pool
      */
-    function _updateStreamingFeeRate(address pool) internal {
-        _streamingFeeRate = _totalSupply.sub(_balances[pool]).mul(STREAM_FEE);
+    function _issuePerformanceFee(address pool, uint256 amount) internal {
+        uint256 poolAmount = amount.mul(POOL_SHARE).div(DIVISOR);
+        _mint(pool, poolAmount);
+        _mint(_manager, amount.sub(poolAmount));
     }
 
     /**
@@ -573,10 +594,17 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
+     * @notice Sets the new _streamingFeeRate which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
+     */
+    function _updateStreamingFeeRate(address pool) internal {
+        _streamingFeeRate = _totalSupply.sub(_balances[pool]).mul(STREAM_FEE);
+    }
+
+    /**
      * @notice Deduct withdrawal fee and burn remaining tokens. Returns the amount of tokens that have been burned
      */
     function _deductFeeAndBurn(address account, uint256 amount) internal returns (uint256) {
-        address pool = IStrategyProxyFactory(_factory).pool();
+        address pool = _pool;
         amount = _deductWithdrawalFee(account, pool, amount);
         _burn(account, amount);
         _updateStreamingFeeRate(pool);
@@ -594,53 +622,73 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return amount.sub(fee);
     }
 
-    /**
-     * @notice Deducts the performance fee from the account balance and returns the amount deducted
-     */
-    function _deductPerformanceFee(address account, address pool, uint256 performanceFee) internal returns (uint256){
-        if (account == pool) return 0;
-        uint256 paidTokenValue = _paidTokenValues[account];
-        if (paidTokenValue == 0) {
-            _paidTokenValues[account] = _lastTokenValue;
-            return 0;
-        } else if (_lastTokenValue > paidTokenValue) {
-            uint256 balance = _balances[account];
-            uint256 amount = _calcPerformanceFee(balance, paidTokenValue, _lastTokenValue, performanceFee);
-            if (amount > 0) {
-              _paidTokenValues[account] = _lastTokenValue;
-              _balances[account] = balance.sub(amount);
-              emit Transfer(account, _manager, amount);
-              emit PerformanceFee(account, amount);
-              return amount;
-            }
-        }
-        return 0;
+    // Settle performance fee
+    function _settlePerformanceFee(address account, uint256 fee) internal returns (uint256) {
+        uint256 amount = _getPerformanceFee(account, fee);
+        if (amount > 0) _paidTokenValues[account] = _lastTokenValue;
+        return amount;
     }
 
-    /**
-     * @notice Distributes performance fees that have already been deducted by _deductPerformanceFee and sends them to the manager and fee pool
-     */
-    function _distributePerformanceFee(address pool, uint256 amount) internal {
-        uint256 poolAmount = amount.mul(POOL_SHARE).div(DIVISOR);
-        _balances[_manager] = _balances[_manager].add(amount.sub(poolAmount));
-        _balances[pool] = _balances[pool].add(poolAmount);
-        emit Transfer(_manager, pool, poolAmount);
+    // Settle performance fee when the account is receiving new tokens
+    function _settlePerformanceFeeRecipient(
+        address account,
+        uint256 amount,
+        uint256 tokenValue,
+        uint256 fee
+    ) internal returns (uint256) {
+        uint256 paidTokenValue = _paidTokenValues[account];
+        if (paidTokenValue > 0) {
+            if (paidTokenValue == uint256(-1)) return 0; // Manager or pool, no settlement necessary
+            uint256 lastTokenValue = _lastTokenValue;
+            uint256 balance = _balances[account];
+            uint256 mintAmount = 0;
+            if (paidTokenValue < lastTokenValue) {
+                mintAmount = _calcPerformanceFee(
+                    balance,
+                    paidTokenValue,
+                    lastTokenValue,
+                    fee
+                );
+                // Update the paid token value to the current value
+                paidTokenValue = lastTokenValue;
+            }
+            // Note: paidTokenValue & tokenValue will always equal lastTokenValue or greater
+            if (paidTokenValue != tokenValue) {
+                // When the amount has a different paid token value than
+                // the account's current balance, We need to find the average
+                // paid token value.
+                _paidTokenValues[account] = _avgPaidTokenValue(balance, amount, paidTokenValue, tokenValue);
+            } else if (paidTokenValue == lastTokenValue) {
+                // The paid token value was updated above, just set it in state
+               _paidTokenValues[account] = paidTokenValue;
+            }
+            return mintAmount;
+        } else {
+            // Check if account is manager or pool
+            if (account == _manager || account == _pool) {
+                // Manager/pool has not been initialized, set paid token value to max
+                _paidTokenValues[account] = uint256(-1);
+            } else {
+                // It is a user minting for the first time. Set paid token value to current
+                _paidTokenValues[account] = tokenValue;
+            }
+            // No fees need to be issued
+            return 0;
+        }
     }
 
     /**
      * @notice Returns the current amount of performance fees owed by the account
      */
-    function _getPerformanceFee(address account) internal view returns (uint256) {
-        if (_balances[account] > 0) {
-          if (account == IStrategyProxyFactory(_factory).pool()) return 0;
-          if (_lastTokenValue > _paidTokenValues[account])
-              return _calcPerformanceFee(
-                  _balances[account],
-                  _paidTokenValues[account],
-                  _lastTokenValue,
-                  IStrategyController(_controller).strategyState(address(this)).performanceFee
-              );
-        }
+    function _getPerformanceFee(address account, uint256 fee) internal view returns (uint256) {
+        // We don't need to check pool or manager address since their paid token value is max uint256
+        if (_lastTokenValue > _paidTokenValues[account])
+            return _calcPerformanceFee(
+                _balances[account],
+                _paidTokenValues[account],
+                _lastTokenValue,
+                fee
+            );
         return 0;
     }
 
@@ -650,6 +698,18 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 performanceFee) internal pure returns (uint256) {
         uint256 diff = tokenValue.sub(paidTokenValue);
         return balance.mul(diff).mul(performanceFee).div(DIVISOR).div(tokenValue);
+    }
+
+    /**
+     * @notice Averages the paid token value of a user between two sets of tokens that have paid different fees
+     */
+    function _avgPaidTokenValue(
+      uint256 amountA,
+      uint256 amountB,
+      uint256 paidValueA,
+      uint256 paidValueB
+    ) internal pure returns (uint256) {
+        return amountA.mul(paidValueA).add(amountB.mul(paidValueB)).div(amountA.add(amountB));
     }
 
     /**

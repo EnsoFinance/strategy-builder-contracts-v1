@@ -56,12 +56,6 @@ describe('StrategyToken Fees', function () {
 		await whitelist.connect(accounts[10]).approve(adapter.address)
 		router = await deployLoopRouter(accounts[10], controller)
 		await whitelist.connect(accounts[10]).approve(router.address)
-		/*
-		const Strategy = await getContractFactory('Strategy')
-		const strategyImplementation = await Strategy.connect(accounts[10]).deploy()
-		await strategyImplementation.deployed()
-		await strategyFactory.connect(accounts[10]).updateImplementation(strategyImplementation.address, '2')
-		*/
 	})
 
 	it('Should deploy strategy', async function () {
@@ -160,7 +154,7 @@ describe('StrategyToken Fees', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect((await wrapper.getStrategyValue()).gt(valueBefore)).to.equal(true)
 		expect((await strategy.getPerformanceFeeOwed(accounts[3].address)).gt(0)).to.equal(false)
-		await strategy['updateTokenValue()']()
+		await strategy.connect(accounts[1])['updateTokenValue()']()
 		expect((await strategy.getPerformanceFeeOwed(accounts[3].address)).gt(0)).to.equal(true)
 	})
 
@@ -173,15 +167,56 @@ describe('StrategyToken Fees', function () {
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
-	it('Should transfer tokens', async function () {
+	it('Should transfer tokens to a non-holder', async function () {
 		const amount = BigNumber.from('5000000000000000')
-		const balanceBefore = await strategy.balanceOf(accounts[10].address)
+		const paidTokenValueBefore = await strategy.getPaidTokenValue(accounts[2].address)
+		expect((await strategy.balanceOf(accounts[11].address)).eq(0)).to.equal(true)
+		expect((await strategy.getPaidTokenValue(accounts[11].address)).eq(0)).to.equal(true)
 		const tx = await strategy.connect(accounts[2]).transfer(accounts[11].address, amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[10].address)
-		expect(await strategy.paidTokenValue(accounts[2].address)).to.be.equal(await strategy.lastTokenValue())
-		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		const paidTokenValueAfter = await strategy.getPaidTokenValue(accounts[2].address)
+		const paidTokenValueNewUser = await strategy.getPaidTokenValue(accounts[11].address)
+		expect(paidTokenValueAfter.eq(paidTokenValueBefore)).to.equal(true)
+		expect(paidTokenValueAfter.eq(paidTokenValueNewUser)).to.equal(true)
+	})
+
+	it('Should transfer tokens', async function () {
+		const amount = BigNumber.from('5000000000000000')
+		const userA = accounts[3]
+		const userB = accounts[4]
+
+		const managerBalanceBefore = await strategy.balanceOf(accounts[1].address)
+		const ownerBalanceBefore = await strategy.balanceOf(accounts[10].address)
+		const balanceABefore = await strategy.balanceOf(userA.address)
+		const balanceBBefore = await strategy.balanceOf(userB.address)
+		expect(balanceBBefore.gt(0)).to.equal(true)
+
+		const paidTokenValueABefore = new BigNumJs((await strategy.getPaidTokenValue(userA.address)).toString())
+		const paidTokenValueBBefore = new BigNumJs((await strategy.getPaidTokenValue(userB.address)).toString())
+
+		const tx = await strategy.connect(userA).transfer(accounts[4].address, amount)
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+
+		const managerBalanceAfter = await strategy.balanceOf(accounts[1].address)
+		const ownerBalanceAfter = await strategy.balanceOf(accounts[10].address)
+		expect(ownerBalanceAfter.gt(ownerBalanceBefore)).to.equal(true)
+
+		const lastTokenValue = await strategy.getLastTokenValue()
+		const paidTokenValueAAfter = new BigNumJs((await strategy.getPaidTokenValue(userA.address)).toString())
+		expect(paidTokenValueAAfter.toString()).to.be.equal(lastTokenValue.toString())
+		const paidTokenValueBAfter = new BigNumJs((await strategy.getPaidTokenValue(userB.address)).toString())
+		expect(paidTokenValueBAfter.toString()).to.be.equal(lastTokenValue.toString())
+
+		const ownerMint = ownerBalanceAfter.sub(ownerBalanceBefore)
+		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
+		const totalMint = new BigNumJs(ownerMint.add(managerMint).toString())
+
+		const balanceEquivalentA = paidTokenValueAAfter.minus(paidTokenValueABefore).multipliedBy(balanceABefore.toString()).dividedBy(paidTokenValueAAfter)
+		const balanceEquivalentB = paidTokenValueBAfter.minus(paidTokenValueBBefore).multipliedBy(balanceBBefore.toString()).dividedBy(paidTokenValueBAfter)
+		const percentage = totalMint.dividedBy(balanceEquivalentA.plus(balanceEquivalentB))
+		expect(percentage.dp(5).toString()).to.equal('0.1') //10%
 	})
 
 	it('Should withdraw pool rewards', async function () {

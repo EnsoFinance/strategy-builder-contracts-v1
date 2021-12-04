@@ -25,6 +25,7 @@ contract StrategyTokenStorage is StrategyTypes {
     address internal _factory;
     address internal _oracle;
     address internal _whitelist;
+    address internal _pool;
     address internal _weth;
     address internal _susd;
 

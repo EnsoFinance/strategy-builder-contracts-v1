@@ -193,7 +193,14 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     /**
      * @dev See {IERC20-balanceOf}.
      */
-    function balanceOf(address account) external view override virtual returns (uint256);
+    function balanceOf(address account)
+        external
+        view
+        override
+        returns (uint256)
+    {
+        return _balances[account];
+    }
 
     function chainId() public pure returns (uint256 id) {
         assembly {
@@ -222,7 +229,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     ) internal virtual {
         _validAddress(sender);
         _validAddress(recipient);
-        _handleFees(sender, recipient);
+        _handleFees(amount, sender, recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
         _resetTokenValue(sender);
@@ -289,6 +296,20 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         emit Approval(owner, spender, amount);
     }
 
+    function _setDomainSeperator() internal {
+        DOMAIN_SEPARATOR = keccak256(
+            abi.encode(
+                keccak256(
+                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                ),
+                keccak256(bytes(_name)),
+                keccak256(bytes(_version)),
+                chainId(),
+                address(this)
+            )
+        );
+    }
+
     function _resetTokenValue(address account) internal {
         if (_balances[account] == 0) _paidTokenValues[account] = 0;
     }
@@ -297,5 +318,5 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         require(addr != address(0), "ERC20: No address(0)");
     }
 
-    function _handleFees(address sender, address recipient) internal virtual;
+    function _handleFees(uint256 amount, address sender,address recipient) internal virtual;
 }

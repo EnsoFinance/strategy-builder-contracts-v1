@@ -95,7 +95,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
         strategy.settleSynths();
-        strategy.withdrawStreamingFee();
+        strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
@@ -482,6 +482,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(amount > 0, "0 amount");
         _checkDivisor(slippage);
         strategy.settleSynths();
+        strategy.issueStreamingFee();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
         uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimatesBefore);
