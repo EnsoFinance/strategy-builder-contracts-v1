@@ -12,7 +12,8 @@ import {
 	deployTokens,
 	deployUniswapV2Adapter,
 	deployUniswapV2LPAdapter,
-	deployLoopRouter
+	deployLoopRouter,
+	deployGenericRouter
 } from '../lib/deploy'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/utils'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
@@ -40,7 +41,8 @@ describe('UniswapV2LPAdapter', function () {
 			controller: Contract,
 			oracle: Contract,
 			library: Contract,
-			router: Contract,
+			loopRouter: Contract,
+			genericRouter: Contract,
 			uniswapV2Adapter: Contract,
 			uniswapV2LPAdapter: Contract,
 			strategy: Contract,
@@ -81,8 +83,10 @@ describe('UniswapV2LPAdapter', function () {
 		await whitelist.connect(owner).approve(uniswapV2Adapter.address)
 		uniswapV2LPAdapter = await deployUniswapV2LPAdapter(owner, uniswapFactory, weth)
 		await whitelist.connect(owner).approve(uniswapV2LPAdapter.address)
-		router = await deployLoopRouter(owner, controller, library)
-		await whitelist.connect(owner).approve(router.address)
+		loopRouter = await deployLoopRouter(owner, controller, library)
+		await whitelist.connect(owner).approve(loopRouter.address)
+		genericRouter = await deployGenericRouter(owner, controller)
+		await whitelist.connect(owner).approve(genericRouter.address)
 	})
 
 	it('Should fail to swap: tokens cannot match', async function () {
@@ -187,7 +191,7 @@ describe('UniswapV2LPAdapter', function () {
 			'TEST',
 			strategyItems,
 			STRATEGY_STATE,
-			router.address,
+			loopRouter.address,
 			'0x',
 			{ value: ethers.BigNumber.from('10000000000000000') }
 		)
@@ -210,52 +214,91 @@ describe('UniswapV2LPAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should purchase a token, requiring a rebalance of strategy', async function () {
+	it('Should fail to do a flash swap attack', async function () {
+			const attacker = accounts[13];
+			const FlashSwapAttack = await getContractFactory('FlashSwapAttack')
+			const flashSwapAttack = await FlashSwapAttack.connect(attacker).deploy(controller.address, genericRouter.address, loopRouter.address, weth.address)
+			// Fund the attack contract to pay Uniswap fees
+			await tokens[1].connect(owner).transfer(flashSwapAttack.address, WeiPerEther.mul(10))
+			await tokens[2].connect(owner).transfer(flashSwapAttack.address, WeiPerEther.mul(10))
+			// Initiate attack
+			await expect(
+				flashSwapAttack.connect(attacker).initiateAttack(pair.address, strategy.address)
+			).to.be.revertedWith('Lost value')
+	})
+
+	it('Should purchase tokens, increasing pool value, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		const value = WeiPerEther.mul(10)
+		await weth.connect(accounts[19]).deposit({value: value.mul(2)})
+
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, weth.address, tokens[1].address, accounts[19].address, accounts[19].address)
 
+		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
+		await uniswapV2Adapter
+			.connect(accounts[19])
+			.swap(value, 0, weth.address, tokens[2].address, accounts[19].address, accounts[19].address)
+
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		expect((await weth.balanceOf(router.address)).eq(0)).to.equal(true)
-		expect((await tokens[1].balanceOf(router.address)).eq(0)).to.equal(true)
-		expect((await tokens[2].balanceOf(router.address)).eq(0)).to.equal(true)
+		expect((await weth.balanceOf(loopRouter.address)).eq(0)).to.equal(true)
+		expect((await tokens[1].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
+		expect((await tokens[2].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 	})
 
-	it('Should purchase a token, requiring a rebalance of strategy', async function () {
+	it('Should sell tokens, reducing pool value, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = await tokens[1].balanceOf(accounts[19].address)
+		let value = await tokens[1].balanceOf(accounts[19].address)
 		await tokens[1].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, tokens[1].address, weth.address, accounts[19].address, accounts[19].address)
-
+		/*
+		value = await tokens[2].balanceOf(accounts[19].address)
+		await tokens[2].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
+		await uniswapV2Adapter
+			.connect(accounts[19])
+			.swap(value, 0, tokens[2].address, weth.address, accounts[19].address, accounts[19].address)
+		*/
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		expect((await weth.balanceOf(router.address)).eq(0)).to.equal(true)
-		expect((await tokens[1].balanceOf(router.address)).eq(0)).to.equal(true)
-		expect((await tokens[2].balanceOf(router.address)).eq(0)).to.equal(true)
+		expect((await weth.balanceOf(loopRouter.address)).eq(0)).to.equal(true)
+		expect((await tokens[1].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
+		expect((await tokens[2].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 	})
+
+	it('Should fail to rebalance: price deviation', async function () {
+		// Approve the user to use the adapter
+		const value = WeiPerEther.mul(500)
+		await weth.connect(accounts[19]).deposit({value: value.mul(2)})
+		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
+		await uniswapV2Adapter
+			.connect(accounts[19])
+			.swap(value, 0, weth.address, tokens[1].address, accounts[19].address, accounts[19].address)
+		await expect(
+			controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
+		).to.be.revertedWith("Price deviation")
+	})
+
 
 	it('Should check spot price (deposit)', async function () {
 		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, pair.address)

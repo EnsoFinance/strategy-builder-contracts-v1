@@ -12,7 +12,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-  uint256 private constant DEFAULT_AMOUNT = 10**18;
+    uint256 private constant DEFAULT_AMOUNT = 10**9;
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
     address public immutable factory;
 
@@ -95,7 +95,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
             // Swap weth for underlying tokens
             uint256 amountOut0 = _buyToken(wethIn0, token0);
             uint256 amountOut1 = _buyToken(wethIn1, token1);
-
             // Transfer underyling token to pair contract
             IERC20(token0).safeTransfer(tokenOut, amountOut0);
             IERC20(token1).safeTransfer(tokenOut, amountOut1);
@@ -134,6 +133,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
     function _getAmountIn(address token, address pair, uint256 totalSupply, bool quote) internal view returns (uint256) {
         uint256 balance = IERC20(token).balanceOf(pair);
         uint256 amountOut = DEFAULT_AMOUNT.mul(balance) / totalSupply;
+        if (token == weth) return amountOut;
         (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
         if (quote) {
             return UniswapV2Library.quote(amountOut, tokenReserve, wethReserve);
@@ -146,6 +146,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 amountIn,
         address token
     ) internal returns (uint256) {
+        if (token == weth) return amountIn;
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, weth, token);
         uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
         (address token0, ) = UniswapV2Library.sortTokens(weth, token);
@@ -180,6 +181,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _quote(uint256 amount, address tokenIn, address tokenOut) internal view returns (uint256) {
+        if (tokenIn == tokenOut) return amount;
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
         return UniswapV2Library.quote(amount, reserveIn, reserveOut);
     }
