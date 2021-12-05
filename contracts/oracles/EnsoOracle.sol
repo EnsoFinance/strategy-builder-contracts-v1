@@ -14,7 +14,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
 
     address public immutable override weth;
     address public immutable override susd;
-    ITokenRegistry public override tokenRegistry;
+    ITokenRegistry public immutable override tokenRegistry;
 
     event NewPrice(address token, uint256 price);
 
