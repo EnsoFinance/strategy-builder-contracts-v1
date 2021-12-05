@@ -6,7 +6,7 @@ const { AddressZero, MaxUint256, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { expect } from 'chai'
 import { BigNumber, Contract, Event } from 'ethers'
-import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployBatchDepositRouter } from '../lib/deploy'
 import { displayBalances } from '../lib/logging'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
@@ -26,6 +26,7 @@ describe('BatchDepositRouter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -41,9 +42,10 @@ describe('BatchDepositRouter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployBatchDepositRouter(accounts[0], controller)
+		router = await deployBatchDepositRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -72,7 +74,7 @@ describe('BatchDepositRouter', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) }
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -107,8 +109,12 @@ describe('BatchDepositRouter', function () {
 		receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

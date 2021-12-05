@@ -47,6 +47,14 @@ export type StrategyItem = {
 
 export type StrategyState = {
 	timelock: BigNumber
+	rebalanceSlippage: BigNumber
+	restructureSlippage: BigNumber
+	social: boolean
+	set: boolean
+}
+
+export type InitialState = {
+	timelock: BigNumber
 	rebalanceThreshold: BigNumber
 	rebalanceSlippage: BigNumber
 	restructureSlippage: BigNumber

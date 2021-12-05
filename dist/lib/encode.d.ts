@@ -32,6 +32,13 @@ export declare type StrategyItem = {
 };
 export declare type StrategyState = {
     timelock: BigNumber;
+    rebalanceSlippage: BigNumber;
+    restructureSlippage: BigNumber;
+    social: boolean;
+    set: boolean;
+};
+export declare type InitialState = {
+    timelock: BigNumber;
     rebalanceThreshold: BigNumber;
     rebalanceSlippage: BigNumber;
     restructureSlippage: BigNumber;

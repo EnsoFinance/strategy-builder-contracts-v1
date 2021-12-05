@@ -51,6 +51,9 @@ async function main() {
 	// If this script is run directly using `node` you may want to call compile
 	// manually to make sure everything is compiled
 	// await hre.run('compile');
+  const StrategyLibrary = await hre.ethers.getContractFactory('StrategyLibrary')
+  const library = await StrategyLibrary.deploy()
+  await library.deployed()
 
 	const TokenRegistry = await hre.ethers.getContractFactory('TokenRegistry')
 	const tokenRegistry = await TokenRegistry.deploy()
@@ -116,7 +119,7 @@ async function main() {
 	const AaveEstimator = await hre.ethers.getContractFactory('AaveEstimator')
 	const aaveEstimator = await AaveEstimator.deploy()
 	await aaveEstimator.deployed()
-	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE, aaveEstimator.address)
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveEstimator.address)
 	await tx.wait()
 
 	add2Deployments('AaveEstimator', aaveEstimator.address)
@@ -225,8 +228,16 @@ async function main() {
 
 	add2Deployments('StrategyProxyFactory', factoryAddress)
 
+  const StrategyController = await hre.ethers.getContractFactory('StrategyController', {
+    libraries: {
+      StrategyLibrary: library.address
+    }
+  })
+  const controllerImplementation = await StrategyController.deploy()
+  await controllerImplementation.deployed()
+
 	const StrategyControllerAdmin = await hre.ethers.getContractFactory('StrategyControllerAdmin')
-	const controllerAdmin = await StrategyControllerAdmin.deploy(factoryAddress)
+	const controllerAdmin = await StrategyControllerAdmin.deploy(controllerImplementation.address, factoryAddress)
 	await controllerAdmin.deployed()
 
 	add2Deployments('StrategyControllerAdmin', controllerAdmin.address)
@@ -243,7 +254,11 @@ async function main() {
 	tx = await tokenRegistry.transferOwnership(factoryAddress)
 	await tx.wait()
 
-	const LoopRouter = await hre.ethers.getContractFactory('LoopRouter')
+  const LoopRouter = await hre.ethers.getContractFactory('LoopRouter', {
+    libraries: {
+      StrategyLibrary: library.address
+    }
+  })
 	const loopRouter = await LoopRouter.deploy(controllerAddress)
 	await loopRouter.deployed()
 
@@ -252,7 +267,11 @@ async function main() {
 	tx = await whitelist.approve(loopRouter.address)
 	await tx.wait()
 
-	const FullRouter = await hre.ethers.getContractFactory('FullRouter')
+	const FullRouter = await hre.ethers.getContractFactory('FullRouter', {
+    libraries: {
+      StrategyLibrary: library.address
+    }
+  })
 	const fullRouter = await FullRouter.deploy(deployedContracts[network].aaveAddressProvider, controllerAddress)
 	await fullRouter.deployed()
 
@@ -270,7 +289,11 @@ async function main() {
 	tx = await whitelist.approve(genericRouter.address)
 	await tx.wait()
 
-	const BatchDepositRouter = await hre.ethers.getContractFactory('BatchDepositRouter')
+	const BatchDepositRouter = await hre.ethers.getContractFactory('BatchDepositRouter', {
+    libraries: {
+      StrategyLibrary: library.address
+    }
+  })
 	const batchDepositRouter = await BatchDepositRouter.deploy(controllerAddress)
 	await batchDepositRouter.deployed()
 

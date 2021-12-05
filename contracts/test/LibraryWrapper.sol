@@ -26,7 +26,7 @@ contract LibraryWrapper is StrategyTypes{
     function isBalanced() external view returns (bool) {
         return
             _checkBalance(
-                IStrategyController(strategy.controller()).strategyState(address(strategy)).rebalanceThreshold
+                strategy.rebalanceThreshold()
             );
     }
 
@@ -40,8 +40,7 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function getRebalanceRange(int256 expectedValue) external view returns (int256) {
-        uint256 range =
-            IStrategyController(strategy.controller()).strategyState(address(strategy)).rebalanceThreshold;
+        uint256 range = strategy.rebalanceThreshold();
         return StrategyLibrary.getRange(expectedValue, range);
     }
 
@@ -62,7 +61,6 @@ contract LibraryWrapper is StrategyTypes{
         if (token == address(0)) {
             return int256(address(s).balance);
         } else if (token == address(-1)) {
-            IOracle oracle = s.oracle();
             address[] memory synths = s.synths();
             int256 estimate = 0;
             for (uint256 i = 0; i < synths.length; i++) {

@@ -17,7 +17,7 @@ import {
 	Multicall,
 	Position,
 	StrategyItem,
-	StrategyState
+	InitialState
 } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from '../lib/utils'
 
@@ -43,6 +43,7 @@ describe('GenericRouter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -58,6 +59,7 @@ describe('GenericRouter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
 		genericRouter = await deployGenericRouter(accounts[0], controller)
@@ -84,7 +86,7 @@ describe('GenericRouter', function () {
 			{ token: tokens[14].address, percentage: BigNumber.from(50) },
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -130,8 +132,12 @@ describe('GenericRouter', function () {
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategy.address)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)

@@ -14,7 +14,7 @@ import {
 	prepareDepositMulticall,
 	calculateAddress,
 	Position,
-	StrategyState
+	InitialState
 } from '../lib/encode'
 import { prepareFlashLoan }  from '../lib/cookbook'
 import { Contract, BigNumber } from 'ethers'
@@ -35,6 +35,7 @@ describe('Flash Loan', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		sushiAdapter: Contract,
 		sushiFactory: Contract,
 		uniswapAdapter: Contract,
@@ -52,6 +53,7 @@ describe('Flash Loan', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		sushiAdapter = await deployUniswapV2Adapter(accounts[0], sushiFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
@@ -69,7 +71,7 @@ describe('Flash Loan', function () {
 			{ token: tokens[3].address, percentage: BigNumber.from(200) },
 		] as Position[];
 		const strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(995),
@@ -112,9 +114,13 @@ describe('Flash Loan', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategy.address)
-		await wrapper.deployed()
+			const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+				libraries: {
+					StrategyLibrary: library.address
+				}
+			})
+			wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+			await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyConfig.strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees

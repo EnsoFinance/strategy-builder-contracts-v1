@@ -11,7 +11,8 @@ interface StrategyTypes {
       SUSHI_TWAP_ORACLE,
       STRATEGY,
       BLOCKED,
-      AAVE,
+      AAVE_V1,
+      AAVE_V2,
       AAVE_DEBT,
       BALANCER,
       COMPOUND,
@@ -38,12 +39,20 @@ interface StrategyTypes {
         bytes cache;
     }
 
-    struct StrategyState {
+    struct InitialState {
         uint32 timelock;
         uint16 rebalanceThreshold;
         uint16 rebalanceSlippage;
         uint16 restructureSlippage;
         uint16 performanceFee;
+        bool social;
+        bool set;
+    }
+
+    struct StrategyState {
+        uint32 timelock;
+        uint16 rebalanceSlippage;
+        uint16 restructureSlippage;
         bool social;
         bool set;
     }

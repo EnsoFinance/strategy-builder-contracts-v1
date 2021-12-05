@@ -1,9 +1,9 @@
 import { expect } from 'chai'
 const hre = require('hardhat')
 const { ethers } = hre
-const { constants, getSigners } = ethers
+const { constants, getSigners, getContractFactory } = ethers
 import * as deployer from '../lib/deploy'
-import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
@@ -21,6 +21,7 @@ describe('BalancerAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
+		library: Contract,
 		router: Contract,
 		balancerAdapter: Contract,
 		uniswapAdapter: Contract,
@@ -38,12 +39,13 @@ describe('BalancerAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
+		library = platform.library
 		const whitelist = platform.administration.whitelist
 		uniswapAdapter = await deployer.deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
-		router = await deployer.deployLoopRouter(accounts[0], controller)
+		router = await deployer.deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -55,7 +57,7 @@ describe('BalancerAdapter', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) },
 		] as Position[];
 		strategyItems = prepareStrategy(positions, balancerAdapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -83,8 +85,12 @@ describe('BalancerAdapter', function () {
 		const Strategy = await ethers.getContractFactory('Strategy')
 		strategy = await Strategy.connect(accounts[0]).attach(strategyAddress)
 
-		const LibraryWrapper = await ethers.getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)

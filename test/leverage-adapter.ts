@@ -16,7 +16,7 @@ import {
 	encodeSettleSwap,
 	Multicall,
 	StrategyItem,
-	StrategyState
+	InitialState
 } from '../lib/encode'
 import { MAINNET_ADDRESSES } from '../lib/utils'
 
@@ -40,6 +40,7 @@ describe('Leverage2XAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		uniswapAdapter: Contract,
 		aaveLendAdapter: Contract,
 		aaveBorrowAdapter: Contract,
@@ -59,6 +60,7 @@ describe('Leverage2XAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
@@ -99,7 +101,7 @@ describe('Leverage2XAdapter', function () {
 			}
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -148,8 +150,12 @@ describe('Leverage2XAdapter', function () {
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategy.address)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
 
 		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

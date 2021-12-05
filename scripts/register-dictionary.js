@@ -13,7 +13,7 @@ const deployedContracts = deployments[process.env.HARDHAT_NETWORK]
 const estimators = {
   'synthetix': ESTIMATOR_CATEGORY.SYNTH,
   'compound': ESTIMATOR_CATEGORY.COMPOUND,
-  'aave': ESTIMATOR_CATEGORY.AAVE,
+  'aave': ESTIMATOR_CATEGORY.AAVE_V2,
   'yearn': ESTIMATOR_CATEGORY.YEARN_V2,
   'curve': ESTIMATOR_CATEGORY.CURVE,
 }

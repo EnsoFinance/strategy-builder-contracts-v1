@@ -22,6 +22,7 @@ import {
 	deployFullRouter,
 	deployLoopRouter,
 	deployGenericRouter,
+	deployBatchDepositRouter,
 	Platform
 } from './deploy'
 import { MAINNET_ADDRESSES } from './utils'
@@ -204,10 +205,11 @@ export class EnsoBuilder {
 			this.addRouter('generic')
 			this.addRouter('loop')
 			this.addRouter('full')
+			this.addRouter('batch')
 		}
 		this.routers = await Promise.all(
 			this.routers.map(async r => {
-				await r.deploy(this.signer, ensoPlatform.controller)
+				await r.deploy(this.signer, ensoPlatform.controller, ensoPlatform.library)
 				await ensoPlatform.administration.whitelist.connect(this.signer).approve(r.contract?.address)
 				return r
 			})
@@ -402,7 +404,8 @@ export class Adapter {
 export enum Routers {
 	Generic,
 	Loop,
-	Full
+	Full,
+	Batch
 }
 
 // TODO: implement encoding for each Router (chain calldata for each type of router GenericRouter is IRouter, LoopRouter is IRouter etc..)
@@ -420,6 +423,9 @@ export class Router {
 			case 'loop' || 'looprouter':
 				this.type = Routers.Loop
 				break
+			case 'batch' || 'batchrouter' || 'batchdepositrouter':
+				this.type = Routers.Loop
+				break
 			default:
 				throw Error(
 					'failed to parse router type: ensobuilder.withrouter() accepted input: generic/loop || genericrouter/looprouter'
@@ -427,13 +433,15 @@ export class Router {
 		}
 	}
 
-	async deploy(signer: SignerWithAddress, controller: Contract) {
+	async deploy(signer: SignerWithAddress, controller: Contract, library: Contract) {
 		if (this.type == Routers.Generic) {
 			this.contract = await deployGenericRouter(signer, controller)
 		} else if (this.type == Routers.Full) {
-			this.contract = await deployFullRouter(signer, new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], ethers.provider), controller)
+			this.contract = await deployFullRouter(signer, new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], ethers.provider), controller, library)
+		} else if (this.type == Routers.Batch) {
+			this.contract = await deployBatchDepositRouter(signer, controller, library)
 		} else {
-			this.contract = await deployLoopRouter(signer, controller)
+			this.contract = await deployLoopRouter(signer, controller, library)
 		}
 	}
 }

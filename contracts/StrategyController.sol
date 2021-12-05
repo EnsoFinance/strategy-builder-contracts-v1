@@ -42,20 +42,21 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function initialize(address factory) external initializer returns (bool) {
         _factory = factory;
+        updateAddresses();
     }
 
     /**
      * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
      * @param creator_ The address that created the strategy
      * @param strategy_ The address of the strategy
-     * @param state_ The strategy state variables
+     * @param state_ The initial strategy state
      * @param router_ The router in charge of swapping items for this strategy
      * @param data_ Encoded values parsed by the different routers to execute swaps
      */
     function setupStrategy(
         address creator_,
         address strategy_,
-        StrategyState memory state_,
+        InitialState memory state_,
         address router_,
         bytes memory data_
     ) external payable override {
@@ -97,7 +98,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.settleSynths();
         strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
-        uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimates);
+        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
         _removeStrategyLock(strategy);
     }
@@ -159,15 +160,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
-        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = _verifyBalance(strategy);
+        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
-        _approveItems(strategy, strategy.items(), address(router), uint256(-1));
-        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
         _rebalance(strategy, router, totalBefore, data);
-        _approveItems(strategy, strategy.items(), address(router), uint256(0));
-        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(0));
+        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
         _removeStrategyLock(strategy);
     }
 
@@ -182,7 +181,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         strategy.settleSynths();
-        address susd = oracle().susd();
+        address susd = _susd;
         if (token == susd) {
             address[] memory synths = strategy.synths();
             for (uint256 i = 0; i < synths.length; i++) {
@@ -294,11 +293,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             "Timelock active"
         );
         require(category != TimelockCategory.RESTRUCTURE);
-        if (category != TimelockCategory.TIMELOCK) _checkDivisor(newValue);
+        if (category != TimelockCategory.TIMELOCK) {
+            _checkAndEmit(address(strategy), category, newValue, false);
+        } else {
+            emit NewValue(address(strategy), category, newValue, false);
+        }
         lock.category = category;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(newValue);
-        emit NewValue(address(strategy), category, newValue, false);
         _removeStrategyLock(strategy);
     }
 
@@ -317,16 +319,16 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             "Timelock active"
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
-        if (lock.category == TimelockCategory.THRESHOLD) {
-            strategyState.rebalanceThreshold = uint16(newValue);
+        if (lock.category == TimelockCategory.TIMELOCK) {
+            strategyState.timelock = uint32(newValue);
         } else if (lock.category == TimelockCategory.REBALANCE_SLIPPAGE) {
             strategyState.rebalanceSlippage = uint16(newValue);
         } else if (lock.category == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
             strategyState.restructureSlippage = uint16(newValue);
-        } else if (lock.category == TimelockCategory.TIMELOCK) {
-            strategyState.timelock = uint32(newValue);
+        } else if (lock.category == TimelockCategory.THRESHOLD) {
+            IStrategy(strategy).updateRebalanceThreshold(uint16(newValue));
         } else { // lock.category == TimelockCategory.PERFORMANCE
-            strategyState.performanceFee = uint16(newValue);
+            IStrategy(strategy).updatePerformanceFee(uint16(newValue));
         }
         emit NewValue(strategy, lock.category, newValue, true);
         delete lock.category;
@@ -346,7 +348,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         require(!strategyState.social, "Strategy already open");
         strategyState.social = true;
-        strategyState.performanceFee = uint16(fee);
+        strategy.updatePerformanceFee(uint16(fee));
         emit StrategyOpen(address(strategy), fee);
         _removeStrategyLock(strategy);
     }
@@ -407,12 +409,27 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         return true;
     }
 
+    /**
+        @notice Refresh StrategyController's addresses
+     */
+    function updateAddresses() public {
+        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        _whitelist = f.whitelist();
+        address o = f.oracle();
+        if (o != _oracle) {
+          IOracle ensoOracle = IOracle(o);
+          _oracle = o;
+          _weth = ensoOracle.weth();
+          _susd = ensoOracle.susd();
+        }
+    }
+
     function oracle() public view override returns (IOracle) {
-        return IOracle(IStrategyProxyFactory(_factory).oracle());
+        return IOracle(_oracle);
     }
 
     function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
+        return IWhitelist(_whitelist);
     }
 
     // Internal Strategy Functions
@@ -437,7 +454,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         if (msg.value > 0) {
           require(amount == 0, "Ambiguous amount");
           amount = msg.value;
-          address weth = o.weth();
+          address weth = _weth;
           IWETH(weth).deposit{value: amount}();
           IERC20(weth).safeApprove(address(router), amount);
           if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
@@ -453,7 +470,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Recheck total
         (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
         require(totalAfter > totalBefore, "Lost value");
-        _checkBalance(strategy, balanceBefore, totalAfter, estimates);
+        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         require(
             valueAdded >=
@@ -485,7 +502,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.issueStreamingFee();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
-        uint256 balanceBefore = _amountOutOfBalance(strategy, totalBefore, estimatesBefore);
+        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
         uint256 totalSupply = strategy.totalSupply();
         wethAmount = totalBefore.mul(amount).div(totalSupply);
         // Deduct fee and burn strategy tokens
@@ -497,13 +514,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 data = abi.encode(percentage, totalBefore, estimatesBefore);
             }
             // Approve items
-            _approveItems(strategy, strategy.items(), address(router), uint256(-1));
-            _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+            _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
             // Withdraw
             router.withdraw(address(strategy), data);
             // Revoke items approval
-            _approveItems(strategy, strategy.items(), address(router), uint256(0));
-            _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(0));
+            _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
         }
         // Check value and balance
         (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
@@ -512,10 +527,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             "Too much slippage"
         );
         wethAmount = wethAmount.sub(totalBefore.sub(totalAfter)); // remove slippage from expected weth
-        _checkBalance(strategy, balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
         // Approve weth amount
-        weth = o.weth();
-        strategy.approveToken(weth, address(this), wethAmount);
+        weth = _weth;
+        strategy.approveToken(_weth, address(this), wethAmount);
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
@@ -534,7 +549,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal returns (uint256) {
         router.rebalance(address(strategy), data);
         // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = _verifyBalance(strategy);
+        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");
         require(
             totalAfter >=
@@ -546,102 +561,26 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         return totalAfter;
     }
 
-    function _setInitialState(address strategy, StrategyState memory state) private {
-        _checkDivisor(uint256(state.rebalanceThreshold));
-        _checkDivisor(uint256(state.rebalanceSlippage));
-        _checkDivisor(uint256(state.restructureSlippage));
-        _checkDivisor(uint256(state.performanceFee));
+    function _setInitialState(address strategy, InitialState memory state) private {
+        _checkAndEmit(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
+        _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
+        _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
         _initialized[strategy] = 1;
-        _strategyStates[strategy] = state;
-        emit NewValue(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
-        emit NewValue(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
-        emit NewValue(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
+        _strategyStates[strategy] = StrategyState(
+          state.timelock,
+          state.rebalanceSlippage,
+          state.restructureSlippage,
+          state.social,
+          state.set
+        );
+        IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
+        if (state.social) {
+          _checkDivisor(uint256(state.performanceFee));
+          IStrategy(strategy).updatePerformanceFee(state.performanceFee);
+          emit StrategyOpen(strategy, state.performanceFee);
+        }
+        if (state.set) emit StrategySet(strategy);
         emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
-        if (state.social) emit StrategyOpen(address(strategy), state.performanceFee);
-        if (state.set) emit StrategySet(address(strategy));
-    }
-
-    /**
-     * @notice This function gets the strategy value from the oracle and checks
-     *         whether the strategy is balanced. Necessary to confirm the balance
-     *         before and after a rebalance to ensure nothing fishy happened
-     */
-    function _verifyBalance(IStrategy strategy) internal view returns (bool, uint256, int256[] memory) {
-        (uint256 total, int256[] memory estimates) =
-            oracle().estimateStrategy(strategy);
-        uint256 threshold = _strategyStates[address(strategy)].rebalanceThreshold;
-
-        bool balanced = true;
-        address[] memory strategyItems = strategy.items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
-            if (expectedValue > 0) {
-                int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
-                if (estimates[i] > expectedValue.add(rebalanceRange)) {
-                    balanced = false;
-                    break;
-                }
-                if (estimates[i] < expectedValue.sub(rebalanceRange)) {
-                    balanced = false;
-                    break;
-                }
-            } else {
-                // Token has an expected value of 0, so any value can cause the contract
-                // to be 'unbalanced' so we need an alternative way to determine balance.
-                // Min percent = 0.1%. If token value is above, consider it unbalanced
-                if (estimates[i] > StrategyLibrary.getRange(int256(total), 1)) {
-                    balanced = false;
-                    break;
-                }
-            }
-        }
-        if (balanced) {
-            address[] memory strategyDebt = strategy.debt();
-            for (uint256 i = 0; i < strategyDebt.length; i++) {
-              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
-              int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
-              uint256 index = strategyItems.length + i;
-               // Debt
-               if (estimates[index] < expectedValue.add(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
-               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
-            }
-        }
-        return (balanced, total, estimates);
-    }
-
-    /**
-     * @notice This function gets the strategy value from the oracle and determines
-     *         how out of balance the strategy using an absolute value.
-     */
-    function _amountOutOfBalance(IStrategy strategy, uint256 total, int256[] memory estimates) internal view returns (uint256) {
-        if (total == 0) return 0;
-        uint256 amountOutOfBalance = 0;
-        address[] memory strategyItems = strategy.items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
-            if (estimates[i] > expectedValue) {
-                amountOutOfBalance = amountOutOfBalance.add(uint256(estimates[i].sub(expectedValue)));
-            } else if (estimates[i] < expectedValue) {
-                amountOutOfBalance = amountOutOfBalance.add(uint256(expectedValue.sub(estimates[i])));
-            }
-        }
-        address[] memory strategyDebt = strategy.debt();
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
-            uint256 index = strategyItems.length + i;
-            if (estimates[index] > expectedValue) {
-                amountOutOfBalance = amountOutOfBalance.add(uint256(estimates[index].sub(expectedValue)));
-            } else if (estimates[index] < expectedValue) {
-                amountOutOfBalance = amountOutOfBalance.add(uint256(expectedValue.sub(estimates[index])));
-            }
-        }
-        return (amountOutOfBalance.mul(10**18).div(total));
     }
 
     /**
@@ -669,13 +608,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Set new structure
         strategy.setStructure(newItems);
         // Liquidate unused tokens
-        _approveItems(strategy, currentItems, address(router), uint256(-1));
-        _approveSynthsAndDebt(strategy, currentDebt, address(router), uint256(-1));
+        _approveItems(strategy, currentItems, currentDebt, address(router), uint256(-1));
         router.restructure(address(strategy), data);
-        _approveItems(strategy, currentItems, address(router), uint256(0));
-        _approveSynthsAndDebt(strategy, currentDebt, address(router), uint256(0));
+        _approveItems(strategy, currentItems, currentDebt, address(router), uint256(0));
 
-        (bool balancedAfter, uint256 totalAfter, ) = _verifyBalance(strategy);
+        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");
         require(
             totalAfter >=
@@ -693,13 +630,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function _approveItems(
         IStrategy strategy,
         address[] memory strategyItems,
+        address[] memory strategyDebt,
         address spender,
         uint256 amount
     ) internal {
-        strategy.approveToken(oracle().weth(), spender, amount);
+        strategy.approveToken(_weth, spender, amount);
         for (uint256 i = 0; i < strategyItems.length; i++) {
             strategy.approveToken(strategyItems[i], spender, amount);
         }
+        _approveSynthsAndDebt(strategy, strategyDebt, spender, amount);
     }
 
     /**
@@ -721,12 +660,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
     }
 
-    function _checkBalance(IStrategy strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) private view {
-        uint256 balanceAfter = _amountOutOfBalance(strategy, total, estimates);
-        if (balanceAfter > uint256(10**18).mul(_strategyStates[address(strategy)].rebalanceThreshold).div(DIVISOR))
-            require(balanceAfter <= balanceBefore, "Lost balance");
-    }
-
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
         require(address(strategy) != test, "Cyclic dependency");
         require(!strategy.supportsSynths(), "Synths not supported");
@@ -739,6 +672,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     function _checkDivisor(uint256 value) private pure {
         require(value <= DIVISOR, "Out of bounds");
+    }
+
+    function _checkAndEmit(address strategy, TimelockCategory category, uint256 value, bool finalized) private {
+        _checkDivisor(value);
+        emit NewValue(strategy, category, value, finalized);
     }
 
     /**

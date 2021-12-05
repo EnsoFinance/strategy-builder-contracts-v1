@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
-import "./StrategyController.sol";
 
 /**
  * @notice Deploys Controller Proxy
@@ -12,8 +11,7 @@ import "./StrategyController.sol";
 contract StrategyControllerAdmin is ProxyAdmin {
     address payable public controller;
 
-    constructor(address factory) public {
-        StrategyController implementation = new StrategyController();
+    constructor(address implementation, address factory) public {
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy(
               address(implementation),

@@ -6,14 +6,12 @@ const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import BigNumJs from 'bignumber.js'
 import { solidity } from 'ethereum-waffle'
-
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/utils'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter, Platform } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
-
 
 const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
@@ -35,6 +33,7 @@ describe('StrategyController', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		adapter: Contract,
 		failAdapter: Contract,
 		strategy: Contract,
@@ -53,10 +52,11 @@ describe('StrategyController', function () {
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 
 		adapter = await deployUniswapV2Adapter(owner, uniswapFactory, weth)
 		await whitelist.connect(owner).approve(adapter.address)
-		router = await deployLoopRouter(owner, controller)
+		router = await deployLoopRouter(owner, controller, library)
 		await whitelist.connect(owner).approve(router.address)
 	})
 
@@ -71,7 +71,7 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) }
 		] as Position[]
 		const failItems = prepareStrategy(positions, adapter.address)
-		const failState: StrategyState = {
+		const failState: InitialState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: BigNumber.from(1001),
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
@@ -101,7 +101,7 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) }
 		] as Position[]
 		const failItems = prepareStrategy(positions, adapter.address)
-		const failState: StrategyState = {
+		const failState: InitialState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: BigNumber.from(1001),
@@ -131,7 +131,7 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) }
 		] as Position[]
 		const failItems = prepareStrategy(positions, adapter.address)
-		const failState: StrategyState = {
+		const failState: InitialState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
@@ -161,7 +161,7 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) }
 		] as Position[]
 		const failItems = prepareStrategy(positions, adapter.address)
-		const failState: StrategyState = {
+		const failState: InitialState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
@@ -186,7 +186,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should deploy empty strategy', async function() {
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
@@ -214,7 +214,7 @@ describe('StrategyController', function () {
 		const emptyStrategy = await Strategy.attach(strategyAddress)
 		expect((await emptyStrategy.items()).length).to.equal(0)
 		expect((await controller.strategyState(emptyStrategy.address)).social).to.equal(true)
-		expect(BigNumber.from((await controller.strategyState(emptyStrategy.address)).performanceFee).eq(strategyState.performanceFee)).to.equal(true)
+		expect(BigNumber.from(await emptyStrategy.performanceFee()).eq(strategyState.performanceFee)).to.equal(true)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -237,7 +237,7 @@ describe('StrategyController', function () {
 			{ token: tokens[0].address, percentage: BigNumber.from(50) },
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: TIMELOCK,
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
@@ -267,8 +267,12 @@ describe('StrategyController', function () {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(owner).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -277,7 +281,7 @@ describe('StrategyController', function () {
 	it('Should fail to setup strategy: initialized', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
-		const failState: StrategyState = {
+		const failState: InitialState = {
 			timelock: BigNumber.from(0),
 			rebalanceThreshold: BigNumber.from(0),
 			rebalanceSlippage: BigNumber.from(0),
@@ -303,7 +307,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to setup strategy: not factory', async function () {
-		const failState: StrategyState = {
+		const failState: InitialState = {
 			timelock: BigNumber.from(0),
 			rebalanceThreshold: BigNumber.from(0),
 			rebalanceSlippage: BigNumber.from(0),
@@ -376,11 +380,11 @@ describe('StrategyController', function () {
 	})
 
 	it('Should finalize value', async function () {
-		expect(BigNumber.from((await controller.strategyState(strategy.address)).rebalanceThreshold).eq(REBALANCE_THRESHOLD)).to.equal(
+		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(REBALANCE_THRESHOLD)).to.equal(
 			true
 		)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from((await controller.strategyState(strategy.address)).rebalanceThreshold).eq(newThreshold)).to.equal(true)
+		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(newThreshold)).to.equal(true)
 	})
 
 	it('Should fail to update rebalance slippage: not manager', async function () {
@@ -438,7 +442,7 @@ describe('StrategyController', function () {
 		const fee = 10 // 1% fee
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, fee)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from((await controller.strategyState(strategy.address)).performanceFee).eq(fee)).to.equal(true)
+		expect(BigNumber.from(await strategy.performanceFee()).eq(fee)).to.equal(true)
 	})
 
 	it('Should fail to update timelock: not manager', async function () {
@@ -532,7 +536,7 @@ describe('StrategyController', function () {
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
-	it('Should deposit more: weth', async function () {
+	it('Should deposit more: WETH', async function () {
 		const amount = BigNumber.from('10000000000000000')
 		await weth.connect(accounts[1]).deposit({value: amount})
 		await weth.connect(accounts[1]).approve(router.address, amount)

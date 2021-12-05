@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { MaxUint256, WeiPerEther } = constants
@@ -38,12 +38,13 @@ describe('StrategyProxyAdmin', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		whitelist = platform.administration.whitelist
+		const library = platform.library
 		const strategyAdminAddress = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		strategyAdmin = await StrategyAdmin.attach(strategyAdminAddress)
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller)
+		router = await deployLoopRouter(accounts[10], controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
 	})
 
@@ -60,7 +61,7 @@ describe('StrategyProxyAdmin', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) },
 		]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),

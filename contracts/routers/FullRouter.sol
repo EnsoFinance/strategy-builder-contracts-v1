@@ -324,7 +324,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
-                controller.strategyState(strategy).rebalanceThreshold
+                IStrategy(strategy).rebalanceThreshold()
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
@@ -353,7 +353,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    controller.strategyState(strategy).rebalanceThreshold
+                    IStrategy(strategy).rebalanceThreshold()
                 );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
                 amount = expectedValue.sub(estimatedValue);
@@ -387,7 +387,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
-                controller.strategyState(strategy).rebalanceThreshold
+                IStrategy(strategy).rebalanceThreshold()
             );
         TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
         // We still call _repayPath even if amountInWeth == 0 because we need to check if leveraged tokens need to be deleveraged
@@ -414,7 +414,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    controller.strategyState(strategy).rebalanceThreshold
+                    IStrategy(strategy).rebalanceThreshold()
                 );
             if (estimatedValue > expectedValue.sub(rebalanceRange)) {
                 amountInWeth = expectedValue.sub(estimatedValue);

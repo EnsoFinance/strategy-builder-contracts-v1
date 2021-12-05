@@ -75,11 +75,12 @@ export declare class Adapter {
 export declare enum Routers {
     Generic = 0,
     Loop = 1,
-    Full = 2
+    Full = 2,
+    Batch = 3
 }
 export declare class Router {
     type: Routers;
     contract?: Contract;
     constructor(routerType: string);
-    deploy(signer: SignerWithAddress, controller: Contract): Promise<void>;
+    deploy(signer: SignerWithAddress, controller: Contract, library: Contract): Promise<void>;
 }

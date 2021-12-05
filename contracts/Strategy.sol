@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./StrategyToken.sol";
-import "./libraries/StrategyLibrary.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -73,14 +72,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address manager_,
         StrategyItem[] memory strategyItems_
     ) external override initializer returns (bool) {
-        _controller = controller_;
         _factory = msg.sender;
+        _controller = controller_;
         _manager = manager_;
         _name = name_;
         _symbol = symbol_;
         _version = version_;
-        _lastTokenValue = 10**18;
-        _lastStreamTimestamp = block.timestamp;
+        _lastTokenValue = uint128(10**18);
+        _lastStreamTimestamp = uint96(block.timestamp);
         _setDomainSeperator();
         updateAddresses();
         // Set structure
@@ -218,10 +217,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _setLock();
         _onlyManager();
         _updateTokenValue();
-        uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
+        uint256 fee = uint256(_performanceFee);
         uint256 amount = 0;
         for (uint256 i = 0; i < holders.length; i++) {
-            amount = amount.add(_settlePerformanceFee(holders[i], performanceFee));
+            amount = amount.add(_settlePerformanceFee(holders[i], fee));
         }
         require(amount > 0, "No earnings");
         address pool = _pool;
@@ -250,8 +249,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 fee = _settlePerformanceFeeRecipient(
             account,
             amount,
-            _lastTokenValue,
-            IStrategyController(_controller).strategyState(address(this)).performanceFee
+            uint256(_lastTokenValue),
+            uint256(_performanceFee)
         );
         if (fee > 0) _issuePerformanceFee(pool, fee);
         _mint(account, amount);
@@ -365,6 +364,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _setTokenValue(total, supply);
     }
 
+    function updatePerformanceFee(uint16 fee) external override onlyController {
+        _performanceFee = fee;
+    }
+
+    function updateRebalanceThreshold(uint16 threshold) external override onlyController {
+        _rebalanceThreshold = threshold;
+    }
+
     /**
         @notice Update the manager of this Strategy
      */
@@ -388,11 +395,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     function updateAddresses() public {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
         _pool = f.pool();
-        _whitelist = f.whitelist();
-        _oracle = f.oracle();
-        IOracle o = oracle();
-        _weth = o.weth();
-        _susd = o.susd();
+        address o = f.oracle();
+        if (o != _oracle) {
+          IOracle ensoOracle = IOracle(o);
+          _oracle = o;
+          _weth = ensoOracle.weth();
+          _susd = ensoOracle.susd();
+        }
     }
 
     /**
@@ -402,6 +411,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         require(msg.sender == _factory, "Only StrategyProxyFactory");
         _version = newVersion;
         _setDomainSeperator();
+        updateAddresses();
     }
 
     function lock() external override onlyController {
@@ -428,6 +438,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _debt;
     }
 
+    function rebalanceThreshold() external view override returns (uint256) {
+        return uint256(_rebalanceThreshold);
+    }
+
+    function performanceFee() external view override returns (uint256) {
+        return uint256(_performanceFee);
+    }
+
     function getPercentage(address item) external view override returns (int256) {
         return _percentage[item];
     }
@@ -437,16 +455,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function getPerformanceFeeOwed(address account) external view override returns (uint256) {
-        uint256 fee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
-        return _getPerformanceFee(account, fee);
+        return _getPerformanceFee(account, uint256(_performanceFee));
     }
 
     function getPaidTokenValue(address account) external view returns (uint256) {
-        return _paidTokenValues[account];
+        return uint256(_paidTokenValues[account]);
     }
 
     function getLastTokenValue() external view returns (uint256) {
-        return _lastTokenValue;
+        return uint256(_lastTokenValue);
     }
 
     function controller() external view override returns (address) {
@@ -462,7 +479,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(_whitelist);
+        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
     }
 
     function supportsSynths() public view override returns (bool) {
@@ -524,7 +541,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
-        if (supply > 0) _lastTokenValue = total.mul(10**18).div(supply);
+        if (supply > 0) _lastTokenValue = uint128(total.mul(10**18).div(supply));
     }
 
     /**
@@ -549,15 +566,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             _paidTokenValues[recipient] = senderPaidValue;
         } else {
             // Performance fees
-            uint256 performanceFee = IStrategyController(_controller).strategyState(address(this)).performanceFee;
-            uint256 mintAmount = _settlePerformanceFee(sender, performanceFee); // Sender's paid token value may be updated here
+            uint256 fee = uint256(_performanceFee);
+            uint256 mintAmount = _settlePerformanceFee(sender, fee); // Sender's paid token value may be updated here
             mintAmount = mintAmount.add(_settlePerformanceFeeRecipient(
               recipient,
               amount,
               senderPaidValue < uint256(-1) // Pass sender's paid value unless sender is manager/pool
                   ? _paidTokenValues[sender] // This will equal _lastTokenValue or higher
-                  : _lastTokenValue,
-              performanceFee));
+                  : uint256(_lastTokenValue),
+              fee));
             if (amount > 0) {
                 address pool = _pool;
                 // Stream fee before any tokens are minted (since change in supply changes rate)
@@ -583,12 +600,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Mints new tokens to cover the streaming fee based on the time passed since last payment and the current streaming fee rate
      */
     function _issueStreamingFee(address pool) internal {
-        uint256 timePassed = block.timestamp.sub(_lastStreamTimestamp);
+        uint256 timePassed = block.timestamp.sub(uint256(_lastStreamTimestamp));
         if (timePassed > 0) {
-            uint256 amountToMint = _streamingFeeRate.mul(timePassed).div(YEAR).div(10**18);
+            uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed).div(YEAR).div(10**18);
             _mint(pool, amountToMint);
             // Note: No need to update _streamingFeeRate as the change in totalSupply and pool balance are equal, causing no change in rate
-            _lastStreamTimestamp = block.timestamp;
+            _lastStreamTimestamp = uint96(block.timestamp);
             emit StreamingFee(amountToMint);
         }
     }
@@ -597,7 +614,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Sets the new _streamingFeeRate which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
      */
     function _updateStreamingFeeRate(address pool) internal {
-        _streamingFeeRate = _totalSupply.sub(_balances[pool]).mul(STREAM_FEE);
+        _streamingFeeRate = uint192(_totalSupply.sub(_balances[pool]).mul(STREAM_FEE));
     }
 
     /**
@@ -625,7 +642,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     // Settle performance fee
     function _settlePerformanceFee(address account, uint256 fee) internal returns (uint256) {
         uint256 amount = _getPerformanceFee(account, fee);
-        if (amount > 0) _paidTokenValues[account] = _lastTokenValue;
+        if (amount > 0) _paidTokenValues[account] = uint256(_lastTokenValue);
         return amount;
     }
 
@@ -639,7 +656,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 paidTokenValue = _paidTokenValues[account];
         if (paidTokenValue > 0) {
             if (paidTokenValue == uint256(-1)) return 0; // Manager or pool, no settlement necessary
-            uint256 lastTokenValue = _lastTokenValue;
+            uint256 lastTokenValue = uint256(_lastTokenValue);
             uint256 balance = _balances[account];
             uint256 mintAmount = 0;
             if (paidTokenValue < lastTokenValue) {
@@ -682,11 +699,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function _getPerformanceFee(address account, uint256 fee) internal view returns (uint256) {
         // We don't need to check pool or manager address since their paid token value is max uint256
-        if (_lastTokenValue > _paidTokenValues[account])
+        if (uint256(_lastTokenValue) > _paidTokenValues[account])
             return _calcPerformanceFee(
                 _balances[account],
                 _paidTokenValues[account],
-                _lastTokenValue,
+                uint256(_lastTokenValue),
                 fee
             );
         return 0;
@@ -695,9 +712,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     /**
      * @notice Calculated performance fee based on the current token value and the amount the user has already paid for
      */
-    function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 performanceFee) internal pure returns (uint256) {
+    function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 fee) internal pure returns (uint256) {
         uint256 diff = tokenValue.sub(paidTokenValue);
-        return balance.mul(diff).mul(performanceFee).div(DIVISOR).div(tokenValue);
+        return balance.mul(diff).mul(fee).div(DIVISOR).div(tokenValue);
     }
 
     /**

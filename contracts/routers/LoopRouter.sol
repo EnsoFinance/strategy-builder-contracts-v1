@@ -2,6 +2,7 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "../libraries/StrategyLibrary.sol";
 import "./StrategyRouter.sol";
 
 contract LoopRouter is StrategyTypes, StrategyRouter {
@@ -60,25 +61,23 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         uint256[] memory buy = new uint256[](strategyItems.length);
         // Sell loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            address strategyItem = strategyItems[i];
             if (!_sellToken(
                     strategy,
-                    strategyItem,
+                    strategyItems[i],
                     estimates[i],
-                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i])
                 )
             ) buy[i] = 1;
         }
         // Buy loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
             if (buy[i] == 1) {
-                address strategyItem = strategyItems[i];
                 _buyToken(
                     strategy,
                     strategy,
-                    strategyItem,
+                    strategyItems[i],
                     estimates[i],
-                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i])
                 );
             }
         }
@@ -176,7 +175,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
-                controller.strategyState(strategy).rebalanceThreshold
+                IStrategy(strategy).rebalanceThreshold()
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
@@ -205,7 +204,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             int256 rebalanceRange =
                 StrategyLibrary.getRange(
                     expectedValue,
-                    controller.strategyState(strategy).rebalanceThreshold
+                    IStrategy(strategy).rebalanceThreshold()
                 );
             if (estimatedValue < expectedValue.sub(rebalanceRange)) {
                 amount = expectedValue.sub(estimatedValue);

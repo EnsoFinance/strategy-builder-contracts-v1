@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployLoopRouter } from '../lib/deploy'
-import { prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers
@@ -19,6 +19,7 @@ describe('StrategyLibrary', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		adapter: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
@@ -33,9 +34,10 @@ describe('StrategyLibrary', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[0], controller)
+		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 
 		const positions = [
@@ -55,7 +57,7 @@ describe('StrategyLibrary', function () {
 			{ token: tokens[14].address, percentage: BigNumber.from(50) },
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -82,9 +84,14 @@ describe('StrategyLibrary', function () {
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
+
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 

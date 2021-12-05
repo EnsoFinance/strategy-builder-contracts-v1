@@ -12,7 +12,7 @@ interface IStrategyController is StrategyTypes {
     function setupStrategy(
         address manager_,
         address strategy_,
-        StrategyState memory state_,
+        InitialState memory state_,
         address router_,
         bytes memory data_
     ) external payable;

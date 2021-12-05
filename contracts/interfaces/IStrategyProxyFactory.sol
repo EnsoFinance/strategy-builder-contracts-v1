@@ -10,7 +10,7 @@ interface IStrategyProxyFactory is StrategyTypes{
         string memory name,
         string memory symbol,
         StrategyItem[] memory strategyItems,
-        StrategyState memory strategyState,
+        InitialState memory strategyInit,
         address router,
         bytes memory data
     ) external payable returns (address);

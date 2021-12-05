@@ -6,7 +6,7 @@ const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
 	deployAaveLendAdapter,
@@ -32,6 +32,7 @@ describe('AaveAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
+		library: Contract,
 		uniswapAdapter: Contract,
 		aaveLendAdapter: Contract,
 		aaveBorrowAdapter: Contract,
@@ -52,12 +53,13 @@ describe('AaveAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
+		library = platform.library
 		const whitelist = platform.administration.whitelist
 		const addressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
-		router = await deployFullRouter(accounts[0], addressProvider, controller)
+		router = await deployFullRouter(accounts[0], addressProvider, controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
@@ -102,7 +104,7 @@ describe('AaveAdapter', function () {
 			}
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -128,14 +130,17 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		console.log("Strategy address: ", strategyAddress)
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

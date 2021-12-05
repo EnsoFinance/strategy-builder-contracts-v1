@@ -23,7 +23,8 @@ export declare class Platform {
     controller: Contract;
     oracles: Oracles;
     administration: Administration;
-    constructor(strategyFactory: Contract, controller: Contract, oracles: Oracles, administration: Administration);
+    library: Contract;
+    constructor(strategyFactory: Contract, controller: Contract, oracles: Oracles, administration: Administration, library: Contract);
     print(): void;
 }
 export declare function deployTokens(owner: SignerWithAddress, numTokens: number, value: BigNumber): Promise<Contract[]>;
@@ -45,7 +46,7 @@ export declare function deployCurveLPAdapter(owner: SignerWithAddress, curveAddr
 export declare function deployCurveRewardsAdapter(owner: SignerWithAddress, curveAddressProvider: Contract, weth: Contract): Promise<Contract>;
 export declare function deploySynthetixAdapter(owner: SignerWithAddress, resolver: Contract, weth: Contract): Promise<Contract>;
 export declare function deployLeverage2XAdapter(owner: SignerWithAddress, defaultAdapter: Contract, aaveLendAdapter: Contract, aaveBorrowAdapter: Contract, debtToken: Contract, weth: Contract): Promise<Contract>;
-export declare function deployLoopRouter(owner: SignerWithAddress, controller: Contract): Promise<Contract>;
-export declare function deployFullRouter(owner: SignerWithAddress, addressProvider: Contract, controller: Contract): Promise<Contract>;
-export declare function deployBatchDepositRouter(owner: SignerWithAddress, controller: Contract): Promise<Contract>;
+export declare function deployLoopRouter(owner: SignerWithAddress, controller: Contract, library: Contract): Promise<Contract>;
+export declare function deployFullRouter(owner: SignerWithAddress, addressProvider: Contract, controller: Contract, library: Contract): Promise<Contract>;
+export declare function deployBatchDepositRouter(owner: SignerWithAddress, controller: Contract, library: Contract): Promise<Contract>;
 export declare function deployGenericRouter(owner: SignerWithAddress, controller: Contract): Promise<Contract>;

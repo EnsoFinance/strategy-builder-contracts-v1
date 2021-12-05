@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IBaseAdapter.sol";
-import "../libraries/StrategyLibrary.sol";
 import "../helpers/StrategyTypes.sol";
 
 abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {

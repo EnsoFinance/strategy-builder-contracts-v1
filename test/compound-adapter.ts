@@ -6,7 +6,7 @@ const { WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
 	deployCompoundAdapter,
@@ -31,6 +31,7 @@ describe('CompoundAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
+		library: Contract,
 		uniswapAdapter: Contract,
 		compoundAdapter: Contract,
 		strategy: Contract,
@@ -49,11 +50,12 @@ describe('CompoundAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
+		library = platform.library
 		const whitelist = platform.administration.whitelist
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
-		router = await deployLoopRouter(accounts[0], controller)
+		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
@@ -71,7 +73,7 @@ describe('CompoundAdapter', function () {
 			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdc] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -102,8 +104,12 @@ describe('CompoundAdapter', function () {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

@@ -17,6 +17,7 @@ import StrategyController from '../artifacts/contracts/StrategyController.sol/St
 import StrategyControllerAdmin from '../artifacts/contracts/StrategyControllerAdmin.sol/StrategyControllerAdmin.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import StrategyProxyFactoryAdmin from '../artifacts/contracts/StrategyProxyFactoryAdmin.sol/StrategyProxyFactoryAdmin.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapNaiveOracle from '../artifacts/contracts/oracles/protocols/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
 import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkOracle.sol/ChainlinkOracle.json'
@@ -35,9 +36,9 @@ import CurveDepositZapRegistry from '../artifacts/contracts/oracles/registries/C
 import UniswapV3Registry from '../artifacts/contracts/oracles/registries/UniswapV3Registry.sol/UniswapV3Registry.json'
 import ChainlinkRegistry from '../artifacts/contracts/oracles/registries/ChainlinkRegistry.sol/ChainlinkRegistry.json'
 import Whitelist from '../artifacts/contracts/Whitelist.sol/Whitelist.json'
-import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
-import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
-import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
+//import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
+//import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
+//import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
 import GenericRouter from '../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
@@ -95,17 +96,20 @@ export class Platform {
 	controller: Contract
 	oracles: Oracles
 	administration: Administration
+	library: Contract
 
 	public constructor(
 		strategyFactory: Contract,
 		controller: Contract,
 		oracles: Oracles,
-		administration: Administration
+		administration: Administration,
+		library: Contract
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
 		this.oracles = oracles
 		this.administration = administration
+		this.library = library
 	}
 
 	print() {
@@ -250,6 +254,10 @@ export async function deployPlatform(
 	susd?: Contract,
 	feePool?: string
 ): Promise<Platform> {
+	// Libraries
+	const strategyLibrary = await waffle.deployContract(owner, StrategyLibrary, [])
+	await strategyLibrary.deployed()
+
 	// Setup Oracle infrastructure - registries, estimators, protocol oracles
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
 	await tokenRegistry.deployed()
@@ -276,7 +284,7 @@ export async function deployPlatform(
 	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
 	const aaveEstimator = await waffle.deployContract(owner, AaveEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE, aaveEstimator.address)
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveEstimator.address)
 	const aaveDebtEstimator = await waffle.deployContract(owner, AaveDebtEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_DEBT, aaveDebtEstimator.address)
 	const compoundEstimator = await waffle.deployContract(owner, CompoundEstimator, [])
@@ -319,7 +327,16 @@ export async function deployPlatform(
   )
 
 	// Strategy Controller
-	const controllerAdmin = await waffle.deployContract(owner, StrategyControllerAdmin, [factoryAddress])
+	const StrategyController_Factory = await ethers.getContractFactory("StrategyController", {
+		signer: owner,
+		libraries: {
+			StrategyLibrary: strategyLibrary.address
+		}
+	})
+	const controllerImplementation = await StrategyController_Factory.deploy()
+	await controllerImplementation.deployed()
+
+	const controllerAdmin = await waffle.deployContract(owner, StrategyControllerAdmin, [controllerImplementation.address, factoryAddress])
 	await controllerAdmin.deployed()
 
 	const controllerAddress = await controllerAdmin.controller()
@@ -352,7 +369,7 @@ export async function deployPlatform(
 		factoryAdmin
 	}
 
-	return new Platform(strategyFactory, controller, oracles, administration)
+	return new Platform(strategyFactory, controller, oracles, administration, strategyLibrary)
 }
 
 export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract> {
@@ -500,8 +517,15 @@ export async function deployLeverage2XAdapter(
 export async function deployLoopRouter(
 	owner: SignerWithAddress,
 	controller: Contract,
+	library: Contract,
 ) {
-	const router = await waffle.deployContract(owner, LoopRouter, [controller.address])
+	const LoopRouter_Factory = await ethers.getContractFactory("LoopRouter", {
+		signer: owner,
+		libraries: {
+			StrategyLibrary: library.address
+		}
+	})
+	const router = await LoopRouter_Factory.deploy(controller.address)
 	await router.deployed()
 
 	return router
@@ -511,8 +535,15 @@ export async function deployFullRouter(
 	owner: SignerWithAddress,
 	addressProvider: Contract,
 	controller: Contract,
+	library: Contract
 ) {
-	const router = await waffle.deployContract(owner, FullRouter, [addressProvider.address, controller.address])
+	const FullRouter_Factory = await ethers.getContractFactory("FullRouter", {
+		signer: owner,
+		libraries: {
+			StrategyLibrary: library.address
+		}
+	})
+	const router = await FullRouter_Factory.deploy(addressProvider.address, controller.address)
 	await router.deployed()
 
 	return router
@@ -521,8 +552,15 @@ export async function deployFullRouter(
 export async function deployBatchDepositRouter(
 	owner: SignerWithAddress,
 	controller: Contract,
+	library: Contract
 ) {
-	const router = await waffle.deployContract(owner, BatchDepositRouter, [controller.address])
+	const BatchDepositRouter_Factory = await ethers.getContractFactory("BatchDepositRouter", {
+		signer: owner,
+		libraries: {
+			StrategyLibrary: library.address
+		}
+	})
+	const router = await BatchDepositRouter_Factory.deploy(controller.address)
 	await router.deployed()
 
 	return router

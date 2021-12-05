@@ -6,7 +6,7 @@ const { WeiPerEther, AddressZero } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
 	deploySynthetixAdapter,
@@ -35,6 +35,7 @@ describe('SynthetixAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
+		library: Contract,
 		uniswapAdapter: Contract,
 		curveAdapter: Contract,
 		synthetixAdapter: Contract,
@@ -44,7 +45,7 @@ describe('SynthetixAdapter', function () {
 		wrapper: Contract,
 		tokens: Tokens
 
-	const strategyState: StrategyState = {
+	const strategyState: InitialState = {
 		timelock: BigNumber.from(60),
 		rebalanceThreshold: BigNumber.from(10),
 		rebalanceSlippage: BigNumber.from(997),
@@ -65,6 +66,7 @@ describe('SynthetixAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
+		library = platform.library
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[10], strategyFactory, curveDepositZapRegistry, chainlinkRegistry)
@@ -73,7 +75,7 @@ describe('SynthetixAdapter', function () {
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		const whitelist = platform.administration.whitelist
-		router = await deployFullRouter(accounts[10], new Contract(AddressZero, [], accounts[0]), controller)
+		router = await deployFullRouter(accounts[10], new Contract(AddressZero, [], accounts[0]), controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(uniswapAdapter.address)
@@ -166,8 +168,12 @@ describe('SynthetixAdapter', function () {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

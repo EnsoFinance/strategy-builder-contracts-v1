@@ -7,7 +7,7 @@ const { deployContract } = waffle
 const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther, AddressZero } = constants
 import { deployTokens, deployUniswapV3, deployUniswapV3Adapter, deployLoopRouter } from '../lib/deploy'
-import { encodePath, prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { encodePath, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { increaseTime, getDeadline, ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/utils'
 
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
@@ -22,6 +22,7 @@ let tokens: Contract[],
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
+		library: Contract,
 		uniswapOracle: Contract,
 		adapter: Contract,
 		router: Contract,
@@ -127,12 +128,23 @@ describe('UniswapV3Adapter', function() {
 		const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')
 		strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
 
+		const StrategyLibrary = await getContractFactory('StrategyLibrary')
+		library = await StrategyLibrary.connect(owner).deploy()
+		await library.deployed()
+
+		const StrategyController = await getContractFactory('StrategyController', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		const controllerImplementation = await StrategyController.connect(owner).deploy()
+		await controllerImplementation.deployed()
+
 		const StrategyControllerAdmin = await getContractFactory('StrategyControllerAdmin')
-		const controllerAdmin = await StrategyControllerAdmin.connect(owner).deploy(factoryAddress)
+		const controllerAdmin = await StrategyControllerAdmin.connect(owner).deploy(controllerImplementation.address, factoryAddress)
 		await controllerAdmin.deployed()
 
 		const controllerAddress = await controllerAdmin.controller()
-		const StrategyController = await getContractFactory('StrategyController')
 		controller = await StrategyController.attach(controllerAddress)
 
 		await strategyFactory.connect(owner).setController(controllerAddress)
@@ -141,7 +153,7 @@ describe('UniswapV3Adapter', function() {
 		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
-		router = await deployLoopRouter(accounts[0], controller)
+		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(owner).approve(router.address)
 
 
@@ -162,7 +174,7 @@ describe('UniswapV3Adapter', function() {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) }
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -193,8 +205,12 @@ describe('UniswapV3Adapter', function() {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
-		wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)

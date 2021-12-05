@@ -9,7 +9,7 @@ const deployments = require('../deployments.json')
 const deployedContracts = deployments[process.env.HARDHAT_NETWORK]
 
 const ITEM = ITEM_CATEGORY.BASIC
-const ESTIMATOR = ESTIMATOR_CATEGORY.AAVE
+const ESTIMATOR = ESTIMATOR_CATEGORY.AAVE_V2
 const TOKEN = '0xdCf0aF9e59C002FA3AA091a46196b37530FD48a8'
 
 async function main() {

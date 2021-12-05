@@ -14,18 +14,19 @@ contract StrategyTokenStorage is StrategyTypes {
     string internal _symbol;
     string internal _version;
 
-    uint256 internal _streamingFeeRate;
-    uint256 internal _lastStreamTimestamp;
-    uint256 internal _lastTokenValue;
+    uint8 internal _locked;
+    uint224 internal _streamingFeeRate;
+    uint16 internal _performanceFee;
+    uint16 internal _rebalanceThreshold;
+    uint96 internal _lastStreamTimestamp;
+    uint128 internal _lastTokenValue;
     mapping(address => uint256) internal _paidTokenValues;
 
-    uint256 internal _locked;
     address internal _manager;
     address internal _controller;
     address internal _factory;
-    address internal _oracle;
-    address internal _whitelist;
     address internal _pool;
+    address internal _oracle;
     address internal _weth;
     address internal _susd;
 

@@ -109,7 +109,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         string memory name,
         string memory symbol,
         StrategyItem[] memory strategyItems,
-        StrategyState memory strategyState,
+        InitialState memory strategyState,
         address router,
         bytes memory data
     ) external payable override returns (address){
@@ -271,7 +271,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function _setupStrategy(
         address manager,
         address strategy,
-        StrategyState memory strategyState,
+        InitialState memory strategyState,
         address router,
         bytes memory data
     ) internal {

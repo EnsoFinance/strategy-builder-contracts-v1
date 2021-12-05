@@ -8,7 +8,7 @@ import { solidity } from 'ethereum-waffle'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract, Event } from 'ethers'
-import { preparePermit, prepareStrategy, Position, StrategyItem, StrategyState } from '../lib/encode'
+import { preparePermit, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 
 const NUM_TOKENS = 15
@@ -24,6 +24,7 @@ describe('StrategyToken', function () {
 		whitelist: Contract,
 		router: Contract,
 		oracle: Contract,
+		library: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -40,9 +41,10 @@ describe('StrategyToken', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller)
+		router = await deployLoopRouter(accounts[10], controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
 		const Strategy = await getContractFactory('Strategy')
 		const strategyImplementation = await Strategy.connect(accounts[10]).deploy()
@@ -68,7 +70,7 @@ describe('StrategyToken', function () {
 			{ token: tokens[14].address, percentage: BigNumber.from(50) },
 		]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),

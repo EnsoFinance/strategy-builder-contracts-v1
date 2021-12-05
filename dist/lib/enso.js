@@ -227,13 +227,14 @@ var EnsoBuilder = /** @class */ (function () {
                             this.addRouter('generic');
                             this.addRouter('loop');
                             this.addRouter('full');
+                            this.addRouter('batch');
                         }
                         _u = this;
                         return [4 /*yield*/, Promise.all(this.routers.map(function (r) { return __awaiter(_this, void 0, void 0, function () {
                                 var _a;
                                 return __generator(this, function (_b) {
                                     switch (_b.label) {
-                                        case 0: return [4 /*yield*/, r.deploy(this.signer, ensoPlatform.controller)];
+                                        case 0: return [4 /*yield*/, r.deploy(this.signer, ensoPlatform.controller, ensoPlatform.library)];
                                         case 1:
                                             _b.sent();
                                             return [4 /*yield*/, ensoPlatform.administration.whitelist.connect(this.signer).approve((_a = r.contract) === null || _a === void 0 ? void 0 : _a.address)];
@@ -471,6 +472,7 @@ var Routers;
     Routers[Routers["Generic"] = 0] = "Generic";
     Routers[Routers["Loop"] = 1] = "Loop";
     Routers[Routers["Full"] = 2] = "Full";
+    Routers[Routers["Batch"] = 3] = "Batch";
 })(Routers = exports.Routers || (exports.Routers = {}));
 // TODO: implement encoding for each Router (chain calldata for each type of router GenericRouter is IRouter, LoopRouter is IRouter etc..)
 var Router = /** @class */ (function () {
@@ -485,36 +487,46 @@ var Router = /** @class */ (function () {
             case 'loop' || 'looprouter':
                 this.type = Routers.Loop;
                 break;
+            case 'batch' || 'batchrouter' || 'batchdepositrouter':
+                this.type = Routers.Loop;
+                break;
             default:
                 throw Error('failed to parse router type: ensobuilder.withrouter() accepted input: generic/loop || genericrouter/looprouter');
         }
     }
-    Router.prototype.deploy = function (signer, controller) {
+    Router.prototype.deploy = function (signer, controller, library) {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, _b, _c;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var _a, _b, _c, _d;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
                     case 0:
                         if (!(this.type == Routers.Generic)) return [3 /*break*/, 2];
                         _a = this;
                         return [4 /*yield*/, deploy_1.deployGenericRouter(signer, controller)];
                     case 1:
-                        _a.contract = _d.sent();
-                        return [3 /*break*/, 6];
+                        _a.contract = _e.sent();
+                        return [3 /*break*/, 8];
                     case 2:
                         if (!(this.type == Routers.Full)) return [3 /*break*/, 4];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller)];
+                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller, library)];
                     case 3:
-                        _b.contract = _d.sent();
-                        return [3 /*break*/, 6];
+                        _b.contract = _e.sent();
+                        return [3 /*break*/, 8];
                     case 4:
+                        if (!(this.type == Routers.Batch)) return [3 /*break*/, 6];
                         _c = this;
-                        return [4 /*yield*/, deploy_1.deployLoopRouter(signer, controller)];
+                        return [4 /*yield*/, deploy_1.deployBatchDepositRouter(signer, controller, library)];
                     case 5:
-                        _c.contract = _d.sent();
-                        _d.label = 6;
-                    case 6: return [2 /*return*/];
+                        _c.contract = _e.sent();
+                        return [3 /*break*/, 8];
+                    case 6:
+                        _d = this;
+                        return [4 /*yield*/, deploy_1.deployLoopRouter(signer, controller, library)];
+                    case 7:
+                        _d.contract = _e.sent();
+                        _e.label = 8;
+                    case 8: return [2 /*return*/];
                 }
             });
         });

@@ -16,7 +16,7 @@ import {
 	prepareRebalanceMulticall,
 	Multicall,
 	StrategyItem,
-	StrategyState
+	InitialState
 } from '../lib/encode'
 import {
 	deployTokens,
@@ -31,7 +31,7 @@ import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 //import { displayBalances } from '../lib/logging'
 
 const NUM_TOKENS = 15
-const STRATEGY_STATE: StrategyState = {
+const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
 	rebalanceSlippage: BigNumber.from(997),
@@ -54,6 +54,7 @@ describe('MetaStrategyAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
+		library: Contract,
 		uniswapAdapter: Contract,
 		metaStrategyAdapter: Contract,
 		basicStrategy: Contract,
@@ -76,7 +77,8 @@ describe('MetaStrategyAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		loopRouter = await deployLoopRouter(accounts[0], controller)
+		library = platform.library
+		loopRouter = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(loopRouter.address)
 		genericRouter = await deployGenericRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(genericRouter.address)
@@ -116,7 +118,11 @@ describe('MetaStrategyAdapter', function () {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
 		basicWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await basicWrapper.deployed()
 
@@ -154,7 +160,11 @@ describe('MetaStrategyAdapter', function () {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
 		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await metaWrapper.deployed()
 
@@ -218,7 +228,11 @@ describe('MetaStrategyAdapter', function () {
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
-		const LibraryWrapper = await getContractFactory('LibraryWrapper')
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
 		metaMetaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await metaMetaWrapper.deployed()
 	})

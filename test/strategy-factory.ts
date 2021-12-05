@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { prepareStrategy, StrategyItem, StrategyState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
@@ -27,6 +27,7 @@ describe('StrategyProxyFactory', function () {
 		newOracle: Contract,
 		newWhitelist: Contract,
 		whitelist: Contract,
+		library: Contract,
 		adapter: Contract,
 		newRouter: Contract,
 		strategy: Contract,
@@ -43,9 +44,10 @@ describe('StrategyProxyFactory', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
+		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller)
+		router = await deployLoopRouter(accounts[10], controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
 	})
 
@@ -54,7 +56,7 @@ describe('StrategyProxyFactory', function () {
 		newFactory = platform.strategyFactory
 		newOracle = platform.oracles.ensoOracle
 		newWhitelist = platform.administration.whitelist
-		newRouter = await deployLoopRouter(accounts[10], controller)
+		newRouter = await deployLoopRouter(accounts[10], controller, library)
 		await newWhitelist.connect(accounts[10]).approve(adapter.address)
 		await newWhitelist.connect(accounts[10]).approve(newRouter.address)
 		newImplementationAddress = await newFactory.implementation()
@@ -66,7 +68,7 @@ describe('StrategyProxyFactory', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(500) },
 		]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		const strategyState: StrategyState = {
+		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
@@ -122,6 +124,8 @@ describe('StrategyProxyFactory', function () {
 		expect(await controller.oracle()).to.equal(oracle.address)
 		await strategyFactory.connect(accounts[10]).updateOracle(newOracle.address)
 		expect(await strategyFactory.oracle()).to.equal(newOracle.address)
+		expect(await controller.oracle()).to.equal(oracle.address)
+		await controller.updateAddresses()
 		expect(await controller.oracle()).to.equal(newOracle.address)
 	})
 
@@ -140,6 +144,7 @@ describe('StrategyProxyFactory', function () {
 		).to.be.revertedWith('Not approved')
 		await strategyFactory.connect(accounts[10]).updateWhitelist(newWhitelist.address)
 		expect(await strategyFactory.whitelist()).to.equal(newWhitelist.address)
+		await controller.updateAddresses()
 		await controller
 			.connect(accounts[1])
 			.deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
