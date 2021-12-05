@@ -120,7 +120,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
         IWETH(weth).withdraw(wethAmount);
-        msg.sender.transfer(wethAmount);
+        (bool success, ) = msg.sender.call.value(wethAmount)(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
+        require(success);
         _removeStrategyLock(strategy);
     }
 
