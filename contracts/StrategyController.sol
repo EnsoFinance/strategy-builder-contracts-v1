@@ -31,7 +31,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
     event StrategyOpen(address indexed strategy, uint256 performanceFee);
     event StrategySet(address indexed strategy);
-    event Received(address sender, uint256 value);
 
     // Initialize constructor to disable implementation
     constructor() public initializer {}
@@ -719,6 +718,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     receive() external payable {
-        emit Received(msg.sender, msg.value);
+        require(msg.sender == _weth, "Not WETH");
     }
 }
