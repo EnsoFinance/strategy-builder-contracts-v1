@@ -6,6 +6,7 @@ import {
 		getDeadline,
 		getMinTick,
 		getMaxTick,
+		MAINNET_ADDRESSES,
 		ITEM_CATEGORY,
 		ESTIMATOR_CATEGORY,
 		UNI_V3_FEE,
@@ -306,7 +307,7 @@ export async function deployPlatform(
 	await whitelist.deployed()
 
 	// Strategy Implementation
-	const strategyImplementation = await waffle.deployContract(owner, Strategy, [])
+	const strategyImplementation = await waffle.deployContract(owner, Strategy, [MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER])
 	await strategyImplementation.deployed()
 
 	// Factory

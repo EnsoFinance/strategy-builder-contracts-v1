@@ -47,7 +47,7 @@ describe('StrategyToken', function () {
 		router = await deployLoopRouter(accounts[10], controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
 		const Strategy = await getContractFactory('Strategy')
-		const strategyImplementation = await Strategy.connect(accounts[10]).deploy()
+		const strategyImplementation = await Strategy.connect(accounts[10]).deploy(AddressZero, AddressZero)
 		await strategyImplementation.deployed()
 		await strategyFactory.connect(accounts[10]).updateImplementation(strategyImplementation.address, '2')
 	})

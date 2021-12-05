@@ -5,7 +5,7 @@ import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, 
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
-const { MaxUint256, WeiPerEther } = constants
+const { MaxUint256, WeiPerEther, AddressZero } = constants
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -52,7 +52,7 @@ describe('StrategyProxyAdmin', function () {
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		newAdmin = await StrategyAdmin.connect(accounts[10]).deploy()
 		const Strategy = await getContractFactory('Strategy')
-		newImplementation = await Strategy.deploy()
+		newImplementation = await Strategy.deploy(AddressZero, AddressZero)
 	})
 
 	before('Should deploy strategy', async function () {

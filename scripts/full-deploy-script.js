@@ -10,35 +10,35 @@ const fs = require('fs')
 const network = process.env.HARDHAT_NETWORK
 
 const deployedContracts = {
-	mainnet: {
-		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
-		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
-		synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+  mainnet: {
+    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+    aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+    curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+    synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-		ensoPool: '',
-	},
-	localhost: {
-		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
-		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
-		synthetixAddressResolver: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+    ensoPool: ''
+  },
+  localhost: {
+    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+    aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+    curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+    synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b', // template address
-	},
-	kovan: {
-		weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
-		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-		usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
-		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
-		synthetixAddressResolver: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
+    ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b' // template address
+  },
+  kovan: {
+    weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
+    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+    usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
+    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+    aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
+    synthetixAddressProvider: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
 		compoundComptroller: '',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b',
 	},
@@ -209,7 +209,7 @@ async function main() {
 	add2Deployments('Whitelist', whitelist.address)
 
 	const Strategy = await hre.ethers.getContractFactory('Strategy')
-	const strategyImplementation = await Strategy.deploy()
+	const strategyImplementation = await Strategy.deploy(deployedContracts[network].synthetixAddressProvider, deployedContracts[network].aaveAddressProvider)
 	await strategyImplementation.deployed()
 
 	const StrategyProxyFactoryAdmin = await hre.ethers.getContractFactory('StrategyProxyFactoryAdmin')
@@ -329,7 +329,7 @@ async function main() {
 
 	const SynthetixAdapter = await hre.ethers.getContractFactory('SynthetixAdapter')
 	const synthetixAdapter = await SynthetixAdapter.deploy(
-		deployedContracts[network].synthetixAddressResolver,
+		deployedContracts[network].synthetixAddressProvider,
 		deployedContracts[network].weth
 	)
 	await synthetixAdapter.deployed()

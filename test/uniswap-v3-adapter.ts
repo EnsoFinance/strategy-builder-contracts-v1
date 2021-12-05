@@ -111,7 +111,7 @@ describe('UniswapV3Adapter', function() {
 		await whitelist.deployed()
 
 		const Strategy = await getContractFactory('Strategy')
-		const strategyImplementation = await Strategy.connect(owner).deploy()
+		const strategyImplementation = await Strategy.connect(owner).deploy(AddressZero, AddressZero)
 		await strategyImplementation.deployed()
 
 		const StrategyProxyFactoryAdmin = await getContractFactory('StrategyProxyFactoryAdmin')

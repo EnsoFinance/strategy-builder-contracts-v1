@@ -35,13 +35,19 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    ISynthetixAddressResolver private constant SYNTH_RESOLVER = ISynthetixAddressResolver(0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83);
-    IAaveAddressResolver private constant AAVE_RESOLVER = IAaveAddressResolver(0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5);
-    uint256 public constant WITHDRAWAL_FEE = 2*10**15; // 0.2% per withdraw
-    uint256 public constant STREAM_FEE = uint256(10**33)/uint256(10**18-10**15); // The streaming fee streams 0.1% of the strategy's value over a year via inflation. The multiplier (0.001001001) is used to calculate the amount of tokens that need to be minted over a year to give the fee pool 0.1% of the tokens (STREAM_FEE*totalSupply)
     uint256 private constant YEAR = 365 days;
     uint256 private constant POOL_SHARE = 300;
     uint256 private constant DIVISOR = 1000;
+    // Withdrawal fee: 0.2% of amount withdrawn goes to the fee pool
+    uint256 public constant WITHDRAWAL_FEE = 2*10**15;
+    // Streaming fee: The streaming fee streams 0.1% of the strategy's value over
+    // a year via inflation. The multiplier (0.001001001) is used to calculate
+    // the amount of tokens that need to be minted over a year to give the fee
+    // pool 0.1% of the tokens (STREAM_FEE*totalSupply)
+    uint256 public constant STREAM_FEE = uint256(10**33)/uint256(10**18-10**15);
+
+    ISynthetixAddressResolver private immutable synthetixResolver;
+    IAaveAddressResolver private immutable aaveResolver;
 
     event Withdraw(uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
@@ -50,7 +56,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     event StreamingFee(uint256 amount);
 
     // Initialize constructor to disable implementation
-    constructor() public initializer {}
+    constructor(address synthetixResolver_, address aaveResolver_) public initializer {
+        synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
+        aaveResolver = IAaveAddressResolver(aaveResolver_);
+    }
 
     /**
      * @dev Throws if called by any account other than the controller.
@@ -128,7 +137,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 amount
     ) external override onlyController {
         IERC20(_susd).safeApprove(account, amount);
-        IDelegateApprovals delegateApprovals = IDelegateApprovals(SYNTH_RESOLVER.getAddress("DelegateApprovals"));
+        IDelegateApprovals delegateApprovals = IDelegateApprovals(synthetixResolver.getAddress("DelegateApprovals"));
         if (amount == 0) {
             delegateApprovals.removeExchangeOnBehalf(account);
         } else {
@@ -150,7 +159,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function setCollateral(address token) external override {
         _onlyApproved(msg.sender);
-        ILendingPool(AAVE_RESOLVER.getLendingPool()).setUserUseReserveAsCollateral(token, true);
+        ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
     /**
@@ -329,8 +338,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function settleSynths() public override {
         if (supportsSynths()) {
-            IExchanger exchanger = IExchanger(SYNTH_RESOLVER.getAddress("Exchanger"));
-            IIssuer issuer = IIssuer(SYNTH_RESOLVER.getAddress("Issuer"));
+            IExchanger exchanger = IExchanger(synthetixResolver.getAddress("Exchanger"));
+            IIssuer issuer = IIssuer(synthetixResolver.getAddress("Issuer"));
             exchanger.settle(address(this), "sUSD");
             for (uint256 i = 0; i < _synths.length; i++) {
                 exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
