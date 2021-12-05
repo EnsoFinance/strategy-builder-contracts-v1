@@ -12,6 +12,10 @@ import {
 		UNI_V3_FEE,
 		ORACLE_TIME_WINDOW
 } from './utils'
+import {
+	createLink,
+	linkBytecode
+} from './link'
 
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
@@ -37,9 +41,9 @@ import CurveDepositZapRegistry from '../artifacts/contracts/oracles/registries/C
 import UniswapV3Registry from '../artifacts/contracts/oracles/registries/UniswapV3Registry.sol/UniswapV3Registry.json'
 import ChainlinkRegistry from '../artifacts/contracts/oracles/registries/ChainlinkRegistry.sol/ChainlinkRegistry.json'
 import Whitelist from '../artifacts/contracts/Whitelist.sol/Whitelist.json'
-//import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
-//import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
-//import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
+import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
+import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
+import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
 import GenericRouter from '../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
@@ -258,6 +262,7 @@ export async function deployPlatform(
 	// Libraries
 	const strategyLibrary = await waffle.deployContract(owner, StrategyLibrary, [])
 	await strategyLibrary.deployed()
+	const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
 	// Setup Oracle infrastructure - registries, estimators, protocol oracles
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
@@ -328,13 +333,11 @@ export async function deployPlatform(
   )
 
 	// Strategy Controller
-	const StrategyController_Factory = await ethers.getContractFactory("StrategyController", {
-		signer: owner,
-		libraries: {
-			StrategyLibrary: strategyLibrary.address
-		}
-	})
-	const controllerImplementation = await StrategyController_Factory.deploy()
+	const controllerImplementation = await waffle.deployContract(
+		owner,
+		linkBytecode(StrategyController, [strategyLibraryLink]),
+		[]
+	)
 	await controllerImplementation.deployed()
 
 	const controllerAdmin = await waffle.deployContract(owner, StrategyControllerAdmin, [controllerImplementation.address, factoryAddress])
@@ -520,13 +523,11 @@ export async function deployLoopRouter(
 	controller: Contract,
 	library: Contract,
 ) {
-	const LoopRouter_Factory = await ethers.getContractFactory("LoopRouter", {
-		signer: owner,
-		libraries: {
-			StrategyLibrary: library.address
-		}
-	})
-	const router = await LoopRouter_Factory.deploy(controller.address)
+	const router = await waffle.deployContract(
+		owner,
+		linkBytecode(LoopRouter, [createLink(StrategyLibrary, library.address)]),
+		[controller.address]
+	)
 	await router.deployed()
 
 	return router
@@ -538,13 +539,11 @@ export async function deployFullRouter(
 	controller: Contract,
 	library: Contract
 ) {
-	const FullRouter_Factory = await ethers.getContractFactory("FullRouter", {
-		signer: owner,
-		libraries: {
-			StrategyLibrary: library.address
-		}
-	})
-	const router = await FullRouter_Factory.deploy(addressProvider.address, controller.address)
+	const router = await waffle.deployContract(
+		owner,
+		linkBytecode(FullRouter, [createLink(StrategyLibrary, library.address)]),
+		[addressProvider.address, controller.address]
+	)
 	await router.deployed()
 
 	return router
@@ -555,13 +554,11 @@ export async function deployBatchDepositRouter(
 	controller: Contract,
 	library: Contract
 ) {
-	const BatchDepositRouter_Factory = await ethers.getContractFactory("BatchDepositRouter", {
-		signer: owner,
-		libraries: {
-			StrategyLibrary: library.address
-		}
-	})
-	const router = await BatchDepositRouter_Factory.deploy(controller.address)
+	const router = await waffle.deployContract(
+		owner,
+		linkBytecode(BatchDepositRouter, [createLink(StrategyLibrary, library.address)]),
+		[controller.address]
+	)
 	await router.deployed()
 
 	return router

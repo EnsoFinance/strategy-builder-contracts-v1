@@ -35,13 +35,16 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDeadline = exports.getMaxTick = exports.getMinTick = exports.encodePriceSqrt = exports.increaseTime = exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.MAINNET_ADDRESSES = exports.DEFAULT_DEPOSIT_SLIPPAGE = exports.ORACLE_TIME_WINDOW = exports.UNI_V3_FEE = exports.DIVISOR = exports.FEE = void 0;
-var bn = require('bignumber.js');
+var bignumber_js_1 = __importDefault(require("bignumber.js"));
 var hre = require('hardhat');
+var ethers_1 = require("ethers");
 var waffle = hre.waffle;
 var provider = waffle.provider._hardhatNetwork.provider;
-var ethers_1 = require("ethers");
 exports.FEE = 997;
 exports.DIVISOR = 1000;
 exports.UNI_V3_FEE = 3000;
@@ -56,6 +59,7 @@ exports.MAINNET_ADDRESSES = {
     BALANCER_FACTORY: '0x9424B1412450D0f8Fc2255FAf6046b98213B76Bd',
     AAVE_ADDRESS_PROVIDER: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
     CURVE_ADDRESS_PROVIDER: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+    SYNTHETIX_ADDRESS_PROVIDER: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
     COMPOUND_COMPTROLLER: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B'
 };
 var TIMELOCK_CATEGORY;
@@ -82,18 +86,19 @@ var ESTIMATOR_CATEGORY;
     ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["SUSHI_TWAP_ORACLE"] = 3] = "SUSHI_TWAP_ORACLE";
     ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["STRATEGY"] = 4] = "STRATEGY";
     ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["BLOCKED"] = 5] = "BLOCKED";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["AAVE"] = 6] = "AAVE";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["AAVE_DEBT"] = 7] = "AAVE_DEBT";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["BALANCER"] = 8] = "BALANCER";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["COMPOUND"] = 9] = "COMPOUND";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["CURVE"] = 10] = "CURVE";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["CURVE_GAUGE"] = 11] = "CURVE_GAUGE";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["SUSHI_LP"] = 12] = "SUSHI_LP";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["SUSHI_FARM"] = 13] = "SUSHI_FARM";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["UNISWAP_V2_LP"] = 14] = "UNISWAP_V2_LP";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["UNISWAP_V3_LP"] = 15] = "UNISWAP_V3_LP";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["YEARN_V1"] = 16] = "YEARN_V1";
-    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["YEARN_V2"] = 17] = "YEARN_V2";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["AAVE_V1"] = 6] = "AAVE_V1";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["AAVE_V2"] = 7] = "AAVE_V2";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["AAVE_DEBT"] = 8] = "AAVE_DEBT";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["BALANCER"] = 9] = "BALANCER";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["COMPOUND"] = 10] = "COMPOUND";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["CURVE"] = 11] = "CURVE";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["CURVE_GAUGE"] = 12] = "CURVE_GAUGE";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["SUSHI_LP"] = 13] = "SUSHI_LP";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["SUSHI_FARM"] = 14] = "SUSHI_FARM";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["UNISWAP_V2_LP"] = 15] = "UNISWAP_V2_LP";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["UNISWAP_V3_LP"] = 16] = "UNISWAP_V3_LP";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["YEARN_V1"] = 17] = "YEARN_V1";
+    ESTIMATOR_CATEGORY[ESTIMATOR_CATEGORY["YEARN_V2"] = 18] = "YEARN_V2";
 })(ESTIMATOR_CATEGORY = exports.ESTIMATOR_CATEGORY || (exports.ESTIMATOR_CATEGORY = {}));
 function increaseTime(seconds) {
     return __awaiter(this, void 0, void 0, function () {
@@ -109,10 +114,10 @@ function increaseTime(seconds) {
 }
 exports.increaseTime = increaseTime;
 function encodePriceSqrt(reserve1, reserve0) {
-    return ethers_1.BigNumber.from(new bn(reserve1.toString())
+    return ethers_1.BigNumber.from(new bignumber_js_1.default(reserve1.toString())
         .div(reserve0.toString())
         .sqrt()
-        .multipliedBy(new bn(2).pow(96))
+        .multipliedBy(new bignumber_js_1.default(2).pow(96))
         .integerValue(3)
         .toFixed());
 }

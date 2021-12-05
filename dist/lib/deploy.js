@@ -43,6 +43,7 @@ exports.deployGenericRouter = exports.deployBatchDepositRouter = exports.deployF
 var hardhat_1 = __importDefault(require("hardhat"));
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
+var link_1 = require("./link");
 var Strategy_json_1 = __importDefault(require("../artifacts/contracts/Strategy.sol/Strategy.json"));
 var StrategyController_json_1 = __importDefault(require("../artifacts/contracts/StrategyController.sol/StrategyController.json"));
 var StrategyControllerAdmin_json_1 = __importDefault(require("../artifacts/contracts/StrategyControllerAdmin.sol/StrategyControllerAdmin.json"));
@@ -67,9 +68,9 @@ var CurveDepositZapRegistry_json_1 = __importDefault(require("../artifacts/contr
 var UniswapV3Registry_json_1 = __importDefault(require("../artifacts/contracts/oracles/registries/UniswapV3Registry.sol/UniswapV3Registry.json"));
 var ChainlinkRegistry_json_1 = __importDefault(require("../artifacts/contracts/oracles/registries/ChainlinkRegistry.sol/ChainlinkRegistry.json"));
 var Whitelist_json_1 = __importDefault(require("../artifacts/contracts/Whitelist.sol/Whitelist.json"));
-//import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
-//import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
-//import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
+var LoopRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json"));
+var FullRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/FullRouter.sol/FullRouter.json"));
+var BatchDepositRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json"));
 var GenericRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json"));
 var UniswapV2Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json"));
 var UniswapV2LPAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json"));
@@ -363,17 +364,16 @@ function deployUniswapV3(owner, tokens) {
 exports.deployUniswapV3 = deployUniswapV3;
 function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
     return __awaiter(this, void 0, void 0, function () {
-        var strategyLibrary, tokenRegistry, curveDepositZapRegistry, uniswapV3Registry, chainlinkRegistry, uniswapOracle, chainlinkOracle, ensoOracle, defaultEstimator, chainlinkEstimator, strategyEstimator, emergencyEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, uniswapV2Estimator, yearnV2Estimator, whitelist, strategyImplementation, factoryAdmin, factoryAddress, strategyFactory, StrategyController_Factory, controllerImplementation, controllerAdmin, controllerAddress, controller, oracles, administration;
+        var strategyLibrary, strategyLibraryLink, tokenRegistry, curveDepositZapRegistry, uniswapV3Registry, chainlinkRegistry, uniswapOracle, chainlinkOracle, ensoOracle, defaultEstimator, chainlinkEstimator, strategyEstimator, emergencyEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, uniswapV2Estimator, yearnV2Estimator, whitelist, strategyImplementation, factoryAdmin, factoryAddress, strategyFactory, controllerImplementation, controllerAdmin, controllerAddress, controller, oracles, administration;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, StrategyLibrary_json_1.default, [])];
                 case 1:
                     strategyLibrary = _a.sent();
-                    return [4 /*yield*/, strategyLibrary.deployed()
-                        // Setup Oracle infrastructure - registries, estimators, protocol oracles
-                    ];
+                    return [4 /*yield*/, strategyLibrary.deployed()];
                 case 2:
                     _a.sent();
+                    strategyLibraryLink = link_1.createLink(StrategyLibrary_json_1.default, strategyLibrary.address);
                     return [4 /*yield*/, waffle.deployContract(owner, TokenRegistry_json_1.default, [])];
                 case 3:
                     tokenRegistry = _a.sent();
@@ -443,7 +443,7 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                     return [4 /*yield*/, waffle.deployContract(owner, AaveEstimator_json_1.default, [])];
                 case 25:
                     aaveEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.AAVE, aaveEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.AAVE_V2, aaveEstimator.address)];
                 case 26:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, AaveDebtEstimator_json_1.default, [])];
@@ -500,7 +500,7 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                     ];
                 case 43:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, Strategy_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, Strategy_json_1.default, [utils_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER])];
                 case 44:
                     strategyImplementation = _a.sent();
                     return [4 /*yield*/, strategyImplementation.deployed()
@@ -524,35 +524,27 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                 case 48:
                     factoryAddress = _a.sent();
                     strategyFactory = new ethers_1.Contract(factoryAddress, StrategyProxyFactory_json_1.default.abi, owner);
-                    return [4 /*yield*/, ethers.getContractFactory("StrategyController", {
-                            signer: owner,
-                            libraries: {
-                                StrategyLibrary: strategyLibrary.address
-                            }
-                        })];
+                    return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(StrategyController_json_1.default, [strategyLibraryLink]), [])];
                 case 49:
-                    StrategyController_Factory = _a.sent();
-                    return [4 /*yield*/, StrategyController_Factory.deploy()];
-                case 50:
                     controllerImplementation = _a.sent();
                     return [4 /*yield*/, controllerImplementation.deployed()];
-                case 51:
+                case 50:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, StrategyControllerAdmin_json_1.default, [controllerImplementation.address, factoryAddress])];
-                case 52:
+                case 51:
                     controllerAdmin = _a.sent();
                     return [4 /*yield*/, controllerAdmin.deployed()];
-                case 53:
+                case 52:
                     _a.sent();
                     return [4 /*yield*/, controllerAdmin.controller()];
-                case 54:
+                case 53:
                     controllerAddress = _a.sent();
                     controller = new ethers_1.Contract(controllerAddress, StrategyController_json_1.default.abi, owner);
                     return [4 /*yield*/, strategyFactory.connect(owner).setController(controllerAddress)];
-                case 55:
+                case 54:
                     _a.sent();
                     return [4 /*yield*/, tokenRegistry.connect(owner).transferOwnership(factoryAddress)];
-                case 56:
+                case 55:
                     _a.sent();
                     oracles = {
                         ensoOracle: ensoOracle,
@@ -820,22 +812,14 @@ function deployLeverage2XAdapter(owner, defaultAdapter, aaveLendAdapter, aaveBor
 exports.deployLeverage2XAdapter = deployLeverage2XAdapter;
 function deployLoopRouter(owner, controller, library) {
     return __awaiter(this, void 0, void 0, function () {
-        var LoopRouter_Factory, router;
+        var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, ethers.getContractFactory("LoopRouter", {
-                        signer: owner,
-                        libraries: {
-                            StrategyLibrary: library.address
-                        }
-                    })];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(LoopRouter_json_1.default, [link_1.createLink(StrategyLibrary_json_1.default, library.address)]), [controller.address])];
                 case 1:
-                    LoopRouter_Factory = _a.sent();
-                    return [4 /*yield*/, LoopRouter_Factory.deploy(controller.address)];
-                case 2:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
-                case 3:
+                case 2:
                     _a.sent();
                     return [2 /*return*/, router];
             }
@@ -845,22 +829,14 @@ function deployLoopRouter(owner, controller, library) {
 exports.deployLoopRouter = deployLoopRouter;
 function deployFullRouter(owner, addressProvider, controller, library) {
     return __awaiter(this, void 0, void 0, function () {
-        var FullRouter_Factory, router;
+        var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, ethers.getContractFactory("FullRouter", {
-                        signer: owner,
-                        libraries: {
-                            StrategyLibrary: library.address
-                        }
-                    })];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(FullRouter_json_1.default, [link_1.createLink(StrategyLibrary_json_1.default, library.address)]), [addressProvider.address, controller.address])];
                 case 1:
-                    FullRouter_Factory = _a.sent();
-                    return [4 /*yield*/, FullRouter_Factory.deploy(addressProvider.address, controller.address)];
-                case 2:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
-                case 3:
+                case 2:
                     _a.sent();
                     return [2 /*return*/, router];
             }
@@ -870,22 +846,14 @@ function deployFullRouter(owner, addressProvider, controller, library) {
 exports.deployFullRouter = deployFullRouter;
 function deployBatchDepositRouter(owner, controller, library) {
     return __awaiter(this, void 0, void 0, function () {
-        var BatchDepositRouter_Factory, router;
+        var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, ethers.getContractFactory("BatchDepositRouter", {
-                        signer: owner,
-                        libraries: {
-                            StrategyLibrary: library.address
-                        }
-                    })];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(BatchDepositRouter_json_1.default, [link_1.createLink(StrategyLibrary_json_1.default, library.address)]), [controller.address])];
                 case 1:
-                    BatchDepositRouter_Factory = _a.sent();
-                    return [4 /*yield*/, BatchDepositRouter_Factory.deploy(controller.address)];
-                case 2:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
-                case 3:
+                case 2:
                     _a.sent();
                     return [2 /*return*/, router];
             }

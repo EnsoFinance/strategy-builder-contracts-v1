@@ -13,6 +13,7 @@ export declare const MAINNET_ADDRESSES: {
     BALANCER_FACTORY: string;
     AAVE_ADDRESS_PROVIDER: string;
     CURVE_ADDRESS_PROVIDER: string;
+    SYNTHETIX_ADDRESS_PROVIDER: string;
     COMPOUND_COMPTROLLER: string;
 };
 export declare enum TIMELOCK_CATEGORY {
@@ -36,18 +37,19 @@ export declare enum ESTIMATOR_CATEGORY {
     SUSHI_TWAP_ORACLE = 3,
     STRATEGY = 4,
     BLOCKED = 5,
-    AAVE = 6,
-    AAVE_DEBT = 7,
-    BALANCER = 8,
-    COMPOUND = 9,
-    CURVE = 10,
-    CURVE_GAUGE = 11,
-    SUSHI_LP = 12,
-    SUSHI_FARM = 13,
-    UNISWAP_V2_LP = 14,
-    UNISWAP_V3_LP = 15,
-    YEARN_V1 = 16,
-    YEARN_V2 = 17
+    AAVE_V1 = 6,
+    AAVE_V2 = 7,
+    AAVE_DEBT = 8,
+    BALANCER = 9,
+    COMPOUND = 10,
+    CURVE = 11,
+    CURVE_GAUGE = 12,
+    SUSHI_LP = 13,
+    SUSHI_FARM = 14,
+    UNISWAP_V2_LP = 15,
+    UNISWAP_V3_LP = 16,
+    YEARN_V1 = 17,
+    YEARN_V2 = 18
 }
 export declare function increaseTime(seconds: number): Promise<any>;
 export declare function encodePriceSqrt(reserve1: number, reserve0: number): BigNumber;

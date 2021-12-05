@@ -28,6 +28,11 @@ import {
   ESTIMATOR_CATEGORY
 } from './utils'
 
+import {
+  createLink,
+  linkBytecode
+} from './link'
+
 export {
   EnsoBuilder,
   EnsoEnvironment,
@@ -51,6 +56,8 @@ export {
   encodeTransfer,
   encodeTransferFrom,
   encodeApprove,
+  createLink,
+  linkBytecode,
   TIMELOCK_CATEGORY,
   ITEM_CATEGORY,
   ESTIMATOR_CATEGORY

@@ -1,8 +1,9 @@
-const bn = require('bignumber.js')
+import bn from 'bignumber.js'
 const hre = require('hardhat')
+import { BigNumber } from 'ethers'
+
 const { waffle } = hre
 const provider = waffle.provider._hardhatNetwork.provider
-import { BigNumber } from 'ethers'
 
 export const FEE = 997
 export const DIVISOR = 1000
