@@ -23,6 +23,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     using SafeERC20 for IERC20;
 
     uint256 private constant DIVISOR = 1000;
+    int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
@@ -402,8 +403,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             int256 percentage = newItems[i].percentage;
             if (ItemCategory(registry.itemCategories(item)) == ItemCategory.DEBT) {
               require(percentage <= 0, "Debt cannot be positive");
+              require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
             } else {
               require(percentage >= 0, "Token cannot be negative");
+              require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
             }
             EstimatorCategory category = EstimatorCategory(registry.estimatorCategories(item));
             require(category != EstimatorCategory.BLOCKED, "Token blocked");
