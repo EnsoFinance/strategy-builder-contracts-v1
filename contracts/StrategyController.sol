@@ -390,7 +390,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         returns (bool)
     {
         require(newItems.length > 0, "Cannot set empty structure");
-        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught be the ordering requirement below
+        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught by the ordering requirement below
         require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
 
         ITokenRegistry registry = oracle().tokenRegistry();
@@ -399,13 +399,19 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         for (uint256 i = 0; i < newItems.length; i++) {
             address item = newItems[i].item;
             require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
+            int256 percentage = newItems[i].percentage;
+            if (ItemCategory(registry.itemCategories(item)) == ItemCategory.DEBT) {
+              require(percentage <= 0, "Debt cannot be positive");
+            } else {
+              require(percentage >= 0, "Token cannot be negative");
+            }
             EstimatorCategory category = EstimatorCategory(registry.estimatorCategories(item));
             require(category != EstimatorCategory.BLOCKED, "Token blocked");
             if (category == EstimatorCategory.STRATEGY)
                 _checkCyclicDependency(strategy, IStrategy(item), registry);
-            total = total.add(newItems[i].percentage);
+            total = total.add(percentage);
         }
-        require(uint256(total) == DIVISOR, "Total percentage wrong");
+        require(total == int256(DIVISOR), "Total percentage wrong");
         return true;
     }
 
