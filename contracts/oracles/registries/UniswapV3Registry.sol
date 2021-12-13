@@ -36,26 +36,13 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         fees.push(fee);
     }
 
-    function initialize(address input) external override {
-      IUniswapV3Pool currentPool;
-      uint128 currentLiquidity;
-      uint24 currentFee;
-      for (uint256 i = 0; i < fees.length; i++) {
-        IUniswapV3Pool nextPool = IUniswapV3Pool(factory.getPool(input, weth, fees[i]));
-        if (address(nextPool) != address(0)) {
-          uint128 nextLiquidity = nextPool.liquidity();
-          if (nextLiquidity > currentLiquidity) {
-            currentPool = nextPool;
-            currentLiquidity = nextLiquidity;
-            currentFee = fees[i];
-          }
-        }
-      }
-      require(address(currentPool) != address(0), "No valid pool");
-      pools[input] = address(currentPool);
-      poolFees[input] = currentFee;
-      (, , , , uint16 observationCardinalityNext, , ) = currentPool.slot0();
-      if (observationCardinalityNext < 2) currentPool.increaseObservationCardinalityNext(2);
+    function initialize(address tokenIn) external override onlyOwner {
+      (address currentPool, uint24 currentFee) = getHighestLiquidityPool(tokenIn);
+      require(currentPool != address(0), "No valid pool");
+      pools[tokenIn] = currentPool;
+      poolFees[tokenIn] = currentFee;
+      (, , , , uint16 observationCardinalityNext, , ) = IUniswapV3Pool(currentPool).slot0();
+      if (observationCardinalityNext < 2) IUniswapV3Pool(currentPool).increaseObservationCardinalityNext(2);
     }
 
     function getPool(address tokenIn, address tokenOut) external view override returns (IUniswapV3Pool) {
@@ -67,6 +54,24 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
            return IUniswapV3Pool(factory.getPool(tokenIn, tokenOut, defaultFee));
 
         return IUniswapV3Pool(pools[pair]);
+    }
+
+    function getHighestLiquidityPool(address tokenIn) public returns (address, uint24) {
+      address currentPool;
+      uint128 currentLiquidity;
+      uint24 currentFee;
+      for (uint256 i = 0; i < fees.length; i++) {
+        address nextPool = factory.getPool(tokenIn, weth, fees[i]);
+        if (nextPool != address(0)) {
+          uint128 nextLiquidity = IUniswapV3Pool(nextPool).liquidity();
+          if (nextLiquidity > currentLiquidity) {
+            currentPool = nextPool;
+            currentLiquidity = nextLiquidity;
+            currentFee = fees[i];
+          }
+        }
+      }
+      return (currentPool, currentFee);
     }
 
     function getRange(uint32 secondsAgo) public pure override returns (uint32[] memory) {
