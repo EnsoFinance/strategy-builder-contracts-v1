@@ -24,7 +24,7 @@ import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.so
 import StrategyProxyFactoryAdmin from '../artifacts/contracts/StrategyProxyFactoryAdmin.sol/StrategyProxyFactoryAdmin.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
-import UniswapNaiveOracle from '../artifacts/contracts/oracles/protocols/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
+import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
 import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkOracle.sol/ChainlinkOracle.json'
 import AaveEstimator from '../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json'
 import AaveDebtEstimator from '../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json'

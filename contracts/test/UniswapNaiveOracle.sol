@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-import "./ProtocolOracle.sol";
-import "../../libraries/UniswapV2Library.sol";
+import "../oracles/protocols/ProtocolOracle.sol";
+import "../libraries/UniswapV2Library.sol";
 
 contract UniswapNaiveOracle is ProtocolOracle {
     using SafeMath for uint256;
