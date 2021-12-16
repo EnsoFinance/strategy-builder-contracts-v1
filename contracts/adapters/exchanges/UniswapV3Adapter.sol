@@ -2,12 +2,12 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "../BaseAdapter.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 import "../../interfaces/uniswap/ISwapRouter.sol";
+import "../BaseAdapter.sol";
 
 contract UniswapV3Adapter is BaseAdapter {
     using SafeMath for uint256;

@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../libraries/SafeERC20.sol";
 import "../adapters/BaseAdapter.sol";
 
 contract MaliciousAdapter is BaseAdapter {

@@ -2,11 +2,11 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/proxy/Initializable.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/StrategyLibrary.sol";

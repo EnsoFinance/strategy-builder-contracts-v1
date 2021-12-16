@@ -2,12 +2,12 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../BaseAdapter.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../BaseAdapter.sol";
 
 contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
     using SafeMath for uint256;

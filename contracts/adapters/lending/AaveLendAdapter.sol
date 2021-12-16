@@ -2,14 +2,14 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../BaseAdapter.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/aave/ILendingPool.sol";
 import "../../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IStrategyController.sol";
 import "../../interfaces/IERC20NonStandard.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../BaseAdapter.sol";
 
 contract AaveLendAdapter is BaseAdapter {
     using SafeMath for uint256;

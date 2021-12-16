@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../libraries/SafeERC20.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IBaseAdapter.sol";

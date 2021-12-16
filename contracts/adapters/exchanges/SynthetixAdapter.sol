@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-//import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "../../interfaces/synthetix/ISynth.sol";
 import "../../interfaces/synthetix/ISynthetix.sol";
 import "../../interfaces/synthetix/IExchanger.sol";

@@ -2,10 +2,10 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../BaseAdapter.sol";
-import "../../interfaces/aave/IAToken.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../../libraries/SafeERC20.sol";
+import "../../interfaces/aave/IAToken.sol";
+import "../BaseAdapter.sol";
 
 contract Leverage2XAdapter is BaseAdapter {
     using SafeMath for uint256;

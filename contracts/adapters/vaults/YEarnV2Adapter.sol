@@ -2,11 +2,11 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../BaseAdapter.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/yearn/IYEarnV2Vault.sol";
 import "../../interfaces/IERC20NonStandard.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../BaseAdapter.sol";
 
 contract YEarnV2Adapter is BaseAdapter {
     using SafeMath for uint256;

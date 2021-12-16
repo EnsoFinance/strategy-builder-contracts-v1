@@ -2,12 +2,11 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
-import "./StrategyToken.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -17,6 +16,7 @@ import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
+import "./StrategyToken.sol";
 
 interface ISynthetixAddressResolver {
     function getAddress(bytes32 name) external returns (address);
@@ -110,7 +110,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address account,
         uint256 amount
     ) external override onlyController {
-        IERC20(token).safeApprove(account, amount);
+        IERC20(token).sortaSafeApprove(account, amount);
     }
 
     /**
@@ -136,7 +136,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address account,
         uint256 amount
     ) external override onlyController {
-        IERC20(_susd).safeApprove(account, amount);
+        IERC20(_susd).sortaSafeApprove(account, amount);
         IDelegateApprovals delegateApprovals = IDelegateApprovals(synthetixResolver.getAddress("DelegateApprovals"));
         if (amount == 0) {
             delegateApprovals.removeExchangeOnBehalf(account);

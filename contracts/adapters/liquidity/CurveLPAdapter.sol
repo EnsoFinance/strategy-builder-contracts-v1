@@ -2,14 +2,14 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../BaseAdapter.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/curve/ICurveAddressProvider.sol";
 import "../../interfaces/curve/ICurveDeposit.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
 import "../../interfaces/curve/ICurveStableSwap.sol";
 import "../../interfaces/registries/ICurveDepositZapRegistry.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../BaseAdapter.sol";
 
 contract CurveLPAdapter is BaseAdapter {
     using SafeMath for uint256;

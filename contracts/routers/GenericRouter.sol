@@ -2,9 +2,9 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "./StrategyRouter.sol";
+import "../libraries/SafeERC20.sol";
 import "../helpers/Multicall.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "./StrategyRouter.sol";
 
 /**
  * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance

@@ -2,7 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "../libraries/SafeERC20.sol";
 import "../interfaces/IBaseAdapter.sol";
 
 contract Arbitrager is Ownable {
