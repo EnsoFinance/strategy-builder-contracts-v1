@@ -47,14 +47,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
-     * @param creator_ The address that created the strategy
+     * @param manager_ The address that is set as manager
      * @param strategy_ The address of the strategy
      * @param state_ The initial strategy state
      * @param router_ The router in charge of swapping items for this strategy
      * @param data_ Encoded values parsed by the different routers to execute swaps
      */
     function setupStrategy(
-        address creator_,
+        address manager_,
         address strategy_,
         InitialState memory state_,
         address router_,
@@ -69,7 +69,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             _deposit(
                 strategy,
                 IStrategyRouter(router_),
-                creator_,
+                manager_,
                 0,
                 state_.restructureSlippage,
                 0,
