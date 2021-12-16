@@ -67,6 +67,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
             total = total.add(estimate);
             estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
         }
+        require(total >= 0, "Negative total");
         return (uint256(total), estimates);
     }
 
