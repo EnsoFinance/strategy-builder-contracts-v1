@@ -49,10 +49,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
 
-    event Withdraw(uint256 amount, uint256[] amounts);
+    event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
-    event PerformanceFee(address account, uint256 amount);
-    event WithdrawalFee(address account, uint256 amount);
+    event PerformanceFee(address indexed account, uint256 amount);
+    event WithdrawalFee(address indexed account, uint256 amount);
     event StreamingFee(uint256 amount);
 
     // Initialize constructor to disable implementation
@@ -214,7 +214,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         for (uint256 i = 0; i < numTokens; i++) {
             if (amounts[i] > 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
-        emit Withdraw(amount, amounts);
+        emit Withdraw(msg.sender, amount, amounts);
         _removeLock();
     }
 
