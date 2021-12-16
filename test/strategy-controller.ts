@@ -609,7 +609,9 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(400) },
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+		const tx = await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+		const receipt = await tx.wait()
+		console.log('Restructure Gas Used: ', receipt.gasUsed.toString())
 	})
 
 	it('Should fail to finalize value: wrong category', async function () {
@@ -617,9 +619,11 @@ describe('StrategyController', function () {
 	})
 
 	it('Should finalize structure', async function () {
-		await controller
+		const tx = await controller
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x')
+		const receipt = await tx.wait()
+		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 	})
 

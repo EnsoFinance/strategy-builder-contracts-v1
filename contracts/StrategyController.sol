@@ -266,6 +266,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
+        require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
         _finalizeStructure(strategy, router, strategyItems, data);
         delete lock.category;
         delete lock.timestamp;
