@@ -17,10 +17,10 @@ contract UniswapV2Estimator is IEstimator {
 
     // Reason for two values: When one token value is larger than another, depending
     // on the order, dividing produces a number greater than or less than 1.
-    // e.g. If two values (80 and 100), 80/100 = 0.8, 100/80 = 1.25. The deviation
+    // e.g. If two values (99 and 100), 99/100 = 0.99, 100/99 = 1.010101. The deviation
     // from 1 changes based on the order. Which is reflected in our different thresholds
-    uint256 public constant MAX_PRICE_DEVIATION_ABOVE = 250000000000000000; // 25%
-    uint256 public constant MAX_PRICE_DEVIATION_BELOW = 200000000000000000; // 20%
+    uint256 public constant MAX_PRICE_DEVIATION_ABOVE = 10101010101010101; // 1.0101%
+    uint256 public constant MAX_PRICE_DEVIATION_BELOW = 10000000000000000; // 1%
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return int256(balance).mul(_latestAnswer(IUniswapV2Pair(token))).div(10**18);

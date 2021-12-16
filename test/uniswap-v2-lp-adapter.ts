@@ -264,13 +264,13 @@ describe('UniswapV2LPAdapter', function () {
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, tokens[1].address, weth.address, accounts[19].address, accounts[19].address)
-		/*
+
 		value = await tokens[2].balanceOf(accounts[19].address)
 		await tokens[2].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, tokens[2].address, weth.address, accounts[19].address, accounts[19].address)
-		*/
+
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
@@ -288,8 +288,8 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should fail to rebalance: price deviation', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value.mul(2)})
+		let value = WeiPerEther
+		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -297,8 +297,32 @@ describe('UniswapV2LPAdapter', function () {
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
 		).to.be.revertedWith("Price deviation")
+		// Reset price
+		value = await tokens[1].balanceOf(accounts[19].address)
+		await tokens[1].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
+		await uniswapV2Adapter
+			.connect(accounts[19])
+			.swap(value, 0, tokens[1].address, weth.address, accounts[19].address, accounts[19].address)
 	})
 
+	it('Should fail to rebalance: price deviation', async function () {
+		// Approve the user to use the adapter
+		let value = WeiPerEther
+		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
+		await uniswapV2Adapter
+			.connect(accounts[19])
+			.swap(value, 0, weth.address, tokens[2].address, accounts[19].address, accounts[19].address)
+		await expect(
+			controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
+		).to.be.revertedWith("Price deviation")
+		// Reset price
+		value = await tokens[2].balanceOf(accounts[19].address)
+		await tokens[2].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
+		await uniswapV2Adapter
+			.connect(accounts[19])
+			.swap(value, 0, tokens[2].address, weth.address, accounts[19].address, accounts[19].address)
+	})
 
 	it('Should check spot price (deposit)', async function () {
 		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, pair.address)
