@@ -6,78 +6,73 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
+import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 
 
 contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     using SafeMath for uint256;
 
-    uint24 public constant override defaultFee = 3000; //Mid-tier fee. Arbitrary choice
-    address public override weth;
-    IUniswapV3Factory public override factory;
+    IUniswapV3Factory public immutable override factory;
+    address public immutable override weth;
+
+    uint24 public override defaultFee;
     uint32 public override timeWindow;
-    uint24[] public override fees;
-    mapping(address => address) public override pools;
-    mapping(address => uint24) public override poolFees;
+
+    mapping(address => PoolData) internal _pools;
+    mapping(address => mapping(address => uint24)) internal _fees;
 
     constructor(uint32 timeWindow_, address factory_, address weth_) public {
-        timeWindow = timeWindow_;
         factory = IUniswapV3Factory(factory_);
         weth = weth_;
-        fees.push(500);
-        fees.push(3000);
-        fees.push(10000);
+        timeWindow = timeWindow_;
+        defaultFee = 3000; //Mid-tier fee. Arbitrary choice
     }
 
-    function addFee(uint24 fee) external override onlyOwner {
-        for (uint256 i = 0; i < fees.length; i++) {
-            require(fees[i] != fee, "Fee already set");
+    function addPool(address token, address pair, uint24 fee) external override onlyOwner {
+        address pool = factory.getPool(token, pair, fee);
+        require(pool != address(0), "Not valid pool");
+        _pools[token] = PoolData(
+            pool,
+            pair
+        );
+        _fees[token][pair] = fee;
+        _fees[pair][token] = fee;
+        (, , , , uint16 observationCardinalityNext, , ) = IUniswapV3Pool(pool).slot0();
+        if (observationCardinalityNext < 2) IUniswapV3Pool(pool).increaseObservationCardinalityNext(2);
+    }
+
+    function removePool(address token) external override onlyOwner {
+        address pair = _pools[token].pair;
+        delete _pools[token];
+        delete _fees[token][pair];
+        delete _fees[pair][token];
+    }
+
+    function getPoolData(address token) external view override returns (PoolData memory) {
+        PoolData memory pool = _pools[token];
+        if (pool.pool == address(0)) {
+            return PoolData(
+                factory.getPool(token, weth, defaultFee),
+                weth
+            );
         }
-        fees.push(fee);
+        return pool;
     }
 
-    function initialize(address tokenIn) external override onlyOwner {
-      (address currentPool, uint24 currentFee) = getHighestLiquidityPool(tokenIn);
-      require(currentPool != address(0), "No valid pool");
-      pools[tokenIn] = currentPool;
-      poolFees[tokenIn] = currentFee;
-      (, , , , uint16 observationCardinalityNext, , ) = IUniswapV3Pool(currentPool).slot0();
-      if (observationCardinalityNext < 2) IUniswapV3Pool(currentPool).increaseObservationCardinalityNext(2);
+    function getFee(address token, address pair) external view override returns (uint24) {
+        return _fees[token][pair];
     }
 
-    function getPool(address tokenIn, address tokenOut) external view override returns (IUniswapV3Pool) {
-        if (tokenIn != weth && tokenOut != weth)
-            return IUniswapV3Pool(factory.getPool(tokenIn, tokenOut, defaultFee));
-
-        address pair = tokenIn == weth ? tokenOut : tokenIn;
-        if (pools[pair] == address(0))
-           return IUniswapV3Pool(factory.getPool(tokenIn, tokenOut, defaultFee));
-
-        return IUniswapV3Pool(pools[pair]);
+    function updateDefaultFee(uint24 newDefaultFee) external onlyOwner {
+        require(defaultFee != newDefaultFee, "Wrong default fee");
+        require(newDefaultFee != 0, "Wrong default fee");
+        defaultFee = newDefaultFee;
     }
 
-    function getHighestLiquidityPool(address tokenIn) public returns (address, uint24) {
-      address currentPool;
-      uint128 currentLiquidity;
-      uint24 currentFee;
-      for (uint256 i = 0; i < fees.length; i++) {
-        address nextPool = factory.getPool(tokenIn, weth, fees[i]);
-        if (nextPool != address(0)) {
-          uint128 nextLiquidity = IUniswapV3Pool(nextPool).liquidity();
-          if (nextLiquidity > currentLiquidity) {
-            currentPool = nextPool;
-            currentLiquidity = nextLiquidity;
-            currentFee = fees[i];
-          }
-        }
-      }
-      return (currentPool, currentFee);
-    }
-
-    function getRange(uint32 secondsAgo) public pure override returns (uint32[] memory) {
-        uint32[] memory range = new uint32[](2);
-        range[0] = secondsAgo;
-        range[1] = 0;
-        return range;
+    function updateTimeWindow(uint32 newTimeWindow) external onlyOwner {
+        require(timeWindow != newTimeWindow, "Wrong time window");
+        require(newTimeWindow != 0, "Wrong time window");
+        timeWindow = newTimeWindow;
     }
 }

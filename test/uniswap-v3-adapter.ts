@@ -150,7 +150,7 @@ describe('UniswapV3Adapter', function() {
 		await strategyFactory.connect(owner).setController(controllerAddress)
 		await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
-		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
+		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapFactory, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
 		router = await deployLoopRouter(accounts[0], controller, library)
@@ -162,7 +162,7 @@ describe('UniswapV3Adapter', function() {
 
 	it('Should initialize all tokens', async function() {
 		for (let i = 1; i < tokens.length; i++) {
-			await uniswapRegistry.initialize(tokens[i].address)
+			await uniswapRegistry.addPool(tokens[i].address, weth.address, UNI_V3_FEE)
 		}
 	})
 

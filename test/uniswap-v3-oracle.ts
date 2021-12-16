@@ -7,7 +7,7 @@ const bn = require('bignumber.js')
 import { Contract, BigNumber } from 'ethers'
 const { deployContract, provider } = waffle
 const { constants, getContractFactory, getSigners } = ethers
-const { AddressZero, WeiPerEther } = constants
+const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const { deployTokens, deployUniswapV3 } = require('../lib/deploy')
 const { encodePath } = require('../lib/encode')
 const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline, UNI_V3_FEE } = require('../lib/utils')
@@ -17,9 +17,11 @@ const SwapRouter = require('@uniswap/v3-periphery/artifacts/contracts/SwapRouter
 
 const NUM_TOKENS = 3
 const ORACLE_TIME_WINDOW = 1
+const HIGH_FEE = 10000
 
 let tokens: Contract[],
 		weth: Contract,
+		nonWethPair: Contract,
 		accounts: SignerWithAddress[],
 		oracle: Contract,
 		registry: Contract,
@@ -88,24 +90,24 @@ describe('UniswapV3Oracle', function() {
 		uniswapRouter = await deployContract(trader, SwapRouter, [uniswapFactory.address, weth.address])
 		//uniswapQuoter = await deployContract(trader, Quoter, [uniswapFactory.address, weth.address])
 
-		// Create second pool
-		const highFee = 10000
+		nonWethPair = await deployContract(trader, ERC20, [WeiPerEther.mul(10000)])
+		// Create non weth pool
 		await uniswapNFTManager.createAndInitializePoolIfNecessary(
-			tokens[0].address,
-			tokens[1].address,
-			highFee,
+			nonWethPair.address,
+			tokens[2].address,
+			HIGH_FEE,
 			encodePriceSqrt(1, 1)
 		)
 		// Add liquidity
-		await tokens[0].connect(trader).deposit({ value: WeiPerEther })
-		const aNum = ethers.BigNumber.from(tokens[0].address)
-		const bNum = ethers.BigNumber.from(tokens[1].address)
+		await nonWethPair.connect(trader).approve(uniswapNFTManager.address, MaxUint256)
+		const aNum = ethers.BigNumber.from(tokens[2].address)
+		const bNum = ethers.BigNumber.from(nonWethPair.address)
 		await uniswapNFTManager.connect(trader).mint({
-			token0: aNum.lt(bNum) ? tokens[0].address : tokens[1].address,
-			token1: aNum.lt(bNum) ? tokens[1].address : tokens[0].address,
+			token0: aNum.lt(bNum) ? tokens[2].address : nonWethPair.address,
+			token1: aNum.lt(bNum) ? nonWethPair.address : tokens[2].address,
 			tickLower: getMinTick(200),
 			tickUpper: getMaxTick(200),
-			fee: highFee,
+			fee: HIGH_FEE,
 			recipient: trader.address,
 			amount0Desired: WeiPerEther, //Lower liquidity
 			amount1Desired: WeiPerEther, //Lower liquidity
@@ -122,45 +124,29 @@ describe('UniswapV3Oracle', function() {
 		await oracle.deployed()
 	})
 
-	it('Should initialize token', async function() {
-		await registry.initialize(tokens[1].address)
-		const pool = await registry.pools(tokens[1].address)
+	it('Should add pool', async function() {
+		await registry.addPool(tokens[1].address, weth.address, UNI_V3_FEE)
+		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
 		expect(pool).to.equal(await uniswapFactory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
-		expect(pool).to.equal(await registry.getPool(tokens[1].address, weth.address))
 	})
 
 	it('Should get default pool', async function() {
-		expect(await registry.getPool(tokens[2].address, weth.address)).to.equal(await uniswapFactory.getPool(tokens[2].address, weth.address, UNI_V3_FEE))
+		expect((await registry.getPoolData(tokens[2].address)).pool).to.equal(await uniswapFactory.getPool(tokens[2].address, weth.address, UNI_V3_FEE))
 	})
 
-	it('Should get no pool', async function() {
-		expect(await registry.getPool(tokens[1].address, tokens[2].address)).to.equal(AddressZero)
+	it('Should fail to add pool: not owner', async function() {
+		await expect(registry.connect(accounts[1]).addPool(tokens[2].address, weth.address, UNI_V3_FEE)).to.be.revertedWith('Ownable: caller is not the owner')
 	})
 
-	it('Should initialize all tokens', async function() {
+	it('Should add all pools', async function() {
 		for (let i = 1; i < tokens.length; i++) {
-			await registry.initialize(tokens[i].address)
+			await registry.addPool(tokens[i].address, weth.address, UNI_V3_FEE)
 		}
 	})
 
-	it('Should fail to initialize token: not valid', async function() {
-		await expect(registry.initialize(AddressZero)).to.be.revertedWith('No valid pool')
-	})
-
-	it('Should fail to add fee tier: already added', async function() {
-		await expect(registry.addFee(500)).to.be.revertedWith('Fee already set')
-	})
-
-	it('Should fail to add fee tier: not owner', async function() {
-		await expect(registry.connect(accounts[1]).addFee(1)).to.be.revertedWith('Ownable: caller is not the owner')
-	})
-
-	it('Should add fee tier', async function() {
-		const fee = 1
-		await registry.addFee(fee)
-		const newFee = await registry.fees(3) //index of most recent push
-		expect(newFee).to.equal(fee)
+	it('Should fail to add pool: not valid', async function() {
+		await expect(registry.addPool(AddressZero, weth.address, UNI_V3_FEE)).to.be.revertedWith('Not valid pool')
 	})
 
 	it('Should swap on uniswap', async function() {
@@ -179,6 +165,24 @@ describe('UniswapV3Oracle', function() {
 	it('Should consult oracle: no amount', async function() {
 		const amount = 0
 		expect((await oracle.consult(amount, AddressZero)).eq(amount)).to.equal(true)
+	})
+
+	it('Should consult oracle: no amount', async function() {
+		const amount = 0
+		expect((await oracle.consult(amount, nonWethPair.address)).eq(amount)).to.equal(true)
+	})
+
+	it('Add non weth pool', async function() {
+		await registry.addPool(nonWethPair.address, tokens[2].address, HIGH_FEE)
+		const { pool } = await registry.getPoolData(tokens[1].address)
+		expect(pool).to.not.equal(AddressZero)
+	})
+
+	it('Should consult oracle: non weth pair', async function() {
+		// nonWethPair and token2 should have the same price
+		const token2Price = await oracle.consult(WeiPerEther, tokens[2].address)
+		const nonWethPairPrice = await oracle.consult(WeiPerEther, nonWethPair.address)
+		expect(nonWethPairPrice).to.equal(token2Price);
 	})
 
 	it('Should consult oracle: token 1', async function() {
