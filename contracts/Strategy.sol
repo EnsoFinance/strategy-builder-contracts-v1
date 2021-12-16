@@ -589,12 +589,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             // Performance fees
             uint256 fee = uint256(_performanceFee);
             uint256 mintAmount = _settlePerformanceFee(sender, fee); // Sender's paid token value may be updated here
+            senderPaidValue = _paidTokenValues[sender];
+            // Pass sender's paid value unless sender is manager/pool, or below last token value
+            uint256 tokenValue =
+                senderPaidValue < uint256(-1) && senderPaidValue > uint256(_lastTokenValue)
+                    ? senderPaidValue : uint256(_lastTokenValue);
             mintAmount = mintAmount.add(_settlePerformanceFeeRecipient(
               recipient,
               amount,
-              senderPaidValue < uint256(-1) // Pass sender's paid value unless sender is manager/pool
-                  ? _paidTokenValues[sender] // This will equal _lastTokenValue or higher
-                  : uint256(_lastTokenValue),
+              tokenValue,
               fee));
             if (amount > 0) {
                 address pool = _pool;
