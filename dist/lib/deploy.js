@@ -604,12 +604,12 @@ function deployUniswapV2LPAdapter(owner, uniswapFactory, weth) {
     });
 }
 exports.deployUniswapV2LPAdapter = deployUniswapV2LPAdapter;
-function deployUniswapV3Adapter(owner, uniswapRegistry, uniswapFactory, weth) {
+function deployUniswapV3Adapter(owner, uniswapRegistry, uniswapFactory, uniswapRouter, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, UniswapV3Adapter_json_1.default, [uniswapRegistry.address, uniswapFactory.address, weth.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, UniswapV3Adapter_json_1.default, [uniswapRegistry.address, uniswapFactory.address, uniswapRouter.address, weth.address])];
                 case 1:
                     adapter = _a.sent();
                     return [4 /*yield*/, adapter.deployed()];

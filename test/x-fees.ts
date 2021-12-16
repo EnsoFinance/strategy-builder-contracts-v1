@@ -4,7 +4,7 @@ import BigNumJs from 'bignumber.js'
 const { ethers, waffle } = hre
 const provider = waffle.provider
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
+const { WeiPerEther, MaxUint256 } = constants
 import { solidity } from 'ethereum-waffle'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -232,5 +232,11 @@ describe('StrategyToken Fees', function () {
 		await strategy.connect(accounts[10]).withdrawAll(balanceBefore)
 		const tokens1After = await tokens[1].balanceOf(accounts[10].address)
 		expect(tokens1After).to.be.gt(tokens1Before)
+	})
+
+	it('Should update manager', async function() {
+		expect(await strategy.getPaidTokenValue(accounts[19].address)).to.equal(BigNumber.from(0))
+		await strategy.connect(accounts[1]).updateManager(accounts[19].address)
+		expect(await strategy.getPaidTokenValue(accounts[19].address)).to.equal(MaxUint256)
 	})
 })

@@ -386,6 +386,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateManager(address newManager) external override {
         _onlyManager();
+        require(newManager != _manager, "Manager already set");
+        // Reset paid token values
+        _paidTokenValues[_manager] = _lastTokenValue;
+        _paidTokenValues[newManager] = uint256(-1);
         _manager = newManager;
         emit UpdateManager(newManager);
     }
@@ -403,13 +407,21 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateAddresses() public {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
-        _pool = f.pool();
+        address pool = f.pool();
+        if (pool != _pool) {
+            // If pool has been initialized but is now changing update paidTokenValue
+            if (_pool != address(0)) {
+                _paidTokenValues[_pool] = _lastTokenValue;
+                _paidTokenValues[pool] = uint256(-1);
+            }
+            _pool = pool;
+        }
         address o = f.oracle();
         if (o != _oracle) {
-          IOracle ensoOracle = IOracle(o);
-          _oracle = o;
-          _weth = ensoOracle.weth();
-          _susd = ensoOracle.susd();
+            IOracle ensoOracle = IOracle(o);
+            _oracle = o;
+            _weth = ensoOracle.weth();
+            _susd = ensoOracle.susd();
         }
     }
 
