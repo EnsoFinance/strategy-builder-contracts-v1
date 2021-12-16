@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
 contract StrategyControllerAdmin is ProxyAdmin {
-    address payable public controller;
+    address payable public immutable controller;
 
     constructor(address implementation, address factory) public {
         TransparentUpgradeableProxy proxy =
