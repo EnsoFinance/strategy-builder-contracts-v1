@@ -200,7 +200,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     function salt(address manager, string memory name, string memory symbol) public pure override returns (bytes32) {
-      return keccak256(abi.encodePacked(manager, name, "$", symbol));
+      return keccak256(abi.encode(manager, name, symbol));
     }
 
     function controller() external view override returns (address) {
