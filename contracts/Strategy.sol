@@ -548,7 +548,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 _debt.push(newItem);
             }
         }
-        if (virtualPercentage > 0) {
+        if (_synths.length > 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;
