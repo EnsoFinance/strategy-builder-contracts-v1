@@ -7,9 +7,6 @@ import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import "../../interfaces/registries/IChainlinkRegistry.sol";
 import "./ProtocolOracle.sol";
 
-/*
- * @notice: Looks up Chainlink oracle or fallsback to Uniswap if there is no Chainlink oracle
- */
 contract ChainlinkOracle is ProtocolOracle, Ownable {
     using SafeMath for uint256;
 

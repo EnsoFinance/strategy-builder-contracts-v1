@@ -15,7 +15,7 @@ import "./StrategyControllerStorage.sol";
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
- * @dev To avoid someone from repeatedly skimming off this slippage value, threshold should be set sufficiently high
+ * @dev To avoid someone from repeatedly skimming off this slippage value, rebalance threshold should be set sufficiently high
  */
 contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable {
     using SafeMath for uint256;
@@ -51,7 +51,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy_ The address of the strategy
      * @param state_ The initial strategy state
      * @param router_ The router in charge of swapping items for this strategy
-     * @param data_ Encoded values parsed by the different routers to execute swaps
+     * @param data_ Optional bytes data to be passed if using GenericRouter
      */
     function setupStrategy(
         address manager_,
@@ -84,7 +84,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy The address of the strategy being deposited into
      * @param router The address of the router that will be doing the handling the trading logic
      * @param amount The deposit amount as valued in ETH (not used if msg.value > 0)
-     * @param data The calldata for the router's deposit function
+     * @param data Optional bytes data to be passed if using GenericRouter
      */
     function deposit(
         IStrategy strategy,
@@ -108,7 +108,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy The address of the strategy being withdrawn from
      * @param router The address of the router that will be doing the handling the trading logic
      * @param amount The amount of strategy tokens that are being redeemed
-     * @param data The calldata for the router's withdraw function
+     * @param data Optional bytes data to be passed if using GenericRouter
      */
     function withdrawETH(
         IStrategy strategy,
@@ -121,7 +121,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
         IWETH(weth).withdraw(wethAmount);
-        (bool success, ) = msg.sender.call.value(wethAmount)(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
+        (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
         require(success);
         _removeStrategyLock(strategy);
     }
@@ -131,7 +131,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy The address of the strategy being withdrawn from
      * @param router The address of the router that will be doing the handling the trading logic
      * @param amount The amount of strategy tokens that are being redeemed
-     * @param data The calldata for the router's withdraw function
+     * @param data Optional bytes data to be passed if using GenericRouter
      */
     function withdrawWETH(
         IStrategy strategy,
@@ -148,9 +148,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Rebalance the strategy to match the current structure
-     * @dev The calldata that gets passed to this function can differ depending on which router is being used
      * @param router The address of the router that will be doing the handling the trading logic
-     * @param data Calldata that gets passed the the router's rebalance function
+     * @param data Optional bytes data to be passed if using GenericRouter
      */
     function rebalance(
         IStrategy strategy,
@@ -173,7 +172,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
-               In order to rebalance the strategy, all Synths must first be converted into sUSD
+     *         In order to rebalance the strategy, all Synths must first be converted into sUSD
      * @param strategy The address of the strategy being withdrawn from
      * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
@@ -213,8 +212,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Initiate a restructure of the strategy items. This gives users a chance to withdraw before restructure
-     * @dev We store the new structure as a bytes32 hash and then check that the
-            values are correct when finalizeStructure is called.
+     * @dev The strategyItems array is encoded and temporarily stored while the timelock is active
      * @param strategyItems An array of Item structs that will comprise the strategy
      */
     function restructure(
@@ -242,9 +240,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Finalize a restructure by setting the new values and trading the strategyItems
-     * @dev We confirm that the same structure is sent by checking the bytes32 hash against _restructureProof
+     * @dev The strategyItems are decoded and the new structure is set into the strategy
      * @param router The address of the router that will be doing the handling the trading logic
-     * @param data Calldata for the router's restructure function
+     * @param data Optional bytes data to be sent if using GenericRouter
      */
     function finalizeStructure(
         IStrategy strategy,
@@ -445,7 +443,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     // Internal Strategy Functions
     /**
      * @notice Deposit eth or weth into strategy
-     * @dev Calldata is only needed for the generic router
+     * @dev Calldata is only needed for the GenericRouter
      */
     function _deposit(
         IStrategy strategy,
@@ -497,7 +495,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Trade tokens for weth
-     * @dev Calldata is only needed for the generic router
+     * @dev Calldata is only needed for the GenericRouter
      */
     function _withdraw(
         IStrategy strategy,
@@ -547,9 +545,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     /**
      * @notice Rebalance the strategy to match the current structure
      * @dev The calldata that gets passed to this function can differ depending on which router is being used
-     * @param totalBefore The valuation of the strategy before rebalance
-     * @param data Calldata that gets passed the the router's rebalance function
+     * @param strategy The strategy contract
      * @param router The address of the router that will be doing the handling the trading logic
+     * @param totalBefore The valuation of the strategy before rebalance
+     * @param data Optional bytes data to be sent if using GenericRouter
      */
     function _rebalance(
         IStrategy strategy,
@@ -598,7 +597,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy The strategy contract
      * @param router The router contract that will handle the trading
      * @param newItems An array of Item structs that will comprise the strategy
-     * @param data Calldata for the router's restructure function
+     * @param data Optional bytes data to be sent if using GenericRouter
      */
     function _finalizeStructure(
         IStrategy strategy,
@@ -634,6 +633,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Batch approve items
+     * @param strategy The strategy contract
+     * @param strategyItems An array of tokens
+     * @param strategyDebt An array of debt tokens
      * @param spender The address that will be approved to spend tokens
      * @param amount The amount the each token will be approved for
      */
@@ -653,6 +655,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     /**
      * @notice Batch approve synths and debt
+     * @param strategy The strategy contract
+     * @param strategyDebt An array of debt tokens
      * @param spender The address that will be approved to spend tokens
      * @param amount The amount the each token will be approved for
      */
