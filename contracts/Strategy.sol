@@ -577,36 +577,38 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Called any time there is a transfer to settle the performance and streaming fees
      */
     function _handleFees(uint256 amount, address sender,address recipient) internal override {
-        uint256 senderPaidValue = _paidTokenValues[sender];
-        uint256 recipientPaidValue = _paidTokenValues[recipient];
-        if (recipientPaidValue == 0 && senderPaidValue < uint256(-1)) {
-            // Note: Since the recipient doesn't have a balance, they can just inherit
-            // the sender's balance without having to settle the performance fees and
-            // tokens for the manager/fee pool. This only works because we pay fees via
-            // inflation, issuing fees now or later dilutes receiver's value either way
-            _paidTokenValues[recipient] = senderPaidValue;
-        } else {
-            // Performance fees
-            uint256 fee = uint256(_performanceFee);
-            uint256 mintAmount = _settlePerformanceFee(sender, fee); // Sender's paid token value may be updated here
-            senderPaidValue = _paidTokenValues[sender];
-            // Pass sender's paid value unless sender is manager/pool, or below last token value
-            uint256 tokenValue =
-                senderPaidValue < uint256(-1) && senderPaidValue > uint256(_lastTokenValue)
-                    ? senderPaidValue : uint256(_lastTokenValue);
-            mintAmount = mintAmount.add(_settlePerformanceFeeRecipient(
-              recipient,
-              amount,
-              tokenValue,
-              fee));
-            if (amount > 0) {
-                address pool = _pool;
-                // Stream fee before any tokens are minted (since change in supply changes rate)
-                _issueStreamingFee(pool);
-                // Mint prformance fee
-                _issuePerformanceFee(pool, mintAmount);
-                // Update streaming fee rate for the new total supply
-                _updateStreamingFeeRate(pool);
+        uint256 fee = uint256(_performanceFee);
+        if (fee > 0) {
+            uint256 senderPaidValue = _paidTokenValues[sender];
+            uint256 recipientPaidValue = _paidTokenValues[recipient];
+            if (recipientPaidValue == 0 && senderPaidValue < uint256(-1)) {
+                // Note: Since the recipient doesn't have a balance, they can just inherit
+                // the sender's balance without having to settle the performance fees and
+                // tokens for the manager/fee pool. This only works because we pay fees via
+                // inflation, issuing fees now or later dilutes receiver's value either way
+                _paidTokenValues[recipient] = senderPaidValue;
+            } else {
+                // Performance fees
+                uint256 mintAmount = _settlePerformanceFee(sender, fee); // Sender's paid token value may be updated here
+                senderPaidValue = _paidTokenValues[sender];
+                // Pass sender's paid value unless sender is manager/pool, or below last token value
+                uint256 tokenValue =
+                    senderPaidValue < uint256(-1) && senderPaidValue > uint256(_lastTokenValue)
+                        ? senderPaidValue : uint256(_lastTokenValue);
+                mintAmount = mintAmount.add(_settlePerformanceFeeRecipient(
+                  recipient,
+                  amount,
+                  tokenValue,
+                  fee));
+                if (amount > 0) {
+                    address pool = _pool;
+                    // Stream fee before any tokens are minted (since change in supply changes rate)
+                    _issueStreamingFee(pool);
+                    // Mint prformance fee
+                    _issuePerformanceFee(pool, mintAmount);
+                    // Update streaming fee rate for the new total supply
+                    _updateStreamingFeeRate(pool);
+                }
             }
         }
     }
