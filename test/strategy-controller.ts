@@ -61,7 +61,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should get implementation', async function () {
-		const implementation = await platform.administration.controllerAdmin.implementation()
+		const implementation = await platform.administration.platformProxyAdmin.controllerImplementation()
 		expect(implementation).to.not.equal(AddressZero)
 	})
 

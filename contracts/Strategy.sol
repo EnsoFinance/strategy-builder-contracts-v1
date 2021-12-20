@@ -48,6 +48,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
+    address public immutable factory;
+    address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
@@ -56,7 +58,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     event StreamingFee(uint256 amount);
 
     // Initialize constructor to disable implementation
-    constructor(address synthetixResolver_, address aaveResolver_) public initializer {
+    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
+        factory = factory_;
+        controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
     }
@@ -65,7 +69,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(_controller == msg.sender, "Controller only");
+        require(controller == msg.sender, "Controller only");
         _;
     }
 
@@ -81,8 +85,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address manager_,
         StrategyItem[] memory strategyItems_
     ) external override initializer returns (bool) {
-        _factory = msg.sender;
-        _controller = controller_;
         _manager = manager_;
         _name = name_;
         _symbol = symbol_;
@@ -93,7 +95,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         updateAddresses();
         // Set structure
         if (strategyItems_.length > 0) {
-            IStrategyController(_controller).verifyStructure(address(this), strategyItems_);
+            IStrategyController(controller).verifyStructure(address(this), strategyItems_);
             _setStructure(strategyItems_);
         }
         return true;
@@ -406,7 +408,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         @notice Refresh Strategy's addresses
      */
     function updateAddresses() public {
-        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         address pool = f.pool();
         if (pool != _pool) {
             // If pool has been initialized but is now changing update paidTokenValue
@@ -429,7 +431,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        require(msg.sender == _factory, "Only StrategyProxyFactory");
+        require(msg.sender == factory, "Only StrategyProxyFactory");
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
@@ -487,10 +489,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return uint256(_lastTokenValue);
     }
 
-    function controller() external view override returns (address) {
-        return _controller;
-    }
-
     function manager() external view override(IStrategy, IStrategyManagement) returns (address) {
         return _manager;
     }
@@ -500,7 +498,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
+        return IWhitelist(IStrategyProxyFactory(factory).whitelist());
     }
 
     function supportsSynths() public view override returns (bool) {

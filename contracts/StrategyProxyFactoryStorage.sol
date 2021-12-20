@@ -5,7 +5,6 @@ pragma solidity 0.7.6;
 contract StrategyProxyFactoryStorage {
     address public admin; //Not part of IStrategyProxyFactory, so can be public
     address public owner; //Not part of IStrategyProxyFactory, so can be public
-    address internal _controller;
     address internal _whitelist;
     address internal _oracle;
     address internal _pool;

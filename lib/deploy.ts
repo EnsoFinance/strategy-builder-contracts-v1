@@ -17,11 +17,10 @@ import {
 	linkBytecode
 } from './link'
 
+import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
-import StrategyControllerAdmin from '../artifacts/contracts/StrategyControllerAdmin.sol/StrategyControllerAdmin.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
-import StrategyProxyFactoryAdmin from '../artifacts/contracts/StrategyProxyFactoryAdmin.sol/StrategyProxyFactoryAdmin.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
@@ -92,8 +91,7 @@ export type Oracles = {
 
 export type Administration = {
 	whitelist: Contract,
-	controllerAdmin: Contract,
-	factoryAdmin: Contract
+	platformProxyAdmin: Contract,
 }
 
 export class Platform {
@@ -311,46 +309,57 @@ export async function deployPlatform(
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
 	await whitelist.deployed()
 
+	// Deploy Platfrom Admin and calculate controller and factory addresses
+	const platformProxyAdmin = await waffle.deployContract(owner, PlatformProxyAdmin, [])
+	await platformProxyAdmin.deployed()
+	const controllerAddress = await platformProxyAdmin.calculateAddress('StrategyController')
+	const factoryAddress = await platformProxyAdmin.calculateAddress('StrategyProxyFactory')
+
+	// Controller Implementation
+	const controllerImplementation = await waffle.deployContract(
+		owner,
+		linkBytecode(StrategyController, [strategyLibraryLink]),
+		[factoryAddress]
+	)
+	await controllerImplementation.deployed()
+
+	// Factory Implementation
+	const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controllerAddress])
+	await factoryImplementation.deployed()
+
 	// Strategy Implementation
-	const strategyImplementation = await waffle.deployContract(owner, Strategy, [MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER])
+	const strategyImplementation = await waffle.deployContract(owner, Strategy, [
+		factoryAddress,
+		controllerAddress,
+		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
+		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
+	])
 	await strategyImplementation.deployed()
 
-	// Factory
-	const factoryAdmin = await waffle.deployContract(owner, StrategyProxyFactoryAdmin, [
-		strategyImplementation.address,
-		ensoOracle.address,
-		tokenRegistry.address,
-		whitelist.address,
-		feePool || owner.address
-	])
-	await factoryAdmin.deployed()
+	await platformProxyAdmin.initialize(
+			controllerImplementation.address,
+			factoryImplementation.address,
+			strategyImplementation.address,
+			ensoOracle.address,
+			tokenRegistry.address,
+			whitelist.address,
+			feePool || owner.address
+	)
 
-	const factoryAddress = await factoryAdmin.factory()
-	const strategyFactory = new Contract(
+	// Factory
+	const factory = new Contract(
     factoryAddress,
     StrategyProxyFactory.abi,
     owner
   )
 
 	// Strategy Controller
-	const controllerImplementation = await waffle.deployContract(
-		owner,
-		linkBytecode(StrategyController, [strategyLibraryLink]),
-		[]
-	)
-	await controllerImplementation.deployed()
-
-	const controllerAdmin = await waffle.deployContract(owner, StrategyControllerAdmin, [controllerImplementation.address, factoryAddress])
-	await controllerAdmin.deployed()
-
-	const controllerAddress = await controllerAdmin.controller()
 	const controller = new Contract(
     controllerAddress,
     StrategyController.abi,
     owner
   )
 
-	await strategyFactory.connect(owner).setController(controllerAddress)
 	await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
 	const oracles: Oracles = {
@@ -369,11 +378,10 @@ export async function deployPlatform(
 
 	const administration: Administration = {
 		whitelist,
-		controllerAdmin,
-		factoryAdmin
+		platformProxyAdmin
 	}
 
-	return new Platform(strategyFactory, controller, oracles, administration, strategyLibrary)
+	return new Platform(factory, controller, oracles, administration, strategyLibrary)
 }
 
 export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract> {

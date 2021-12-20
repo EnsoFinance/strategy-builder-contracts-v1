@@ -52,7 +52,7 @@ describe('StrategyProxyAdmin', function () {
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		newAdmin = await StrategyAdmin.connect(accounts[10]).deploy()
 		const Strategy = await getContractFactory('Strategy')
-		newImplementation = await Strategy.deploy(AddressZero, AddressZero)
+		newImplementation = await Strategy.deploy(strategyFactory.address, controller.address, AddressZero, AddressZero)
 	})
 
 	before('Should deploy strategy', async function () {

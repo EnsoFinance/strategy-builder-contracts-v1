@@ -20,6 +20,8 @@ import "./interfaces/registries/ITokenRegistry.sol";
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
 contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils {
+    address public immutable override controller;
+
     /**
      * @notice Log the address of an implementation contract update
      */
@@ -59,7 +61,9 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     /**
      * @notice Initialize constructor to disable implementation
      */
-    constructor() public initializer {}
+    constructor(address controller_) public initializer {
+        controller = controller_;
+    }
 
     function initialize(
         address owner_,
@@ -131,11 +135,6 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return strategy;
     }
 
-    function setController(address newController) external noZeroAddress(newController) onlyOwner {
-        require(_controller == address(0), "Cannot change controller");
-        _controller = newController;
-    }
-
     function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
@@ -203,10 +202,6 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
       return keccak256(abi.encode(manager, name, symbol));
     }
 
-    function controller() external view override returns (address) {
-        return _controller;
-    }
-
     /*
      * @dev This function is called by Strategy and StrategyController
      */
@@ -261,7 +256,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
             name,
             symbol,
             _version,
-            _controller,
+            controller,
             manager,
             strategyItems
         );
@@ -275,7 +270,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address router,
         bytes memory data
     ) internal {
-        IStrategyController strategyController = IStrategyController(_controller);
+        IStrategyController strategyController = IStrategyController(controller);
         strategyController.setupStrategy{value: msg.value}(
             manager,
             strategy,

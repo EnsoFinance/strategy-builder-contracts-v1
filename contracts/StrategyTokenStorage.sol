@@ -23,8 +23,6 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(address => uint256) internal _paidTokenValues;
 
     address internal _manager;
-    address internal _controller;
-    address internal _factory;
     address internal _pool;
     address internal _oracle;
     address internal _weth;

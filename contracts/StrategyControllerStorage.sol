@@ -5,7 +5,6 @@ import "./helpers/StrategyTypes.sol";
 
 contract StrategyControllerStorage  is StrategyTypes {
     // ALERT: Do not reorder variables on upgrades! Append only
-    address internal _factory;
     address internal _whitelist;
     address internal _oracle;
     address internal _weth;

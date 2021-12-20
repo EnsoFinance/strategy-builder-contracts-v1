@@ -98,18 +98,6 @@ describe('StrategyProxyFactory', function () {
 		strategy = Strategy.attach(strategyAddress)
 	})
 
-	it('Should fail to set controller: not owner', async function () {
-		await expect(strategyFactory.connect(accounts[1]).setController(accounts[1].address)).to.be.revertedWith(
-			'Not owner'
-		)
-	})
-
-	it('Should fail to set controller: already set', async function () {
-		await expect(strategyFactory.connect(accounts[10]).setController(accounts[1].address)).to.be.revertedWith(
-			'Cannot change controller'
-		)
-	})
-
 	it('Should check controller value', async function () {
 		expect(await strategyFactory.controller()).to.equal(controller.address)
 	})

@@ -110,44 +110,50 @@ describe('UniswapV3Adapter', function() {
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
 
-		const Strategy = await getContractFactory('Strategy')
-		const strategyImplementation = await Strategy.connect(owner).deploy(AddressZero, AddressZero)
-		await strategyImplementation.deployed()
-
-		const StrategyProxyFactoryAdmin = await getContractFactory('StrategyProxyFactoryAdmin')
-		const factoryAdmin = await StrategyProxyFactoryAdmin.connect(owner).deploy(
-			strategyImplementation.address,
-			oracle.address,
-			tokenRegistry.address,
-			whitelist.address,
-			owner.address
-		)
-		await factoryAdmin.deployed()
-
-		const factoryAddress = await factoryAdmin.factory()
-		const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')
-		strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
-
 		const StrategyLibrary = await getContractFactory('StrategyLibrary')
 		library = await StrategyLibrary.connect(owner).deploy()
 		await library.deployed()
+
+		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
+		const platformProxyAdmin = await PlatformProxyAdmin.connect(owner).deploy()
+		await platformProxyAdmin.deployed()
+		const controllerAddress = await platformProxyAdmin.calculateAddress('StrategyController')
+		const factoryAddress = await platformProxyAdmin.calculateAddress('StrategyProxyFactory')
 
 		const StrategyController = await getContractFactory('StrategyController', {
 			libraries: {
 				StrategyLibrary: library.address
 			}
 		})
-		const controllerImplementation = await StrategyController.connect(owner).deploy()
+		const controllerImplementation = await StrategyController.connect(owner).deploy(factoryAddress)
 		await controllerImplementation.deployed()
 
-		const StrategyControllerAdmin = await getContractFactory('StrategyControllerAdmin')
-		const controllerAdmin = await StrategyControllerAdmin.connect(owner).deploy(controllerImplementation.address, factoryAddress)
-		await controllerAdmin.deployed()
+		const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')
+		const factoryImplementation = await StrategyProxyFactory.connect(owner).deploy(controllerAddress)
+		await factoryImplementation.deployed()
 
-		const controllerAddress = await controllerAdmin.controller()
+		const Strategy = await getContractFactory('Strategy')
+		const strategyImplementation = await Strategy.connect(owner).deploy(
+			factoryAddress,
+			controllerAddress,
+			AddressZero,
+			AddressZero
+		)
+		await strategyImplementation.deployed()
+
+		await platformProxyAdmin.initialize(
+				controllerImplementation.address,
+				factoryImplementation.address,
+				strategyImplementation.address,
+				oracle.address,
+				tokenRegistry.address,
+				whitelist.address,
+				owner.address
+		)
+
+		strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
 		controller = await StrategyController.attach(controllerAddress)
 
-		await strategyFactory.connect(owner).setController(controllerAddress)
 		await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
 		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapFactory, uniswapRouter, weth)

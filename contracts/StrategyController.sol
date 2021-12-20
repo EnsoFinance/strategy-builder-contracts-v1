@@ -25,6 +25,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     uint256 private constant DIVISOR = 1000;
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
+    address public immutable factory;
+
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Balanced(address indexed strategy, uint256 total);
@@ -34,14 +36,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event StrategySet(address indexed strategy);
 
     // Initialize constructor to disable implementation
-    constructor() public initializer {}
+    constructor(address factory_) public initializer {
+        factory = factory_;
+    }
 
     /**
      * @dev Called to initialize proxy
-     * @param factory The address of the StrategyProxyFactory
      */
-    function initialize(address factory) external initializer returns (bool) {
-        _factory = factory;
+    function initialize() external initializer returns (bool) {
         updateAddresses();
     }
 
@@ -62,7 +64,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external payable override {
         IStrategy strategy = IStrategy(strategy_);
         _setStrategyLock(strategy);
-        require(msg.sender == _factory, "Not factory");
+        require(msg.sender == factory, "Not factory");
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
@@ -421,7 +423,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         @notice Refresh StrategyController's addresses
      */
     function updateAddresses() public {
-        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         _whitelist = f.whitelist();
         address o = f.oracle();
         if (o != _oracle) {
