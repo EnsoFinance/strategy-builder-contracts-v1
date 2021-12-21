@@ -665,24 +665,18 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to open strategy: not manager', async function () {
-		await expect(controller.connect(owner).openStrategy(strategy.address, 0)).to.be.revertedWith(
+		await expect(controller.connect(owner).openStrategy(strategy.address)).to.be.revertedWith(
 			'Not manager'
 		)
 	})
 
-	it('Should fail to open strategy: fee too high', async function () {
-		await expect(controller.connect(accounts[1]).openStrategy(strategy.address, 1001)).to.be.revertedWith(
-			'Out of bounds'
-		)
-	})
-
 	it('Should open strategy', async function () {
-		await controller.connect(accounts[1]).openStrategy(strategy.address, 10)
+		await controller.connect(accounts[1]).openStrategy(strategy.address)
 		expect((await controller.strategyState(strategy.address)).social).to.equal(true)
 	})
 
 	it('Should fail to open strategy: already open', async function () {
-		await expect(controller.connect(accounts[1]).openStrategy(strategy.address, 10)).to.be.revertedWith(
+		await expect(controller.connect(accounts[1]).openStrategy(strategy.address)).to.be.revertedWith(
 			'Strategy already open'
 		)
 	})

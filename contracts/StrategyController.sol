@@ -32,7 +32,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event Balanced(address indexed strategy, uint256 total);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
-    event StrategyOpen(address indexed strategy, uint256 performanceFee);
+    event StrategyOpen(address indexed strategy);
     event StrategySet(address indexed strategy);
 
     // Initialize constructor to disable implementation
@@ -343,15 +343,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Change strategy to 'social'. Cannot be undone.
      * @dev A social profile allows other users to deposit into the strategy
      */
-    function openStrategy(IStrategy strategy, uint256 fee) external override {
+    function openStrategy(IStrategy strategy) external override {
         _setStrategyLock(strategy);
         _onlyManager(strategy);
-        _checkDivisor(fee);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         require(!strategyState.social, "Strategy already open");
         strategyState.social = true;
-        strategy.updatePerformanceFee(uint16(fee));
-        emit StrategyOpen(address(strategy), fee);
+        emit StrategyOpen(address(strategy));
         _removeStrategyLock(strategy);
     }
 
@@ -573,6 +571,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
+        _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.performanceFee), true);
         _checkAndEmit(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
@@ -584,12 +583,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           state.social,
           state.set
         );
+        IStrategy(strategy).updatePerformanceFee(state.performanceFee);
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
-        if (state.social) {
-          _checkDivisor(uint256(state.performanceFee));
-          IStrategy(strategy).updatePerformanceFee(state.performanceFee);
-          emit StrategyOpen(strategy, state.performanceFee);
-        }
+        if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);
         emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
     }
