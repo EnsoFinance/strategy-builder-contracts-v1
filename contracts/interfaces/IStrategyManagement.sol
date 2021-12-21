@@ -9,7 +9,6 @@ interface IStrategyManagement is StrategyTypes {
         string memory name_,
         string memory symbol_,
         string memory version_,
-        address controller_,
         address manager_,
         StrategyItem[] memory strategyItems_
     ) external returns (bool);

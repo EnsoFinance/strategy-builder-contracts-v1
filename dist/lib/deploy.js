@@ -44,11 +44,10 @@ var hardhat_1 = __importDefault(require("hardhat"));
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
 var link_1 = require("./link");
+var PlatformProxyAdmin_json_1 = __importDefault(require("../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json"));
 var Strategy_json_1 = __importDefault(require("../artifacts/contracts/Strategy.sol/Strategy.json"));
 var StrategyController_json_1 = __importDefault(require("../artifacts/contracts/StrategyController.sol/StrategyController.json"));
-var StrategyControllerAdmin_json_1 = __importDefault(require("../artifacts/contracts/StrategyControllerAdmin.sol/StrategyControllerAdmin.json"));
 var StrategyProxyFactory_json_1 = __importDefault(require("../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json"));
-var StrategyProxyFactoryAdmin_json_1 = __importDefault(require("../artifacts/contracts/StrategyProxyFactoryAdmin.sol/StrategyProxyFactoryAdmin.json"));
 var StrategyLibrary_json_1 = __importDefault(require("../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json"));
 var EnsoOracle_json_1 = __importDefault(require("../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json"));
 var UniswapNaiveOracle_json_1 = __importDefault(require("../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json"));
@@ -364,7 +363,7 @@ function deployUniswapV3(owner, tokens) {
 exports.deployUniswapV3 = deployUniswapV3;
 function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
     return __awaiter(this, void 0, void 0, function () {
-        var strategyLibrary, strategyLibraryLink, tokenRegistry, curveDepositZapRegistry, uniswapV3Registry, chainlinkRegistry, uniswapOracle, chainlinkOracle, ensoOracle, defaultEstimator, chainlinkEstimator, strategyEstimator, emergencyEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, uniswapV2Estimator, yearnV2Estimator, whitelist, strategyImplementation, factoryAdmin, factoryAddress, strategyFactory, controllerImplementation, controllerAdmin, controllerAddress, controller, oracles, administration;
+        var strategyLibrary, strategyLibraryLink, tokenRegistry, curveDepositZapRegistry, uniswapV3Registry, chainlinkRegistry, uniswapOracle, chainlinkOracle, ensoOracle, defaultEstimator, chainlinkEstimator, strategyEstimator, emergencyEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, uniswapV2Estimator, yearnV2Estimator, whitelist, platformProxyAdmin, controllerAddress, factoryAddress, controllerImplementation, factoryImplementation, strategyImplementation, factory, controller, oracles, administration;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, StrategyLibrary_json_1.default, [])];
@@ -496,53 +495,58 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                 case 42:
                     whitelist = _a.sent();
                     return [4 /*yield*/, whitelist.deployed()
-                        // Strategy Implementation
+                        // Deploy Platfrom Admin and calculate controller and factory addresses
                     ];
                 case 43:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, Strategy_json_1.default, [utils_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER])];
+                    return [4 /*yield*/, waffle.deployContract(owner, PlatformProxyAdmin_json_1.default, [])];
                 case 44:
-                    strategyImplementation = _a.sent();
-                    return [4 /*yield*/, strategyImplementation.deployed()
-                        // Factory
-                    ];
+                    platformProxyAdmin = _a.sent();
+                    return [4 /*yield*/, platformProxyAdmin.deployed()];
                 case 45:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, StrategyProxyFactoryAdmin_json_1.default, [
-                            strategyImplementation.address,
-                            ensoOracle.address,
-                            tokenRegistry.address,
-                            whitelist.address,
-                            feePool || owner.address
-                        ])];
+                    return [4 /*yield*/, platformProxyAdmin.calculateAddress('StrategyController')];
                 case 46:
-                    factoryAdmin = _a.sent();
-                    return [4 /*yield*/, factoryAdmin.deployed()];
-                case 47:
-                    _a.sent();
-                    return [4 /*yield*/, factoryAdmin.factory()];
-                case 48:
-                    factoryAddress = _a.sent();
-                    strategyFactory = new ethers_1.Contract(factoryAddress, StrategyProxyFactory_json_1.default.abi, owner);
-                    return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(StrategyController_json_1.default, [strategyLibraryLink]), [])];
-                case 49:
-                    controllerImplementation = _a.sent();
-                    return [4 /*yield*/, controllerImplementation.deployed()];
-                case 50:
-                    _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, StrategyControllerAdmin_json_1.default, [controllerImplementation.address, factoryAddress])];
-                case 51:
-                    controllerAdmin = _a.sent();
-                    return [4 /*yield*/, controllerAdmin.deployed()];
-                case 52:
-                    _a.sent();
-                    return [4 /*yield*/, controllerAdmin.controller()];
-                case 53:
                     controllerAddress = _a.sent();
-                    controller = new ethers_1.Contract(controllerAddress, StrategyController_json_1.default.abi, owner);
-                    return [4 /*yield*/, strategyFactory.connect(owner).setController(controllerAddress)];
+                    return [4 /*yield*/, platformProxyAdmin.calculateAddress('StrategyProxyFactory')
+                        // Controller Implementation
+                    ];
+                case 47:
+                    factoryAddress = _a.sent();
+                    return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(StrategyController_json_1.default, [strategyLibraryLink]), [factoryAddress])];
+                case 48:
+                    controllerImplementation = _a.sent();
+                    return [4 /*yield*/, controllerImplementation.deployed()
+                        // Factory Implementation
+                    ];
+                case 49:
+                    _a.sent();
+                    return [4 /*yield*/, waffle.deployContract(owner, StrategyProxyFactory_json_1.default, [controllerAddress])];
+                case 50:
+                    factoryImplementation = _a.sent();
+                    return [4 /*yield*/, factoryImplementation.deployed()
+                        // Strategy Implementation
+                    ];
+                case 51:
+                    _a.sent();
+                    return [4 /*yield*/, waffle.deployContract(owner, Strategy_json_1.default, [
+                            factoryAddress,
+                            controllerAddress,
+                            utils_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
+                            utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
+                        ])];
+                case 52:
+                    strategyImplementation = _a.sent();
+                    return [4 /*yield*/, strategyImplementation.deployed()];
+                case 53:
+                    _a.sent();
+                    return [4 /*yield*/, platformProxyAdmin.initialize(controllerImplementation.address, factoryImplementation.address, strategyImplementation.address, ensoOracle.address, tokenRegistry.address, whitelist.address, feePool || owner.address)
+                        // Factory
+                    ];
                 case 54:
                     _a.sent();
+                    factory = new ethers_1.Contract(factoryAddress, StrategyProxyFactory_json_1.default.abi, owner);
+                    controller = new ethers_1.Contract(controllerAddress, StrategyController_json_1.default.abi, owner);
                     return [4 /*yield*/, tokenRegistry.connect(owner).transferOwnership(factoryAddress)];
                 case 55:
                     _a.sent();
@@ -561,10 +565,9 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                     };
                     administration = {
                         whitelist: whitelist,
-                        controllerAdmin: controllerAdmin,
-                        factoryAdmin: factoryAdmin
+                        platformProxyAdmin: platformProxyAdmin
                     };
-                    return [2 /*return*/, new Platform(strategyFactory, controller, oracles, administration, strategyLibrary)];
+                    return [2 /*return*/, new Platform(factory, controller, oracles, administration, strategyLibrary)];
             }
         });
     });

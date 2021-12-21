@@ -256,7 +256,6 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
             name,
             symbol,
             _version,
-            controller,
             manager,
             strategyItems
         );

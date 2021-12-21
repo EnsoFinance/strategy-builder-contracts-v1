@@ -81,7 +81,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         string memory name_,
         string memory symbol_,
         string memory version_,
-        address controller_,
         address manager_,
         StrategyItem[] memory strategyItems_
     ) external override initializer returns (bool) {

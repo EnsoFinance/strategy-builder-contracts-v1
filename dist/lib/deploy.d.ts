@@ -15,8 +15,7 @@ export declare type Oracles = {
 };
 export declare type Administration = {
     whitelist: Contract;
-    controllerAdmin: Contract;
-    factoryAdmin: Contract;
+    platformProxyAdmin: Contract;
 };
 export declare class Platform {
     strategyFactory: Contract;
