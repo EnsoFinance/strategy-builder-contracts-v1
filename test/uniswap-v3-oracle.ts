@@ -131,18 +131,19 @@ describe('UniswapV3Oracle', function() {
 		expect(pool).to.equal(await uniswapFactory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
 	})
 
-	it('Should get default pool', async function() {
-		expect((await registry.getPoolData(tokens[2].address)).pool).to.equal(await uniswapFactory.getPool(tokens[2].address, weth.address, UNI_V3_FEE))
+	it('Should get empty pool', async function() {
+		expect((await registry.getPoolData(tokens[2].address)).pool).to.equal(AddressZero)
 	})
 
 	it('Should fail to add pool: not owner', async function() {
 		await expect(registry.connect(accounts[1]).addPool(tokens[2].address, weth.address, UNI_V3_FEE)).to.be.revertedWith('Ownable: caller is not the owner')
 	})
 
-	it('Should add all pools', async function() {
-		for (let i = 1; i < tokens.length; i++) {
-			await registry.addPool(tokens[i].address, weth.address, UNI_V3_FEE)
-		}
+	it('Should batch add pools', async function() {
+		const poolTokens = tokens.slice(1,).map((token) => token.address)
+		const pairTokens = Array(poolTokens.length).fill(weth.address)
+		const fees = Array(poolTokens.length).fill(UNI_V3_FEE)
+		await registry.batchAddPools(poolTokens, pairTokens, fees)
 	})
 
 	it('Should fail to add pool: not valid', async function() {

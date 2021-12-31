@@ -10,6 +10,12 @@ interface IUniswapV3Registry {
       address pair;
   }
 
+  function batchAddPools(
+      address[] memory tokens,
+      address[] memory pairs,
+      uint24[] memory fees
+  ) external;
+
   function addPool(address token, address pair, uint24 fee) external;
 
   function removePool(address token) external;
@@ -23,6 +29,4 @@ interface IUniswapV3Registry {
   function factory() external view returns (IUniswapV3Factory);
 
   function timeWindow() external view returns (uint32);
-
-  function defaultFee() external view returns (uint24);
 }

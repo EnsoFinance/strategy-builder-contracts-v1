@@ -30,11 +30,10 @@ contract UniswapV3Adapter is BaseAdapter {
         address tokenOut
     ) external view override returns (uint256) {
         if (tokenIn == tokenOut) return amount;
-        uint24 fee = registry.getFee(tokenIn, tokenOut);
         address pool = factory.getPool(
           tokenIn,
           tokenOut,
-          fee > 0 ? fee : registry.defaultFee()
+          registry.getFee(tokenIn, tokenOut)
         );
         if (pool != address(0)) {
             (uint160 sqrtPriceX96,,,,,,) =  IUniswapV3Pool(pool).slot0();
@@ -66,11 +65,10 @@ contract UniswapV3Adapter is BaseAdapter {
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
         IERC20(tokenIn).safeApprove(address(router), amount);
-        uint24 fee = registry.getFee(tokenIn, tokenOut);
         router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
             tokenIn,
             tokenOut,
-            fee > 0 ? fee : registry.defaultFee(),
+            registry.getFee(tokenIn, tokenOut),
             to,
             block.timestamp,
             amount,
