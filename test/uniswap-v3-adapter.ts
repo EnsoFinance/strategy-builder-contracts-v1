@@ -117,8 +117,8 @@ describe('UniswapV3Adapter', function() {
 		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
 		const platformProxyAdmin = await PlatformProxyAdmin.connect(owner).deploy()
 		await platformProxyAdmin.deployed()
-		const controllerAddress = await platformProxyAdmin.calculateAddress('StrategyController')
-		const factoryAddress = await platformProxyAdmin.calculateAddress('StrategyProxyFactory')
+		const controllerAddress = await platformProxyAdmin.controller()
+		const factoryAddress = await platformProxyAdmin.factory()
 
 		const StrategyController = await getContractFactory('StrategyController', {
 			libraries: {

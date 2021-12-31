@@ -309,11 +309,11 @@ export async function deployPlatform(
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
 	await whitelist.deployed()
 
-	// Deploy Platfrom Admin and calculate controller and factory addresses
+	// Deploy Platfrom Admin and get controller and factory addresses
 	const platformProxyAdmin = await waffle.deployContract(owner, PlatformProxyAdmin, [])
 	await platformProxyAdmin.deployed()
-	const controllerAddress = await platformProxyAdmin.calculateAddress('StrategyController')
-	const factoryAddress = await platformProxyAdmin.calculateAddress('StrategyProxyFactory')
+	const controllerAddress = await platformProxyAdmin.controller()
+	const factoryAddress = await platformProxyAdmin.factory()
 
 	// Controller Implementation
 	const controllerImplementation = await waffle.deployContract(

@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
-import "hardhat/console.sol";
 
 /**
  * @notice Deploys Controller Proxy
@@ -10,19 +9,27 @@ import "hardhat/console.sol";
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
 contract PlatformProxyAdmin is ProxyAdmin {
-    address payable public controller;
-    address payable public factory;
+    address payable public immutable controller;
+    address payable public immutable factory;
+    bool private initialized;
+
+    constructor() public {
+        // Set address in storage
+        controller = _calculateAddress('StrategyController');
+        factory = _calculateAddress('StrategyProxyFactory');
+    }
 
     function initialize(
-      address controllerImplementation,
-      address factoryImplementation,
-      address strategyImplementation,
-      address oracle,
-      address registry,
-      address whitelist,
-      address pool
+        address controllerImplementation,
+        address factoryImplementation,
+        address strategyImplementation,
+        address oracle,
+        address registry,
+        address whitelist,
+        address pool
     ) public {
-        require(controller == address(0) && factory == address(0), "Already initialized");
+        require(!initialized, "Initialized");
+        initialized = true;
         // Deploy proxies without proper implementation or initialization in order
         // to get predictable addresses since we need to know addresses to deploy implementation
         TransparentUpgradeableProxy controllerProxy =
@@ -37,9 +44,6 @@ contract PlatformProxyAdmin is ProxyAdmin {
               address(this),
               new bytes(0)
           );
-        // Set address in storage
-        controller = address(controllerProxy);
-        factory = address(factoryProxy);
         // Upgrade proxies to correct implementation and initialize
         upgradeAndCall(
           factoryProxy,
@@ -72,10 +76,10 @@ contract PlatformProxyAdmin is ProxyAdmin {
     }
 
     // Pre-calculate the proxy address
-    function calculateAddress(string memory name)
-        external
+    function _calculateAddress(string memory name)
+        internal
         view
-        returns (address)
+        returns (address payable)
     {
         bytes32 hash = keccak256(
             abi.encodePacked(
