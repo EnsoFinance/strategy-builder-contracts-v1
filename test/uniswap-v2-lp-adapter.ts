@@ -288,7 +288,7 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should fail to rebalance: price deviation', async function () {
 		// Approve the user to use the adapter
-		let value = WeiPerEther
+		let value = WeiPerEther.mul(10)
 		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -307,7 +307,7 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should fail to rebalance: price deviation', async function () {
 		// Approve the user to use the adapter
-		let value = WeiPerEther
+		let value = WeiPerEther.mul(10)
 		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
