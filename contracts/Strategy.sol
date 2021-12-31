@@ -408,14 +408,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateAddresses() public {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
-        address pool = f.pool();
-        if (pool != _pool) {
+        address newPool = f.pool();
+        address currentPool = _pool;
+        if (newPool != currentPool) {
             // If pool has been initialized but is now changing update paidTokenValue
-            if (_pool != address(0)) {
-                _paidTokenValues[_pool] = _lastTokenValue;
-                _paidTokenValues[pool] = uint256(-1);
-            }
-            _pool = pool;
+            if (currentPool != address(0))
+                _paidTokenValues[currentPool] = _lastTokenValue;
+            _paidTokenValues[newPool] = uint256(-1);
+            _pool = newPool;
         }
         address o = f.oracle();
         if (o != _oracle) {
