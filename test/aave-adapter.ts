@@ -106,7 +106,7 @@ describe('AaveAdapter', function () {
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
-			rebalanceThreshold: BigNumber.from(10),
+			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			performanceFee: BigNumber.from(0),
