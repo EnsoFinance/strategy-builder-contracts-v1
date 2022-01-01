@@ -29,7 +29,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-    event Balanced(address indexed strategy, uint256 total);
+    event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
     event StrategyOpen(address indexed strategy);
@@ -566,7 +566,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             "Too much slippage"
         );
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
-        emit Balanced(address(strategy), totalAfter);
+        emit Balanced(address(strategy), totalBefore, totalAfter);
         return totalAfter;
     }
 
