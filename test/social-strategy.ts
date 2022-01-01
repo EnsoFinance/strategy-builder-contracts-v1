@@ -100,6 +100,19 @@ describe('StrategyController - Social', function () {
 		)
 	})
 
+	it('Should deposit more', async function () {
+		const balanceBefore = await strategy.balanceOf(accounts[2].address)
+		const tx = await controller
+			.connect(accounts[2])
+			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await strategy.balanceOf(accounts[2].address)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+	})
+
 	it('Should purchase tokens, requiring a rebalance', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(50)
@@ -121,19 +134,6 @@ describe('StrategyController - Social', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
-
-	it('Should deposit more', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[2].address)
-		const tx = await controller
-			.connect(accounts[2])
-			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[2].address)
-		//await displayBalances(wrapper, strategyItems, weth)
-		expect(await wrapper.isBalanced()).to.equal(true)
-		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
 	it('Should fail to withdraw performance fee: not manager', async function () {
