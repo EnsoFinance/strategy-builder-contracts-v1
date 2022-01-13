@@ -33,6 +33,7 @@ import CurveEstimator from '../artifacts/contracts/oracles/estimators/CurveEstim
 import CurveGaugeEstimator from '../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json'
 import EmergencyEstimator from '../artifacts/contracts/oracles/estimators/EmergencyEstimator.sol/EmergencyEstimator.json'
 import StrategyEstimator from '../artifacts/contracts/oracles/estimators/StrategyEstimator.sol/StrategyEstimator.json'
+import SushiBarEstimator from '../artifacts/contracts/oracles/estimators/SushiBarEstimator.sol/SushiBarEstimator.json'
 import UniswapV2Estimator from '../artifacts/contracts/oracles/estimators/UniswapV2Estimator.sol/UniswapV2Estimator.json'
 import YEarnV2Estimator from '../artifacts/contracts/oracles/estimators/YEarnV2Estimator.sol/YEarnV2Estimator.json'
 import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
@@ -55,6 +56,7 @@ import CurveAdapter from '../artifacts/contracts/adapters/exchanges/CurveAdapter
 import CurveLPAdapter from '../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json'
 import CurveRewardsAdapter from '../artifacts/contracts/adapters/vaults/CurveRewardsAdapter.sol/CurveRewardsAdapter.json'
 import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json'
+import SushiBarAdapter from '../artifacts/contracts/adapters/vaults/SushiBarAdapter.sol/SushiBarAdapter.json'
 import SynthetixAdapter from '../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json'
 import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json'
 import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
@@ -297,6 +299,8 @@ export async function deployPlatform(
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)
 	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
+	const sushiBarEstimator = await waffle.deployContract(owner, SushiBarEstimator, [])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.SUSHI_BAR, sushiBarEstimator.address)
 	const uniswapV2Estimator = await waffle.deployContract(owner, UniswapV2Estimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2Estimator.address)
 	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
@@ -440,6 +444,15 @@ export async function deployCompoundAdapter(
 	weth: Contract
 ) {
 	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address])
+	await adapter.deployed()
+	return adapter
+}
+
+export async function deploySushiBarAdapter(
+	owner: SignerWithAddress,
+	weth: Contract
+) {
+	const adapter = await waffle.deployContract(owner, SushiBarAdapter, [weth.address])
 	await adapter.deployed()
 	return adapter
 }

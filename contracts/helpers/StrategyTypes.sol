@@ -20,6 +20,7 @@ interface StrategyTypes {
       CURVE_GAUGE,
       SUSHI_LP,
       SUSHI_FARM,
+      SUSHI_BAR,
       UNISWAP_V2_LP,
       UNISWAP_V3_LP,
       YEARN_V1,
