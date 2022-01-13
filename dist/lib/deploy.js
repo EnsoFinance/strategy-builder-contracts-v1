@@ -495,7 +495,7 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                 case 42:
                     whitelist = _a.sent();
                     return [4 /*yield*/, whitelist.deployed()
-                        // Deploy Platfrom Admin and calculate controller and factory addresses
+                        // Deploy Platfrom Admin and get controller and factory addresses
                     ];
                 case 43:
                     _a.sent();
@@ -505,10 +505,10 @@ function deployPlatform(owner, uniswapFactory, weth, susd, feePool) {
                     return [4 /*yield*/, platformProxyAdmin.deployed()];
                 case 45:
                     _a.sent();
-                    return [4 /*yield*/, platformProxyAdmin.calculateAddress('StrategyController')];
+                    return [4 /*yield*/, platformProxyAdmin.controller()];
                 case 46:
                     controllerAddress = _a.sent();
-                    return [4 /*yield*/, platformProxyAdmin.calculateAddress('StrategyProxyFactory')
+                    return [4 /*yield*/, platformProxyAdmin.factory()
                         // Controller Implementation
                     ];
                 case 47:
