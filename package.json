@@ -23,14 +23,18 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EnsoFinance/Monorepo.git"
+    "url": "git+https://github.com/EnsoFinance/v1-core"
   },
+  "files": [
+    "contracts",
+    "artifacts"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/EnsoFinance/Monorepo/issues"
+    "url": "https://github.com/EnsoFinance/v1-core/issues"
   },
-  "homepage": "https://github.com/EnsoFinance/Monorepo/packages/contracts#readme",
+  "homepage": "https://github.com/EnsoFinance/v1-core#readme",
   "dependencies": {
     "@0xsequence/token-directory": "1.1.13",
     "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
