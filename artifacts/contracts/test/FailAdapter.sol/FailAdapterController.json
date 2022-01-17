@@ -1,0 +1,63 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "FailAdapterController",
+  "sourceName": "contracts/test/FailAdapter.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "buyFail",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "sellFail",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "fail",
+          "type": "bool"
+        }
+      ],
+      "name": "setBuyFail",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "fail",
+          "type": "bool"
+        }
+      ],
+      "name": "setSellFail",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5061011f806100206000396000f3fe6080604052348015600f57600080fd5b506004361060465760003560e01c80632da73d1214604b578063a29ee848146065578063b357b8c8146083578063ea239d1414609f575b600080fd5b605160a5565b604080519115158252519081900360200190f35b608160048036036020811015607957600080fd5b5035151560ae565b005b608160048036036020811015609757600080fd5b5035151560c1565b605160db565b60005460ff1681565b6000805460ff1916911515919091179055565b600080549115156101000261ff0019909216919091179055565b600054610100900460ff168156fea264697066735822122000173bd123aaeeea0a5f42c6c6f3e4036080fbd457bf0d4005cf2cc98768328b64736f6c634300060c0033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b506004361060465760003560e01c80632da73d1214604b578063a29ee848146065578063b357b8c8146083578063ea239d1414609f575b600080fd5b605160a5565b604080519115158252519081900360200190f35b608160048036036020811015607957600080fd5b5035151560ae565b005b608160048036036020811015609757600080fd5b5035151560c1565b605160db565b60005460ff1681565b6000805460ff1916911515919091179055565b600080549115156101000261ff0019909216919091179055565b600054610100900460ff168156fea264697066735822122000173bd123aaeeea0a5f42c6c6f3e4036080fbd457bf0d4005cf2cc98768328b64736f6c634300060c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StrategyControllerStorage",
+  "sourceName": "contracts/StrategyControllerStorage.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea26469706673582212207c5c6a0d2b6ac652d0f9859ead5e14d286fcb9a2ba3b15dc6f0aece44d4dcdda64736f6c634300060c0033",
+  "deployedBytecode": "0x6080604052600080fdfea26469706673582212207c5c6a0d2b6ac652d0f9859ead5e14d286fcb9a2ba3b15dc6f0aece44d4dcdda64736f6c634300060c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
