@@ -400,16 +400,16 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             address item = newItems[i].item;
             require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
             int256 percentage = newItems[i].percentage;
-            if (ItemCategory(registry.itemCategories(item)) == ItemCategory.DEBT) {
+            if (registry.itemCategories(item) == uint256(ItemCategory.DEBT)) {
               require(percentage <= 0, "Debt cannot be positive");
               require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
             } else {
               require(percentage >= 0, "Token cannot be negative");
               require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
             }
-            EstimatorCategory category = EstimatorCategory(registry.estimatorCategories(item));
-            require(category != EstimatorCategory.BLOCKED, "Token blocked");
-            if (category == EstimatorCategory.STRATEGY)
+            uint256 category = registry.estimatorCategories(item);
+            require(category != uint256(EstimatorCategory.BLOCKED), "Token blocked");
+            if (category == uint256(EstimatorCategory.STRATEGY))
                 _checkCyclicDependency(strategy, IStrategy(item), registry);
             total = total.add(percentage);
         }
@@ -677,7 +677,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(!strategy.supportsSynths(), "Synths not supported");
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
-          if (EstimatorCategory(registry.estimatorCategories(strategyItems[i])) == EstimatorCategory.STRATEGY)
+          if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
               _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
         }
     }
