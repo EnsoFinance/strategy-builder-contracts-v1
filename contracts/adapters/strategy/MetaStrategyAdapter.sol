@@ -95,8 +95,8 @@ contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
                 if (item == weth) {
                   total = total.add(relativeAmount);
                 } else {
-                    EstimatorCategory category = EstimatorCategory(strategy.oracle().tokenRegistry().estimatorCategories(item));
-                    if (category == EstimatorCategory.STRATEGY) {
+                    uint256 category = strategy.oracle().tokenRegistry().estimatorCategories(item);
+                    if (category == uint256(EstimatorCategory.STRATEGY)) {
                         total = total.add(_getPrice(relativeAmount, item, weth));
                     } else {
                         total = total.add(_pathPrice(strategy.getTradeData(item), relativeAmount, item));
