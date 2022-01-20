@@ -7,23 +7,8 @@ interface StrategyTypes {
     enum EstimatorCategory {
       DEFAULT_ORACLE,
       CHAINLINK_ORACLE,
-      UNISWAP_TWAP_ORACLE,
-      SUSHI_TWAP_ORACLE,
       STRATEGY,
-      BLOCKED,
-      AAVE_V1,
-      AAVE_V2,
-      AAVE_DEBT,
-      BALANCER,
-      COMPOUND,
-      CURVE,
-      CURVE_GAUGE,
-      SUSHI_LP,
-      SUSHI_FARM,
-      UNISWAP_V2_LP,
-      UNISWAP_V3_LP,
-      YEARN_V1,
-      YEARN_V2
+      BLOCKED
     }
     enum TimelockCategory {RESTRUCTURE, THRESHOLD, REBALANCE_SLIPPAGE, RESTRUCTURE_SLIPPAGE, TIMELOCK, PERFORMANCE}
 
