@@ -29,6 +29,7 @@ describe('SynthetixAdapter', function () {
 	let	weth: Contract,
 		crv: Contract,
 		susd: Contract,
+		seur: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
@@ -61,6 +62,7 @@ describe('SynthetixAdapter', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
+		seur = new Contract(tokens.sEUR, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
 		const platform = await deployPlatform(accounts[10], uniswapFactory, weth, susd)
 		strategyFactory = platform.strategyFactory
@@ -142,7 +144,8 @@ describe('SynthetixAdapter', function () {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: crv.address, percentage: BigNumber.from(400) },
-			{ token: tokens.sUSD, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
+			{ token: tokens.sUSD, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
+			{ token: tokens.sBTC, percentage: BigNumber.from(400), adapters: [synthetixAdapter.address], path: [] },
 			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapter.address], path: [] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
@@ -207,11 +210,11 @@ describe('SynthetixAdapter', function () {
 	it('Should withdrawAll on a portion of tokens', async function () {
 		await increaseTime(600);
 		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
-		const tokenBalanceBefore = await susd.balanceOf(strategy.address)
+		const tokenBalanceBefore = await seur.balanceOf(strategy.address)
 		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const tokenBalanceAfter = await susd.balanceOf(strategy.address)
+		const tokenBalanceAfter = await seur.balanceOf(strategy.address)
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
 	})
 
@@ -304,8 +307,8 @@ describe('SynthetixAdapter', function () {
 
 	})
 
-	it('Should fail to reposition susd into synths: within waiting period', async function () {
-		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, '0xffffffffffffffffffffffffffffffffffffffff')).to.be.revertedWith('Cannot settle during waiting period');
+	it('Should fail to reposition synths into susd: within waiting period', async function () {
+		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
@@ -313,7 +316,10 @@ describe('SynthetixAdapter', function () {
 		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, tokens.sEUR)).to.be.revertedWith('Unsupported token');
 	})
 
-	it('Should reposition susd into synths', async function () {
+	it('Should reposition synths into susd and back', async function () {
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address);
+		expect(await seur.balanceOf(strategy.address)).to.be.eq(0)
+		await increaseTime(600);
 		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, '0xffffffffffffffffffffffffffffffffffffffff');
 		expect(await susd.balanceOf(strategy.address)).to.be.equal(0)
 	})
