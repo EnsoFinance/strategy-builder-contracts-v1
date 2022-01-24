@@ -665,7 +665,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     // Settle performance fee
     function _settlePerformanceFee(address account, uint256 fee) internal returns (uint256) {
         uint256 amount = _getPerformanceFee(account, fee);
-        if (amount > 0) _paidTokenValues[account] = uint256(_lastTokenValue);
+        if (amount > 0) {
+            _paidTokenValues[account] = uint256(_lastTokenValue);
+            emit PerformanceFee(account, amount);
+        }
         return amount;
     }
 
@@ -702,6 +705,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 // The paid token value was updated above, just set it in state
                _paidTokenValues[account] = paidTokenValue;
             }
+            if (mintAmount > 0) emit PerformanceFee(account, mintAmount);
             return mintAmount;
         } else {
             // Check if account is manager or pool
