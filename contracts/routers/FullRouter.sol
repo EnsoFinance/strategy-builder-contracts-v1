@@ -254,6 +254,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
         if (IStrategy(strategy).supportsSynths()) {
             // Purchase SUSD
+            uint256 susdBalanceBefore = from == strategy ? 0 : IERC20(susd).balanceOf(strategy); // If from strategy it is rebalance or restructure, we want to use all SUSD
             _buyToken(
                 strategy,
                 from,
@@ -261,7 +262,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimates[estimates.length - 1],
                 StrategyLibrary.getExpectedTokenValue(total, strategy, address(-1))
             );
-            _batchBuySynths(strategy, total);
+            uint256 susdBalanceAfter = IERC20(susd).balanceOf(strategy);
+            _batchBuySynths(strategy, susdBalanceAfter.sub(susdBalanceBefore));
         }
         for (uint256 i = 0; i < strategyDebt.length; i++) {
             _borrowToken(
@@ -291,27 +293,27 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _batchBuySynths(address strategy, uint256 total) internal {
+    function _batchBuySynths(address strategy, uint256 susdBalance) internal {
         // Use SUSD to purchase other synths
-        uint256 susdWethPrice = uint256(controller.oracle().estimateItem(10**18, susd));
+        uint256 virtualPercentage = uint256(IStrategy(strategy).getPercentage(address(-1)));
         address[] memory synths = IStrategy(strategy).synths();
         for (uint256 i = 0; i < synths.length; i++) {
-            uint256 amount =
-                uint256(StrategyLibrary.getExpectedTokenValue(total, strategy, synths[i]))
-                               .mul(10**18)
-                               .div(susdWethPrice);
-            require(
-                _delegateSwap(
-                    IStrategy(strategy).getTradeData(synths[i]).adapters[0], // Assuming that synth only stores single SythetixAdapter
-                    amount,
-                    1,
-                    susd,
-                    synths[i],
-                    strategy,
-                    strategy
-                ),
-                "Swap failed"
-            );
+            uint256 percentage = uint256(IStrategy(strategy).getPercentage(synths[i]));
+            if (percentage != 0) {
+                uint256 amount = susdBalance.mul(percentage).div(virtualPercentage);
+                require(
+                    _delegateSwap(
+                        IStrategy(strategy).getTradeData(synths[i]).adapters[0], // Assuming that synth only stores single SythetixAdapter
+                        amount,
+                        1,
+                        susd,
+                        synths[i],
+                        strategy,
+                        strategy
+                    ),
+                    "Swap failed"
+                );
+            }
         }
     }
 
