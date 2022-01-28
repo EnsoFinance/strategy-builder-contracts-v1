@@ -33,23 +33,21 @@ export declare enum ITEM_CATEGORY {
 export declare enum ESTIMATOR_CATEGORY {
     DEFAULT_ORACLE = 0,
     CHAINLINK_ORACLE = 1,
-    UNISWAP_TWAP_ORACLE = 2,
-    SUSHI_TWAP_ORACLE = 3,
-    STRATEGY = 4,
-    BLOCKED = 5,
-    AAVE_V1 = 6,
-    AAVE_V2 = 7,
-    AAVE_DEBT = 8,
-    BALANCER = 9,
-    COMPOUND = 10,
-    CURVE = 11,
-    CURVE_GAUGE = 12,
-    SUSHI_LP = 13,
-    SUSHI_FARM = 14,
-    UNISWAP_V2_LP = 15,
-    UNISWAP_V3_LP = 16,
-    YEARN_V1 = 17,
-    YEARN_V2 = 18
+    STRATEGY = 2,
+    BLOCKED = 3,
+    AAVE_V1 = 4,
+    AAVE_V2 = 5,
+    AAVE_DEBT = 6,
+    BALANCER = 7,
+    COMPOUND = 8,
+    CURVE = 9,
+    CURVE_GAUGE = 10,
+    SUSHI_LP = 11,
+    SUSHI_FARM = 12,
+    UNISWAP_V2_LP = 13,
+    UNISWAP_V3_LP = 14,
+    YEARN_V1 = 15,
+    YEARN_V2 = 16
 }
 export declare function increaseTime(seconds: number): Promise<any>;
 export declare function encodePriceSqrt(reserve1: number, reserve0: number): BigNumber;
