@@ -597,7 +597,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                   amount,
                   tokenValue,
                   fee));
-                if (amount > 0) {
+                if (mintAmount > 0) {
                     address pool = _pool;
                     // Stream fee before any tokens are minted (since change in supply changes rate)
                     _issueStreamingFee(pool);
