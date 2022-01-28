@@ -10,8 +10,8 @@ import "./ProtocolOracle.sol";
 contract ChainlinkOracle is ProtocolOracle, Ownable {
     using SafeMath for uint256;
 
-    address public override weth;
-    IChainlinkRegistry public registry;
+    address public immutable override weth;
+    IChainlinkRegistry public immutable registry;
 
     constructor(address registry_, address weth_) public {
         registry = IChainlinkRegistry(registry_);

@@ -10,12 +10,12 @@ import "./ProtocolOracle.sol";
 contract UniswapV3Oracle is ProtocolOracle {
     using SafeMath for uint256;
 
-    address public override weth;
-    IUniswapV3Registry public registry;
+    address public immutable override weth;
+    IUniswapV3Registry public immutable registry;
 
-    constructor(address registry_) {
+    constructor(address registry_, address weth_) {
         registry = IUniswapV3Registry(registry_);
-        weth = registry.weth();
+        weth = weth_;
     }
 
     function consult(uint256 amount, address input) public view override returns (uint256) {
