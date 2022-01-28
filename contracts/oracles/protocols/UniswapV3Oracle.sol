@@ -21,7 +21,7 @@ contract UniswapV3Oracle is ProtocolOracle {
     function consult(uint256 amount, address input) public view override returns (uint256) {
         if (input == weth || amount == 0) return amount;
         IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(input);
-        if (poolData.pool == address(0)) return 0;
+        require(poolData.pool != address(0), "Token not initialized");
         return _traversePairs(amount, input, poolData.pair, poolData.pool, registry.timeWindow());
     }
 

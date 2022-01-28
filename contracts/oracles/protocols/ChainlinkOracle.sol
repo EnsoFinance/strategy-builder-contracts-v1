@@ -21,7 +21,7 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
     function consult(uint256 amount, address input) public view override returns (uint256) {
         if (input == weth || amount == 0) return amount;
         IChainlinkRegistry.ChainlinkOracleData memory oracleData = registry.getOracle(input);
-        if (oracleData.oracle == address(0)) return 0;
+        require(oracleData.oracle != address(0), "Token not initialized");
         return _traversePairs(amount, oracleData);
     }
 
