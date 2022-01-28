@@ -412,8 +412,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address currentPool = _pool;
         if (newPool != currentPool) {
             // If pool has been initialized but is now changing update paidTokenValue
-            if (currentPool != address(0))
+            if (currentPool != address(0)) {
                 _paidTokenValues[currentPool] = _lastTokenValue;
+                _updateStreamingFeeRate(newPool);
+            }
             _paidTokenValues[newPool] = uint256(-1);
             _pool = newPool;
         }
@@ -597,7 +599,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                   amount,
                   tokenValue,
                   fee));
-                if (amount > 0) {
+                if (mintAmount > 0) {
                     address pool = _pool;
                     // Stream fee before any tokens are minted (since change in supply changes rate)
                     _issueStreamingFee(pool);

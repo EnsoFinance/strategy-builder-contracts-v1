@@ -120,7 +120,7 @@ describe('UniswapV3Oracle', function() {
 		registry = await Registry.connect(trader).deploy(ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address)
 		await registry.deployed()
 		const Oracle = await getContractFactory('UniswapV3Oracle')
-		oracle = await Oracle.connect(trader).deploy(registry.address)
+		oracle = await Oracle.connect(trader).deploy(registry.address, weth.address)
 		await oracle.deployed()
 	})
 

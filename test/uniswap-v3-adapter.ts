@@ -86,7 +86,7 @@ describe('UniswapV3Adapter', function() {
 		await uniswapRegistry.deployed()
 
 		const UniswapOracle = await getContractFactory('UniswapV3Oracle')
-		uniswapOracle = await UniswapOracle.connect(owner).deploy(uniswapRegistry.address)
+		uniswapOracle = await UniswapOracle.connect(owner).deploy(uniswapRegistry.address, weth.address)
 		await uniswapOracle.deployed()
 
 		const TokenRegistry = await getContractFactory('TokenRegistry')
