@@ -1,3 +1,15 @@
+import { BigNumber, Contract } from 'ethers'
+
+import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
+import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
+import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchager.json'
+import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router.json'
+import UniswapV3Quoter from '@uniswap/v3-periphery/build/UniswapV3Quoter.json'
+
+const SYNTHETIX = ''
+const SYNTHETIX_EXCHANGER = ''
+const UNISWAP_V2_ROUTER = ''
+const UNISWAP_V3_QUOTER = ''
 const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
 
 export class Estimator {
@@ -19,16 +31,16 @@ export class Estimator {
 
 
   public constructor(
-    uniswapV2Router: Contract,
-    uniswapV3Quoter: Contract,
     uniswapV3Registry: Contract,
-    syntheti
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
     uniswapV3AdapterAddress: string
   ) {
-    this.uniswapV2Router = uniswapV2Router
-    this.uniswapV3Quoter = uniswapV3Quoter
+    this.synthetix = new Contract(SYNTHETIX, ISynthetix.abi)
+    this.synthetixExchanger = new Contract(SYNTHETIX_EXCHANGER, IExchager.abi)
+    this.uniswapV2Router = new Contract(UNISWAP_V2_ROUTER, UniswapV2Router.abi)
+    this.uniswapV3Quoter = new Contract(UNISWAP_V3_QUOTER, UniswapV3Quoter.abi)
+
     this.uniswapV3Registry = uniswapV3Registry
     this.synthetixAdapterAddress = synthetixAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
@@ -214,7 +226,7 @@ export class Estimator {
       synthetix.synthsByAddress(targetIn),
       synthetix.synthsByAddress(targetOut)
     ])
-    const [ amountReceived ] = await synthetixExchanger.getAmountsForExchange(amount, tokenInKey, tokenOutKey)
+    const [ amountReceived, , ] = await synthetixExchanger.getAmountsForExchange(amount, tokenInKey, tokenOutKey)
     return amountReceived
   }
 
