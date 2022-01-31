@@ -5,6 +5,17 @@ on:
     tags:
       - network-*
 jobs:
+  stop:
+    name: Stop subgraph
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: "3.136.83.61"
+          username: "ubuntu"
+          key: ${{ secrets.EC2_SUBGRAPH_SSH_KEY }}
+          script: bash ./stop-graph-node.sh
   deploy:
     name: Push to EC2 Instance
     runs-on: ubuntu-latest
