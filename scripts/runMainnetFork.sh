@@ -1,6 +1,6 @@
 #!/bin/bash
 # shellcheck disable=SC2164
-cd /home/ubuntu/Monorepo/contracts
+cd /home/ubuntu/v1-core/contracts
 yarn
 yarn build
 pm2 kill
