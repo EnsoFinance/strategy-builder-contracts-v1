@@ -15,8 +15,7 @@
     "lint": "yarn eslint",
     "prettier:solidity": "yarn prettier --write 'contracts/**/*.sol'",
     "solhint": "solhint -f table --fix 'contracts/**/*.sol'",
-    "test": "yarn hardhat test",
-    "docs": "./scripts/build_docs.sh"
+    "test": "yarn hardhat test"
   },
   "engines": {
     "node": ">=10"
