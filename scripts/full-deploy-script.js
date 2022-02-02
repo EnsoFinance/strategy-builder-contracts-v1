@@ -208,49 +208,51 @@ async function main() {
 
 	add2Deployments('Whitelist', whitelist.address)
 
-	const Strategy = await hre.ethers.getContractFactory('Strategy')
-	const strategyImplementation = await Strategy.deploy(deployedContracts[network].synthetixAddressProvider, deployedContracts[network].aaveAddressProvider)
-	await strategyImplementation.deployed()
+  const PlatformProxyAdmin = await hre.ethers.getContractFactory('PlatformProxyAdmin')
+	const platformProxyAdmin = await PlatformProxyAdmin.deploy()
+	await platformProxyAdmin.deployed()
+  const controllerAddress = await platformProxyAdmin.controller()
+  const factoryAddress = await platformProxyAdmin.factory()
 
-	const StrategyProxyFactoryAdmin = await hre.ethers.getContractFactory('StrategyProxyFactoryAdmin')
-	const factoryAdmin = await StrategyProxyFactoryAdmin.deploy(
-		strategyImplementation.address,
-		ensoOracle.address,
-		tokenRegistry.address,
-		whitelist.address,
-		deployedContracts[network].ensoPool
-	)
-	await factoryAdmin.deployed()
+	add2Deployments('PlatformProxyAdmin', platformProxyAdmin.address)
 
-	add2Deployments('StrategyProxyFactoryAdmin', factoryAdmin.address)
-
-	const factoryAddress = await factoryAdmin.factory()
-
-	add2Deployments('StrategyProxyFactory', factoryAddress)
-
+  // Controller implementation
   const StrategyController = await hre.ethers.getContractFactory('StrategyController', {
     libraries: {
       StrategyLibrary: library.address
     }
   })
-  const controllerImplementation = await StrategyController.deploy()
+  const controllerImplementation = await StrategyController.deploy(factoryAddress)
   await controllerImplementation.deployed()
 
-	const StrategyControllerAdmin = await hre.ethers.getContractFactory('StrategyControllerAdmin')
-	const controllerAdmin = await StrategyControllerAdmin.deploy(controllerImplementation.address, factoryAddress)
-	await controllerAdmin.deployed()
+  // Factory implementation
+  const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
+  const factoryImplementation = await StrategyProxyFactory.deploy(controllerAddress)
+  await factoryImplementation.deployed()
 
-	add2Deployments('StrategyControllerAdmin', controllerAdmin.address)
+  // Strategy implementation
+  const Strategy = await hre.ethers.getContractFactory('Strategy')
+  const strategyImplementation = await Strategy.deploy(
+    factoryAddress,
+    controllerAddress,
+    deployedContracts[network].synthetixAddressProvider,
+    deployedContracts[network].aaveAddressProvider
+  )
+  await strategyImplementation.deployed()
 
-	const controllerAddress = await controllerAdmin.controller()
-
+  // Initialize platform
+  await platformProxyAdmin.initialize(
+			controllerImplementation.address,
+			factoryImplementation.address,
+			strategyImplementation.address,
+			ensoOracle.address,
+			tokenRegistry.address,
+			whitelist.address,
+			deployedContracts[network].ensoPool
+	)
+	add2Deployments('StrategyProxyFactory', factoryAddress)
 	add2Deployments('StrategyController', controllerAddress)
 
-	const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
-	const strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
-
-	tx = await strategyFactory.setController(controllerAddress)
-	await tx.wait()
 	tx = await tokenRegistry.transferOwnership(factoryAddress)
 	await tx.wait()
 

@@ -10,18 +10,18 @@ import "./ProtocolOracle.sol";
 contract UniswapV3Oracle is ProtocolOracle {
     using SafeMath for uint256;
 
-    address public override weth;
-    IUniswapV3Registry public registry;
+    address public immutable override weth;
+    IUniswapV3Registry public immutable registry;
 
-    constructor(address registry_) {
+    constructor(address registry_, address weth_) public {
         registry = IUniswapV3Registry(registry_);
-        weth = registry.weth();
+        weth = weth_;
     }
 
     function consult(uint256 amount, address input) public view override returns (uint256) {
         if (input == weth || amount == 0) return amount;
         IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(input);
-        if (poolData.pool == address(0)) return 0;
+        require(poolData.pool != address(0), "Token not initialized");
         return _traversePairs(amount, input, poolData.pair, poolData.pool, registry.timeWindow());
     }
 

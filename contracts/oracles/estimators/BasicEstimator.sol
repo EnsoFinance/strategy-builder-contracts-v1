@@ -5,7 +5,7 @@ import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IProtocolOracle.sol";
 
 contract BasicEstimator is IEstimator {
-    IProtocolOracle public protocolOracle;
+    IProtocolOracle public immutable protocolOracle;
 
     constructor(address protocolOracle_) public {
       protocolOracle = IProtocolOracle(protocolOracle_);
