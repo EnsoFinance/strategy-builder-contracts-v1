@@ -17,6 +17,7 @@ import {
 	deployFullRouter
 } from '../lib/deploy'
 import { increaseTime, MAINNET_ADDRESSES } from '../lib/utils'
+import { Estimator } from '../lib/estimator'
 //import { displayBalances } from '../lib/logging'
 import IAddressResolver from '../artifacts/contracts/interfaces/synthetix/IAddressResolver.sol/IAddressResolver.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
@@ -44,7 +45,8 @@ describe('SynthetixAdapter', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
-		tokens: Tokens
+		tokens: Tokens,
+		estimator: any
 
 	const strategyState: InitialState = {
 		timelock: BigNumber.from(60),
@@ -87,6 +89,8 @@ describe('SynthetixAdapter', function () {
 		await whitelist.connect(accounts[10]).approve(synthetixAdapter.address)
 		metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[10], controller, router, weth)
 		await whitelist.connect(accounts[10]).approve(metaStrategyAdapter.address)
+
+		estimator = new Estimator(accounts[0], oracle, new Contract(AddressZero, []), curveAdapter.address, synthetixAdapter.address, uniswapAdapter.address, AddressZero)
 	})
 
 	it('Should fail to deploy strategy: virtual item', async function () {
@@ -160,7 +164,7 @@ describe('SynthetixAdapter', function () {
 				strategyState,
 				router.address,
 				'0x',
-				{ value: ethers.BigNumber.from('20000000000000000') }
+				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
@@ -181,6 +185,11 @@ describe('SynthetixAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+
+		const value = BigNumber.from('10000000000000000')
+		const estimates = Array(14).fill(BigNumber.from('0'))
+		const valueAdded = await estimator.estimateBatchBuy(strategy, value, estimates)
+		console.log("Estimated value added: ", valueAdded.toString())
 	})
 
 	it('Should fail to deploy strategy: meta cannot support synths', async function () {
@@ -351,9 +360,5 @@ describe('SynthetixAdapter', function () {
 	it('Should check spot price (withdraw)', async function () {
 		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sEUR, tokens.sUSD)
 		expect(price.gt(0)).to.equal(true)
-	})
-	it('Should check spot price: same', async function () {
-		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sUSD, tokens.sUSD)
-		expect(price.eq(WeiPerEther)).to.equal(true)
 	})
 })
