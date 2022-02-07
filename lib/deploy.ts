@@ -24,6 +24,7 @@ import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.so
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
+import UniswapV3Oracle from '../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json'
 import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkOracle.sol/ChainlinkOracle.json'
 import AaveEstimator from '../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json'
 import AaveDebtEstimator from '../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json'
@@ -183,14 +184,14 @@ export async function deployBalancerAdapter(owner: SignerWithAddress, balancerRe
 }
 
 export async function deployUniswapV2(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract> {
-	const uniswapFactory = await waffle.deployContract(owner, UniswapV2Factory, [owner.address])
-	await uniswapFactory.deployed()
+	const uniswapV2Factory = await waffle.deployContract(owner, UniswapV2Factory, [owner.address])
+	await uniswapV2Factory.deployed()
 	const liquidityAmount = WeiPerEther.mul(100)
-	//console.log('Uniswap factory: ', uniswapFactory.address)
+	//console.log('Uniswap factory: ', uniswapV2Factory.address)
 	for (let i = 1; i < tokens.length; i++) {
 		//tokens[0] is used as the trading pair (WETH)
-		await uniswapFactory.createPair(tokens[0].address, tokens[i].address)
-		const pairAddress = await uniswapFactory.getPair(tokens[0].address, tokens[i].address)
+		await uniswapV2Factory.createPair(tokens[0].address, tokens[i].address)
+		const pairAddress = await uniswapV2Factory.getPair(tokens[0].address, tokens[i].address)
 		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
 
 		// Add liquidity
@@ -198,12 +199,12 @@ export async function deployUniswapV2(owner: SignerWithAddress, tokens: Contract
 		await tokens[i].connect(owner).transfer(pairAddress, liquidityAmount)
 		await pair.connect(owner).mint(owner.address)
 	}
-	return uniswapFactory
+	return uniswapV2Factory
 }
 // deployUniswapV3: async (owner, tokens) => {
 export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract[]) {
-	const uniswapFactory = await waffle.deployContract(owner, UniswapV3Factory)
-	await uniswapFactory.deployed()
+	const uniswapV3Factory = await waffle.deployContract(owner, UniswapV3Factory)
+	await uniswapV3Factory.deployed()
 
 	const nftDesciptor = await waffle.deployContract(owner, NFTDescriptor, [])
 	const UniswapNFTDescriptor = await getContractFactory('NonfungibleTokenPositionDescriptor', {
@@ -214,7 +215,7 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 	const uniswapNFTDescriptor = await UniswapNFTDescriptor.connect(owner).deploy(tokens[0].address)
 	await uniswapNFTDescriptor.deployed()
 	//const uniswapNFTDescriptor = await waffle.deployContract(owner, NonfungibleTokenPositionDescriptor, [tokens[0].address])
-	const uniswapNFTManager = await waffle.deployContract(owner, NonfungiblePositionManager, [uniswapFactory.address, tokens[0].address, uniswapNFTDescriptor.address])
+	const uniswapNFTManager = await waffle.deployContract(owner, NonfungiblePositionManager, [uniswapV3Factory.address, tokens[0].address, uniswapNFTDescriptor.address])
 
 	await tokens[0].connect(owner).approve(uniswapNFTManager.address, constants.MaxUint256)
 	for (let i = 1; i < tokens.length; i++) {
@@ -247,12 +248,13 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 	  })
 	}
 
-	return [uniswapFactory, uniswapNFTManager]
+	return [uniswapV3Factory, uniswapNFTManager]
 }
 
 export async function deployPlatform(
 	owner: SignerWithAddress,
-	uniswapFactory: Contract,
+	uniswapOracleFactory: Contract,
+	uniswapV3Factory: Contract,
 	weth: Contract,
 	susd?: Contract,
 	feePool?: string
@@ -267,13 +269,31 @@ export async function deployPlatform(
 	await tokenRegistry.deployed()
 	const curveDepositZapRegistry = await waffle.deployContract(owner, CurveDepositZapRegistry, [])
 	await curveDepositZapRegistry.deployed()
-	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address])
+	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address])
 	await uniswapV3Registry.deployed()
 	const chainlinkRegistry = await waffle.deployContract(owner, ChainlinkRegistry, [])
 	await chainlinkRegistry.deployed()
 
-	const uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory.address, weth.address])
+	let uniswapOracle
+	if (uniswapOracleFactory.address == uniswapV3Factory.address) {
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
+	} else {
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapOracleFactory.address, weth.address])
+	}
 	await uniswapOracle.deployed()
+
+	/* TODO switch to this approach once we setup registry script
+	let uniswapOracle: Contract, uniswapV3Registry: Contract;
+	if (uniswapFactory.address === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
+		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address])
+		await uniswapV3Registry.deployed()
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
+	} else {
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory.address, weth.address])
+	}
+	await uniswapOracle.deployed()
+	*/
+
 	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [chainlinkRegistry.address, weth.address])
 	await chainlinkOracle.deployed()
 	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [tokenRegistry.address, weth.address, susd?.address || AddressZero])
@@ -384,20 +404,20 @@ export async function deployPlatform(
 	return new Platform(factory, controller, oracles, administration, strategyLibrary)
 }
 
-export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, UniswapV2Adapter, [uniswapFactory.address, weth.address])
+export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, UniswapV2Adapter, [uniswapV2Factory.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, UniswapV2LPAdapter, [uniswapFactory.address, weth.address])
+export async function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, UniswapV2LPAdapter, [uniswapV2Factory.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapFactory: Contract, uniswapRouter:Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [uniswapRegistry.address, uniswapFactory.address, uniswapRouter.address, weth.address])
+export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapV3Factory: Contract, uniswapRouter:Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [uniswapRegistry.address, uniswapV3Factory.address, uniswapRouter.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }

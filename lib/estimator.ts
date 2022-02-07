@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { BigNumber, Contract, Signer } from 'ethers'
-import { TradeData } from './encode'
-import { MAINNET_ADDRESSES, DIVISOR } from './utils'
+import { StrategyItem, TradeData } from './encode'
+import { ITEM_CATEGORY, MAINNET_ADDRESSES, DIVISOR } from './utils'
 
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
@@ -22,11 +22,21 @@ const UNISWAP_V3_QUOTER = '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 const WETH = MAINNET_ADDRESSES.WETH
 const SUSD = MAINNET_ADDRESSES.SUSD
 const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
+const NULL_TRADE_DATA: TradeData = {
+  adapters: [],
+  path: [],
+  cache: '0x'
+}
+
+interface ItemDictionary {
+  [id: string]: StrategyItem
+}
 
 export class Estimator {
   signer: Signer
 
   oracle: Contract
+  tokenRegistry: Contract
   curveRegistry: Contract
   synthetix: Contract
   synthetixExchanger: Contract
@@ -51,6 +61,7 @@ export class Estimator {
   public constructor(
     signer: Signer,
     oracle: Contract,
+    tokenRegistry: Contract,
     uniswapV3Registry: Contract,
     curveAdapterAddress: string,
     synthetixAdapterAddress: string,
@@ -66,6 +77,7 @@ export class Estimator {
     this.uniswapV3Quoter = new Contract(UNISWAP_V3_QUOTER, UniswapV3Quoter.abi, signer)
 
     this.oracle = oracle
+    this.tokenRegistry = tokenRegistry
     this.uniswapV3Registry = uniswapV3Registry
 
     this.curveAdapterAddress = curveAdapterAddress
@@ -82,42 +94,128 @@ export class Estimator {
     this.curveRewardsAdapterAddress = AddressZero
     this.uniswapV2LPAdapterAddress = AddressZero
     this.yearnV2AdapterAddress = AddressZero
-
   }
 
-  async estimateBatchBuy(
+  async create(
+      strategyItems: StrategyItem[],
+      rebalanceThreshold: BigNumber,
+      amount: BigNumber
+  ) {
+      let virtPercentage = BigNumber.from('0')
+      const itemsData: ItemDictionary = {}
+      const items: string[] = []
+      const synths: string[] = []
+
+      const categories: BigNumber[] = await Promise.all(strategyItems.map(async (strategyItem: StrategyItem) => {
+          return this.tokenRegistry.itemCategories(strategyItem.item)
+      }))
+      // Sort by category
+      for (let i = 0; i < strategyItems.length; i++) {
+        if (categories[i].eq(ITEM_CATEGORY.BASIC)) {
+          items.push(strategyItems[i].item)
+        }
+        if (categories[i].eq(ITEM_CATEGORY.SYNTH)) {
+          synths.push(strategyItems[i].item)
+          virtPercentage = virtPercentage.add(strategyItems[i].percentage)
+        }
+        itemsData[strategyItems[i].item] = strategyItems[i]
+      }
+      if (synths.length > 0) {
+          // Synths found, check for sUSD and add it to virtual percentage
+          if (itemsData[SUSD]) virtPercentage = virtPercentage.add(itemsData[SUSD].percentage)
+          itemsData[VIRTUAL_ITEM] = {
+            item: VIRTUAL_ITEM,
+            percentage: virtPercentage,
+            data: NULL_TRADE_DATA
+          }
+      } else {
+          // No synths, check for sUSD and add it to basic tokens
+          if (itemsData[SUSD]) items.push(SUSD)
+      }
+      // If weth isn't set, add null data
+      if (!itemsData[WETH]) itemsData[WETH] = {
+        item: WETH,
+        percentage: BigNumber.from('0'),
+        data: NULL_TRADE_DATA
+      }
+
+      return this.estimateBatchBuy(
+        items,
+        synths,
+        itemsData,
+        rebalanceThreshold,
+        amount,
+        new Array(items.length + 1).fill(BigNumber.from('0'))
+      )
+  }
+
+  async deposit(
       strategy: Contract,
-      total: BigNumber,
-      estimates: BigNumber[]
+      amount: BigNumber
   ) {
       const [ items, synths, rebalanceThreshold ] = await Promise.all([
         strategy.items(),
         strategy.synths(),
         strategy.rebalanceThreshold()
       ])
+      const itemsData: ItemDictionary = {}
+      await Promise.all(items.map(async (item: string) => {
+        itemsData[item] = await this.getData(strategy, item)
+      }))
+      await Promise.all(synths.map(async (item: string) => {
+        itemsData[item] = await this.getData(strategy, item)
+      }))
+      itemsData[WETH] = await this.getData(strategy, WETH);
+      itemsData[SUSD] = await this.getData(strategy, SUSD);
+      itemsData[VIRTUAL_ITEM] = await this.getData(strategy, VIRTUAL_ITEM);
 
-      const amounts: BigNumber[] = await Promise.all(items.map(async (strategyItem: string, index: number) => {
-          const [ percentage, tradeData ] = await Promise.all([
-            strategy.getPercentage(strategyItem),
-            strategy.getTradeData(strategyItem)
-          ])
+      return this.estimateBatchBuy(
+        items,
+        synths,
+        itemsData,
+        rebalanceThreshold,
+        amount,
+        new Array(items.length + 1).fill(BigNumber.from('0'))
+      )
+  }
+
+  async getData(strategy: Contract, item: string) {
+    const [ percentage, data ] = await Promise.all([
+      strategy.getPercentage(item),
+      strategy.getTradeData(item)
+    ])
+    return {
+      item: item,
+      percentage: percentage,
+      data: data
+    }
+  }
+
+  async estimateBatchBuy(
+      items: string[],
+      synths: string[],
+      itemsData: ItemDictionary,
+      rebalanceThreshold: BigNumber,
+      total: BigNumber,
+      estimates: BigNumber[]
+  ) {
+      const amounts: BigNumber[] = await Promise.all(items.map(async (item: string, index: number) => {
+          const { percentage, data } = itemsData[item]
           const expectedValue = percentage.eq('0') ? BigNumber.from('0') : total.mul(percentage).div(DIVISOR)
           const rebalanceRange = rebalanceThreshold.eq('0') ? BigNumber.from('0') : expectedValue.mul(rebalanceThreshold).div(DIVISOR);
           const amount = await this.estimateBuyItem(
-              strategyItem,
+              item,
               estimates[index],
               expectedValue,
               rebalanceRange,
-              tradeData
+              data
           );
-          return this.oracle.estimateItem(amount, strategyItem);
+          return this.oracle.estimateItem(amount, item);
       }))
       if (synths.length > 0) {
           // Purchase SUSD
-          const [ percentage, tradeData ] = await Promise.all([
-            strategy.getPercentage(VIRTUAL_ITEM),
-            strategy.getTradeData(SUSD)
-          ])
+          const percentage = itemsData[VIRTUAL_ITEM].percentage
+          const data = itemsData[SUSD].data
           const expectedValue = percentage.eq('0') ?  BigNumber.from('0') : total.mul(percentage).div(DIVISOR)
           const rebalanceRange = rebalanceThreshold.eq('0') ? BigNumber.from('0') : expectedValue.mul(rebalanceThreshold).div(DIVISOR);
           const susdAmount = await this.estimateBuyItem(
@@ -125,11 +223,11 @@ export class Estimator {
               estimates[estimates.length - 1],
               expectedValue,
               rebalanceRange,
-              tradeData
+              data
           );
-          amounts.push(await this.estimateBuySynths(strategy, synths, percentage, susdAmount));
+          amounts.push(await this.estimateBuySynths(itemsData, synths, percentage, susdAmount));
       }
-      const percentage = await strategy.getPercentage(WETH);
+      const percentage = itemsData[WETH].percentage;
       if (percentage.gt('0')) {
         amounts.push(total.mul(percentage).div(DIVISOR));
       }
@@ -137,19 +235,16 @@ export class Estimator {
       return valueAdded
   }
 
-  async estimateBuySynths(strategy: Contract, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
+  async estimateBuySynths(itemsData: ItemDictionary, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
     let totalValue = BigNumber.from('0')
     let susdRemaining = susdAmount
     for (let i = 0; i < synths.length; i++) {
-      const [ percentage, tradeData ] = await Promise.all([
-        strategy.getPercentage(synths[i]),
-        strategy.getTradeData(synths[i])
-      ])
+      const { percentage, data } = itemsData[synths[i]]
       if (!percentage.eq('0')) {
         const amount = susdAmount.mul(percentage).div(synthPercentage);
         if (amount.gt('0')) {
           const balance = await this.estimateSwap(
-            tradeData.adapters[0],
+            data.adapters[0],
             amount,
             SUSD,
             synths[i]
@@ -290,12 +385,12 @@ export class Estimator {
 
   async estimateUniswapV3(amount: BigNumber, tokenIn: string, tokenOut: string) {
     const fee = await this.uniswapV3Registry.getFee(tokenIn, tokenOut)
-    return (await this.uniswapV3Quoter.quoteExactInputSingle({
-      tokenIn: tokenIn,
-      tokenOut: tokenOut,
-      amountIn: amount,
-      fee: fee,
-      sqrtPriceLimitX96: 0
-    })).amount
+    return this.uniswapV3Quoter.callStatic.quoteExactInputSingle(
+      tokenIn,
+      tokenOut,
+      fee,
+      amount,
+      0
+    )
   }
 }
