@@ -25,10 +25,6 @@
     "type": "git",
     "url": "git+https://github.com/EnsoFinance/v1-core"
   },
-  "files": [
-    "contracts",
-    "artifacts"
-  ],
   "author": "",
   "license": "ISC",
   "files": ["artifacts", "contracts" ],
@@ -61,7 +57,7 @@
     "eslint": "~7.14.0",
     "ethereum-waffle": "^3.2.0",
     "ethers": "^5.0.24",
-    "hardhat": "^2.0.10",
+    "hardhat": "^2.8.3",
     "prettier": "~2.2.1",
     "prettier-plugin-solidity": "~1.0.0-beta.5",
     "sol2uml": "~1.1.25",
