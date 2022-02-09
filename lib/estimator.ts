@@ -3,6 +3,7 @@ import { BigNumber, Contract, Signer } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
 import { ITEM_CATEGORY, MAINNET_ADDRESSES, DIVISOR } from './utils'
 
+import IBaseAdapter from '../artifacts/contracts/interfaces/IBaseAdapter.sol/IBaseAdapter.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
 import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json'
@@ -10,6 +11,7 @@ import ICurveRegistry from '../artifacts/contracts/interfaces/curve/ICurveRegist
 import ICurveStableSwap from '../artifacts/contracts/interfaces/curve/ICurveStableSwap.sol/ICurveStableSwap.json'
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
+import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 
 const { AddressZero } = hre.ethers.constants
 const { defaultAbiCoder } = hre.ethers.utils
@@ -160,14 +162,14 @@ export class Estimator {
       ])
       const itemsData: ItemDictionary = {}
       await Promise.all(items.map(async (item: string) => {
-        itemsData[item] = await this.getData(strategy, item)
+        itemsData[item] = await this.getStrategyItem(strategy, item)
       }))
       await Promise.all(synths.map(async (item: string) => {
-        itemsData[item] = await this.getData(strategy, item)
+        itemsData[item] = await this.getStrategyItem(strategy, item)
       }))
-      itemsData[WETH] = await this.getData(strategy, WETH);
-      itemsData[SUSD] = await this.getData(strategy, SUSD);
-      itemsData[VIRTUAL_ITEM] = await this.getData(strategy, VIRTUAL_ITEM);
+      itemsData[WETH] = await this.getStrategyItem(strategy, WETH);
+      itemsData[SUSD] = await this.getStrategyItem(strategy, SUSD);
+      itemsData[VIRTUAL_ITEM] = await this.getStrategyItem(strategy, VIRTUAL_ITEM);
 
       return this.estimateBatchBuy(
         items,
@@ -179,16 +181,42 @@ export class Estimator {
       )
   }
 
-  async getData(strategy: Contract, item: string) {
-    const [ percentage, data ] = await Promise.all([
-      strategy.getPercentage(item),
-      strategy.getTradeData(item)
-    ])
-    return {
-      item: item,
-      percentage: percentage,
-      data: data
-    }
+  async withdraw(
+      strategy: Contract,
+      amount: BigNumber
+  ) {
+      const [ items, totalSupply, strategyEstimate ] = await Promise.all([
+        strategy.items(),
+        strategy.totalSupply(),
+        this.oracle.estimateStrategy(strategy.address)
+      ])
+      const [ totalBefore, estimates ] = strategyEstimate
+      const expectedWeth = totalBefore.mul(amount).div(totalSupply)
+      const totalAfter = totalBefore.sub(expectedWeth)
+
+      const amounts: BigNumber[] = await Promise.all(items.map(async (item: string, index: number) => {
+        const [ percentage, data ] = await Promise.all([
+          strategy.getPercentage(item),
+          strategy.getTradeData(item)
+        ])
+        const estimatedValue = estimates[index];
+        const expectedValue = percentage.eq('0') ? BigNumber.from('0') : totalAfter.mul(percentage).div(DIVISOR)
+        if (estimatedValue > expectedValue) {
+            return this.estimateSellPath(
+                data,
+                await this.getPathPrice(data, estimatedValue.sub(expectedValue), item),
+                item
+            );
+        }
+        return BigNumber.from('0')
+      }))
+      const percentage = await strategy.getPercentage(WETH);
+      if (percentage.gt('0')) {
+        const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
+        const expectedValue = totalAfter.mul(percentage).div(DIVISOR)
+        if (expectedValue.lt(wethBalance)) amounts.push(wethBalance.sub(expectedValue));
+      }
+      return amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
   }
 
   async estimateBatchBuy(
@@ -231,8 +259,7 @@ export class Estimator {
       if (percentage.gt('0')) {
         amounts.push(total.mul(percentage).div(DIVISOR));
       }
-      const valueAdded = amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
-      return valueAdded
+      return amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
   }
 
   async estimateBuySynths(itemsData: ItemDictionary, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
@@ -267,7 +294,7 @@ export class Estimator {
       estimatedValue: BigNumber,
       expectedValue: BigNumber,
       rebalanceRange: BigNumber,
-      tradeData: TradeData
+      data: TradeData
   ) {
       let amount = BigNumber.from('0');
       if (estimatedValue.eq('0')) {
@@ -276,13 +303,13 @@ export class Estimator {
           amount = expectedValue.sub(estimatedValue);
       }
       if (amount.gt('0')) {
-          if (tradeData.cache != '0x') {
+          if (data.cache != '0x') {
               //Apply multiplier
-              const multiplier = defaultAbiCoder.decode(['uint16'], tradeData.cache)[0];
+              const multiplier = defaultAbiCoder.decode(['uint16'], data.cache)[0];
               amount = amount.mul(multiplier).div(DIVISOR);
           }
           return this.estimateBuyPath(
-              tradeData,
+              data,
               amount,
               token
           );
@@ -291,35 +318,47 @@ export class Estimator {
   }
 
   async estimateBuyPath(
-    tradeData: TradeData,
+    data: TradeData,
     amount: BigNumber,
     token: string
   ) {
     if (amount.gt('0')) {
-        let balance = amount;
-        for (let i = 0; i < tradeData.adapters.length; i++) {
-            let _tokenIn;
-            let _tokenOut;
-            if (i == 0) {
-                _tokenIn = WETH;
-            } else {
-                _tokenIn = tradeData.path[i-1];
-            }
-            if (i == tradeData.adapters.length-1) {
-                _tokenOut = token;
-            } else {
-                _tokenOut = tradeData.path[i];
-            }
+        let balance = amount
+        for (let i = 0; i < data.adapters.length; i++) {
+            const _tokenIn = (i === 0) ? WETH : data.path[i - 1]
+            const _tokenOut = (i === data.adapters.length - 1) ? token : data.path[i]
             balance = await this.estimateSwap(
-              tradeData.adapters[i],
+              data.adapters[i],
               balance,
               _tokenIn,
               _tokenOut
             )
         }
-        return balance;
+        return balance
     }
-    return BigNumber.from('0');
+    return BigNumber.from('0')
+  }
+
+  async estimateSellPath(
+    data: TradeData,
+    amount: BigNumber,
+    token: string
+  ) {
+      if (amount.gt('0')) {
+          let balance = amount
+          for (let i = data.adapters.length - 1; i >= 0; i--) {
+              const _tokenIn = (i === data.adapters.length - 1) ? token : data.path[i]
+              const _tokenOut = (i === 0) ? WETH : data.path[i - 1]
+              balance = await this.estimateSwap(
+                data.adapters[i],
+                balance,
+                _tokenIn,
+                _tokenOut
+              )
+          }
+          return balance
+      }
+      return BigNumber.from('0')
   }
 
   async estimateSwap(
@@ -392,5 +431,31 @@ export class Estimator {
       amount,
       0
     )
+  }
+
+  async getPathPrice(
+    data: TradeData,
+    amount: BigNumber,
+    token: string
+  ) {
+      let balance = amount
+      for (let i = 0; i < data.adapters.length; i++) {
+          const _tokenIn = (i === 0) ? WETH : data.path[i - 1]
+          const _tokenOut = (i === data.adapters.length - 1) ? token : data.path[i]
+          balance = await (new Contract(data.adapters[i], IBaseAdapter.abi, this.signer)).spotPrice(balance, _tokenIn, _tokenOut)
+      }
+      return balance;
+  }
+
+  async getStrategyItem(strategy: Contract, item: string) {
+    const [ percentage, data ] = await Promise.all([
+      strategy.getPercentage(item),
+      strategy.getTradeData(item)
+    ])
+    return {
+      item: item,
+      percentage: percentage,
+      data: data
+    }
   }
 }

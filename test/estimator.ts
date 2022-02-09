@@ -130,12 +130,18 @@ describe('Estimator', function() {
 
   it('Should estimate deposit', async function() {
     await increaseTime(600)
-    const depositAmount = BigNumber.from('10000000000000000')
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
+    const depositAmount = BigNumber.from('10000000000000000')
     const estimatedDepositValue = await estimator.deposit(strategy, depositAmount)
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
     await enso.platform.controller.connect(accounts[1]).deposit(strategy.address, routerAddress, 0, 0, '0x', { value: depositAmount })
     const [ totalAfter ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
     console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+  })
+
+  it('Should estimate withdraw', async function() {
+    const withdrawAmount = await strategy.balanceOf(accounts[1].address)
+    const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmount)
+    console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
   })
 })
