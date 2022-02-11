@@ -4,6 +4,7 @@ import { StrategyItem, TradeData } from './encode'
 import { ITEM_CATEGORY, MAINNET_ADDRESSES, DIVISOR } from './utils'
 
 import IBaseAdapter from '../artifacts/contracts/interfaces/IBaseAdapter.sol/IBaseAdapter.json'
+import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
 import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json'
@@ -65,6 +66,8 @@ export class Estimator {
     oracle: Contract,
     tokenRegistry: Contract,
     uniswapV3Registry: Contract,
+    aaveAdapterAddress: string,
+    compoundAdapterAddress: string,
     curveAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
@@ -82,16 +85,16 @@ export class Estimator {
     this.tokenRegistry = tokenRegistry
     this.uniswapV3Registry = uniswapV3Registry
 
+    this.aaveAdapterAddress = aaveAdapterAddress
+    this.compoundAdapterAddress = compoundAdapterAddress
     this.curveAdapterAddress = curveAdapterAddress
     this.synthetixAdapterAddress = synthetixAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV3AdapterAddress = uniswapV3AdapterAddress
 
-    this.aaveAdapterAddress = AddressZero
+
     this.aaveDebtAdapterAddress = AddressZero
     this.balancerAdapterAddress = AddressZero
-    this.compoundAdapterAddress = AddressZero
-
     this.curveLPAdapterAddress = AddressZero
     this.curveRewardsAdapterAddress = AddressZero
     this.uniswapV2LPAdapterAddress = AddressZero
@@ -201,7 +204,7 @@ export class Estimator {
         ])
         const estimatedValue = estimates[index];
         const expectedValue = percentage.eq('0') ? BigNumber.from('0') : totalAfter.mul(percentage).div(DIVISOR)
-        if (estimatedValue > expectedValue) {
+        if (estimatedValue.gt(expectedValue)) {
             return this.estimateSellPath(
                 data,
                 await this.getPathPrice(data, estimatedValue.sub(expectedValue), item),
@@ -238,7 +241,7 @@ export class Estimator {
               rebalanceRange,
               data
           );
-          return this.oracle.estimateItem(amount, item);
+          return this.oracle.estimateItem(amount, item)
       }))
       if (synths.length > 0) {
           // Purchase SUSD
@@ -369,13 +372,13 @@ export class Estimator {
   ) {
     switch (adapter.toLowerCase()) {
       case this.aaveAdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateAave(amount, tokenIn, tokenOut)
+        return this.estimateAave(amount, tokenIn, tokenOut)
       case this.aaveDebtAdapterAddress.toLowerCase():
         return BigNumber.from('0')//this.estimateAaveDebt(amount, tokenIn, tokenOut)
       case this.balancerAdapterAddress.toLowerCase():
         return BigNumber.from('0')//this.estimateBalancer(amount, tokenIn, tokenOut)
       case this.compoundAdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateCompound(amount, tokenIn, tokenOut)
+        return this.estimateCompound(amount, tokenIn, tokenOut)
       case this.curveAdapterAddress.toLowerCase():
         return this.estimateCurve(amount, tokenIn, tokenOut)
       case this.curveLPAdapterAddress.toLowerCase():
@@ -395,13 +398,59 @@ export class Estimator {
     }
   }
 
+  async estimateAave(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      // Assumes correct tokenIn/tokenOut pairing
+      if (tokenIn === tokenOut) return BigNumber.from('0')
+      return amount
+  }
+
+  async estimateCompound(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      const [ tokenInIsCToken, tokenOutIsCToken ] = await Promise.all([tokenIn, tokenOut].map(async (token) => {
+        try {
+          const isCToken = await (new Contract(token, ICToken.abi, this.signer)).isCToken()
+          return isCToken
+        } catch (e) {
+          return false
+        }
+      }))
+      if (tokenInIsCToken && !tokenOutIsCToken) {
+        const [exchangeRate, decimalsIn, decimalsOut] = await Promise.all([
+          (new Contract(tokenIn, ICToken.abi, this.signer)).callStatic.exchangeRateCurrent(),
+          (new Contract(tokenIn, ERC20.abi, this.signer)).decimals(),
+          (new Contract(tokenOut, ERC20.abi, this.signer)).decimals()
+        ])
+        let received = amount.mul(exchangeRate).div(String(10**(18 - 8 + decimalsOut)))
+        if (decimalsIn > decimalsOut) {
+          received = received.div(String(10**(decimalsIn - decimalsOut)))
+        } else {
+          received = received.mul(String(10**(decimalsOut - decimalsIn)))
+        }
+        return received
+      }
+      if (!tokenInIsCToken && tokenOutIsCToken) {
+        const [exchangeRate, decimalsIn, decimalsOut] = await Promise.all([
+          (new Contract(tokenOut, ICToken.abi, this.signer)).callStatic.exchangeRateCurrent(),
+          (new Contract(tokenIn, ERC20.abi, this.signer)).decimals(),
+          (new Contract(tokenOut, ERC20.abi, this.signer)).decimals()
+        ])
+        let received = amount.mul(String(10**(18 - 8 + decimalsIn))).div(exchangeRate)
+        if (decimalsIn > decimalsOut) {
+          received = received.div(String(10**(decimalsIn - decimalsOut)))
+        } else {
+          received = received.mul(String(10**(decimalsOut - decimalsIn)))
+        }
+        return received
+      }
+      return BigNumber.from('0')
+  }
+
   async estimateCurve(amount: BigNumber, tokenIn: string, tokenOut: string) {
       const pool = await this.curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
       if (pool != AddressZero) {
           const [ indexIn, indexOut, ] = await this.curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
           return (new Contract(pool, ICurveStableSwap.abi, this.signer)).get_dy(indexIn, indexOut, amount);
       } else {
-        return BigNumber.from('0');
+        return BigNumber.from('0')
       }
   }
 

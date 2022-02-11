@@ -19,6 +19,7 @@ import {
 	deployUniswapV3Adapter,
 	deployMetaStrategyAdapter,
 	deploySynthetixAdapter,
+	deployCompoundAdapter,
 	deployCurveAdapter,
 	deployAaveLendAdapter,
 	deployAaveBorrowAdapter,
@@ -41,6 +42,7 @@ export type EnsoAdapters = {
 	aavelend: Adapter
 	aaveborrow: Adapter
 	balancer: Adapter
+	compound: Adapter
 	curve: Adapter
 	leverage: Adapter
 	synthetix: Adapter
@@ -95,6 +97,9 @@ export class EnsoBuilder {
 				break
 			case Adapters.Balancer:
 				this.adapters.balancer = adapter
+				break
+			case Adapters.Compound:
+				this.adapters.compound = adapter
 				break
 			case Adapters.Curve:
 				this.adapters.curve = adapter
@@ -264,6 +269,9 @@ export class EnsoBuilder {
 			balancer = await this.deployBalancer()
 			await this.adapters.balancer.deploy(this.signer, ensoPlatform.administration.whitelist, [balancer.registry, weth])
 		}
+		if (this.adapters?.compound !== undefined) {
+			await this.adapters.compound.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], this.signer), weth])
+		}
 		if (this.adapters?.curve !== undefined) {
 			await this.adapters.curve.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])
 		}
@@ -360,6 +368,7 @@ export type Defaults = {
 export enum Adapters {
 	Balancer = 'balancer',
 	Curve = 'curve',
+	Compound = 'compound',
 	MetaStrategy = 'metastrategy',
 	Synthetix = 'synthetix',
 	Uniswap = 'uniswap',
@@ -383,6 +392,9 @@ export class Adapter {
 				break
 			case Adapters.Balancer:
 				this.type = Adapters.Balancer
+				break
+			case Adapters.Compound:
+				this.type = Adapters.Compound
 				break
 			case Adapters.Curve:
 				this.type = Adapters.Curve
@@ -429,6 +441,9 @@ export class Adapter {
 		} else if (this.type === Adapters.Balancer) {
 			if (parameters.length == 2)
 				this.contract = await deployBalancerAdapter(signer, parameters[0], parameters[1])
+		} else if (this.type === Adapters.Compound) {
+			if (parameters.length == 2)
+				this.contract = await deployCompoundAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.Curve) {
 			if (parameters.length == 2)
 				this.contract = await deployCurveAdapter(signer, parameters[0], parameters[1])
