@@ -47,7 +47,7 @@ export class Estimator {
   uniswapV3Quoter: Contract
   uniswapV3Registry: Contract
 
-  aaveAdapterAddress: string
+  aaveV2AdapterAddress: string
   aaveDebtAdapterAddress: string
   balancerAdapterAddress: string
   compoundAdapterAddress: string
@@ -66,12 +66,15 @@ export class Estimator {
     oracle: Contract,
     tokenRegistry: Contract,
     uniswapV3Registry: Contract,
-    aaveAdapterAddress: string,
+    aaveV2AdapterAddress: string,
     compoundAdapterAddress: string,
     curveAdapterAddress: string,
+    curveLPAdapterAddress: string,
+    curveRewardsAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
-    uniswapV3AdapterAddress: string
+    uniswapV3AdapterAddress: string,
+    yearnV2AdapterAddress: string
   ) {
     this.signer = signer
 
@@ -85,20 +88,18 @@ export class Estimator {
     this.tokenRegistry = tokenRegistry
     this.uniswapV3Registry = uniswapV3Registry
 
-    this.aaveAdapterAddress = aaveAdapterAddress
-    this.compoundAdapterAddress = compoundAdapterAddress
-    this.curveAdapterAddress = curveAdapterAddress
-    this.synthetixAdapterAddress = synthetixAdapterAddress
-    this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
-    this.uniswapV3AdapterAddress = uniswapV3AdapterAddress
-
-
+    this.aaveV2AdapterAddress = aaveV2AdapterAddress
     this.aaveDebtAdapterAddress = AddressZero
     this.balancerAdapterAddress = AddressZero
-    this.curveLPAdapterAddress = AddressZero
-    this.curveRewardsAdapterAddress = AddressZero
+    this.compoundAdapterAddress = compoundAdapterAddress
+    this.curveAdapterAddress = curveAdapterAddress
+    this.curveLPAdapterAddress = curveLPAdapterAddress
+    this.curveRewardsAdapterAddress = curveRewardsAdapterAddress
+    this.synthetixAdapterAddress = synthetixAdapterAddress
+    this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV2LPAdapterAddress = AddressZero
-    this.yearnV2AdapterAddress = AddressZero
+    this.uniswapV3AdapterAddress = uniswapV3AdapterAddress
+    this.yearnV2AdapterAddress = yearnV2AdapterAddress
   }
 
   async create(
@@ -371,8 +372,8 @@ export class Estimator {
     tokenOut: string
   ) {
     switch (adapter.toLowerCase()) {
-      case this.aaveAdapterAddress.toLowerCase():
-        return this.estimateAave(amount, tokenIn, tokenOut)
+      case this.aaveV2AdapterAddress.toLowerCase():
+        return this.estimateAaveV2(amount, tokenIn, tokenOut)
       case this.aaveDebtAdapterAddress.toLowerCase():
         return BigNumber.from('0')//this.estimateAaveDebt(amount, tokenIn, tokenOut)
       case this.balancerAdapterAddress.toLowerCase():
@@ -382,9 +383,9 @@ export class Estimator {
       case this.curveAdapterAddress.toLowerCase():
         return this.estimateCurve(amount, tokenIn, tokenOut)
       case this.curveLPAdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateCurveLP(amount, tokenIn, tokenOut)
+        return this.estimateCurveLP(amount, tokenIn, tokenOut)
       case this.curveRewardsAdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateCurveGauge(amount, tokenIn, tokenOut)
+        return this.estimateCurveGauge(amount, tokenIn, tokenOut)
       case this.synthetixAdapterAddress.toLowerCase():
         return this.estimateSynthetix(amount, tokenIn, tokenOut)
       case this.uniswapV2AdapterAddress.toLowerCase():
@@ -392,13 +393,13 @@ export class Estimator {
       case this.uniswapV3AdapterAddress.toLowerCase():
         return this.estimateUniswapV3(amount, tokenIn, tokenOut)
       case this.yearnV2AdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateYearnV2(amount, tokenIn, tokenOut)
+        return this.estimateYearnV2(amount, tokenIn, tokenOut)
       default:
         return BigNumber.from('0');
     }
   }
 
-  async estimateAave(amount: BigNumber, tokenIn: string, tokenOut: string) {
+  async estimateAaveV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Assumes correct tokenIn/tokenOut pairing
       if (tokenIn === tokenOut) return BigNumber.from('0')
       return amount
@@ -414,32 +415,12 @@ export class Estimator {
         }
       }))
       if (tokenInIsCToken && !tokenOutIsCToken) {
-        const [exchangeRate, decimalsIn, decimalsOut] = await Promise.all([
-          (new Contract(tokenIn, ICToken.abi, this.signer)).callStatic.exchangeRateCurrent(),
-          (new Contract(tokenIn, ERC20.abi, this.signer)).decimals(),
-          (new Contract(tokenOut, ERC20.abi, this.signer)).decimals()
-        ])
-        let received = amount.mul(exchangeRate).div(String(10**(18 - 8 + decimalsOut)))
-        if (decimalsIn > decimalsOut) {
-          received = received.div(String(10**(decimalsIn - decimalsOut)))
-        } else {
-          received = received.mul(String(10**(decimalsOut - decimalsIn)))
-        }
-        return received
+        const exchangeRate = await (new Contract(tokenIn, ICToken.abi, this.signer)).callStatic.exchangeRateCurrent()
+        return amount.mul(exchangeRate).div(String(10**18))
       }
       if (!tokenInIsCToken && tokenOutIsCToken) {
-        const [exchangeRate, decimalsIn, decimalsOut] = await Promise.all([
-          (new Contract(tokenOut, ICToken.abi, this.signer)).callStatic.exchangeRateCurrent(),
-          (new Contract(tokenIn, ERC20.abi, this.signer)).decimals(),
-          (new Contract(tokenOut, ERC20.abi, this.signer)).decimals()
-        ])
-        let received = amount.mul(String(10**(18 - 8 + decimalsIn))).div(exchangeRate)
-        if (decimalsIn > decimalsOut) {
-          received = received.div(String(10**(decimalsIn - decimalsOut)))
-        } else {
-          received = received.mul(String(10**(decimalsOut - decimalsIn)))
-        }
-        return received
+        const exchangeRate = await (new Contract(tokenOut, ICToken.abi, this.signer)).callStatic.exchangeRateCurrent()
+        return amount.mul(String(10**18)).div(exchangeRate)
       }
       return BigNumber.from('0')
   }
@@ -452,6 +433,17 @@ export class Estimator {
       } else {
         return BigNumber.from('0')
       }
+  }
+
+  async estimateCurveLP(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
+      return (new Contract(this.curveLPAdapterAddress, IBaseAdapter.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)
+  }
+
+  async estimateCurveGauge(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      // Assumes correct tokenIn/tokenOut pairing
+      if (tokenIn === tokenOut) return BigNumber.from('0')
+      return amount
   }
 
   async estimateSynthetix(amount: BigNumber, tokenIn: string, tokenOut: string) {
@@ -480,6 +472,11 @@ export class Estimator {
       amount,
       0
     )
+  }
+
+  async estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
+      return (new Contract(this.yearnV2AdapterAddress, IBaseAdapter.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)
   }
 
   async getPathPrice(

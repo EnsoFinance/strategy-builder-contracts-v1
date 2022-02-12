@@ -21,9 +21,12 @@ import {
 	deploySynthetixAdapter,
 	deployCompoundAdapter,
 	deployCurveAdapter,
+	deployCurveLPAdapter,
+	deployCurveRewardsAdapter,
 	deployAaveLendAdapter,
 	deployAaveBorrowAdapter,
 	deployLeverage2XAdapter,
+	deployYEarnAdapter,
 	deployFullRouter,
 	deployLoopRouter,
 	deployGenericRouter,
@@ -44,12 +47,15 @@ export type EnsoAdapters = {
 	balancer: Adapter
 	compound: Adapter
 	curve: Adapter
+	curveLP: Adapter
+	curveRewards: Adapter
 	leverage: Adapter
 	synthetix: Adapter
 	metastrategy: Adapter
 	uniswap: Adapter
 	uniswapV2: Adapter
 	uniswapV3: Adapter
+	yearnV2: Adapter
 }
 
 export class EnsoBuilder {
@@ -104,6 +110,12 @@ export class EnsoBuilder {
 			case Adapters.Curve:
 				this.adapters.curve = adapter
 				break
+			case Adapters.CurveLP:
+				this.adapters.curveLP = adapter
+				break
+			case Adapters.CurveRewards:
+				this.adapters.curveRewards = adapter
+				break
 			case Adapters.Leverage:
 				this.adapters.leverage = adapter
 				break
@@ -121,6 +133,9 @@ export class EnsoBuilder {
 				break
 			case Adapters.UniswapV3:
 				this.adapters.uniswapV3 = adapter
+				break
+			case Adapters.YEarnV2:
+				this.adapters.yearnV2 = adapter
 				break
 			default:
 				throw Error('Invalid adapter type')
@@ -253,17 +268,11 @@ export class EnsoBuilder {
 			if (this.adapters?.aaveborrow === undefined) this.addAdapter('aaveborrow')
 		}
 		// Deploy adapters
-		if (this.adapters?.uniswap !== undefined) {
-			await this.adapters.uniswap.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
+		if (this.adapters?.aavelend !== undefined) {
+			await this.adapters.aavelend.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth])
 		}
-		if (this.adapters?.uniswapV2 !== undefined) {
-			await this.adapters.uniswapV2.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
-		}
-		if (this.adapters?.uniswapV3 !== undefined) {
-			await this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Factory, uniswapV3Router, weth])
-		}
-		if (this.adapters?.synthetix !== undefined) {
-			await this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer), weth])
+		if (this.adapters?.aaveborrow !== undefined) {
+			await this.adapters.aaveborrow.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])
 		}
 		if (this.adapters?.balancer !== undefined) {
 			balancer = await this.deployBalancer()
@@ -275,12 +284,32 @@ export class EnsoBuilder {
 		if (this.adapters?.curve !== undefined) {
 			await this.adapters.curve.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])
 		}
-		if (this.adapters?.aavelend !== undefined) {
-			await this.adapters.aavelend.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth])
+		if (this.adapters?.curveLP !== undefined) {
+			await this.adapters.curveLP.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
+				ensoPlatform.oracles.registries.curveDepositZapRegistry,
+				weth
+			])
 		}
-		if (this.adapters?.aaveborrow !== undefined) {
-			await this.adapters.aaveborrow.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])
+		if (this.adapters?.curveRewards !== undefined) {
+			await this.adapters.curveRewards.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])
 		}
+		if (this.adapters?.synthetix !== undefined) {
+			await this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer), weth])
+		}
+		if (this.adapters?.uniswap !== undefined) {
+			await this.adapters.uniswap.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
+		}
+		if (this.adapters?.uniswapV2 !== undefined) {
+			await this.adapters.uniswapV2.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
+		}
+		if (this.adapters?.uniswapV3 !== undefined) {
+			await this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Factory, uniswapV3Router, weth])
+		}
+		if (this.adapters?.yearnV2 !== undefined) {
+			await this.adapters.yearnV2.deploy(this.signer, ensoPlatform.administration.whitelist, [weth])
+		}
+		// Goes last since it depends on other adapters
 		if (this.adapters?.leverage !== undefined) {
 			await this.adapters.leverage.deploy(this.signer, ensoPlatform.administration.whitelist, [
 				this.adapters?.uniswap.contract || NULL_CONTRACT,
@@ -366,73 +395,36 @@ export type Defaults = {
 }
 
 export enum Adapters {
+	AaveLend = 'aavelend',
+	AaveBorrow = 'aaveborrow',
 	Balancer = 'balancer',
-	Curve = 'curve',
 	Compound = 'compound',
+	Curve = 'curve',
+	CurveLP = 'curvelp',
+	CurveRewards = 'curverewards',
+	Leverage = 'leverage',
 	MetaStrategy = 'metastrategy',
 	Synthetix = 'synthetix',
 	Uniswap = 'uniswap',
 	UniswapV2 = 'uniswapv2',
 	UniswapV3 = 'uniswapv3',
-	AaveLend = 'aavelend',
-	AaveBorrow = 'aaveborrow',
-	Leverage = 'leverage'
+	YEarnV2 = 'yearnv2'
 }
 
 export class Adapter {
 	type: Adapters
 	contract?: Contract
 	constructor(adapterType: string) {
-		switch (adapterType.toLowerCase()) {
-			case Adapters.AaveBorrow:
-				this.type = Adapters.AaveBorrow
-				break
-			case Adapters.AaveLend:
-				this.type = Adapters.AaveLend
-				break
-			case Adapters.Balancer:
-				this.type = Adapters.Balancer
-				break
-			case Adapters.Compound:
-				this.type = Adapters.Compound
-				break
-			case Adapters.Curve:
-				this.type = Adapters.Curve
-				break
-			case Adapters.Leverage:
-				this.type = Adapters.Leverage
-				break
-			case Adapters.MetaStrategy:
-				this.type = Adapters.MetaStrategy
-				break
-			case Adapters.Synthetix:
-				this.type = Adapters.Synthetix
-				break
-			case Adapters.Uniswap:
-				this.type = Adapters.Uniswap
-				break
-			case Adapters.UniswapV2:
-				this.type = Adapters.UniswapV2
-				break
-			case Adapters.UniswapV3:
-				this.type = Adapters.UniswapV3
-				break
-			default:
-				throw Error('Invalid adapter selected!')
+		const isAdapter = Object.values(Adapters).findIndex((v: string) => v === adapterType.toLowerCase()) !== -1
+		if (isAdapter) {
+			this.type = <Adapters> adapterType.toLowerCase()
+		} else {
+			throw Error('Invalid adapter selected!')
 		}
 	}
 
 	async deploy(signer: SignerWithAddress, whitelist: Contract, parameters: Contract[]) {
-		if (this.type === Adapters.Uniswap) {
-			if (parameters.length == 2)
-				this.contract = await deployUniswapV2Adapter(signer, parameters[0], parameters[1])
-		} else if (this.type === Adapters.UniswapV2) {
-			if (parameters.length == 2)
-				this.contract = await deployUniswapV2Adapter(signer, parameters[0], parameters[1])
-		} else if (this.type === Adapters.UniswapV3) {
-			if (parameters.length == 4)
-				this.contract = await deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2], parameters[3])
-		} else if (this.type === Adapters.AaveBorrow) {
+		if (this.type === Adapters.AaveBorrow) {
 			if (parameters.length == 2)
 				this.contract = await deployAaveBorrowAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.AaveLend) {
@@ -447,6 +439,12 @@ export class Adapter {
 		} else if (this.type === Adapters.Curve) {
 			if (parameters.length == 2)
 				this.contract = await deployCurveAdapter(signer, parameters[0], parameters[1])
+		} else if (this.type === Adapters.CurveLP) {
+			if (parameters.length == 3)
+				this.contract = await deployCurveLPAdapter(signer, parameters[0], parameters[1], parameters[2])
+		} else if (this.type === Adapters.CurveRewards) {
+			if (parameters.length == 2)
+				this.contract = await deployCurveRewardsAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.Leverage) {
 			if (parameters.length == 5)
 				this.contract = await deployLeverage2XAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])
@@ -456,6 +454,18 @@ export class Adapter {
 		} else if (this.type === Adapters.MetaStrategy){
 			if (parameters.length == 3)
 				this.contract = await deployMetaStrategyAdapter(signer, parameters[0], parameters[1], parameters[2])
+		} else if (this.type === Adapters.Uniswap) {
+			if (parameters.length == 2)
+				this.contract = await deployUniswapV2Adapter(signer, parameters[0], parameters[1])
+		} else if (this.type === Adapters.UniswapV2) {
+			if (parameters.length == 2)
+				this.contract = await deployUniswapV2Adapter(signer, parameters[0], parameters[1])
+		} else if (this.type === Adapters.UniswapV3) {
+			if (parameters.length == 4)
+				this.contract = await deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2], parameters[3])
+		} else if (this.type === Adapters.YEarnV2) {
+			if (parameters.length == 1)
+				this.contract = await deployYEarnAdapter(signer, parameters[0])
 		}
 		if (this.contract !== undefined) await whitelist.connect(signer).approve(this.contract.address)
 	}

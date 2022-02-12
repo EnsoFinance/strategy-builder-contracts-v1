@@ -14,8 +14,8 @@ const { AddressZero } = constants
 
 const strategyState: InitialState = {
   timelock: BigNumber.from(60),
-  rebalanceThreshold: BigNumber.from(10),
-  rebalanceSlippage: BigNumber.from(997),
+  rebalanceThreshold: BigNumber.from(50),
+  rebalanceSlippage: BigNumber.from(995),
   restructureSlippage: BigNumber.from(985),
   performanceFee: BigNumber.from(0),
   social: false,
@@ -30,12 +30,15 @@ describe('Estimator', function() {
       estimator: Estimator,
       strategy: Contract,
       routerAddress: string,
-      aaveAdapterAddress: string,
+      aaveV2AdapterAddress: string,
       compoundAdapterAddress: string,
       curveAdapterAddress: string,
+      curveLPAdapterAddress: string,
+      curveRewardsAdapterAddress: string,
       synthetixAdapterAddress: string,
       uniswapV2AdapterAddress: string,
-      uniswapV3AdapterAddress: string
+      uniswapV3AdapterAddress: string,
+      yearnV2AdapterAddress: string
 
   before('Setup Enso + Estimator', async function() {
     accounts = await getSigners()
@@ -47,10 +50,13 @@ describe('Estimator', function() {
     ensoBuilder.addAdapter('balancer')
     ensoBuilder.addAdapter('compound')
     ensoBuilder.addAdapter('curve')
+    ensoBuilder.addAdapter('curveLP')
+    ensoBuilder.addAdapter('curveRewards')
     ensoBuilder.addAdapter('metastrategy')
     ensoBuilder.addAdapter('synthetix')
     ensoBuilder.addAdapter('uniswapV2')
     ensoBuilder.addAdapter('uniswapV3')
+    ensoBuilder.addAdapter('yearnV2')
     enso = await ensoBuilder.build()
 
     const { uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry } = enso.platform.oracles.registries
@@ -60,24 +66,31 @@ describe('Estimator', function() {
     weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 
     routerAddress = enso.routers[0]?.contract?.address || AddressZero
-    aaveAdapterAddress = enso.adapters?.aavelend?.contract?.address || AddressZero
+    aaveV2AdapterAddress = enso.adapters?.aavelend?.contract?.address || AddressZero
     compoundAdapterAddress = enso.adapters?.compound?.contract?.address || AddressZero
     curveAdapterAddress = enso.adapters?.curve?.contract?.address || AddressZero
+    curveLPAdapterAddress = enso.adapters?.curveLP?.contract?.address || AddressZero
+    curveRewardsAdapterAddress = enso.adapters?.curveRewards?.contract?.address || AddressZero
     synthetixAdapterAddress = enso.adapters?.synthetix?.contract?.address || AddressZero
     uniswapV2AdapterAddress = enso.adapters?.uniswapV2?.contract?.address || AddressZero
     uniswapV3AdapterAddress = enso.adapters?.uniswapV3?.contract?.address || AddressZero
+    yearnV2AdapterAddress = enso.adapters?.yearnV2?.contract?.address || AddressZero
 
     estimator = new Estimator(
       owner,
       enso.platform.oracles.ensoOracle,
       enso.platform.oracles.registries.tokenRegistry,
       enso.platform.oracles.registries.uniswapV3Registry,
-      aaveAdapterAddress,
+      aaveV2AdapterAddress,
       compoundAdapterAddress,
       curveAdapterAddress,
+      curveLPAdapterAddress,
+      curveRewardsAdapterAddress,
       synthetixAdapterAddress,
       uniswapV2AdapterAddress,
-      uniswapV3AdapterAddress)
+      uniswapV3AdapterAddress,
+      yearnV2AdapterAddress
+    )
 
     expect(estimator.oracle.address).equal(enso.platform.oracles.ensoOracle.address)
   })
@@ -125,8 +138,6 @@ describe('Estimator', function() {
 				{ value: depositAmount }
 			)
 		const receipt = await tx.wait()
-		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
@@ -148,37 +159,35 @@ describe('Estimator', function() {
     console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
   })
 
-  it('Should estimate withdraw', async function() {
-    await increaseTime(600)
-    //const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
-    const withdrawAmount = await strategy.balanceOf(accounts[1].address)
-    const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmount)
-    console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-    /* Withdrawing ETH from synth strategy will fail
-    await enso.platform.controller.connect(accounts[1]).withdrawETH(strategy.address, routerAddress, withdrawAmount, 0, '0x')
-    const [ totalAfter ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
-    console.log('Actual withdraw value: ', totalBefore.sub(totalAfter).toString())
-    */
-  })
-
   it('Should deploy lending strategy', async function() {
     const name = 'Lending Strategy'
 		const symbol = 'LEND'
 		const positions = [
-			{ token: tokens.aUSDC,
-        percentage: BigNumber.from(400),
-        adapters: [
-          uniswapV3AdapterAddress,
-          aaveAdapterAddress
-        ],
-        path: [tokens.usdc] },
 			{ token: tokens.cUSDC,
-        percentage: BigNumber.from(600),
+        percentage: BigNumber.from(400),
         adapters: [
           uniswapV3AdapterAddress,
           compoundAdapterAddress
         ],
         path: [tokens.usdc]
+      },
+      { token: tokens.crvAAVEGauge,
+        percentage: BigNumber.from(400),
+        adapters: [
+          uniswapV2AdapterAddress,
+          aaveV2AdapterAddress,
+          curveLPAdapterAddress,
+          curveRewardsAdapterAddress
+        ],
+        path: [tokens.dai, tokens.aDAI, tokens.crvAAVE]
+      },
+      { token: tokens.yDAI,
+        percentage: BigNumber.from(200),
+        adapters: [
+          uniswapV2AdapterAddress,
+          yearnV2AdapterAddress
+        ],
+        path: [tokens.dai]
       }
 		]
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
@@ -200,8 +209,6 @@ describe('Estimator', function() {
 				{ value: depositAmount }
 			)
 		const receipt = await tx.wait()
-		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
@@ -213,7 +220,7 @@ describe('Estimator', function() {
   })
 
   it('Should estimate withdraw', async function() {
-    const withdrawAmount = await strategy.balanceOf(accounts[1].address)
+    const withdrawAmount = (await strategy.balanceOf(accounts[1].address)).div(2)
     const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
     const totalSupply = await strategy.totalSupply()
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
