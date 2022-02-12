@@ -1,5 +1,6 @@
 import { EnsoBuilder, EnsoEnvironment } from './enso'
 import { Tokens } from './tokens'
+import { Estimator } from './estimator'
 import {
   StrategyItem,
   Item,
@@ -36,6 +37,7 @@ import {
 export {
   EnsoBuilder,
   EnsoEnvironment,
+  Estimator,
   Tokens,
   StrategyItem,
   Item,
