@@ -2,7 +2,7 @@ import chai from 'chai'
 const { expect } = chai
 import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -45,8 +45,8 @@ describe('CompoundAdapter', function () {
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
-		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle

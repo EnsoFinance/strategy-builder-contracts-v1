@@ -63,15 +63,15 @@ describe('SynthetixAdapter', function () {
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		seur = new Contract(tokens.sEUR, ERC20.abi, accounts[0])
-		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[10], uniswapFactory, weth, susd)
+		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth, susd)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await tokens.registerTokens(accounts[10], strategyFactory, curveDepositZapRegistry, chainlinkRegistry)
+		await tokens.registerTokens(accounts[10], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
 		const synthetixResolver = new Contract('0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83', IAddressResolver.abi, accounts[0]);
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])

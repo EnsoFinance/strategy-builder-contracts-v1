@@ -34,7 +34,7 @@ describe('StrategyProxyAdmin', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, weth)
+		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		whitelist = platform.administration.whitelist

@@ -5,7 +5,7 @@ chai.use(solidity)
 
 const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners} = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -112,7 +112,7 @@ describe('Weird ERC20s', function () {
 		const weirdTokenContracts = weirdTokens.map((token) => token.contract)
 
 		uniswapFactory = await deployUniswapV2(accounts[10], weirdTokenContracts)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, weth)
+		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle

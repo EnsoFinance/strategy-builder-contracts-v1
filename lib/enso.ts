@@ -72,7 +72,7 @@ export class EnsoBuilder {
 			slippage: 995,
 			timelock: 60,
 			numTokens: 15,
-			wethSupply: wethPerToken(15),
+			wethSupply: wethPerToken(100),
 		} as Defaults
 	}
 	public mainnet() {
@@ -206,7 +206,7 @@ export class EnsoBuilder {
 				if (this.tokens === undefined) throw Error('Failed to deploy erc20 tokens')
 				uniswapV2Factory = await deployUniswapV2(this.signer, this.tokens);
 				[uniswapV3Factory, ] = await deployUniswapV3(this.signer, this.tokens)
-				uniswapV3Router = await waffle.deployContract(this.signer, UniswapV3Router, [uniswapV3Factory.address, weth.address])
+				uniswapV3Router = await waffle.deployContract(this.signer, UniswapV3Router, [uniswapV3Factory.address, this.tokens[0].address])
 				break
 			case Networks.Mainnet:
 				this.tokens[0] = new Contract(MAINNET_ADDRESSES.WETH, WETH9.abi, this.signer)

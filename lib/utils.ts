@@ -9,7 +9,7 @@ export const FEE = 997
 export const DIVISOR = 1000
 export const UNI_V3_FEE = 3000
 export const ORACLE_TIME_WINDOW = 1
-export const DEFAULT_DEPOSIT_SLIPPAGE = 995
+export const DEFAULT_DEPOSIT_SLIPPAGE = 990
 
 export const MAINNET_ADDRESSES = {
 	WETH: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',

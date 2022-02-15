@@ -4,7 +4,7 @@ import BigNumJs from 'bignumber.js'
 const { ethers, waffle } = hre
 const provider = waffle.provider
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther, MaxUint256 } = constants
+const { AddressZero, WeiPerEther, MaxUint256 } = constants
 import { solidity } from 'ethereum-waffle'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -48,7 +48,7 @@ describe('StrategyToken Fees', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, weth)
+		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle

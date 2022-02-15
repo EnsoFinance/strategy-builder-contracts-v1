@@ -20,7 +20,7 @@ import { prepareFlashLoan }  from '../lib/cookbook'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 
 const NUM_TOKENS = 4
 
@@ -48,7 +48,7 @@ describe('Flash Loan', function () {
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
 		sushiFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle

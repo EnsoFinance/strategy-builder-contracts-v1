@@ -47,7 +47,7 @@ describe('StrategyController', function () {
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(owner, tokens)
-		platform = await deployPlatform(owner, uniswapFactory, weth)
+		platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle

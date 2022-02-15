@@ -7,7 +7,7 @@ import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/en
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 const NUM_TOKENS = 3
 
 
@@ -35,7 +35,7 @@ describe('BalancerAdapter', function () {
 		weth = tokens[0]
 		;[balancerFactory, balancerRegistry] = await deployer.deployBalancer(accounts[0], tokens)
 		uniswapFactory = await deployer.deployUniswapV2(accounts[0], tokens)
-		const platform = await deployer.deployPlatform(accounts[0], uniswapFactory, weth)
+		const platform = await deployer.deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
