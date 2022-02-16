@@ -209,9 +209,10 @@ export class Tokens {
 			await chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', false);
 		}
 		if (curveDepositZapRegistry) {
-			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851');
-			await curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940');
-			await curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06');
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851', 0);
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940', 0);
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06', 0);
+			await curveDepositZapRegistry.connect(owner).addZap(this.crv3Crypto, '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46', 1);
 		}
   }
 }

@@ -17,6 +17,11 @@ contract CurveLPAdapter is BaseAdapter {
 
     ICurveAddressProvider public immutable addressProvider;
     ICurveDepositZapRegistry public immutable zapRegistry;
+    address public constant TRICRYPTO2 = 0xc4AD29ba4B3c580e6D59105FFf484999997675Ff;
+    address public constant TRICRYPTO2_POOL = 0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
+    address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address private constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+    address private constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
     constructor(
         address addressProvider_,
@@ -64,6 +69,14 @@ contract CurveLPAdapter is BaseAdapter {
                 }
                 if (isWithdraw) return _withdrawPrice(amount, tokenIn, tokenOut, poolIn, withdrawCoins);
             }
+        } else if (tokenIn == TRICRYPTO2 || tokenOut == TRICRYPTO2) {
+            // tricrypto not in registry
+            address[8] memory coins;
+            coins[0] = USDT;
+            coins[1] = WBTC;
+            coins[2] = WETH;
+            if (tokenIn == TRICRYPTO2) return _withdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
+            if (tokenOut == TRICRYPTO2) return _depositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins);
         } else {
             return 0;
         }
@@ -112,6 +125,14 @@ contract CurveLPAdapter is BaseAdapter {
                 }
                 if (isWithdraw) _withdraw(amount, tokenIn, tokenOut, poolIn, withdrawCoins);
             }
+        } else if (tokenIn == TRICRYPTO2 || tokenOut == TRICRYPTO2) {
+            // tricrypto not in registry
+            address[8] memory coins;
+            coins[0] = USDT;
+            coins[1] = WBTC;
+            coins[2] = WETH;
+            if (tokenIn == TRICRYPTO2) return _withdraw(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
+            if (tokenOut == TRICRYPTO2) return _deposit(amount, tokenIn, TRICRYPTO2_POOL, coins);
         } else {
             revert();
         }
@@ -172,7 +193,14 @@ contract CurveLPAdapter is BaseAdapter {
           }
         }
         IERC20(tokenIn).approve(zap, amount);
-        ICurveDeposit(zap).remove_liquidity_one_coin(amount, tokenIndex, 1);
+        uint256 indexType = zapRegistry.getIndexType(zap);
+        if (indexType == 0) { //int128
+          ICurveDeposit(zap).remove_liquidity_one_coin(amount, tokenIndex, 1);
+        } else if (indexType == 1) { //uint256
+          ICurveDeposit(zap).remove_liquidity_one_coin(amount, uint256(tokenIndex), 1);
+        } else {
+          return revert("Unknown index type");
+        }
     }
 
     function _depositPrice(
@@ -224,6 +252,13 @@ contract CurveLPAdapter is BaseAdapter {
               break;
           }
         }
-        return ICurveDeposit(zap).calc_withdraw_one_coin(amount, tokenIndex);
+        uint256 indexType = zapRegistry.getIndexType(zap);
+        if (indexType == 0) { //int128
+          return ICurveDeposit(zap).calc_withdraw_one_coin(amount, tokenIndex);
+        } else if (indexType == 1) { //uint256
+          return ICurveDeposit(zap).calc_withdraw_one_coin(amount, uint256(tokenIndex));
+        } else {
+          revert("Unknown index type");
+        }
     }
 }
