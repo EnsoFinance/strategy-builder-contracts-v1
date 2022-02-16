@@ -60,5 +60,5 @@ export declare class Tokens {
     debtWBTC: string;
     debtWETH: string;
     constructor();
-    registerTokens(owner: SignerWithAddress, strategyFactory: Contract, curveDepositZapRegistry?: Contract, chainlinkRegistry?: Contract): Promise<void>;
+    registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract): Promise<void>;
 }

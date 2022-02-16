@@ -6,17 +6,6 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "weth_",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "uint256",
           "name": "amount",
           "type": "uint256"

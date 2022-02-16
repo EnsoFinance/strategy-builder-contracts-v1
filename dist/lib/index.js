@@ -1,11 +1,13 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.linkBytecode = exports.createLink = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeUniswapPairSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.calculateAddress = exports.prepareStrategy = exports.Tokens = exports.EnsoEnvironment = exports.EnsoBuilder = void 0;
+exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.linkBytecode = exports.createLink = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeUniswapPairSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.calculateAddress = exports.prepareStrategy = exports.Tokens = exports.Estimator = exports.EnsoEnvironment = exports.EnsoBuilder = void 0;
 var enso_1 = require("./enso");
 Object.defineProperty(exports, "EnsoBuilder", { enumerable: true, get: function () { return enso_1.EnsoBuilder; } });
 Object.defineProperty(exports, "EnsoEnvironment", { enumerable: true, get: function () { return enso_1.EnsoEnvironment; } });
 var tokens_1 = require("./tokens");
 Object.defineProperty(exports, "Tokens", { enumerable: true, get: function () { return tokens_1.Tokens; } });
+var estimator_1 = require("./estimator");
+Object.defineProperty(exports, "Estimator", { enumerable: true, get: function () { return estimator_1.Estimator; } });
 var encode_1 = require("./encode");
 Object.defineProperty(exports, "prepareStrategy", { enumerable: true, get: function () { return encode_1.prepareStrategy; } });
 Object.defineProperty(exports, "calculateAddress", { enumerable: true, get: function () { return encode_1.calculateAddress; } });

@@ -105,10 +105,10 @@ var Tokens = /** @class */ (function () {
         this.ycrv3Crypto = '0xE537B5cc158EB71037D4125BDD7538421981E6AA';
         this.ycrvUSDP = '0xC4dAf3b5e2A9e93861c3FBDd25f1e943B8D87417';
         this.ycrvSUSD = '0x5a770DbD3Ee6bAF2802D29a901Ef11501C44797A';
-        this.yDAI = '0x19D3364A399d251E894aC732651be8B0E4e85001';
-        this.yUSDC = '0xd6aD7a6750A7593E092a9B218d66C0A814a3436e';
+        this.yDAI = '0xdA816459F1AB5631232FE5e97a05BBBb94970c95';
+        this.yUSDC = '0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE';
     }
-    Tokens.prototype.registerTokens = function (owner, strategyFactory, curveDepositZapRegistry, chainlinkRegistry) {
+    Tokens.prototype.registerTokens = function (owner, strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
@@ -157,52 +157,71 @@ var Tokens = /** @class */ (function () {
                             strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
                             strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
                             strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI),
+                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC),
                             strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
                         ])];
                     case 1:
                         _a.sent();
-                        if (!curveDepositZapRegistry) return [3 /*break*/, 5];
-                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851')];
+                        if (!uniswapV3Registry) return [3 /*break*/, 7];
+                        return [4 /*yield*/, uniswapV3Registry.connect(owner).addPool(this.wbtc, this.weth, '3000')]; //0.3%
                     case 2:
-                        _a.sent();
-                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940')];
+                        _a.sent(); //0.3%
+                        return [4 /*yield*/, uniswapV3Registry.connect(owner).addPool(this.usdc, this.weth, '3000')]; //0.3%
                     case 3:
-                        _a.sent();
-                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06')];
+                        _a.sent(); //0.3%
+                        return [4 /*yield*/, uniswapV3Registry.connect(owner).addPool(this.usdt, this.weth, '3000')]; //0.3%
                     case 4:
-                        _a.sent();
-                        _a.label = 5;
+                        _a.sent(); //0.3%
+                        return [4 /*yield*/, uniswapV3Registry.connect(owner).addPool(this.dai, this.weth, '3000')]; //0.3%
                     case 5:
-                        if (!chainlinkRegistry) return [3 /*break*/, 15];
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true)];
+                        _a.sent(); //0.3%
+                        return [4 /*yield*/, uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000')]; //1%
                     case 6:
-                        _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sEUR, this.sUSD, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false)];
+                        _a.sent(); //1%
+                        _a.label = 7;
                     case 7:
-                        _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sLINK, this.weth, '0xDC530D9457755926550b59e8ECcdaE7624181557', false)];
+                        if (!chainlinkRegistry) return [3 /*break*/, 17];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true)];
                     case 8:
                         _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.knc, this.sUSD, '0xf8ff43e991a81e6ec886a3d281a2c6cc19ae70fc', false)];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sEUR, this.sUSD, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false)];
                     case 9:
                         _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sETH, this.sUSD, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', false)];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sLINK, this.weth, '0xDC530D9457755926550b59e8ECcdaE7624181557', false)];
                     case 10:
                         _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sAAVE, this.weth, '0x6df09e975c830ecae5bd4ed9d90f3a95a4f88012', false)];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.knc, this.sUSD, '0xf8ff43e991a81e6ec886a3d281a2c6cc19ae70fc', false)];
                     case 11:
                         _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sBTC, this.weth, '0xdeb288f737066589598e9214e782fa5a8ed689e8', false)];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sETH, this.sUSD, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', false)];
                     case 12:
                         _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sDOT, this.sUSD, '0x1c07afb8e2b827c5a4739c6d59ae3a5035f28734', false)];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sAAVE, this.weth, '0x6df09e975c830ecae5bd4ed9d90f3a95a4f88012', false)];
                     case 13:
                         _a.sent();
-                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', false)];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sBTC, this.weth, '0xdeb288f737066589598e9214e782fa5a8ed689e8', false)];
                     case 14:
                         _a.sent();
-                        _a.label = 15;
-                    case 15: return [2 /*return*/];
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sDOT, this.sUSD, '0x1c07afb8e2b827c5a4739c6d59ae3a5035f28734', false)];
+                    case 15:
+                        _a.sent();
+                        return [4 /*yield*/, chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', false)];
+                    case 16:
+                        _a.sent();
+                        _a.label = 17;
+                    case 17:
+                        if (!curveDepositZapRegistry) return [3 /*break*/, 21];
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851')];
+                    case 18:
+                        _a.sent();
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940')];
+                    case 19:
+                        _a.sent();
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06')];
+                    case 20:
+                        _a.sent();
+                        _a.label = 21;
+                    case 21: return [2 /*return*/];
                 }
             });
         });

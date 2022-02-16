@@ -6,11 +6,17 @@ export declare type EnsoAdapters = {
     aavelend: Adapter;
     aaveborrow: Adapter;
     balancer: Adapter;
+    compound: Adapter;
     curve: Adapter;
+    curveLP: Adapter;
+    curveRewards: Adapter;
     leverage: Adapter;
     synthetix: Adapter;
     metastrategy: Adapter;
     uniswap: Adapter;
+    uniswapV2: Adapter;
+    uniswapV3: Adapter;
+    yearnV2: Adapter;
 };
 export declare class EnsoBuilder {
     signer: SignerWithAddress;
@@ -34,10 +40,10 @@ export declare class EnsoEnvironment {
     platform: Platform;
     adapters: EnsoAdapters;
     routers: Router[];
-    uniswap: Contract;
+    uniswapV2Factory: Contract;
     tokens: Contract[];
     balancer?: Balancer;
-    constructor(signer: SignerWithAddress, defaults: Defaults, platform: Platform, adapters: EnsoAdapters, routers: Router[], uniswap: Contract, tokens: Contract[], balancer?: Balancer);
+    constructor(signer: SignerWithAddress, defaults: Defaults, platform: Platform, adapters: EnsoAdapters, routers: Router[], uniswapV2Factory: Contract, tokens: Contract[], balancer?: Balancer);
 }
 export declare class Balancer {
     factory: Contract;
@@ -57,20 +63,26 @@ export declare type Defaults = {
     wethSupply: BigNumber;
 };
 export declare enum Adapters {
+    AaveLend = "aavelend",
+    AaveBorrow = "aaveborrow",
     Balancer = "balancer",
+    Compound = "compound",
     Curve = "curve",
+    CurveLP = "curvelp",
+    CurveRewards = "curverewards",
+    Leverage = "leverage",
     MetaStrategy = "metastrategy",
     Synthetix = "synthetix",
     Uniswap = "uniswap",
-    AaveLend = "aavelend",
-    AaveBorrow = "aaveborrow",
-    Leverage = "leverage"
+    UniswapV2 = "uniswapv2",
+    UniswapV3 = "uniswapv3",
+    YEarnV2 = "yearnv2"
 }
 export declare class Adapter {
     type: Adapters;
     contract?: Contract;
     constructor(adapterType: string);
-    deploy(signer: SignerWithAddress, platform: Platform, adapterTargetFactory: Contract, weth: Contract, adapters?: EnsoAdapters): Promise<void>;
+    deploy(signer: SignerWithAddress, whitelist: Contract, parameters: Contract[]): Promise<void>;
 }
 export declare enum Routers {
     Generic = 0,

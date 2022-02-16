@@ -8,7 +8,9 @@ export declare const MAINNET_ADDRESSES: {
     WETH: string;
     SUSD: string;
     USDC: string;
-    UNISWAP: string;
+    UNISWAP_V2_FACTORY: string;
+    UNISWAP_V3_FACTORY: string;
+    UNISWAP_V3_ROUTER: string;
     BALANCER_REGISTRY: string;
     BALANCER_FACTORY: string;
     AAVE_ADDRESS_PROVIDER: string;

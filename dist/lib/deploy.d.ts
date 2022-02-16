@@ -31,10 +31,10 @@ export declare function deployBalancer(owner: SignerWithAddress, tokens: Contrac
 export declare function deployBalancerAdapter(owner: SignerWithAddress, balancerRegistry: Contract, weth: Contract): Promise<Contract>;
 export declare function deployUniswapV2(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract>;
 export declare function deployUniswapV3(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract[]>;
-export declare function deployPlatform(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract, susd?: Contract, feePool?: string): Promise<Platform>;
-export declare function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract>;
-export declare function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswapFactory: Contract, weth: Contract): Promise<Contract>;
-export declare function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapFactory: Contract, uniswapRouter: Contract, weth: Contract): Promise<Contract>;
+export declare function deployPlatform(owner: SignerWithAddress, uniswapOracleFactory: Contract, uniswapV3Factory: Contract, weth: Contract, susd?: Contract, feePool?: string): Promise<Platform>;
+export declare function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract>;
+export declare function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract>;
+export declare function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapV3Factory: Contract, uniswapRouter: Contract, weth: Contract): Promise<Contract>;
 export declare function deployMetaStrategyAdapter(owner: SignerWithAddress, controller: Contract, router: Contract, weth: Contract): Promise<Contract>;
 export declare function deployAaveLendAdapter(owner: SignerWithAddress, addressProvider: Contract, strategyController: Contract, weth: Contract): Promise<Contract>;
 export declare function deployAaveBorrowAdapter(owner: SignerWithAddress, addressProvider: Contract, weth: Contract): Promise<Contract>;
