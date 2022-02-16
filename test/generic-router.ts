@@ -24,7 +24,7 @@ import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from '../lib/utils'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 
 const NUM_TOKENS = 15
 
@@ -54,7 +54,7 @@ describe('GenericRouter', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -336,6 +336,7 @@ describe('GenericRouter', function () {
 	})
 
 	it('Should fail to withdraw: too much slippage', async function () {
+		const amount = await strategy.balanceOf(accounts[1].address)
 		const calls = (await Promise.all(tokens.map(async (token) => {
 			const balance = await token.balanceOf(strategy.address)
 			if (balance.gt(0)) {
@@ -344,9 +345,10 @@ describe('GenericRouter', function () {
 				return null
 			}
 		}))).filter(call => call)
+		calls.pop() // Remove a token transfer to leave some funds in Strategy (otherwise we encounter a sutraction overlow since more funds are removed than weth owed)
 		const data = await genericRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).withdrawWETH(strategy.address, genericRouter.address, 1, DEFAULT_DEPOSIT_SLIPPAGE, data)
+			controller.connect(accounts[1]).withdrawWETH(strategy.address, genericRouter.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, data)
 		).to.be.revertedWith('Too much slippage')
 	})
 

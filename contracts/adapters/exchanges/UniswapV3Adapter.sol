@@ -1,16 +1,15 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 import "../../interfaces/uniswap/ISwapRouter.sol";
 import "../BaseAdapter.sol";
 
 contract UniswapV3Adapter is BaseAdapter {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     IUniswapV3Factory public immutable factory;
@@ -36,13 +35,8 @@ contract UniswapV3Adapter is BaseAdapter {
           registry.getFee(tokenIn, tokenOut)
         );
         if (pool != address(0)) {
-            (uint160 sqrtPriceX96,,,,,,) =  IUniswapV3Pool(pool).slot0();
-            uint256 ratio = uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96)).mul(10**18) >> (96 * 2);
-            if (tokenIn > tokenOut) {
-                return amount.mul(10**18).div(ratio);
-            } else {
-                return amount.mul(ratio).div(10**18);
-            }
+            ( , int24 tick, , , , , ) =  IUniswapV3Pool(pool).slot0();
+            return OracleLibrary.getQuoteAtTick(tick, uint128(amount), tokenIn, tokenOut);
         }
         return 0;
     }

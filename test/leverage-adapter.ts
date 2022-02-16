@@ -27,7 +27,8 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
-const { getContractFactory, getSigners } = ethers
+const { constants, getContractFactory, getSigners } = ethers
+const { AddressZero } = constants
 
 describe('Leverage2XAdapter', function () {
 	let tokens: Tokens,
@@ -54,8 +55,8 @@ describe('Leverage2XAdapter', function () {
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
-		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, weth)
+		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle

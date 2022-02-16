@@ -52,9 +52,9 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 		dai = new Contract(tokens.dai, ERC20.abi, accounts[0])
-		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
+		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const susd =  new Contract(tokens.sUSD, ERC20.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, weth, susd)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, susd)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
@@ -62,7 +62,7 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		library = platform.library
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await tokens.registerTokens(accounts[0], strategyFactory, curveDepositZapRegistry, chainlinkRegistry)
+		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		router = await deployLoopRouter(accounts[0], controller, library)

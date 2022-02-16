@@ -1,10 +1,11 @@
 import chai from 'chai'
 const { expect } = chai
 import { ethers } from 'hardhat'
-import {  BigNumber, Event } from 'ethers'
-const {  getContractFactory, getSigners } = ethers
+import { BigNumber, Event } from 'ethers'
+const { constants, getContractFactory, getSigners } = ethers
+const { AddressZero } = constants
 import { solidity } from 'ethereum-waffle'
-import {  Contract } from 'ethers'
+import { Contract } from 'ethers'
 import { Tokens } from '../lib/tokens'
 import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES } from '../lib/utils'
 import { prepareStrategy, InitialState } from '../lib/encode'
@@ -29,9 +30,9 @@ describe('TokenRegistry', function () {
 		this.weth = new Contract(this.tokens.weth, WETH9.abi, this.accounts[0])
 		this.crv = new Contract(this.tokens.crv, ERC20.abi, this.accounts[0])
 		this.dai = new Contract(this.tokens.dai, ERC20.abi, this.accounts[0])
-		this.uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, this.accounts[0])
+		this.uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, this.accounts[0])
 		const susd =  new Contract(this.tokens.sUSD, ERC20.abi, this.accounts[0])
-		const platform = await deployPlatform(this.accounts[0], this.uniswapFactory, this.weth, susd)
+		const platform = await deployPlatform(this.accounts[0], this.uniswapFactory, new Contract(AddressZero, [], this.accounts[0]), this.weth, susd)
 		this.factory = platform.strategyFactory
 		this.controller = platform.controller
 		this.oracle = platform.oracles.ensoOracle
@@ -40,7 +41,7 @@ describe('TokenRegistry', function () {
 		this.tokenRegistry = platform.oracles.registries.tokenRegistry
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await this.tokens.registerTokens(this.accounts[0], this.factory, curveDepositZapRegistry, chainlinkRegistry)
+		await this.tokens.registerTokens(this.accounts[0], this.factory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.accounts[0])
 		this.router = await deployLoopRouter(this.accounts[0], this.controller, this.library)

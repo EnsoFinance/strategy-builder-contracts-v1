@@ -18,11 +18,11 @@ describe('SDK', function () {
 	})
 	it('deploy platform with defaults', async () => {
 		mainnetForkEnso = await new EnsoBuilder(accounts[1]).build()
-		expect(mainnetForkEnso.uniswap.address.toLowerCase()).to.eq(utils.MAINNET_ADDRESSES.UNISWAP.toLowerCase())
+		expect(mainnetForkEnso.uniswapV2Factory.address.toLowerCase()).to.eq(utils.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase())
 	})
 	it('deploy platform with testnet defaults', async () => {
 		localTestnetEnso = await new EnsoBuilder(accounts[1]).testnet().build()
-		expect(localTestnetEnso.uniswap.address.toLowerCase()).to.not.eq(utils.MAINNET_ADDRESSES.UNISWAP.toLowerCase())
+		expect(localTestnetEnso.uniswapV2Factory.address.toLowerCase()).to.not.eq(utils.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase())
 	})
 	it('deploy platform with leverage adapter', async () => {
 		const builder = new EnsoBuilder(accounts[1])

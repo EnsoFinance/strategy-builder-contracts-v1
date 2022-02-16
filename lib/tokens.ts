@@ -137,11 +137,11 @@ export class Tokens {
 		this.ycrv3Crypto = '0xE537B5cc158EB71037D4125BDD7538421981E6AA'
     this.ycrvUSDP = '0xC4dAf3b5e2A9e93861c3FBDd25f1e943B8D87417'
 		this.ycrvSUSD = '0x5a770DbD3Ee6bAF2802D29a901Ef11501C44797A'
-    this.yDAI = '0x19D3364A399d251E894aC732651be8B0E4e85001'
-		this.yUSDC = '0xd6aD7a6750A7593E092a9B218d66C0A814a3436e'
+    this.yDAI = '0xdA816459F1AB5631232FE5e97a05BBBb94970c95'
+		this.yUSDC = '0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE'
   }
 
-  async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, curveDepositZapRegistry?: Contract, chainlinkRegistry?: Contract) {
+  async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract) {
     await Promise.all([
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
@@ -187,12 +187,15 @@ export class Tokens {
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
     ])
-		if (curveDepositZapRegistry) {
-			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851');
-			await curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940');
-			await curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06');
+		if (uniswapV3Registry) {
+			await uniswapV3Registry.connect(owner).addPool(this.wbtc, this.weth, '3000') //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.usdc, this.weth, '3000') //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.usdt, this.weth, '3000') //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.dai, this.weth, '3000') //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000') //1%
 		}
 		if (chainlinkRegistry) {
 			await chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
@@ -204,6 +207,11 @@ export class Tokens {
 			await chainlinkRegistry.connect(owner).addOracle(this.sBTC, this.weth, '0xdeb288f737066589598e9214e782fa5a8ed689e8', false);
 			await chainlinkRegistry.connect(owner).addOracle(this.sDOT, this.sUSD, '0x1c07afb8e2b827c5a4739c6d59ae3a5035f28734', false);
 			await chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', false);
+		}
+		if (curveDepositZapRegistry) {
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851');
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940');
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06');
 		}
   }
 }

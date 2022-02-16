@@ -2,7 +2,7 @@ import chai from 'chai'
 const { expect } = chai
 import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -50,8 +50,8 @@ describe('Experimental Strategy', function () {
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
-		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, weth, new Contract(tokens.sUSD, ERC20.abi, accounts[0]))
+		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, new Contract(tokens.sUSD, ERC20.abi, accounts[0]))
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -61,7 +61,7 @@ describe('Experimental Strategy', function () {
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await tokens.registerTokens(accounts[0], strategyFactory, curveDepositZapRegistry, chainlinkRegistry)
+		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
 		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)

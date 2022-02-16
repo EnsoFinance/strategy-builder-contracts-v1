@@ -25,7 +25,7 @@ let tokens: Contract[],
 		accounts: SignerWithAddress[],
 		oracle: Contract,
 		registry: Contract,
-		uniswapFactory: Contract,
+		uniswapV3Factory: Contract,
 		uniswapNFTManager: Contract,
 		uniswapRouter: Contract,
 		trader: SignerWithAddress
@@ -59,7 +59,7 @@ async function exactInput(
 }
 
 async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
-	const poolAddress = await uniswapFactory.getPool(weth.address, input, UNI_V3_FEE)
+	const poolAddress = await uniswapV3Factory.getPool(weth.address, input, UNI_V3_FEE)
 	const pool = new Contract(poolAddress, JSON.stringify(UniswapV3Pool.abi), provider)
 	const [tickCumulatives, ] = await pool.observe([ORACLE_TIME_WINDOW, 0])
 	const tick = bn(tickCumulatives[1].toString()).minus(tickCumulatives[0].toString()).dividedBy(ORACLE_TIME_WINDOW)
@@ -86,9 +86,9 @@ describe('UniswapV3Oracle', function() {
 		tokens.push(token2)
 		weth = tokens[0]
 
-		;[uniswapFactory, uniswapNFTManager] = await deployUniswapV3(trader, tokens)
-		uniswapRouter = await deployContract(trader, SwapRouter, [uniswapFactory.address, weth.address])
-		//uniswapQuoter = await deployContract(trader, Quoter, [uniswapFactory.address, weth.address])
+		;[uniswapV3Factory, uniswapNFTManager] = await deployUniswapV3(trader, tokens)
+		uniswapRouter = await deployContract(trader, SwapRouter, [uniswapV3Factory.address, weth.address])
+		//uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
 
 		nonWethPair = await deployContract(trader, ERC20, [WeiPerEther.mul(10000)])
 		// Create non weth pool
@@ -117,7 +117,7 @@ describe('UniswapV3Oracle', function() {
 		})
 
 		const Registry = await getContractFactory('UniswapV3Registry')
-		registry = await Registry.connect(trader).deploy(ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address)
+		registry = await Registry.connect(trader).deploy(ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address)
 		await registry.deployed()
 		const Oracle = await getContractFactory('UniswapV3Oracle')
 		oracle = await Oracle.connect(trader).deploy(registry.address, weth.address)
@@ -128,7 +128,7 @@ describe('UniswapV3Oracle', function() {
 		await registry.addPool(tokens[1].address, weth.address, UNI_V3_FEE)
 		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
-		expect(pool).to.equal(await uniswapFactory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
+		expect(pool).to.equal(await uniswapV3Factory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
 	})
 
 	it('Should get empty pool', async function() {

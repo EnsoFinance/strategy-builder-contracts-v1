@@ -486,11 +486,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(totalAfter > totalBefore, "Lost value");
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
-        require(
-            valueAdded >=
-                amount.mul(slippage).div(DIVISOR),
-            "Too much slippage"
-        );
+        _checkSlippage(valueAdded, amount, slippage);
         uint256 totalSupply = strategy.totalSupply();
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
@@ -517,34 +513,50 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
-        uint256 totalSupply = strategy.totalSupply();
-        wethAmount = totalBefore.mul(amount).div(totalSupply);
-        // Deduct fee and burn strategy tokens
-        amount = strategy.burn(msg.sender, amount);
         {
+            uint256 totalSupply = strategy.totalSupply();
+            // Deduct fee and burn strategy tokens
+            amount = strategy.burn(msg.sender, amount);
+            wethAmount = totalBefore.mul(amount).div(totalSupply);
             // Setup data
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
                 uint256 percentage = amount.mul(10**18).div(totalSupply);
                 data = abi.encode(percentage, totalBefore, estimatesBefore);
             }
-            // Approve items
-            _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
-            // Withdraw
-            router.withdraw(address(strategy), data);
-            // Revoke items approval
-            _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
         }
+        // Approve items
+        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
+        // Withdraw
+        router.withdraw(address(strategy), data);
+        // Revoke items approval
+        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
         // Check value and balance
         (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
-        require(
-            totalAfter >= totalBefore.mul(slippage).div(DIVISOR),
-            "Too much slippage"
-        );
-        wethAmount = wethAmount.sub(totalBefore.sub(totalAfter)); // remove slippage from expected weth
+        {
+            // Calculate weth amount
+            weth = _weth;
+            uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
+            uint256 wethAfterSlippage;
+            if (totalBefore > totalAfter) {
+              uint256 slippage = totalBefore.sub(totalAfter);
+              if (slippage > wethAmount) revert("Too much slippage");
+              wethAfterSlippage = wethAmount.sub(slippage); // Subtract value loss from weth owed
+            } else {
+              // Value has increased, no slippage to subtract
+              wethAfterSlippage = wethAmount;
+            }
+            if (wethAfterSlippage > wethBalance) {
+                // If strategy's weth balance is less than weth owed, use balance as weth owed
+                _checkSlippage(wethBalance, wethAmount, slippage);
+                wethAmount = wethBalance;
+            } else {
+                _checkSlippage(wethAfterSlippage, wethAmount, slippage);
+                wethAmount = wethAfterSlippage;
+            }
+        }
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
         // Approve weth amount
-        weth = _weth;
-        strategy.approveToken(_weth, address(this), wethAmount);
+        strategy.approveToken(weth, address(this), wethAmount);
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
@@ -566,11 +578,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");
-        require(
-            totalAfter >=
-                totalBefore.mul(_strategyStates[address(strategy)].rebalanceSlippage).div(DIVISOR),
-            "Too much slippage"
-        );
+        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         return totalAfter;
@@ -627,11 +635,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");
-        require(
-            totalAfter >=
-                totalBefore.mul(_strategyStates[address(strategy)].restructureSlippage).div(DIVISOR),
-            "Too much slippage"
-        );
+        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
     }
 
@@ -686,6 +690,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
               _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
         }
+    }
+
+    function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
+      require(
+          slippedValue >= referenceValue.mul(slippage).div(DIVISOR),
+          "Too much slippage"
+      );
     }
 
     function _checkDivisor(uint256 value) private pure {

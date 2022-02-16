@@ -19,7 +19,7 @@ import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/utils'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { WeiPerEther, MaxUint256 } = constants
+const { AddressZero, WeiPerEther, MaxUint256 } = constants
 
 const NUM_TOKENS = 3
 const STRATEGY_STATE: InitialState = {
@@ -66,7 +66,7 @@ describe('UniswapV2LPAdapter', function () {
 		await tokens[2].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
 		await pair.connect(owner).mint(owner.address)
 
-		const platform = await deployPlatform(owner, uniswapFactory, weth)
+		const platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle

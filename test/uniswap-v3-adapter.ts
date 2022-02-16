@@ -29,7 +29,7 @@ let tokens: Contract[],
 		strategy: Contract,
 		wrapper: Contract,
 		uniswapRegistry: Contract,
-		uniswapFactory: Contract,
+		uniswapV3Factory: Contract,
 		uniswapRouter: Contract,
 		uniswapQuoter: Contract,
 		owner: SignerWithAddress,
@@ -77,12 +77,12 @@ describe('UniswapV3Adapter', function() {
 		//tokens.push(token2)
 		weth = tokens[0]
 
-		;[uniswapFactory, ] = await deployUniswapV3(owner, tokens)
+		;[uniswapV3Factory, ] = await deployUniswapV3(owner, tokens)
 
-		uniswapRouter = await deployContract(owner, SwapRouter, [uniswapFactory.address, weth.address])
+		uniswapRouter = await deployContract(owner, SwapRouter, [uniswapV3Factory.address, weth.address])
 
 		const UniswapV3Registry = await getContractFactory('UniswapV3Registry')
-		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address)
+		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address)
 		await uniswapRegistry.deployed()
 
 		const UniswapOracle = await getContractFactory('UniswapV3Oracle')
@@ -156,14 +156,14 @@ describe('UniswapV3Adapter', function() {
 
 		await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
-		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapFactory, uniswapRouter, weth)
+		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapV3Factory, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
 		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(owner).approve(router.address)
 
 
-		uniswapQuoter = await deployContract(trader, Quoter, [uniswapFactory.address, weth.address])
+		uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
 	})
 
 	it('Should initialize all tokens', async function() {
