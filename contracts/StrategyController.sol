@@ -538,9 +538,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
             uint256 wethAfterSlippage;
             if (totalBefore > totalAfter) {
-              uint256 slippage = totalBefore.sub(totalAfter);
-              if (slippage > wethAmount) revert("Too much slippage");
-              wethAfterSlippage = wethAmount.sub(slippage); // Subtract value loss from weth owed
+              uint256 slippageAmount = totalBefore.sub(totalAfter);
+              if (slippageAmount > wethAmount) revert("Too much slippage");
+              wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
             } else {
               // Value has increased, no slippage to subtract
               wethAfterSlippage = wethAmount;
