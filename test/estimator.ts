@@ -181,14 +181,14 @@ describe('Estimator', function() {
         ],
         path: [tokens.dai, tokens.aDAI, tokens.crvAAVE]
       },
-      { token: tokens.ycrv3Crypto,
+      { token: tokens.ycrvTriCrypto2,
         percentage: BigNumber.from(200),
         adapters: [
           uniswapV2AdapterAddress,
           curveLPAdapterAddress,
           yearnV2AdapterAddress
         ],
-        path: [tokens.wbtc, tokens.crv3Crypto]
+        path: [tokens.wbtc, tokens.crvTriCrypto2]
       }
 		]
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)

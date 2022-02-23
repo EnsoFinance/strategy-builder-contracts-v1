@@ -89,9 +89,9 @@ describe('Experimental Strategy', function () {
 			{ token: tokens.debtWETH,
 				percentage: BigNumber.from(-400),
 				adapters: [aaveBorrowAdapter.address, curveLPAdapter.address, yearnAdapter.address],
-				path: [tokens.weth, tokens.crv3Crypto, tokens.ycrv3Crypto]
+				path: [tokens.weth, tokens.crvTriCrypto2, tokens.ycrvTriCrypto2]
 			},
-			{ token: tokens.ycrv3Crypto,
+			{ token: tokens.ycrvTriCrypto2,
 				percentage: BigNumber.from(400),
 				adapters: [],
 				path: [],

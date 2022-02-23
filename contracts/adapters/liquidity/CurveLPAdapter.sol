@@ -131,8 +131,8 @@ contract CurveLPAdapter is BaseAdapter {
             coins[0] = USDT;
             coins[1] = WBTC;
             coins[2] = WETH;
-            if (tokenIn == TRICRYPTO2) return _withdraw(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
-            if (tokenOut == TRICRYPTO2) return _deposit(amount, tokenIn, TRICRYPTO2_POOL, coins);
+            if (tokenIn == TRICRYPTO2) _withdraw(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
+            if (tokenOut == TRICRYPTO2) _deposit(amount, tokenIn, TRICRYPTO2_POOL, coins);
         } else {
             revert();
         }
