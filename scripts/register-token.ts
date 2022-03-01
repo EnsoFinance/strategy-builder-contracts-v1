@@ -17,7 +17,7 @@ async function main() {
   const accounts = await hre.ethers.getSigners()
   const tokens = new Tokens()
   console.log("Registering tokens...")
-  await tokens.registerTokens(accounts[0], factory, curveRegistry, chainlinkRegistry)
+  await tokens.registerTokens(accounts[0], factory, undefined, chainlinkRegistry, curveRegistry)
   console.log("Tokens registered")
 }
 

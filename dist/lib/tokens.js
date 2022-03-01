@@ -210,18 +210,21 @@ var Tokens = /** @class */ (function () {
                         _a.sent();
                         _a.label = 17;
                     case 17:
-                        if (!curveDepositZapRegistry) return [3 /*break*/, 21];
-                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851')];
+                        if (!curveDepositZapRegistry) return [3 /*break*/, 22];
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851', 0)];
                     case 18:
                         _a.sent();
-                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940')];
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940', 0)];
                     case 19:
                         _a.sent();
-                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06')];
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06', 0)];
                     case 20:
                         _a.sent();
-                        _a.label = 21;
-                    case 21: return [2 /*return*/];
+                        return [4 /*yield*/, curveDepositZapRegistry.connect(owner).addZap(this.crv3Crypto, '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46', 1)];
+                    case 21:
+                        _a.sent();
+                        _a.label = 22;
+                    case 22: return [2 /*return*/];
                 }
             });
         });

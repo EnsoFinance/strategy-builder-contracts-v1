@@ -5,5 +5,6 @@ import 'solidity-coverage';
 import '@typechain/hardhat';
 import './tasks/accounts';
 import './tasks/clean';
+import "./tasks/addOwnerFunds";
 declare let config: HardhatUserConfig;
 export default config;

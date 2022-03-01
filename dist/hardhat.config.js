@@ -10,6 +10,7 @@ require("solidity-coverage");
 require("@typechain/hardhat");
 require("./tasks/accounts");
 require("./tasks/clean");
+require("./tasks/addOwnerFunds");
 dotenv_1.default.config();
 var chainIds = {
     ganache: 1337,

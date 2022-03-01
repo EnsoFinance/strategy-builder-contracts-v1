@@ -63,7 +63,7 @@ var EnsoBuilder = /** @class */ (function () {
             slippage: 995,
             timelock: 60,
             numTokens: 15,
-            wethSupply: exports.wethPerToken(15),
+            wethSupply: exports.wethPerToken(100),
         };
     }
     EnsoBuilder.prototype.mainnet = function () {
@@ -217,7 +217,7 @@ var EnsoBuilder = /** @class */ (function () {
                         return [4 /*yield*/, deploy_1.deployUniswapV3(this.signer, this.tokens)];
                     case 4:
                         uniswapV3Factory = (_6.sent())[0];
-                        return [4 /*yield*/, hardhat_1.waffle.deployContract(this.signer, SwapRouter_json_1.default, [uniswapV3Factory.address, weth.address])];
+                        return [4 /*yield*/, hardhat_1.waffle.deployContract(this.signer, SwapRouter_json_1.default, [uniswapV3Factory.address, this.tokens[0].address])];
                     case 5:
                         uniswapV3Router = _6.sent();
                         return [3 /*break*/, 9];
