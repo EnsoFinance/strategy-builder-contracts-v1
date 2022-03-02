@@ -3,7 +3,7 @@ export declare const FEE = 997;
 export declare const DIVISOR = 1000;
 export declare const UNI_V3_FEE = 3000;
 export declare const ORACLE_TIME_WINDOW = 1;
-export declare const DEFAULT_DEPOSIT_SLIPPAGE = 995;
+export declare const DEFAULT_DEPOSIT_SLIPPAGE = 990;
 export declare const MAINNET_ADDRESSES: {
     WETH: string;
     SUSD: string;
