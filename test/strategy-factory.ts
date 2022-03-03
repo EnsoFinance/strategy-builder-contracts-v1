@@ -208,7 +208,7 @@ describe('StrategyProxyFactory', function () {
 		await expect(strategyFactory.connect(accounts[1]).renounceOwnership()).to.be.revertedWith('Not owner')
 	})
 
-  it('Should should be initialized', async function () {
+  it('Should be initialized', async function () {
     // tl;dr since __gap isn't used, any additional entries to put in `StrategyTokenStorage`
     // will make it so that an upgrade to this `OtherStrategy` will put the "initialized"
     // storage variables in different slots, so that they will have "0" value ->> false
