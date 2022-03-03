@@ -189,15 +189,6 @@ describe('StrategyProxyFactory', function () {
 		).to.be.revertedWith('Only admin')
 	})
 
-	it('Should update implementation to version uint256.max()', async function () {
-		const version = await strategyFactory.version();
-		expect(await strategy.version()).to.eq(version);
-
-		await strategyFactory.connect(accounts[10]).updateImplementation(newImplementationAddress, MaxUint256.toString())
-		expect(await strategyFactory.implementation()).to.equal(newImplementationAddress)
-		expect(ethers.BigNumber.from(await strategyFactory.version()).eq(MaxUint256.toString())).to.equal(true)
-	})
-
 	it('Should fail to transfer ownership: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[2]).transferOwnership(accounts[2].address)).to.be.revertedWith(
 			'Not owner'
@@ -217,8 +208,42 @@ describe('StrategyProxyFactory', function () {
 		await expect(strategyFactory.connect(accounts[1]).renounceOwnership()).to.be.revertedWith('Not owner')
 	})
 
+	it('Should should be initialized', async function () {
+    // tl;dr since __gap isn't used, any additional entries to put in `StrategyTokenStorage`
+    // will make it so that an upgrade to this `OtherStrategy` will put the "initialized"
+    // storage variables in different slots, so that they will have "0" value ->> false
+    // meaning that an attacker can "back-run" an `updateImplementation` call with
+    // an `initialize` call to the `strategy` with their own parameters, specifically
+    // a "manager" address in their control.
+		const OtherStrategy = await getContractFactory('OtherStrategy')
+    let someAddress = accounts[8].address;
+    let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress);
+    
+		await	strategyFactory.connect(accounts[2]).updateImplementation(otherStrategy.address, '2');
+    let admin = await strategyFactory.admin();
+		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
+		let strategyAdmin = await StrategyAdmin.attach(admin)
+    await strategyAdmin.connect(accounts[1]).upgrade(strategy.address);
+
+    // now call initialize
+    let someMaliciousAddress = someAddress;
+    await expect(strategy.initialize("anyName", "anySymbol", "anyVersion", someMaliciousAddress, [])).to.be.revertedWith("Initializable: contract is already initialized");
+   
+	})
+
+	it('Should update implementation to version uint256.max()', async function () {
+		/*const version = await strategyFactory.version(); // TODO update this part of test
+		expect(await strategy.version()).to.eq(version);
+    */
+
+		await strategyFactory.connect(accounts[2]).updateImplementation(newImplementationAddress, MaxUint256.toString())
+		expect(await strategyFactory.implementation()).to.equal(newImplementationAddress)
+		expect(ethers.BigNumber.from(await strategyFactory.version()).eq(MaxUint256.toString())).to.equal(true)
+	})
+
 	it('Should transfer ownership', async function () {
 		await strategyFactory.connect(accounts[2]).renounceOwnership()
 		expect(await strategyFactory.owner()).to.equal(AddressZero)
 	})
+
 })
