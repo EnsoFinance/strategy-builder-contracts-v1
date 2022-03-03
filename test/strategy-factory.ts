@@ -219,7 +219,7 @@ describe('StrategyProxyFactory', function () {
     let someAddress = accounts[8].address;
     let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress);
 
-    await	strategyFactory.connect(accounts[2]).updateImplementation(otherStrategy.address, '2');
+    await strategyFactory.connect(accounts[2]).updateImplementation(otherStrategy.address, '2');
     let admin = await strategyFactory.admin();
     const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
     let strategyAdmin = await StrategyAdmin.attach(admin)
@@ -227,7 +227,9 @@ describe('StrategyProxyFactory', function () {
 
     // now call initialize
     let someMaliciousAddress = someAddress;
-    await expect(strategy.initialize("anyName", "anySymbol", "anyVersion", someMaliciousAddress, [])).to.be.revertedWith("Initializable: contract is already initialized");
+    await expect(
+      strategy.initialize("anyName", "anySymbol", "anyVersion", someMaliciousAddress, [])
+    ).to.be.revertedWith("Initializable: contract is already initialized");
    
   })
 
