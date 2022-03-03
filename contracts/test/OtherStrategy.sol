@@ -6,16 +6,16 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "./libraries/SafeERC20.sol";
-import "./interfaces/IStrategy.sol";
-import "./interfaces/IStrategyManagement.sol";
-import "./interfaces/IStrategyController.sol";
-import "./interfaces/IStrategyProxyFactory.sol";
-import "./interfaces/synthetix/IDelegateApprovals.sol";
-import "./interfaces/synthetix/IExchanger.sol";
-import "./interfaces/synthetix/IIssuer.sol";
-import "./interfaces/aave/ILendingPool.sol";
-import "./interfaces/aave/IDebtToken.sol";
+import "../libraries/SafeERC20.sol";
+import "../interfaces/IStrategy.sol";
+import "../interfaces/IStrategyManagement.sol";
+import "../interfaces/IStrategyController.sol";
+import "../interfaces/IStrategyProxyFactory.sol";
+import "../interfaces/synthetix/IDelegateApprovals.sol";
+import "../interfaces/synthetix/IExchanger.sol";
+import "../interfaces/synthetix/IIssuer.sol";
+import "../interfaces/aave/ILendingPool.sol";
+import "../interfaces/aave/IDebtToken.sol";
 import "./OtherStrategyToken.sol";
 
 interface ISynthetixAddressResolver {

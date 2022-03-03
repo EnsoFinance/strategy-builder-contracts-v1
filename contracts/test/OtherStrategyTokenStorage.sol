@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-import "./helpers/StrategyTypes.sol";
+import "../helpers/StrategyTypes.sol";
 
 contract OtherStrategyTokenStorage is StrategyTypes {
     bytes32 public DOMAIN_SEPARATOR;

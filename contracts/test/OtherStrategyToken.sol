@@ -2,7 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./interfaces/IStrategyToken.sol";
+import "../interfaces/IStrategyToken.sol";
 import "./OtherStrategyTokenStorage.sol";
 
 abstract contract OtherStrategyToken is IStrategyToken, OtherStrategyTokenStorage {
