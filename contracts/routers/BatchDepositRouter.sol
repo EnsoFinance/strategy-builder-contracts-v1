@@ -16,6 +16,8 @@ contract BatchDepositRouter is StrategyRouter {
         override
         onlyController
     {
+        require(IStrategy(strategy).debt().length == 0, "Cannot batch deposit debt");
+        IOracle oracle = controller.oracle();
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -27,11 +29,7 @@ contract BatchDepositRouter is StrategyRouter {
               IERC20(token).safeTransferFrom(
                   depositor,
                   strategy,
-                  _pathPrice(
-                      IStrategy(strategy).getTradeData(token),
-                      expectedValue,
-                      token
-                  )
+                  expectedValue.mul(10**18).div(uint256(oracle.estimateItem(10**18, token)))
               );
         }
     }
