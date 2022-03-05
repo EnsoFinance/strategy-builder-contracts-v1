@@ -164,6 +164,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _sellToken(uint256 amountIn, address token, address to) internal returns (uint256) {
+        if (token == weth) {
+            IERC20(token).transfer(to, amountIn);
+            return amountIn;
+        }
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, token, weth);
         uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
         (address token0, ) = UniswapV2Library.sortTokens(weth, token);
