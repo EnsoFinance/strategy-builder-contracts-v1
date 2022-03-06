@@ -114,7 +114,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             (uint256 amount0, uint256 amount1) = pair.burn(address(this));
             uint256 wethAmount0 = _sellToken(amount0, token0, to);
             uint256 wethAmount1 = _sellToken(amount1, token1, to);
-            require(wethAmount0.add(wethAmount1) > expected, "Insufficient tokenOut amount");
+            require(wethAmount0.add(wethAmount1) >= expected, "Insufficient tokenOut amount");
         } else {
             revert("Token not supported");
         }
