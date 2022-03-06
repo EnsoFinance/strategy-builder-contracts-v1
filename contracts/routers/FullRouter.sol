@@ -17,13 +17,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     uint256 internal constant LTV_DIVISOR = 10000;
 
-    ILendingPoolAddressesProvider public addressesProvider;
-    address public susd;
+    ILendingPoolAddressesProvider public immutable addressesProvider;
+    address public immutable susd;
     mapping(address => mapping(address => int256)) private _tempEstimate;
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
-        susd = controller.oracle().susd();
+        susd = IStrategyController(controller_).oracle().susd();
     }
 
     function deposit(address strategy, bytes calldata data)

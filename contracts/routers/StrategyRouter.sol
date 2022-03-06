@@ -17,14 +17,14 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
 
     uint256 internal constant DIVISOR = 1000;
 
-    RouterCategory public override category;
-    IStrategyController public override controller;
-    address public weth;
+    RouterCategory public override immutable category;
+    IStrategyController public override immutable controller;
+    address public immutable weth;
 
     constructor(RouterCategory category_, address controller_) public {
         category = category_;
         controller = IStrategyController(controller_);
-        weth = controller.oracle().weth();
+        weth = IStrategyController(controller_).oracle().weth();
     }
 
     /**
