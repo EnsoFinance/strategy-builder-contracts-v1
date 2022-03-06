@@ -575,7 +575,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     /**
      * @notice Called any time there is a transfer to settle the performance and streaming fees
      */
-    function _handleFees(uint256 amount, address sender,address recipient) internal override {
+    function _handleFees(uint256 amount, address sender, address recipient) internal override {
         uint256 fee = uint256(_performanceFee);
         if (fee > 0) {
             uint256 senderPaidValue = _paidTokenValues[sender];
@@ -587,6 +587,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 // inflation, issuing fees now or later dilutes receiver's value either way
                 _paidTokenValues[recipient] = senderPaidValue;
             } else {
+                address pool = _pool;
+                bool isPool = sender == pool || recipient == pool;
+                // Streaming fee gets issued whenever iteracting with the pool since the stream fee rate will need to be updated
+                if (isPool) _issueStreamingFee(pool);
                 // Performance fees
                 uint256 mintAmount = _settlePerformanceFee(sender, fee); // Sender's paid token value may be updated here
                 senderPaidValue = _paidTokenValues[sender];
@@ -600,12 +604,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                   tokenValue,
                   fee));
                 if (mintAmount > 0) {
-                    address pool = _pool;
-                    // Stream fee before any tokens are minted (since change in supply changes rate)
-                    _issueStreamingFee(pool);
+                    // Stream fee before any tokens are minted if it hasn't already been issued
+                    if (!isPool) _issueStreamingFee(pool);
                     // Mint prformance fee
                     _issuePerformanceFee(pool, mintAmount);
                     // Update streaming fee rate for the new total supply
+                    _updateStreamingFeeRate(pool);
+                } else if (isPool) {
+                    // Update streaming fee rate since the pool balance has changed
                     _updateStreamingFeeRate(pool);
                 }
             }
