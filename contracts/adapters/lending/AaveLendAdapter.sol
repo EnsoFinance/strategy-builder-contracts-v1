@@ -9,6 +9,7 @@ import "../../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IStrategyController.sol";
 import "../../interfaces/IERC20NonStandard.sol";
+import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
 contract AaveLendAdapter is BaseAdapter {
@@ -17,10 +18,12 @@ contract AaveLendAdapter is BaseAdapter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     IStrategyController public immutable strategyController;
+    GasCostProvider public immutable gasCostProvider;
 
     constructor(address addressesProvider_, address strategyController_, address weth_) public BaseAdapter(weth_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         strategyController = IStrategyController(strategyController_);
+        gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
     }
 
     function spotPrice(
@@ -61,21 +64,24 @@ contract AaveLendAdapter is BaseAdapter {
 
     function _checkAToken(address token) internal view returns (bool) {
         bytes32 selector = keccak256("UNDERLYING_ASSET_ADDRESS()");
+        uint256 gasCost = gasCostProvider.gasCost();
 
         bool success;
+        address underlying;
         assembly {
             let ptr := mload(0x40)
             mstore(0x40, add(ptr, 32))
             mstore(ptr, selector)
             success := staticcall(
-                6000, //estimated gas costs
+                gasCost,
                 token,
                 ptr,
                 4,
                 ptr,
                 32
             )
+            underlying := mload(ptr)
         }
-        return success;
+        return success && underlying != address(0);
     }
 }
