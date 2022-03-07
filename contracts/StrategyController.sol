@@ -720,7 +720,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
-     * @notice Checks that router is whitelisted
+     * @notice Checks that strategy is initialized
      */
     function _isInitialized(address strategy) private view {
         require(initialized(strategy), "Not initialized");
