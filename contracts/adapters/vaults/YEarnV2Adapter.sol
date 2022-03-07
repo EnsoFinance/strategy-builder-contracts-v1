@@ -28,11 +28,11 @@ contract YEarnV2Adapter is BaseAdapter {
         if (_checkVault(tokenOut)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);
             if (address(vault.token()) == tokenIn)
-                return amount.mul(10**uint256(IERC20NonStandard(tokenIn).decimals())).div(vault.pricePerShare());
+                return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(vault.pricePerShare());
         } else if (_checkVault(tokenIn)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);
             if (address(vault.token()) == tokenOut)
-                return amount.mul(vault.pricePerShare()).div(10**uint256(IERC20NonStandard(tokenOut).decimals()));
+                return amount.mul(vault.pricePerShare()).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
         }
         return 0;
     }
