@@ -585,7 +585,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
-        _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.performanceFee), true);
+        _checkAndEmit(strategy, TimelockCategory.PERFORMANCE, uint256(state.performanceFee), true);
         _checkAndEmit(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
