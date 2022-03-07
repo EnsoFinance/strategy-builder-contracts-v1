@@ -209,7 +209,7 @@ describe('StrategyProxyFactory', function () {
 	})
 
   it('Should be initialized', async function () {
-    // tl;dr since __gap isn't used, any additional entries to put in `StrategyTokenStorage`
+    // tl;dr if __gap isn't used, any additional entries to put in `StrategyTokenStorage`
     // will make it so that an upgrade to this `OtherStrategy` will put the "initialized"
     // storage variables in different slots, so that they will have "0" value ->> false
     // meaning that an attacker can "back-run" an `updateImplementation` call with
@@ -230,7 +230,6 @@ describe('StrategyProxyFactory', function () {
     await expect(
       strategy.initialize("anyName", "anySymbol", "anyVersion", someMaliciousAddress, [])
     ).to.be.revertedWith("Initializable: contract is already initialized");
-   
   })
 
 	it('Should update implementation to version uint256.max()', async function () {
