@@ -87,8 +87,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
             address token1 = pair.token1();
             otherToken = (token0 == weth) ? token0 : token1;
             }
-            (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, weth, otherToken);
-            uint256 wethToSell = amount.mul(reserveOut).div(amount.add(reserveOut).add(reserveIn)); // FIXME normalize appropriately
+            (uint256 reserveWeth, uint256 reserveOther) = UniswapV2Library.getReserves(factory, weth, otherToken);
+            uint256 wethToSell = amount.mul(reserveOther).div(amount.add(reserveWeth).add(reserveOther)); // FIXME normalize appropriately
             // Swap weth for underlying tokens
             uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
             // Transfer underyling token to pair contract
