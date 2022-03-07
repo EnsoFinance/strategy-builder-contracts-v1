@@ -80,24 +80,20 @@ contract UniswapV2LPAdapter is BaseAdapter {
         if (tokenIn == weth) {
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
+            address otherToken;
+            { // stack too deep
             address token0 = pair.token0();
             address token1 = pair.token1();
-            (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-                tokenOut,
-                token0,
-                token1,
-                amount,
-                pair.totalSupply(),
-                false
-            );
+            otherToken = (token0 == weth) ? token0 : token1;
+            }
+            (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, weth, otherToken);
+            uint256 wethToSell = amount.mul(reserveOut).div(amount.add(reserveOut).add(reserveIn)); // FIXME normalize appropriately
             // Swap weth for underlying tokens
-            uint256 amountOut0 = _buyToken(wethIn0, token0);
-            uint256 amountOut1 = _buyToken(wethIn1, token1);
+            uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
             // Transfer underyling token to pair contract
-            IERC20(token0).safeTransfer(tokenOut, amountOut0);
-            IERC20(token1).safeTransfer(tokenOut, amountOut1);
+            IERC20(weth).safeTransfer(tokenOut, amount.sub(wethToSell));
+            IERC20(otherToken).safeTransfer(tokenOut, otherTokenBought);
             uint256 received = pair.mint(to);
             require(received >= expected, "Insufficient tokenOut amount");
         } else if (tokenOut == weth) {
