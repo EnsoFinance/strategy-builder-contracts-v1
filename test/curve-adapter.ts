@@ -175,20 +175,25 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 	})
 
 	it('Should fail to claim rewards', async function() {
+			await expect(strategy.connect(accounts[1]).batchClaimRewards([], [rewardToken])).to.be.revertedWith('Incorrect parameters')
+	})
+
+	it('Should fail to claim rewards', async function() {
 			const FailAdapter = await getContractFactory('FailAdapter')
 			failAdapter = await FailAdapter.deploy(weth.address)
 			await failAdapter.deployed()
 
-			await expect(strategy.connect(accounts[1]).delegateClaimRewards(failAdapter.address, rewardToken)).to.be.revertedWith('Not approved')
+			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.revertedWith('Not approved')
 	})
 
 	it('Should fail to claim rewards', async function() {
 			await whitelist.connect(accounts[0]).approve(failAdapter.address)
-			await expect(strategy.connect(accounts[1]).delegateClaimRewards(failAdapter.address, rewardToken)).to.be.revertedWith('Claim failed')
+			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.revertedWith('Claim failed')
 	})
 
+
 	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).delegateClaimRewards(curveRewardsAdapter.address, rewardToken)
+		await strategy.connect(accounts[1]).batchClaimRewards([curveRewardsAdapter.address], [rewardToken])
 	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {
