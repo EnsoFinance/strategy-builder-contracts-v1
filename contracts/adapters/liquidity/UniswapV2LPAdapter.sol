@@ -88,6 +88,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
             otherToken = (token0 == weth) ? token0 : token1;
             }
             (uint256 reserveWeth, uint256 reserveOther) = UniswapV2Library.getReserves(factory, weth, otherToken);
+            // FIXME include uniswap fee in calculation
+            // FIXME include comments with algebraic justification of this code
             uint256 wethToSell = amount.mul(reserveOther).div(amount.add(reserveWeth).add(reserveOther)); // FIXME normalize appropriately
             // Swap weth for underlying tokens
             uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
