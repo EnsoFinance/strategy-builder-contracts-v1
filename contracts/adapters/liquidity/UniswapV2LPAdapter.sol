@@ -30,26 +30,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
         if (tokenIn == tokenOut) return amount;
         if (tokenIn == weth) {
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
-            address token0 = pair.token0();
-            address token1 = pair.token1();
-            uint256 totalSupply = pair.totalSupply();
-            // TODO change to reflect `swap`'s logic
-            (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-                tokenOut,
-                token0,
-                token1,
-                amount,
-                totalSupply,
-                true
-            );
-            uint256 amount0 = _quote(wethIn0, weth, token0);
-            uint256 amount1 = _quote(wethIn1, weth, token1);
-            if (totalSupply == 0) {
-                return Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
-            } else {
-                (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
-                return Math.min(amount0.mul(totalSupply) / reserve0, amount1.mul(totalSupply) / reserve1);
-            }
+            if (pair.token0() == weth || pair.token1() == weth) {
+              return _spotPriceForWethPair(amount, pair, tokenOut);
+            } // else
+            return _spotPriceForPair(amount, pair, tokenOut); 
         } else if (tokenOut == weth) {
             IUniswapV2Pair pair = IUniswapV2Pair(tokenIn);
             address token0 = pair.token0();
@@ -63,6 +47,31 @@ contract UniswapV2LPAdapter is BaseAdapter {
         } else {
             return 0;
         }
+    }
+
+    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
+      // TODO
+    }
+
+    function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
+      address token0 = pair.token0();
+      address token1 = pair.token1();
+      uint256 totalSupply = pair.totalSupply();
+      (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
+          tokenOut,
+          token0,
+          token1,
+          amount,
+          totalSupply,
+          true
+      );
+      uint256 amount0 = _quote(wethIn0, weth, token0);
+      uint256 amount1 = _quote(wethIn1, weth, token1);
+      if (totalSupply == 0) {
+          return Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+      } // else
+      (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
+      return Math.min(amount0.mul(totalSupply) / reserve0, amount1.mul(totalSupply) / reserve1);
     }
 
     /*
@@ -84,19 +93,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
-            address otherToken;
-            { // stack too deep
-            address token0 = pair.token0();
-            address token1 = pair.token1();
-            otherToken = (token0 == weth) ? token1 : token0;
+            if (pair.token0() == weth || pair.token1() == weth) {
+              _transferWethIntoWethPair(amount, pair, tokenOut);
+            } else {
+              _transferWethIntoPair(amount, pair, tokenOut);
             }
-            uint256 wethToSell = _calculateWethToSell(amount, otherToken);
-            // Swap weth for underlying tokens
-            uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
-            // Transfer underyling token to pair contract
-            IERC20(weth).safeTransfer(tokenOut, amount.sub(wethToSell));
-            IERC20(otherToken).safeTransfer(tokenOut, otherTokenBought);
-            uint256 received = pair.mint(to);
+            uint256 received = pair.mint(to); // received
             require(received >= expected, "Insufficient tokenOut amount");
         } else if (tokenOut == weth) {
             // Send liquidity to the token contract
@@ -116,6 +118,37 @@ contract UniswapV2LPAdapter is BaseAdapter {
         } else {
             revert("Token not supported");
         }
+    }
+
+    function _transferWethIntoWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private {
+      address token0 = pair.token0();
+      address token1 = pair.token1();
+      address otherToken = (token0 == weth) ? token1 : token0;
+      uint256 wethToSell = _calculateWethToSell(amount, otherToken);
+      // Swap weth for underlying tokens
+      uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
+      // Transfer underyling token to pair contract
+      IERC20(weth).safeTransfer(tokenOut, amount.sub(wethToSell));
+      IERC20(otherToken).safeTransfer(tokenOut, otherTokenBought);
+    }
+
+    function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private {
+      address token0 = pair.token0();
+      address token1 = pair.token1();
+      (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
+              tokenOut,
+              token0,
+              token1,
+              amount,
+              pair.totalSupply(),
+              false
+          );
+      // Swap weth for underlying tokens
+      uint256 amountOut0 = _buyToken(wethIn0, token0);
+      uint256 amountOut1 = _buyToken(wethIn1, token1);
+      // Transfer underyling token to pair contract
+      IERC20(token0).safeTransfer(tokenOut, amountOut0);
+      IERC20(token1).safeTransfer(tokenOut, amountOut1);
     }
 
     function _calculateWethToSell(uint256 uAmount, address otherToken) private returns(uint256) {
@@ -146,9 +179,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
       */
 
-      int256 a = int256(-997).mul(reserveOther); // FIXME normalize 
-      int256 b = int256(-1997).mul(reserveWeth).mul(reserveOther); // FIXME normalize
-      int256 c = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount); // FIXME normalize
+      int256 a = int256(-997).mul(reserveOther); 
+      int256 b = int256(-1997).mul(reserveWeth).mul(reserveOther);
+      int256 c = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount);
 
       // we find the roots simply using the quadratic formula
 
@@ -157,10 +190,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
       int256 center = -b;
       uint256 sqrt = Math.sqrt(uint256(d));
       int256 denominator = int256(2).mul(a);
-      int256 solution = center.sub(int256(sqrt)).div(denominator);
+      int256 solution = center.add(int256(sqrt)).div(denominator);
       if (0<solution && solution<amount)
         return uint256(solution);
-      solution = center.add(int256(sqrt)).div(denominator);
+      solution = center.sub(int256(sqrt)).div(denominator);
       require(0<solution && solution<amount, "_caluculateWethToSell: solution out of range.");
       return uint256(solution);
     }
