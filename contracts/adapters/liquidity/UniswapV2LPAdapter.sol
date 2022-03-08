@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
 import "../../libraries/Math.sol";
-import "../../libraries/SimpleCalculus.sol";
 import "../BaseAdapter.sol";
 
 contract UniswapV2LPAdapter is BaseAdapter {
@@ -124,10 +123,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
       int256 amount = int256(uAmount);
       int256 reserveWeth = int256(uReserveWeth);
       int256 reserveOther = int256(uReserveOther);
+
       /**
 
-       we build a cubic
-       f(x) = ax^3 + bx^2 + cx + d
+       we build a quadratic 
+       f(x) = ax^2 + bx + c
 
        Algebraic justification:
        
@@ -137,50 +137,30 @@ contract UniswapV2LPAdapter is BaseAdapter {
         (a-x)/r0 == getAmountOut(x)/r1
         Keep in mind that the r0 at the mint can be expressed as the reserve before the swap r0' as r0 = r0'+x.
         Similarly we write r1 = r1'-getAmountOut(x)
-        From the equation we get cubic where
-        // FIXME recalculate these values after r1'-getAmountOut(x) denominator fix
-        a = 997
-        b = -997a - 2*999r1' + 1000r0'
-        c = 997r1'a - 1000ar0' - 1997r0'r1'
-        d = 1000r0'r1'a
+        From the equation we get a quadratic where
+        a = -997r1'
+        b = -1997r0'r1' 
+        c = 1000r0'r1'a
 
       */
 
-      uint uOne = 10**18;
-      int256 one = int256(uOne);
-      int256[] memory coefficients = new int256[](4);
-      // a
-      coefficients[3] = 997*one; // unchecked
-      // b
-      coefficients[2] = int256(-997).mul(amount).sub(2*999).mul(reserveOther).add(int256(1000).mul(reserveWeth)); // FIXME normalize all arithmetic
-      // c
-      coefficients[1] = int256(997).mul(reserveOther).mul(amount).sub(int256(1000).mul(amount).mul(reserveWeth)).sub(int256(1997).mul(reserveWeth).mul(reserveOther)); // FIXME normalize all arithmetic 
-      // d
-      coefficients[0] = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount);
+      int256 a = int256(-997).mul(reserveOther); // FIXME normalize 
+      int256 b = int256(-1997).mul(reserveWeth).mul(reserveOther); // FIXME normalize
+      int256 c = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount); // FIXME normalize
 
-      /** 
-        we approximate the root x using the Newton-Raphson approximation method
-        where starting with a guess xn, we can get increasingly accurate
-        approximations by computing xm = xn - f(xn)/f'(xn), where m=n+1
+      // we find the roots simply using the quadratic formula
 
-        See the following link for greater details and drawbacks
-        https://web.mat.bham.ac.uk/R.W.Kaye/numerics/newtonraphson.html
-       */
-
-      SimpleCalculus.fn memory f = SimpleCalculus.newFn(coefficients, uOne);
-      SimpleCalculus.fn memory df = SimpleCalculus.differentiatePolynomial(f);
-     
-      int256 xn = amount.mul(one)/2; // halfway guess
-      int256 xm;
-      uint256 accuracy = 5; // tuneable
-      for (uint256 i; i<accuracy; ++i) {
-        xm = xn.sub(
-          SimpleCalculus.evaluatePolynomial(f, xn).value.mul(one)
-          .div(SimpleCalculus.evaluatePolynomial(df, xn).value));
-        xn=xm;
-      }
-      require(xm>0, "_calculateWethToSell: solution out of range.");
-      return uint256(xm); 
+      int256 d = b.mul(b).sub(int256(4).mul(a).mul(c));
+      require(d >= 0, "_calculateWethToSell: solution imaginary.");
+      int256 center = -b;
+      uint256 sqrt = Math.sqrt(uint256(d));
+      int256 denominator = int256(2).mul(a);
+      int256 solution = center.sub(int256(sqrt)).div(denominator);
+      if (0<solution && solution<amount)
+        return uint256(solution);
+      solution = center.add(int256(sqrt)).div(denominator);
+      require(0<solution && solution<amount, "_caluculateWethToSell: solution out of range.");
+      return uint256(solution);
     }
 
     function _calculateWethAmounts(address pair, address token0, address token1, uint256 amount, uint256 totalSupply, bool quote) internal view returns (uint256, uint256) {
