@@ -28,6 +28,7 @@ contract StrategyTokenStorage is StrategyTypes {
     address internal _weth;
     address internal _susd;
 
+    address internal _tempRouter;
     address[] internal _items;
     address[] internal _synths;
     address[] internal _debt;
