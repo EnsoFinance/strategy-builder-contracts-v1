@@ -50,7 +50,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
-      // TODO
+      (amount, pair, tokenOut); // shh compiler
+      return amount; // is total amount since `swap` buys enough "`otherToken`" to make the mint "balanced"
     }
 
     function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
@@ -194,7 +195,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
       if (0<solution && solution<amount)
         return uint256(solution);
       solution = center.sub(int256(sqrt)).div(denominator);
-      require(0<solution && solution<amount, "_caluculateWethToSell: solution out of range.");
+      require(0<solution && solution<amount, "_calculateWethToSell: solution out of range.");
       return uint256(solution);
     }
 
