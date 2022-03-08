@@ -134,7 +134,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         For the Uniswap mint, we want amount0/reserve0 == amount1/reserve1 since the liquidity is the min of these two expressions.
        Given an amount a of weth we wish to find wethToSell+fees x so that we get the above equality.
         Said with these variables, we want
-        (a-x)/r0 == getAmountIn(x)/r1
+        (a-x)/r0 == getAmountOut(x)/r1
         Keep in mind that the r0 at the mint can be expressed as the reserve before the swap r0' as r0 = r0'+x.
         Similarly we write r1 = r1'-x
         From the equation we get cubic where
