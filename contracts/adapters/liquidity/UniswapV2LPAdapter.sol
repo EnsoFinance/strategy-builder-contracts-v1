@@ -31,9 +31,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         if (tokenIn == weth) {
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
             if (pair.token0() == weth || pair.token1() == weth) {
-              return _spotPriceForWethPair(amount, pair, tokenOut);
+              return _spotPriceForWethPair(amount, pair);
             } // else
-            return _spotPriceForPair(amount, pair, tokenOut); 
+            return _spotPriceForPair(amount, pair); 
         } else if (tokenOut == weth) {
             IUniswapV2Pair pair = IUniswapV2Pair(tokenIn);
             address token0 = pair.token0();
@@ -49,19 +49,19 @@ contract UniswapV2LPAdapter is BaseAdapter {
         }
     }
 
-    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
+    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
       // assumes calling function checks one of the tokens is weth
-      (amount, pair, tokenOut); // shh compiler
+      (amount, pair); // shh compiler
       return amount; // is total amount since `swap` buys enough "`otherToken`" to make the mint "balanced"
     }
 
-    function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
+    function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
       // assumes calling function checks one of the tokens is not weth
       address token0 = pair.token0();
       address token1 = pair.token1();
       uint256 totalSupply = pair.totalSupply();
       (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-          tokenOut,
+          address(pair),
           token0,
           token1,
           amount,
@@ -97,11 +97,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
             if (pair.token0() == weth || pair.token1() == weth) {
-              _transferWethIntoWethPair(amount, pair, tokenOut);
+              _transferWethIntoWethPair(amount, pair);
             } else {
-              _transferWethIntoPair(amount, pair, tokenOut);
+              _transferWethIntoPair(amount, pair);
             }
-            uint256 received = pair.mint(to); // received
+            uint256 received = pair.mint(to);
             require(received >= expected, "Insufficient tokenOut amount");
         } else if (tokenOut == weth) {
             // Send liquidity to the token contract
@@ -123,7 +123,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         }
     }
 
-    function _transferWethIntoWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private {
+    function _transferWethIntoWethPair(uint256 amount, IUniswapV2Pair pair) private {
       // assumes calling function checks one of the tokens is weth
       address token0 = pair.token0();
       address token1 = pair.token1();
@@ -132,16 +132,16 @@ contract UniswapV2LPAdapter is BaseAdapter {
       // Swap weth for underlying tokens
       uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
       // Transfer underyling token to pair contract
-      IERC20(weth).safeTransfer(tokenOut, amount.sub(wethToSell));
-      IERC20(otherToken).safeTransfer(tokenOut, otherTokenBought);
+      IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
+      IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
     }
 
-    function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private {
+    function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair) private {
       // assumes calling function checks one of the tokens is not weth
       address token0 = pair.token0();
       address token1 = pair.token1();
       (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-              tokenOut,
+              address(pair),
               token0,
               token1,
               amount,
@@ -152,8 +152,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
       uint256 amountOut0 = _buyToken(wethIn0, token0);
       uint256 amountOut1 = _buyToken(wethIn1, token1);
       // Transfer underyling token to pair contract
-      IERC20(token0).safeTransfer(tokenOut, amountOut0);
-      IERC20(token1).safeTransfer(tokenOut, amountOut1);
+      IERC20(token0).safeTransfer(address(pair), amountOut0);
+      IERC20(token1).safeTransfer(address(pair), amountOut1);
     }
 
     function _calculateWethToSell(uint256 uAmount, address otherToken) private returns(uint256) {
