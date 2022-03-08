@@ -50,11 +50,13 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
+      // assumes calling function checks one of the tokens is weth
       (amount, pair, tokenOut); // shh compiler
       return amount; // is total amount since `swap` buys enough "`otherToken`" to make the mint "balanced"
     }
 
     function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private view returns(uint256) {
+      // assumes calling function checks one of the tokens is not weth
       address token0 = pair.token0();
       address token1 = pair.token1();
       uint256 totalSupply = pair.totalSupply();
@@ -122,6 +124,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _transferWethIntoWethPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private {
+      // assumes calling function checks one of the tokens is weth
       address token0 = pair.token0();
       address token1 = pair.token1();
       address otherToken = (token0 == weth) ? token1 : token0;
@@ -134,6 +137,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair, address tokenOut) private {
+      // assumes calling function checks one of the tokens is not weth
       address token0 = pair.token0();
       address token1 = pair.token1();
       (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
