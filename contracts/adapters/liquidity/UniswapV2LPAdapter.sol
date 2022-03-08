@@ -157,10 +157,18 @@ contract UniswapV2LPAdapter is BaseAdapter {
       // d
       coefficients[0] = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount);
 
+      /** 
+        we approximate the root x using the Newton-Raphson approximation method
+        where starting with a guess xn, we can get increasingly accurate
+        approximations by computing xm = xn - f(xn)/f'(xn)
+
+        See the following link for greater details and drawbacks
+        https://web.mat.bham.ac.uk/R.W.Kaye/numerics/newtonraphson.html
+       */
+
       SimpleCalculus.fn memory f = SimpleCalculus.newFn(coefficients, uOne);
       SimpleCalculus.fn memory df = SimpleCalculus.differentiatePolynomial(f);
      
-      // we approximate the root x using the Newton-Raphson approximation method
       // let m=n+1 
       int256 xn = amount.mul(one)/2; // halfway guess
       int256 xm;
