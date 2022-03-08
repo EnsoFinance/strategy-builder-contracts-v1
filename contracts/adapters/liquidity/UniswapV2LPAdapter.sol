@@ -85,7 +85,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             { // stack too deep
             address token0 = pair.token0();
             address token1 = pair.token1();
-            otherToken = (token0 == weth) ? token0 : token1;
+            otherToken = (token0 == weth) ? token1 : token0;
             }
             (uint256 reserveWeth, uint256 reserveOther) = UniswapV2Library.getReserves(factory, weth, otherToken);
             // FIXME include uniswap fee in calculation
