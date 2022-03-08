@@ -136,8 +136,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         Said with these variables, we want
         (a-x)/r0 == getAmountOut(x)/r1
         Keep in mind that the r0 at the mint can be expressed as the reserve before the swap r0' as r0 = r0'+x.
-        Similarly we write r1 = r1'-x
+        Similarly we write r1 = r1'-getAmountOut(x)
         From the equation we get cubic where
+        // FIXME recalculate these values after r1'-getAmountOut(x) denominator fix
         a = 997
         b = -997a - 2*999r1' + 1000r0'
         c = 997r1'a - 1000ar0' - 1997r0'r1'
@@ -160,7 +161,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
       /** 
         we approximate the root x using the Newton-Raphson approximation method
         where starting with a guess xn, we can get increasingly accurate
-        approximations by computing xm = xn - f(xn)/f'(xn)
+        approximations by computing xm = xn - f(xn)/f'(xn), where m=n+1
 
         See the following link for greater details and drawbacks
         https://web.mat.bham.ac.uk/R.W.Kaye/numerics/newtonraphson.html
@@ -169,7 +170,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
       SimpleCalculus.fn memory f = SimpleCalculus.newFn(coefficients, uOne);
       SimpleCalculus.fn memory df = SimpleCalculus.differentiatePolynomial(f);
      
-      // let m=n+1 
       int256 xn = amount.mul(one)/2; // halfway guess
       int256 xm;
       uint256 accuracy = 5; // tuneable
