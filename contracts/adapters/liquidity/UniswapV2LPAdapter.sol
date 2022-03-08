@@ -135,6 +135,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
        Given an amount a of weth we wish to find wethToSell+fees x so that we get the above equality.
         Said with these variables, we want
         (a-x)/r0 == getAmountOut(x)/r1
+        where getAmountOut(x) = 997r1'x/(1000r0' + 997x) 
+        see https://github.com/Uniswap/v2-periphery/blob/2efa12e0f2d808d9b49737927f0e416fafa5af68/contracts/libraries/UniswapV2Library.sol#L43
         Keep in mind that the r0 at the mint can be expressed as the reserve before the swap r0' as r0 = r0'+x.
         Similarly we write r1 = r1'-getAmountOut(x)
         From the equation we get a quadratic where
