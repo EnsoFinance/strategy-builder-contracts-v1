@@ -3,13 +3,16 @@ pragma solidity 0.6.12;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/SimpleCalculus.sol";
 import "../BaseAdapter.sol";
 
 contract UniswapV2LPAdapter is BaseAdapter {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
     uint256 private constant DEFAULT_AMOUNT = 10**9;
@@ -31,6 +34,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             address token0 = pair.token0();
             address token1 = pair.token1();
             uint256 totalSupply = pair.totalSupply();
+            // TODO change to reflect `swap`'s logic
             (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
                 tokenOut,
                 token0,
@@ -87,10 +91,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             address token1 = pair.token1();
             otherToken = (token0 == weth) ? token1 : token0;
             }
-            (uint256 reserveWeth, uint256 reserveOther) = UniswapV2Library.getReserves(factory, weth, otherToken);
-            // FIXME include uniswap fee in calculation
-            // FIXME include comments with algebraic justification of this code
-            uint256 wethToSell = amount.mul(reserveOther).div(amount.add(reserveWeth).add(reserveOther)); // FIXME normalize appropriately
+            uint256 wethToSell = _calculateWethToSell(amount, otherToken);
             // Swap weth for underlying tokens
             uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
             // Transfer underyling token to pair contract
@@ -116,6 +117,64 @@ contract UniswapV2LPAdapter is BaseAdapter {
         } else {
             revert("Token not supported");
         }
+    }
+
+    function _calculateWethToSell(uint256 uAmount, address otherToken) private returns(uint256) {
+      (uint256 uReserveWeth, uint256 uReserveOther) = UniswapV2Library.getReserves(factory, weth, otherToken);
+      int256 amount = int256(uAmount);
+      int256 reserveWeth = int256(uReserveWeth);
+      int256 reserveOther = int256(uReserveOther);
+      /**
+
+       we build a cubic
+       f(x) = ax^3 + bx^2 + cx + d
+
+       Algebraic justification:
+       
+        For the Uniswap mint, we want amount0/reserve0 == amount1/reserve1 since the liquidity is the min of these two expressions.
+       Given an amount a of weth we wish to find wethToSell+fees x so that we get the above equality.
+        Said with these variables, we want
+        (a-x)/r0 == getAmountIn(x)/r1
+        Keep in mind that the r0 at the mint can be expressed as the reserve before the swap r0' as r0 = r0'+x.
+        Similarly we write r1 = r1'-x
+        From the equation we get cubic where
+        a = 997
+        b = -997a - 2*999r1' + 1000r0'
+        c = 997r1'a - 1000ar0' - 1997r0'r1'
+        d = 1000r0'r1'a
+
+      */
+
+      uint uOne = 10**18;
+      int256 one = int256(uOne);
+      int256[] memory coefficients = new int256[](4);
+      // a
+      coefficients[3] = 997*one; // unchecked
+      // b
+      coefficients[2] = int256(-997).mul(amount).sub(2*999).mul(reserveOther).add(int256(1000).mul(reserveWeth)); // FIXME normalize all arithmetic
+      // c
+      coefficients[1] = int256(997).mul(reserveOther).mul(amount).sub(int256(1000).mul(amount).mul(reserveWeth)).sub(int256(1997).mul(reserveWeth).mul(reserveOther)); // FIXME normalize all arithmetic 
+      // d
+      coefficients[0] = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount);
+
+      SimpleCalculus.fn memory f = SimpleCalculus.newFn(coefficients, uOne);
+      SimpleCalculus.fn memory df = SimpleCalculus.differentiatePolynomial(f);
+     
+      // we approximate the root x using the Newton-Raphson approximation method
+      // let m=n+1 
+      int256 xn = amount.mul(one)/2; // halfway guess
+      int256 xm = xn.sub(
+        SimpleCalculus.evaluatePolynomial(f, xn).value.mul(one)
+        .div(SimpleCalculus.evaluatePolynomial(df, xn).value));
+      uint256 accuracy = 5; // tuneable
+      for (uint256 i; i<accuracy; ++i) {
+        xn=xm;
+        xm = xn.sub(
+          SimpleCalculus.evaluatePolynomial(f, xn).value.mul(one)
+          .div(SimpleCalculus.evaluatePolynomial(df, xn).value));
+      }
+      require(xm>0, "_calculateWethToSell: solution out of range.");
+      return uint256(xm); 
     }
 
     function _calculateWethAmounts(address pair, address token0, address token1, uint256 amount, uint256 totalSupply, bool quote) internal view returns (uint256, uint256) {
