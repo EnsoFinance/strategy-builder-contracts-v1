@@ -163,15 +163,13 @@ contract UniswapV2LPAdapter is BaseAdapter {
       // we approximate the root x using the Newton-Raphson approximation method
       // let m=n+1 
       int256 xn = amount.mul(one)/2; // halfway guess
-      int256 xm = xn.sub(
-        SimpleCalculus.evaluatePolynomial(f, xn).value.mul(one)
-        .div(SimpleCalculus.evaluatePolynomial(df, xn).value));
+      int256 xm;
       uint256 accuracy = 5; // tuneable
       for (uint256 i; i<accuracy; ++i) {
-        xn=xm;
         xm = xn.sub(
           SimpleCalculus.evaluatePolynomial(f, xn).value.mul(one)
           .div(SimpleCalculus.evaluatePolynomial(df, xn).value));
+        xn=xm;
       }
       require(xm>0, "_calculateWethToSell: solution out of range.");
       return uint256(xm); 
