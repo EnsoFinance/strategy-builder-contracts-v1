@@ -216,7 +216,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
           Algebraic justification:
          
-          For the Uniswap mint, we want amount0/reserve0 == amount1/reserve1 since the liquidity is the min of these two expressions.
+          For the Uniswap mint, we want amount0/reserve0 == amount1/reserve1 since the liquidity is the min of these two expressions times totalSupply.
           Given an amount a of weth we wish to find wethToSell+fees x so that we get the above equality.
           Said with these variables, we want
           (a-x)/r0 == getAmountOut(x)/r1
