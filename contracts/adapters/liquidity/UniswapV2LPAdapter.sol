@@ -257,13 +257,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
         return uint256(solution);
     }
 
-    function _calculateWethToSellIgnoringFees(uint256 uAmount, address otherToken) private view returns(uint256) {
-        (uint256 uReserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
-        int256 amount = int256(uAmount);
-        int256 reserveWeth = int256(uReserveWeth);
-        int256 solution = int256(2).mul(amount).mul(reserveWeth).div(amount.add(reserveWeth));
-        require(0<solution && solution<amount, "_calculateWethToSellIgnoringFees: solution is out of range.");
-        return uint256(solution);
+    function _calculateWethToSellIgnoringFees(uint256 amount, address otherToken) private view returns(uint256) {
+        (uint256 reserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
+        uint256 solution = uint256(2).mul(amount).mul(reserveWeth).div(amount.add(reserveWeth));
+        require(solution<amount, "_calculateWethToSellIgnoringFees: solution is out of range.");
+        return solution;
     }
 
     function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
