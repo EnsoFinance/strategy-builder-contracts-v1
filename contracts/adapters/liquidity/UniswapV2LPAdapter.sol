@@ -146,18 +146,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
         // Transfer underyling token to pair contract
         IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
         IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
-        { // validate that lp minting is efficient. see ChainSecurity audit 1, issue 5.2 
-            (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
-            uint balanceW = IERC20(weth).balanceOf(address(pair)); 
-            uint balanceO = IERC20(otherToken).balanceOf(address(pair)); 
-            uint amountW = balanceW.sub(reserveW);
-            uint amountO = balanceO.sub(reserveO);
-            uint256 q0 = amountW.mul(pair.totalSupply()) / reserveW;
-            uint256 q1 = amountO.mul(pair.totalSupply()) / reserveO;
-            int256 iDifference = int256(q0)-int256(q1);
-            uint256 difference = uint256((iDifference < 0) ? -iDifference : iDifference);
-            require(difference <= 1, "_transferWethIntoWethPair: inefficient lp minting.");
-        }
+        /**
+          At this point lp minting should be efficient, meaning that the difference of 
+          amount0*totalSupply/reserve0 and amount1*totalSupply/reserve1 is negligible.
+          Keep in mind however that this mechanism hasn't been fully analyzed with 
+          respect to tokens that charge a fee on transfer or rebasing tokens.
+         */
     }
 
     function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair) private {
