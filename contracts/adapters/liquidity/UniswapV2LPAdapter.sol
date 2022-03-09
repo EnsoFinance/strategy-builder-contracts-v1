@@ -49,10 +49,22 @@ contract UniswapV2LPAdapter is BaseAdapter {
         }
     }
 
-    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private pure returns(uint256) {
+    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
         // assumes calling function checks one of the tokens is weth
-        (amount, pair); // shh compiler
-        return amount; // is total amount since `swap` buys enough "`otherToken`" to make the mint "balanced"
+        address otherToken;
+        { // stack too deep
+            address token0 = pair.token0();
+            address token1 = pair.token1();
+            otherToken = (token0 == weth) ? token1 : token0;
+        }
+        uint256 wethToSell = _calculateWethToSell(amount, otherToken);
+
+        (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
+        uint256 amountOut = UniswapV2Library.getAmountOut(wethToSell, reserveW, reserveO);
+        reserveW += wethToSell; 
+        reserveO -= wethToSell;
+        uint256 totalSupply = pair.totalSupply();
+        return Math.min(amount.sub(wethToSell).mul(totalSupply) / reserveW, amountOut.mul(totalSupply) / reserveO);
     }
 
     function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
