@@ -182,19 +182,26 @@ contract UniswapV2LPAdapter is BaseAdapter {
         b = -1997r0'r1' 
         c = 1000r0'r1'a
 
-      */
+        but instead of writing ax^2 + bx + c we write x^2 + Bx + C where B=b/a and C=c/a
+        to reduce chance of overflow
 
-      int256 a = int256(-997).mul(reserveOther); 
-      int256 b = int256(-1997).mul(reserveWeth).mul(reserveOther);
-      int256 c = int256(1000).mul(reserveWeth).mul(reserveOther).mul(amount);
+        B = 1997r0'/997
+        C = -1000r0'a/997
+
+      */
+      
+      int256 B = reserveWeth.mul(1997).div(int256(997));
+      int256 C = int256(-1000).mul(reserveWeth).mul(amount).div(int256(997));
 
       // we find the roots simply using the quadratic formula
 
-      int256 d = b.mul(b).sub(int256(4).mul(a).mul(c));
+      int256 d = B.mul(B).sub(int256(4).mul(C));
+
       require(d >= 0, "_calculateWethToSell: solution imaginary.");
-      int256 center = -b;
+      int256 center = -B;
       uint256 sqrt = Math.sqrt(uint256(d));
-      int256 denominator = int256(2).mul(a);
+      
+      int256 denominator = int256(2);
       int256 solution = center.add(int256(sqrt)).div(denominator);
       if (0<solution && solution<amount)
         return uint256(solution);
