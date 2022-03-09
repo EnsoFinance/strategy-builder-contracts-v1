@@ -49,7 +49,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         }
     }
 
-    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
+    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private pure returns(uint256) {
       // assumes calling function checks one of the tokens is weth
       (amount, pair); // shh compiler
       return amount; // is total amount since `swap` buys enough "`otherToken`" to make the mint "balanced"
@@ -134,6 +134,17 @@ contract UniswapV2LPAdapter is BaseAdapter {
       // Transfer underyling token to pair contract
       IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
       IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
+      { // validate that lp minting is efficient. see ChainSecurity audit 1, issue 5.2 
+      (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
+      uint balanceW = IERC20(weth).balanceOf(address(pair)); 
+      uint balanceO = IERC20(otherToken).balanceOf(address(pair)); 
+      uint amountW = balanceW.sub(reserveW);
+      uint amountO = balanceO.sub(reserveO);
+      uint256 q0 = amountW.mul(pair.totalSupply()) / reserveW;
+      uint256 q1 = amountO.mul(pair.totalSupply()) / reserveO;
+      uint256 difference = uint256(int256(q0)-int256(q1));
+      require(difference <= 1, "_transferWethIntoWethPair: inefficient lp minting.");
+      }
     }
 
     function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair) private {
@@ -156,11 +167,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
       IERC20(token1).safeTransfer(address(pair), amountOut1);
     }
 
-    function _calculateWethToSell(uint256 uAmount, address otherToken) private returns(uint256) {
-      (uint256 uReserveWeth, uint256 uReserveOther) = UniswapV2Library.getReserves(factory, weth, otherToken);
+    function _calculateWethToSell(uint256 uAmount, address otherToken) private view returns(uint256) {
+      (uint256 uReserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
       int256 amount = int256(uAmount);
       int256 reserveWeth = int256(uReserveWeth);
-      int256 reserveOther = int256(uReserveOther);
 
       /**
 
