@@ -142,7 +142,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
       uint amountO = balanceO.sub(reserveO);
       uint256 q0 = amountW.mul(pair.totalSupply()) / reserveW;
       uint256 q1 = amountO.mul(pair.totalSupply()) / reserveO;
-      uint256 difference = uint256(int256(q0)-int256(q1));
+      int256 iDifference = int256(q0)-int256(q1);
+      uint256 difference = uint256((iDifference < 0) ? -iDifference : iDifference);
       require(difference <= 1, "_transferWethIntoWethPair: inefficient lp minting.");
       }
     }
