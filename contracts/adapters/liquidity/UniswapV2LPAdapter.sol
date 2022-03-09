@@ -270,7 +270,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
         uint256 amountOut = UniswapV2Library.getAmountOut(wethToSell, reserveW, reserveO);
         reserveW = reserveW.add(wethToSell); 
-        reserveO = reserveO.sub(wethToSell);
+        reserveO = reserveO.sub(amountOut);
         uint256 totalSupply = pair.totalSupply();
         return Math.min(amount.sub(wethToSell).mul(totalSupply) / reserveW, amountOut.mul(totalSupply) / reserveO);
     }
