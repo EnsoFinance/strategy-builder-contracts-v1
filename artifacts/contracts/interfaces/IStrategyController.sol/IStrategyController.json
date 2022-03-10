@@ -62,7 +62,7 @@
     {
       "inputs": [
         {
-          "internalType": "address",
+          "internalType": "contract IStrategy",
           "name": "strategy",
           "type": "address"
         }

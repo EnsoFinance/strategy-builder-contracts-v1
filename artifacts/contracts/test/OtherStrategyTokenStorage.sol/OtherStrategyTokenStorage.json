@@ -1,0 +1,43 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "OtherStrategyTokenStorage",
+  "sourceName": "contracts/test/OtherStrategyTokenStorage.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "DOMAIN_SEPARATOR",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "OTHERVARIABLES",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x608060405234801561001057600080fd5b5060b88061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80633644e515146037578063ca64cb9d14604f575b600080fd5b603d6069565b60408051918252519081900360200190f35b603d60048036036020811015606357600080fd5b5035606f565b60005481565b60168160028110607b57fe5b015490508156fea264697066735822122076e8164e4c358e988f38293c59820082261ed012a7b9a0bf302281a24a01825f64736f6c634300060c0033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b506004361060325760003560e01c80633644e515146037578063ca64cb9d14604f575b600080fd5b603d6069565b60408051918252519081900360200190f35b603d60048036036020811015606357600080fd5b5035606f565b60005481565b60168160028110607b57fe5b015490508156fea264697066735822122076e8164e4c358e988f38293c59820082261ed012a7b9a0bf302281a24a01825f64736f6c634300060c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
