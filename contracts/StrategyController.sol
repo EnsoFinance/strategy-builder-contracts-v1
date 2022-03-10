@@ -655,43 +655,43 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy The strategy contract
      * @param strategyItems An array of tokens
      * @param strategyDebt An array of debt tokens
-     * @param spender The address that will be approved to spend tokens
+     * @param router The router that will be approved to spend tokens
      * @param amount The amount the each token will be approved for
      */
     function _approveItems(
         IStrategy strategy,
         address[] memory strategyItems,
         address[] memory strategyDebt,
-        address spender,
+        address router,
         uint256 amount
     ) internal {
-        strategy.approveToken(_weth, spender, amount);
-        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, spender, amount);
-        _approveSynthsAndDebt(strategy, strategyDebt, spender, amount);
+        strategy.approveToken(_weth, router, amount);
+        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, router, amount);
+        _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
     /**
      * @notice Batch approve synths and debt
      * @param strategy The strategy contract
      * @param strategyDebt An array of debt tokens
-     * @param spender The address that will be approved to spend tokens
+     * @param router The router that will be approved to spend tokens
      * @param amount The amount the each token will be approved for
      */
     function _approveSynthsAndDebt(
         IStrategy strategy,
         address[] memory strategyDebt,
-        address spender,
+        address router,
         uint256 amount
     ) internal {
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, spender, amount);
+        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
         if (strategy.supportsDebt()) {
             if (amount == 0) {
                 strategy.setRouter(address(0));
             } else {
-                strategy.setRouter(spender);
+                strategy.setRouter(router);
             }
         }
-        if (strategy.supportsSynths()) strategy.approveSynths(spender, amount);
+        if (strategy.supportsSynths()) strategy.approveSynths(router, amount);
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
