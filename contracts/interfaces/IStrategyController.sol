@@ -64,7 +64,7 @@ interface IStrategyController is StrategyTypes {
         uint256 newValue
     ) external;
 
-    function finalizeValue(address strategy) external;
+    function finalizeValue(IStrategy strategy) external;
 
     function openStrategy(IStrategy strategy) external;
 

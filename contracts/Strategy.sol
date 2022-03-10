@@ -74,6 +74,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
+     * @dev Throws if called by any account other than the temporary router.
+     */
+    modifier onlyRouter() {
+        require(_tempRouter == msg.sender, "Router only");
+        _;
+    }
+
+
+    /**
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
@@ -115,17 +124,35 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
+     * @notice Strategy gives a token approval to another account. Only called by controller
+     * @param tokens The addresses of the ERC-20 tokens
+     * @param account The address of the account to be approved
+     * @param amount The amount to be approved
+     */
+    function approveTokens(
+        address[] memory tokens,
+        address account,
+        uint256 amount
+    ) external override onlyController {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IERC20(tokens[i]).sortaSafeApprove(account, amount);
+        }
+    }
+
+    /**
      * @notice Strategy approves another account to take out debt. Only called by controller
-     * @param token The address of the Aave DebtToken
+     * @param tokens The addresses of the Aave DebtTokens
      * @param account The address of the account to be approved
      * @param amount The amount to be approved
      */
     function approveDebt(
-        address token,
+        address[] memory tokens,
         address account,
         uint256 amount
     ) external override onlyController {
-        IDebtToken(token).approveDelegation(account, amount);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IDebtToken(tokens[i]).approveDelegation(account, amount);
+        }
     }
 
     /**
@@ -158,8 +185,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _setStructure(newItems);
     }
 
-    function setCollateral(address token) external override {
-        _onlyApproved(msg.sender);
+    function setRouter(address router) external override onlyController {
+        _tempRouter = router;
+    }
+
+    function setCollateral(address token) external override onlyRouter {
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
@@ -504,6 +534,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function supportsSynths() public view override returns (bool) {
         return _synths.length > 0;
+    }
+
+    function supportsDebt() public view override returns (bool) {
+        return _debt.length > 0;
     }
 
     /**

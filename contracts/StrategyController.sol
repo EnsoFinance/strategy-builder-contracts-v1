@@ -324,11 +324,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Finalize the value that was set in the timelock
      * @param strategy The address of the strategy that is being updated
      */
-    function finalizeValue(address strategy) external override {
+    function finalizeValue(IStrategy strategy) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(IStrategy(strategy));
-        StrategyState storage strategyState = _strategyStates[strategy];
-        Timelock storage lock = _timelocks[strategy];
+        _setStrategyLock(strategy);
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        Timelock storage lock = _timelocks[address(strategy)];
         require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
         require(
             !strategyState.social ||
@@ -343,15 +343,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         } else if (lock.category == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
             strategyState.restructureSlippage = uint16(newValue);
         } else if (lock.category == TimelockCategory.THRESHOLD) {
-            IStrategy(strategy).updateRebalanceThreshold(uint16(newValue));
+            strategy.updateRebalanceThreshold(uint16(newValue));
         } else { // lock.category == TimelockCategory.PERFORMANCE
-            IStrategy(strategy).updatePerformanceFee(uint16(newValue));
+            strategy.updatePerformanceFee(uint16(newValue));
         }
-        emit NewValue(strategy, lock.category, newValue, true);
+        emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
         delete lock.timestamp;
         delete lock.data;
-        _removeStrategyLock(IStrategy(strategy));
+        _removeStrategyLock(strategy);
     }
 
     /**
@@ -666,9 +666,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 amount
     ) internal {
         strategy.approveToken(_weth, spender, amount);
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            strategy.approveToken(strategyItems[i], spender, amount);
-        }
+        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, spender, amount);
         _approveSynthsAndDebt(strategy, strategyDebt, spender, amount);
     }
 
@@ -685,12 +683,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         address spender,
         uint256 amount
     ) internal {
-        if (strategy.supportsSynths()) {
-            strategy.approveSynths(spender, amount);
+        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, spender, amount);
+        if (strategy.supportsDebt()) {
+            if (amount == 0) {
+                strategy.setRouter(address(0));
+            } else {
+                strategy.setRouter(spender);
+            }
         }
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            strategy.approveDebt(strategyDebt[i], spender, amount);
-        }
+        if (strategy.supportsSynths()) strategy.approveSynths(spender, amount);
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {

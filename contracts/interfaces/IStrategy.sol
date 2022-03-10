@@ -14,8 +14,14 @@ interface IStrategy is IStrategyToken, StrategyTypes {
         uint256 amount
     ) external;
 
+    function approveTokens(
+        address[] memory tokens,
+        address account,
+        uint256 amount
+    ) external;
+
     function approveDebt(
-        address token,
+        address[] memory tokens,
         address account,
         uint256 amount
     ) external;
@@ -26,6 +32,8 @@ interface IStrategy is IStrategyToken, StrategyTypes {
     ) external;
 
     function setStructure(StrategyItem[] memory newItems) external;
+
+    function setRouter(address router) external;
 
     function setCollateral(address token) external;
 
@@ -85,4 +93,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
     function whitelist() external view returns (IWhitelist);
 
     function supportsSynths() external view returns (bool);
+
+    function supportsDebt() external view returns (bool);
 }
