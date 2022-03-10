@@ -52,6 +52,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
+    event RewardsClaimed(address indexed adapter, address indexed token);
     event UpdateManager(address manager);
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
@@ -312,25 +313,31 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
-     * @notice Claim rewards using a delegate call to an adapter
-     * @param adapter The address of the adapter that this function does a delegate call to. It must support the IRewardsAdapter interface and be whitelisted
+     * @notice Claim rewards using a delegate call to adapter
+     * @param adapter The address of the adapter that this function does a delegate call to.
+                      It must support the IRewardsAdapter interface and be whitelisted
      * @param token The address of the token being claimed
      */
-    function delegateClaimRewards(address adapter, address token) external {
+    function claimRewards(address adapter, address token) external {
         _setLock();
         _onlyManager();
-        _onlyApproved(adapter);
-        bytes memory data =
-            abi.encodeWithSelector(
-                bytes4(keccak256("claim(address)")),
-                token
-            );
-        uint256 txGas = gasleft();
-        bool success;
-        assembly {
-            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
+        _delegateClaim(adapter, token);
+        _removeLock();
+    }
+
+    /**
+     * @notice Batch claim rewards using a delegate call to adapters
+     * @param adapters The addresses of the adapters that this function does a delegate call to.
+                       Adapters must support the IRewardsAdapter interface and be whitelisted
+     * @param tokens The addresses of the tokens being claimed
+     */
+    function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
+        _setLock();
+        _onlyManager();
+        require(adapters.length == tokens.length, "Incorrect parameters");
+        for (uint256 i = 0; i < adapters.length; i++) {
+          _delegateClaim(adapters[i], tokens[i]);
         }
-        require(success, "Claim failed");
         _removeLock();
     }
 
@@ -504,6 +511,28 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function supportsSynths() public view override returns (bool) {
         return _synths.length > 0;
+    }
+
+    /**
+     * @notice Claim rewards using a delegate call to an adapter
+     * @param adapter The address of the adapter that this function does a delegate call to.
+                      It must support the IRewardsAdapter interface and be whitelisted
+     * @param token The address of the token being claimed
+     */
+    function _delegateClaim(address adapter, address token) internal {
+        _onlyApproved(adapter);
+        bytes memory data =
+            abi.encodeWithSelector(
+                bytes4(keccak256("claim(address)")),
+                token
+            );
+        uint256 txGas = gasleft();
+        bool success;
+        assembly {
+            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
+        }
+        require(success, "Claim failed");
+        emit RewardsClaimed(adapter, token);
     }
 
     /**
