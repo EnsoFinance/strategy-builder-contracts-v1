@@ -17,8 +17,8 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/utils'
-import { displayBalances } from '../lib/logging'
+import { MAINNET_ADDRESSES, DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+//import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -89,9 +89,9 @@ describe('Experimental Strategy', function () {
 			{ token: tokens.debtWETH,
 				percentage: BigNumber.from(-400),
 				adapters: [aaveBorrowAdapter.address, curveLPAdapter.address, yearnAdapter.address],
-				path: [tokens.weth, tokens.crv3Crypto, tokens.ycrv3Crypto]
+				path: [tokens.weth, tokens.crvTriCrypto2, tokens.ycrvTriCrypto2]
 			},
-			{ token: tokens.ycrv3Crypto,
+			{ token: tokens.ycrvTriCrypto2,
 				percentage: BigNumber.from(400),
 				adapters: [],
 				path: [],
@@ -137,38 +137,18 @@ describe('Experimental Strategy', function () {
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
 
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
-	/*
+
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(1000)
+		const value = WeiPerEther.mul(10)
 		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
-			.swap(value, 0, weth.address, usdc.address, accounts[19].address, accounts[19].address)
-
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(false)
-	})
-
-	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(true)
-	})
-
-	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		const value = await usdc.balanceOf(accounts[19].address)
-		await usdc.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, usdc.address, weth.address, accounts[19].address, accounts[19].address)
+			.swap(value, 0, weth.address, tokens.crv, accounts[19].address, accounts[19].address)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -183,15 +163,14 @@ describe('Experimental Strategy', function () {
 	})
 
 	it('Should withdraw', async function () {
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('10000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).withdraw(strategy.address, router.address, amount, '0x')
+		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
 	})
-	*/
 })

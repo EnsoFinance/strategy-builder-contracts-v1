@@ -53,11 +53,16 @@ contract UniswapV2Adapter is BaseAdapter {
             uint256 afterBalance = IERC20(tokenIn).balanceOf(pair);
             amount = afterBalance.sub(beforeBalance); //In case of transfer fees reducing amount
         }
-
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
         uint256 received = UniswapV2Library.getAmountOut(amount, reserveIn, reserveOut);
+        {
+            // Swap and check amount received (after possible transfer fees)
+            uint256 beforeBalance = IERC20(tokenOut).balanceOf(to);
+            _pairSwap(0, received, tokenIn, tokenOut, to);
+            uint256 afterBalance = IERC20(tokenOut).balanceOf(to);
+            received = afterBalance.sub(beforeBalance);
+        }
         require(received >= expected, "Insufficient tokenOut amount");
-        _pairSwap(0, received, tokenIn, tokenOut, to);
     }
 
     function _pairSwap(

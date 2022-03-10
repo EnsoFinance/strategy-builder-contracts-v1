@@ -34,7 +34,8 @@ const STRATEGY_STATE: InitialState = {
 
 describe('UniswapV2LPAdapter', function () {
 	let tokens: Contract[],
-			pair: Contract,
+			tokenPair: Contract,
+			wethPair: Contract,
 			weth: Contract,
 			uniswapFactory: Contract,
 			strategyFactory: Contract,
@@ -59,12 +60,16 @@ describe('UniswapV2LPAdapter', function () {
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(owner, tokens)
 		await uniswapFactory.createPair(tokens[1].address, tokens[2].address)
-		const pairAddress = await uniswapFactory.getPair(tokens[1].address, tokens[2].address)
-		pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+
+		const wethPairAddress = await uniswapFactory.getPair(tokens[1].address, weth.address)
+		wethPair = new Contract(wethPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+
+		const tokenPairAddress = await uniswapFactory.getPair(tokens[1].address, tokens[2].address)
+		tokenPair = new Contract(tokenPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
 		// Add liquidity
-		await tokens[1].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
-		await tokens[2].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
-		await pair.connect(owner).mint(owner.address)
+		await tokens[1].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100))
+		await tokens[2].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100))
+		await tokenPair.connect(owner).mint(owner.address)
 
 		const platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		strategyFactory = platform.strategyFactory
@@ -75,7 +80,7 @@ describe('UniswapV2LPAdapter', function () {
 		await strategyFactory.connect(owner).addItemToRegistry(
 			ITEM_CATEGORY.BASIC,
 			ESTIMATOR_CATEGORY.UNISWAP_V2_LP,
-			pair.address
+			tokenPair.address
 		)
 
 		const whitelist = platform.administration.whitelist
@@ -108,7 +113,7 @@ describe('UniswapV2LPAdapter', function () {
 				1,
 				0,
 				tokens[1].address,
-				pair.address,
+				tokenPair.address,
 				owner.address,
 				owner.address
 			)
@@ -128,7 +133,7 @@ describe('UniswapV2LPAdapter', function () {
 				amount,
 				expected,
 				weth.address,
-				pair.address,
+				tokenPair.address,
 				owner.address,
 				owner.address
 			)
@@ -140,17 +145,17 @@ describe('UniswapV2LPAdapter', function () {
 		await weth.connect(accounts[1]).deposit({value: amount})
 		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const lpBalanceBefore = await pair.balanceOf(accounts[1].address)
+		const lpBalanceBefore = await wethPair.balanceOf(accounts[1].address)
 		await uniswapV2LPAdapter.connect(accounts[1]).swap(
 			amount,
 			0,
 			weth.address,
-			pair.address,
+			wethPair.address,
 			accounts[1].address,
 			accounts[1].address
 		)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
-		const lpBalanceAfter = await pair.balanceOf(accounts[1].address)
+		const lpBalanceAfter = await wethPair.balanceOf(accounts[1].address)
 		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
 		expect(lpBalanceBefore.lt(lpBalanceAfter)).to.equal(true)
 		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
@@ -160,19 +165,19 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should swap LP for weth', async function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const amount = await pair.balanceOf(accounts[1].address)
-		await pair.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
+		const amount = await wethPair.balanceOf(accounts[1].address)
+		await wethPair.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
 		await uniswapV2LPAdapter.connect(accounts[1]).swap(
 			amount,
 			0,
-			pair.address,
+			wethPair.address,
 			weth.address,
 			accounts[1].address,
 			accounts[1].address
 		)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
-		expect((await pair.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
+		expect((await wethPair.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
 		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
@@ -180,7 +185,7 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should deploy strategy', async function () {
 		const positions = [
-			{ token: pair.address, percentage: BigNumber.from(500), adapters: [uniswapV2LPAdapter.address], path: [] },
+			{ token: tokenPair.address, percentage: BigNumber.from(500), adapters: [uniswapV2LPAdapter.address], path: [] },
 			{ token: weth.address, percentage: BigNumber.from(500), adapters: [], path: [] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2LPAdapter.address)
@@ -223,7 +228,7 @@ describe('UniswapV2LPAdapter', function () {
 			await tokens[2].connect(owner).transfer(flashSwapAttack.address, WeiPerEther.mul(10))
 			// Initiate attack
 			await expect(
-				flashSwapAttack.connect(attacker).initiateAttack(pair.address, strategy.address)
+				flashSwapAttack.connect(attacker).initiateAttack(tokenPair.address, strategy.address)
 			).to.be.revertedWith('Lost value')
 	})
 
@@ -325,12 +330,12 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should check spot price (deposit)', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, pair.address)
+		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, tokenPair.address)
 		expect(price.gt(0)).to.equal(true)
 	})
 
 	it('Should check spot price (withdraw)', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, pair.address, weth.address)
+		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, tokenPair.address, weth.address)
 		expect(price.gt(0)).to.equal(true)
 	})
 
@@ -340,7 +345,7 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should check spot price: zero', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, tokens[1].address, pair.address)
+		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, tokens[1].address, tokenPair.address)
 		expect(price.eq(0)).to.equal(true)
 	})
 

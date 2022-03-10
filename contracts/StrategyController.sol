@@ -95,6 +95,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external payable override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
         strategy.settleSynths();
@@ -119,6 +120,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
@@ -142,6 +144,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
@@ -158,6 +161,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyApproved(address(router));
         _onlyManager(strategy);
@@ -180,6 +184,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
     function repositionSynths(IStrategy strategy, address adapter, address token) external {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         strategy.settleSynths();
@@ -227,6 +232,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy,
         StrategyItem[] memory strategyItems
     ) external override {
+        _isInitialized(address(strategy));
         _notSet(address(strategy)); // Set strategies cannot restructure
         _setStrategyLock(strategy);
         _onlyManager(strategy);
@@ -257,6 +263,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
+        _isInitialized(address(strategy));
         _notSet(address(strategy));  // Set strategies cannot restructure
         _setStrategyLock(strategy);
         _onlyApproved(address(router));
@@ -291,6 +298,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         TimelockCategory category,
         uint256 newValue
     ) external override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
@@ -316,10 +324,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Finalize the value that was set in the timelock
      * @param strategy The address of the strategy that is being updated
      */
-    function finalizeValue(address strategy) external override {
-        _setStrategyLock(IStrategy(strategy));
-        StrategyState storage strategyState = _strategyStates[strategy];
-        Timelock storage lock = _timelocks[strategy];
+    function finalizeValue(IStrategy strategy) external override {
+        _isInitialized(address(strategy));
+        _setStrategyLock(strategy);
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        Timelock storage lock = _timelocks[address(strategy)];
         require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
         require(
             !strategyState.social ||
@@ -334,15 +343,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         } else if (lock.category == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
             strategyState.restructureSlippage = uint16(newValue);
         } else if (lock.category == TimelockCategory.THRESHOLD) {
-            IStrategy(strategy).updateRebalanceThreshold(uint16(newValue));
+            strategy.updateRebalanceThreshold(uint16(newValue));
         } else { // lock.category == TimelockCategory.PERFORMANCE
-            IStrategy(strategy).updatePerformanceFee(uint16(newValue));
+            strategy.updatePerformanceFee(uint16(newValue));
         }
-        emit NewValue(strategy, lock.category, newValue, true);
+        emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
         delete lock.timestamp;
         delete lock.data;
-        _removeStrategyLock(IStrategy(strategy));
+        _removeStrategyLock(strategy);
     }
 
     /**
@@ -350,6 +359,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @dev A social profile allows other users to deposit into the strategy
      */
     function openStrategy(IStrategy strategy) external override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
@@ -364,6 +374,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @dev A set strategy cannot be restructured
      */
     function setStrategy(IStrategy strategy) external override {
+        _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
@@ -374,7 +385,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     // @notice Initialized getter
-    function initialized(address strategy) external view override returns (bool) {
+    function initialized(address strategy) public view override returns (bool) {
         return _initialized[strategy] > 0;
     }
 
@@ -655,9 +666,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 amount
     ) internal {
         strategy.approveToken(_weth, spender, amount);
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            strategy.approveToken(strategyItems[i], spender, amount);
-        }
+        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, spender, amount);
         _approveSynthsAndDebt(strategy, strategyDebt, spender, amount);
     }
 
@@ -674,12 +683,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         address spender,
         uint256 amount
     ) internal {
-        if (strategy.supportsSynths()) {
-            strategy.approveSynths(spender, amount);
+        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, spender, amount);
+        if (strategy.supportsDebt()) {
+            if (amount == 0) {
+                strategy.setRouter(address(0));
+            } else {
+                strategy.setRouter(spender);
+            }
         }
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            strategy.approveDebt(strategyDebt[i], spender, amount);
-        }
+        if (strategy.supportsSynths()) strategy.approveSynths(spender, amount);
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
@@ -709,12 +721,22 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
+     * @notice Checks that strategy is initialized
+     */
+    function _isInitialized(address strategy) private view {
+        require(initialized(strategy), "Not initialized");
+    }
+
+    /**
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) private view {
         require(whitelist().approved(account), "Not approved");
     }
 
+    /**
+     * @notice Checks if msg.sender is manager
+     */
     function _onlyManager(IStrategy strategy) private view {
         require(msg.sender == strategy.manager(), "Not manager");
     }

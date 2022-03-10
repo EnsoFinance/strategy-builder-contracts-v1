@@ -6,13 +6,18 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/yearn/IYEarnV2Vault.sol";
 import "../../interfaces/IERC20NonStandard.sol";
+import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
 contract YEarnV2Adapter is BaseAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    constructor(address weth_) public BaseAdapter(weth_) {}
+    GasCostProvider public immutable gasCostProvider;
+
+    constructor(address weth_) public BaseAdapter(weth_) {
+        gasCostProvider = new GasCostProvider(9000, msg.sender);
+    }
 
     function spotPrice(
         uint256 amount,
@@ -23,11 +28,11 @@ contract YEarnV2Adapter is BaseAdapter {
         if (_checkVault(tokenOut)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);
             if (address(vault.token()) == tokenIn)
-                return amount.mul(10**uint256(IERC20NonStandard(tokenIn).decimals())).div(vault.pricePerShare());
+                return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(vault.pricePerShare());
         } else if (_checkVault(tokenIn)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);
             if (address(vault.token()) == tokenOut)
-                return amount.mul(vault.pricePerShare()).div(10**uint256(IERC20NonStandard(tokenOut).decimals()));
+                return amount.mul(vault.pricePerShare()).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
         }
         return 0;
     }
@@ -64,6 +69,7 @@ contract YEarnV2Adapter is BaseAdapter {
 
     function _checkVault(address vault) internal view returns (bool) {
         bytes32 selector = keccak256("token()");
+        uint256 gasCost = gasCostProvider.gasCost();
 
         bool success;
         address token;
@@ -72,7 +78,7 @@ contract YEarnV2Adapter is BaseAdapter {
             mstore(0x40, add(ptr, 32))
             mstore(ptr, selector)
             success := staticcall(
-                9000, //estimated gas costs
+                gasCost,
                 vault,
                 ptr,
                 4,
@@ -81,7 +87,6 @@ contract YEarnV2Adapter is BaseAdapter {
             )
             token := mload(ptr)
         }
-        if (success && token != address(0)) return true;
-        return false;
+        return success && token != address(0);
     }
 }

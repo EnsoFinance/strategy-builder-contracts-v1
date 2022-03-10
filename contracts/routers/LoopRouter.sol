@@ -47,7 +47,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[i]);
                 _sellPath(
                     tradeData,
-                    _pathPrice(tradeData, uint256(estimatedValue.sub(expectedValue)), strategyItems[i]),
+                    _estimateSellAmount(strategy, strategyItems[i], uint256(estimatedValue.sub(expectedValue)), uint256(estimatedValue)),
                     strategyItems[i],
                     strategy
                 );
@@ -181,7 +181,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
             _sellPath(
                 tradeData,
-                _pathPrice(tradeData, uint256(estimatedValue.sub(expectedValue)), token),
+                _estimateSellAmount(strategy, token, uint256(estimatedValue.sub(expectedValue)), uint256(estimatedValue)),
                 token,
                 strategy
             );

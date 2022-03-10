@@ -38,7 +38,9 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
             value = amount.mul(uint256(price)).div(10**uint256(oracle.decimals()));
         }
         if (oracleData.pair != weth) {
-            value = _traversePairs(value, registry.getOracle(oracleData.pair));
+            IChainlinkRegistry.ChainlinkOracleData memory pairData = registry.getOracle(oracleData.pair);
+            require(pairData.oracle != address(0), "Pair not initialized");
+            value = _traversePairs(value, pairData);
         }
         return value;
     }

@@ -38,7 +38,8 @@ export class Tokens {
 	cUSDC: string
   // Curve
   crv3: string
-	crv3Crypto: string
+	crvTriCrypto: string
+	crvTriCrypto2: string
   crvUSDP: string
 	crvSUSD: string
 	crvAAVE: string
@@ -50,7 +51,6 @@ export class Tokens {
 	crvSETH: string
 	crvREN: string
 	// Curve Gauge
-  crv3Gauge: string
   crvUSDPGauge: string
 	crvSUSDGauge: string
 	crvAAVEGauge: string
@@ -60,11 +60,12 @@ export class Tokens {
 	crvYGauge: string
   // YEarn
 	ycrv3: string
-	ycrv3Crypto: string
+	ycrvTriCrypto2: string
   ycrvUSDP: string
   yDAI: string
 	yUSDC: string
 	ycrvSUSD: string
+	yWBTC: string
 	// Debt
 	debtDAI: string
 	debtUSDC: string
@@ -112,7 +113,8 @@ export class Tokens {
 		this.cUSDC = '0x39aa39c021dfbae8fac545936693ac917d5e7563'
     // Curve LP Tokens
     this.crv3 = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490'
-		this.crv3Crypto = '0xc4ad29ba4b3c580e6d59105fff484999997675ff'
+		this.crvTriCrypto = '0xcA3d75aC011BF5aD07a98d02f18225F9bD9A6BDF'
+		this.crvTriCrypto2 = '0xc4ad29ba4b3c580e6d59105fff484999997675ff'
     this.crvUSDP = '0x7Eb40E450b9655f4B3cC4259BCC731c63ff55ae6'
 		this.crvSUSD = '0xC25a3A3b969415c80451098fa907EC722572917F'
 		this.crvAAVE = '0xFd2a8fA60Abd58Efe3EeE34dd494cD491dC14900'
@@ -124,7 +126,6 @@ export class Tokens {
 		this.crvSETH = '0xA3D87FffcE63B53E0d54fAa1cc983B7eB0b74A9c'
 		this.crvREN = '0x49849C98ae39Fff122806C06791Fa73784FB3675'
 		// Curve Gauge Tokens
-		this.crv3Gauge = '0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A'
 		this.crvUSDPGauge = '0x055be5DDB7A925BfEF3417FC157f53CA77cA7222'
 		this.crvSUSDGauge = '0xA90996896660DEcC6E997655E065b23788857849'
 		this.crvAAVEGauge = '0xd662908ADA2Ea1916B3318327A97eB18aD588b5d'
@@ -134,11 +135,12 @@ export class Tokens {
 		this.crvYGauge = '0xFA712EE4788C042e2B7BB55E6cb8ec569C4530c1'
     // YEarn Tokens
 		this.ycrv3 = '0x84E13785B5a27879921D6F685f041421C7F482dA'
-		this.ycrv3Crypto = '0xE537B5cc158EB71037D4125BDD7538421981E6AA'
+		this.ycrvTriCrypto2 = '0xE537B5cc158EB71037D4125BDD7538421981E6AA'
     this.ycrvUSDP = '0xC4dAf3b5e2A9e93861c3FBDd25f1e943B8D87417'
 		this.ycrvSUSD = '0x5a770DbD3Ee6bAF2802D29a901Ef11501C44797A'
     this.yDAI = '0xdA816459F1AB5631232FE5e97a05BBBb94970c95'
 		this.yUSDC = '0xa354F35829Ae975e850e23e9615b11Da1B3dC4DE'
+		this.yWBTC = '0xA696a63cc78DfFa1a63E9E50587C197387FF6C7E'
   }
 
   async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract) {
@@ -166,7 +168,7 @@ export class Tokens {
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cDAI),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cUSDC),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crv3),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crv3Crypto),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvTriCrypto2),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvUSDP),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvSUSD),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvAAVE),
@@ -176,18 +178,19 @@ export class Tokens {
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvUSDN),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvSETH),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE, this.crvREN),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crv3Gauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSUSDGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3Crypto),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvTriCrypto2),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yWBTC),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, this.crvTriCrypto), // Depreciated for TriCrypto2
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
     ])
 		if (uniswapV3Registry) {
@@ -212,7 +215,7 @@ export class Tokens {
 			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851', 0);
 			await curveDepositZapRegistry.connect(owner).addZap(this.crvUSDP, '0x3c8cAee4E09296800f8D29A68Fa3837e2dae4940', 0);
 			await curveDepositZapRegistry.connect(owner).addZap(this.crvCOMP, '0xeb21209ae4c2c9ff2a86aca31e123764a3b6bc06', 0);
-			await curveDepositZapRegistry.connect(owner).addZap(this.crv3Crypto, '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46', 1);
+			await curveDepositZapRegistry.connect(owner).addZap(this.crvTriCrypto2, '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46', 1);
 		}
   }
 }

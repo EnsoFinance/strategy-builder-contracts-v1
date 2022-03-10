@@ -17,14 +17,14 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
 
     uint256 internal constant DIVISOR = 1000;
 
-    RouterCategory public override category;
-    IStrategyController public override controller;
-    address public weth;
+    RouterCategory public override immutable category;
+    IStrategyController public override immutable controller;
+    address public immutable weth;
 
     constructor(RouterCategory category_, address controller_) public {
         category = category_;
         controller = IStrategyController(controller_);
-        weth = controller.oracle().weth();
+        weth = IStrategyController(controller_).oracle().weth();
     }
 
     /**
@@ -163,22 +163,17 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         }
     }
 
-    function _pathPrice(TradeData memory data, uint256 amount, address token) internal view returns (uint256){
-        for (uint256 i = 0; i < data.adapters.length; i++) {
-            address tokenIn;
-            address tokenOut;
-            if (i == 0) {
-                tokenIn = weth;
-            } else {
-                tokenIn = data.path[i-1];
-            }
-            if (i == data.adapters.length-1) {
-                tokenOut = token;
-            } else {
-                tokenOut = data.path[i];
-            }
-            amount = IBaseAdapter(data.adapters[i]).spotPrice(amount, tokenIn, tokenOut);
+    function _estimateSellAmount(
+        address strategy,
+        address token,
+        uint256 amount,
+        uint256 estimatedValue
+    ) internal view returns (uint256) {
+        uint256 balance = IERC20(token).balanceOf(strategy);
+        if (estimatedValue > amount) {
+          return balance.mul(amount).div(estimatedValue);
+        } else {
+          return balance;
         }
-        return amount;
     }
 }

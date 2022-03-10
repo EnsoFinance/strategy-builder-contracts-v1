@@ -36,6 +36,7 @@ contract UniswapV3Oracle is ProtocolOracle {
         uint256 value = OracleLibrary.getQuoteAtTick(tick, uint128(amount), token, pair);
         if (pair != weth) {
             IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(pair);
+            require(poolData.pool != address(0), "Pair not initialized");
             value = _traversePairs(value, pair, poolData.pair, poolData.pool, timeWindow);
         }
         return value;

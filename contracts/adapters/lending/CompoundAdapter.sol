@@ -7,6 +7,7 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
+import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
 contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
@@ -14,9 +15,11 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
     IComptroller public immutable comptroller;
+    GasCostProvider public immutable gasCostProvider;
 
     constructor(address comptroller_, address weth_) public BaseAdapter(weth_) {
         comptroller = IComptroller(comptroller_);
+        gasCostProvider = new GasCostProvider(400, msg.sender);
     }
 
     function spotPrice(
@@ -76,21 +79,24 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
 
     function _checkCToken(address token) internal view returns (bool) {
         bytes32 selector = keccak256("isCToken()");
+        uint256 gasCost = gasCostProvider.gasCost();
 
         bool success;
+        bool isCToken;
         assembly {
             let ptr := mload(0x40)
             mstore(0x40, add(ptr, 32))
             mstore(ptr, selector)
             success := staticcall(
-                400, //estimated gas costs
+                gasCost,
                 token,
                 ptr,
                 4,
                 ptr,
                 32
             )
+            isCToken := mload(ptr)
         }
-        return success;
+        return success && isCToken;
     }
 }
