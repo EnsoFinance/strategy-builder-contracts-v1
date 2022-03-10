@@ -259,7 +259,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
     function _calculateWethToSellIgnoringFees(uint256 amount, address otherToken) private view returns(uint256) {
         (uint256 reserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
-        uint256 solution = uint256(2).mul(amount).mul(reserveWeth).div(amount.add(reserveWeth));
+        uint256 solution = amount.mul(reserveWeth).div(amount.add(uint256(2).mul(reserveWeth)));
         require(solution<amount, "_calculateWethToSellIgnoringFees: solution is out of range.");
         return solution;
     }
@@ -273,6 +273,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
             otherToken = (token0 == weth) ? token1 : token0;
         }
         uint256 wethToSell = _calculateWethToSellIgnoringFees(amount, otherToken);
+        // DEBUG require(wethToSell<amount, "TOO MUCH");
+        // DEBUG wethToSell = Math.min(amount, wethToSell);
 
         (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
         uint256 amountOut = UniswapV2Library.quote(wethToSell, reserveW, reserveO);
