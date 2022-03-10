@@ -52,6 +52,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
+    event RewardsClaimed(address indexed adapter, address indexed token);
     event UpdateManager(address manager);
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
@@ -72,6 +73,15 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         require(controller == msg.sender, "Controller only");
         _;
     }
+
+    /**
+     * @dev Throws if called by any account other than the temporary router.
+     */
+    modifier onlyRouter() {
+        require(_tempRouter == msg.sender, "Router only");
+        _;
+    }
+
 
     /**
      * @notice Initializes new Strategy
@@ -115,17 +125,35 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
+     * @notice Strategy gives a token approval to another account. Only called by controller
+     * @param tokens The addresses of the ERC-20 tokens
+     * @param account The address of the account to be approved
+     * @param amount The amount to be approved
+     */
+    function approveTokens(
+        address[] memory tokens,
+        address account,
+        uint256 amount
+    ) external override onlyController {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IERC20(tokens[i]).sortaSafeApprove(account, amount);
+        }
+    }
+
+    /**
      * @notice Strategy approves another account to take out debt. Only called by controller
-     * @param token The address of the Aave DebtToken
+     * @param tokens The addresses of the Aave DebtTokens
      * @param account The address of the account to be approved
      * @param amount The amount to be approved
      */
     function approveDebt(
-        address token,
+        address[] memory tokens,
         address account,
         uint256 amount
     ) external override onlyController {
-        IDebtToken(token).approveDelegation(account, amount);
+        for (uint256 i = 0; i < tokens.length; i++) {
+            IDebtToken(tokens[i]).approveDelegation(account, amount);
+        }
     }
 
     /**
@@ -158,8 +186,11 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         _setStructure(newItems);
     }
 
-    function setCollateral(address token) external override {
-        _onlyApproved(msg.sender);
+    function setRouter(address router) external override onlyController {
+        _tempRouter = router;
+    }
+
+    function setCollateral(address token) external override onlyRouter {
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
@@ -312,25 +343,31 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
-     * @notice Claim rewards using a delegate call to an adapter
-     * @param adapter The address of the adapter that this function does a delegate call to. It must support the IRewardsAdapter interface and be whitelisted
+     * @notice Claim rewards using a delegate call to adapter
+     * @param adapter The address of the adapter that this function does a delegate call to.
+                      It must support the IRewardsAdapter interface and be whitelisted
      * @param token The address of the token being claimed
      */
-    function delegateClaimRewards(address adapter, address token) external {
+    function claimRewards(address adapter, address token) external {
         _setLock();
         _onlyManager();
-        _onlyApproved(adapter);
-        bytes memory data =
-            abi.encodeWithSelector(
-                bytes4(keccak256("claim(address)")),
-                token
-            );
-        uint256 txGas = gasleft();
-        bool success;
-        assembly {
-            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
+        _delegateClaim(adapter, token);
+        _removeLock();
+    }
+
+    /**
+     * @notice Batch claim rewards using a delegate call to adapters
+     * @param adapters The addresses of the adapters that this function does a delegate call to.
+                       Adapters must support the IRewardsAdapter interface and be whitelisted
+     * @param tokens The addresses of the tokens being claimed
+     */
+    function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
+        _setLock();
+        _onlyManager();
+        require(adapters.length == tokens.length, "Incorrect parameters");
+        for (uint256 i = 0; i < adapters.length; i++) {
+          _delegateClaim(adapters[i], tokens[i]);
         }
-        require(success, "Claim failed");
         _removeLock();
     }
 
@@ -506,6 +543,32 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _synths.length > 0;
     }
 
+    function supportsDebt() public view override returns (bool) {
+        return _debt.length > 0;
+    }
+
+    /**
+     * @notice Claim rewards using a delegate call to an adapter
+     * @param adapter The address of the adapter that this function does a delegate call to.
+                      It must support the IRewardsAdapter interface and be whitelisted
+     * @param token The address of the token being claimed
+     */
+    function _delegateClaim(address adapter, address token) internal {
+        _onlyApproved(adapter);
+        bytes memory data =
+            abi.encodeWithSelector(
+                bytes4(keccak256("claim(address)")),
+                token
+            );
+        uint256 txGas = gasleft();
+        bool success;
+        assembly {
+            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
+        }
+        require(success, "Claim failed");
+        emit RewardsClaimed(adapter, token);
+    }
+
     /**
      * @notice Set the structure of the strategy
      * @param newItems An array of Item structs that will comprise the strategy
@@ -575,7 +638,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     /**
      * @notice Called any time there is a transfer to settle the performance and streaming fees
      */
-    function _handleFees(uint256 amount, address sender,address recipient) internal override {
+    function _handleFees(uint256 amount, address sender, address recipient) internal override {
         uint256 fee = uint256(_performanceFee);
         if (fee > 0) {
             uint256 senderPaidValue = _paidTokenValues[sender];
@@ -587,6 +650,10 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
                 // inflation, issuing fees now or later dilutes receiver's value either way
                 _paidTokenValues[recipient] = senderPaidValue;
             } else {
+                address pool = _pool;
+                bool isPool = sender == pool || recipient == pool;
+                // Streaming fee gets issued whenever iteracting with the pool since the stream fee rate will need to be updated
+                if (isPool) _issueStreamingFee(pool);
                 // Performance fees
                 uint256 mintAmount = _settlePerformanceFee(sender, fee); // Sender's paid token value may be updated here
                 senderPaidValue = _paidTokenValues[sender];
@@ -600,12 +667,14 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
                   tokenValue,
                   fee));
                 if (mintAmount > 0) {
-                    address pool = _pool;
-                    // Stream fee before any tokens are minted (since change in supply changes rate)
-                    _issueStreamingFee(pool);
+                    // Stream fee before any tokens are minted if it hasn't already been issued
+                    if (!isPool) _issueStreamingFee(pool);
                     // Mint prformance fee
                     _issuePerformanceFee(pool, mintAmount);
                     // Update streaming fee rate for the new total supply
+                    _updateStreamingFeeRate(pool);
+                } else if (isPool) {
+                    // Update streaming fee rate since the pool balance has changed
                     _updateStreamingFeeRate(pool);
                 }
             }
