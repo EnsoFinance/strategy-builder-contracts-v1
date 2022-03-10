@@ -208,7 +208,7 @@ export class Estimator {
         if (estimatedValue.gt(expectedValue)) {
             return this.estimateSellPath(
                 data,
-                await this.getPathPrice(data, estimatedValue.sub(expectedValue), item),
+                await this.estimateSellAmount(strategy.address, item, estimatedValue.sub(expectedValue), estimatedValue),
                 item
             );
         }
@@ -365,6 +365,20 @@ export class Estimator {
       return BigNumber.from('0')
   }
 
+  async estimateSellAmount(
+      strategy: string,
+      token: string,
+      amount: BigNumber,
+      estimatedValue: BigNumber
+  ) {
+      const balance = await (new Contract(token, ERC20.abi, this.signer)).balanceOf(strategy);
+      if (estimatedValue.gt(amount)) {
+        return balance.mul(amount).div(estimatedValue);
+      } else {
+        return balance;
+      }
+  }
+
   async estimateSwap(
     adapter: string,
     amount: BigNumber,
@@ -477,20 +491,6 @@ export class Estimator {
   async estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
       return (new Contract(this.yearnV2AdapterAddress, IBaseAdapter.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)
-  }
-
-  async getPathPrice(
-    data: TradeData,
-    amount: BigNumber,
-    token: string
-  ) {
-      let balance = amount
-      for (let i = 0; i < data.adapters.length; i++) {
-          const _tokenIn = (i === 0) ? WETH : data.path[i - 1]
-          const _tokenOut = (i === data.adapters.length - 1) ? token : data.path[i]
-          balance = await (new Contract(data.adapters[i], IBaseAdapter.abi, this.signer)).spotPrice(balance, _tokenIn, _tokenOut)
-      }
-      return balance;
   }
 
   async getStrategyItem(strategy: Contract, item: string) {
