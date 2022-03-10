@@ -33,7 +33,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             if (pair.token0() == weth || pair.token1() == weth) {
                 return _spotPriceForWethPair(amount, pair);
             } // else
-            return _spotPriceForPair(amount, pair); 
+            return _spotPriceForPair(amount, pair);
         } else if (tokenOut == weth) {
             IUniswapV2Pair pair = IUniswapV2Pair(tokenIn);
             address token0 = pair.token0();
@@ -95,7 +95,14 @@ contract UniswapV2LPAdapter is BaseAdapter {
         }
     }
 
-    function _calculateWethAmounts(address pair, address token0, address token1, uint256 amount, uint256 totalSupply, bool quote) internal view returns (uint256, uint256) {
+    function _calculateWethAmounts(
+        address pair,
+        address token0,
+        address token1,
+        uint256 amount,
+        uint256 totalSupply,
+        bool quote
+    ) internal view returns (uint256, uint256) {
         // Calculate the amount of weth needed to purchase underlying tokens
         uint256 amountIn0 = _getAmountIn(token0, pair, totalSupply, quote);
         uint256 amountIn1 = _getAmountIn(token1, pair, totalSupply, quote);
@@ -105,7 +112,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
         return (wethIn0, wethIn1);
     }
 
-    function _getAmountIn(address token, address pair, uint256 totalSupply, bool quote) internal view returns (uint256) {
+    function _getAmountIn(
+        address token,
+        address pair,
+        uint256 totalSupply,
+        bool quote
+    ) internal view returns (uint256) {
         uint256 balance = IERC20(token).balanceOf(pair);
         uint256 amountOut = DEFAULT_AMOUNT.mul(balance) / totalSupply;
         if (token == weth) return amountOut;
@@ -138,7 +150,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
         return amountOut;
     }
 
-    function _sellToken(uint256 amountIn, address token, address to) internal returns (uint256) {
+    function _sellToken(
+        uint256 amountIn,
+        address token,
+        address to
+    ) internal returns (uint256) {
         if (token == weth) {
             IERC20(token).transfer(to, amountIn);
             return amountIn;
@@ -159,7 +175,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
         return amountOut;
     }
 
-    function _quote(uint256 amount, address tokenIn, address tokenOut) internal view returns (uint256) {
+    function _quote(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) internal view returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
         return UniswapV2Library.quote(amount, reserveIn, reserveOut);
@@ -177,9 +197,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
         IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
         /**
-          At this point lp minting should be efficient, meaning that the difference of 
+          At this point lp minting should be efficient, meaning that the difference of
           amount0*totalSupply/reserve0 and amount1*totalSupply/reserve1 is negligible.
-          Keep in mind however that this mechanism hasn't been fully analyzed with 
+          Keep in mind however that this mechanism hasn't been fully analyzed with
           respect to tokens that charge a fee on transfer or rebasing tokens.
          */
     }
@@ -210,23 +230,22 @@ contract UniswapV2LPAdapter is BaseAdapter {
         int256 reserveWeth = int256(uReserveWeth);
 
         /**
-
-          we build a quadratic 
+          we build a quadratic
           f(x) = ax^2 + bx + c
 
           Algebraic justification:
-         
+
           For the Uniswap mint, we want amount0/reserve0 == amount1/reserve1 since the liquidity is the min of these two expressions times totalSupply.
           Given an amount a of weth we wish to find wethToSell+fees x so that we get the above equality.
           Said with these variables, we want
           (a-x)/r0 == getAmountOut(x)/r1
-          where getAmountOut(x) = 997r1'x/(1000r0' + 997x) 
+          where getAmountOut(x) = 997r1'x/(1000r0' + 997x)
           see https://github.com/Uniswap/v2-periphery/blob/2efa12e0f2d808d9b49737927f0e416fafa5af68/contracts/libraries/UniswapV2Library.sol#L43
           Keep in mind that the r0 at the mint can be expressed as the reserve before the swap r0' as r0 = r0'+x.
           Similarly we write r1 = r1'-getAmountOut(x)
           From the equation we get a quadratic where
           a = -997r1'
-          b = -1997r0'r1' 
+          b = -1997r0'r1'
           c = 1000r0'r1'a
 
           but instead of writing ax^2 + bx + c we write x^2 + Bx + C where B=b/a and C=c/a
@@ -234,9 +253,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
           B = 1997r0'/997
           C = -1000r0'a/997
-
         */
-        
+
         int256 B = reserveWeth.mul(1997).div(int256(997));
         int256 C = int256(-1000).mul(reserveWeth).mul(amount).div(int256(997));
 
@@ -247,20 +265,20 @@ contract UniswapV2LPAdapter is BaseAdapter {
         require(d >= 0, "_calculateWethToSell: solution imaginary.");
         int256 center = -B;
         uint256 sqrt = Math.sqrt(uint256(d));
-        
+
         int256 denominator = int256(2);
         int256 solution = center.add(int256(sqrt)).div(denominator);
-        if (0<solution && solution<amount)
+        if (0 < solution && solution < amount)
             return uint256(solution);
         solution = center.sub(int256(sqrt)).div(denominator);
-        require(0<solution && solution<amount, "_calculateWethToSell: solution out of range.");
+        require(0 < solution && solution < amount, "_calculateWethToSell: solution out of range.");
         return uint256(solution);
     }
 
     function _calculateWethToSellIgnoringFees(uint256 amount, address otherToken) private view returns(uint256) {
         (uint256 reserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
         uint256 solution = amount.mul(reserveWeth).div(amount.add(uint256(2).mul(reserveWeth)));
-        require(solution<amount, "_calculateWethToSellIgnoringFees: solution is out of range.");
+        require(solution < amount, "_calculateWethToSellIgnoringFees: solution is out of range.");
         return solution;
     }
 
@@ -273,12 +291,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
             otherToken = (token0 == weth) ? token1 : token0;
         }
         uint256 wethToSell = _calculateWethToSellIgnoringFees(amount, otherToken);
-        // DEBUG require(wethToSell<amount, "TOO MUCH");
-        // DEBUG wethToSell = Math.min(amount, wethToSell);
 
         (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
         uint256 amountOut = UniswapV2Library.quote(wethToSell, reserveW, reserveO);
-        reserveW = reserveW.add(wethToSell); 
+        reserveW = reserveW.add(wethToSell);
         reserveO = reserveO.sub(amountOut);
         uint256 totalSupply = pair.totalSupply();
         return Math.min(amount.sub(wethToSell).mul(totalSupply) / reserveW, amountOut.mul(totalSupply) / reserveO);
