@@ -63,7 +63,7 @@ async function main() {
 					strategyState,
 					routerAddress,
 					'0x',
-					{ value: amount, gasLimit: 3100000 }
+					{ value: amount, gasLimit: 5000000 }
 				)
 			let receipt = await tx.wait()
 			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
