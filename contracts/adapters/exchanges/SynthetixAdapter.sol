@@ -5,7 +5,6 @@ import "../../interfaces/synthetix/ISynth.sol";
 import "../../interfaces/synthetix/ISynthetix.sol";
 import "../../interfaces/synthetix/IExchanger.sol";
 import "../../interfaces/synthetix/IAddressResolver.sol";
-import "../../interfaces/synthetix/IDelegateApprovals.sol";
 import "../BaseAdapter.sol";
 
 contract SynthetixAdapter is BaseAdapter {
