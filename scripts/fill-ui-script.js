@@ -19,7 +19,7 @@ function getRandomPosition() {
 async function main() {
 	const strategyFactory = await hre.ethers.getContractAt(
 		'StrategyProxyFactory',
-		deployedContracts[process.env.HARDHAT_NETWORK === 'ensonet' ? 'localhost' : provess.env.HARDHAT_NETWORK]
+		deployedContracts[process.env.HARDHAT_NETWORK === 'ensonet' ? 'localhost' : process.env.HARDHAT_NETWORK]
 			.StrategyProxyFactory
 	)
 
