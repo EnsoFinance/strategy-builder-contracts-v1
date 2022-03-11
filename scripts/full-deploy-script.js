@@ -10,35 +10,41 @@ const fs = require('fs')
 const network = process.env.HARDHAT_NETWORK
 
 const deployedContracts = {
-  mainnet: {
-    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-    aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
-    curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
-    synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+	mainnet: {
+		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		uniswapV3Factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
+		uniswapV3Router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-    ensoPool: ''
-  },
-  localhost: {
-    weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-    usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-    aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
-    curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
-    synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+		ensoPool: '',
+	},
+	localhost: {
+		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		uniswapV3Factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
+		uniswapV3Router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
+		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
+		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
-    ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b' // template address
-  },
-  kovan: {
-    weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
-    susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
-    usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
-    uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-    aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
-    synthetixAddressProvider: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
+		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b', // template address
+	},
+	kovan: {
+		weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
+		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
+		usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
+		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		uniswapV3Factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
+		uniswapV3Router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
+		synthetixAddressProvider: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
 		compoundComptroller: '',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b',
 	},
@@ -51,9 +57,9 @@ async function main() {
 	// If this script is run directly using `node` you may want to call compile
 	// manually to make sure everything is compiled
 	// await hre.run('compile');
-  const StrategyLibrary = await hre.ethers.getContractFactory('StrategyLibrary')
-  const library = await StrategyLibrary.deploy()
-  await library.deployed()
+	const StrategyLibrary = await hre.ethers.getContractFactory('StrategyLibrary')
+	const library = await StrategyLibrary.deploy()
+	await library.deployed()
 
 	const TokenRegistry = await hre.ethers.getContractFactory('TokenRegistry')
 	const tokenRegistry = await TokenRegistry.deploy()
@@ -68,7 +74,11 @@ async function main() {
 	add2Deployments('CurveDepositZapRegistry', curveDepositZapRegistry.address)
 
 	const UniswapV3Registry = await hre.ethers.getContractFactory('UniswapV3Registry')
-	const uniswapV3Registry = await UniswapV3Registry.deploy()
+	const uniswapV3Registry = await UniswapV3Registry.deploy(
+		1,
+		deployedContracts[network].uniswapV3Factory,
+		deployedContracts[network].weth
+	)
 	await uniswapV3Registry.deployed()
 
 	add2Deployments('UniswapV3Registry', uniswapV3Registry.address)
@@ -214,47 +224,47 @@ async function main() {
 
 	add2Deployments('Whitelist', whitelist.address)
 
-  const PlatformProxyAdmin = await hre.ethers.getContractFactory('PlatformProxyAdmin')
+	const PlatformProxyAdmin = await hre.ethers.getContractFactory('PlatformProxyAdmin')
 	const platformProxyAdmin = await PlatformProxyAdmin.deploy()
 	await platformProxyAdmin.deployed()
-  const controllerAddress = await platformProxyAdmin.controller()
-  const factoryAddress = await platformProxyAdmin.factory()
+	const controllerAddress = await platformProxyAdmin.controller()
+	const factoryAddress = await platformProxyAdmin.factory()
 
 	add2Deployments('PlatformProxyAdmin', platformProxyAdmin.address)
 
-  // Controller implementation
-  const StrategyController = await hre.ethers.getContractFactory('StrategyController', {
-    libraries: {
-      StrategyLibrary: library.address
-    }
-  })
-  const controllerImplementation = await StrategyController.deploy(factoryAddress)
-  await controllerImplementation.deployed()
+	// Controller implementation
+	const StrategyController = await hre.ethers.getContractFactory('StrategyController', {
+		libraries: {
+			StrategyLibrary: library.address,
+		},
+	})
+	const controllerImplementation = await StrategyController.deploy(factoryAddress)
+	await controllerImplementation.deployed()
 
-  // Factory implementation
-  const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
-  const factoryImplementation = await StrategyProxyFactory.deploy(controllerAddress)
-  await factoryImplementation.deployed()
+	// Factory implementation
+	const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
+	const factoryImplementation = await StrategyProxyFactory.deploy(controllerAddress)
+	await factoryImplementation.deployed()
 
-  // Strategy implementation
-  const Strategy = await hre.ethers.getContractFactory('Strategy')
-  const strategyImplementation = await Strategy.deploy(
-    factoryAddress,
-    controllerAddress,
-    deployedContracts[network].synthetixAddressProvider,
-    deployedContracts[network].aaveAddressProvider
-  )
-  await strategyImplementation.deployed()
+	// Strategy implementation
+	const Strategy = await hre.ethers.getContractFactory('Strategy')
+	const strategyImplementation = await Strategy.deploy(
+		factoryAddress,
+		controllerAddress,
+		deployedContracts[network].synthetixAddressProvider,
+		deployedContracts[network].aaveAddressProvider
+	)
+	await strategyImplementation.deployed()
 
-  // Initialize platform
-  await platformProxyAdmin.initialize(
-			controllerImplementation.address,
-			factoryImplementation.address,
-			strategyImplementation.address,
-			ensoOracle.address,
-			tokenRegistry.address,
-			whitelist.address,
-			deployedContracts[network].ensoPool
+	// Initialize platform
+	await platformProxyAdmin.initialize(
+		controllerImplementation.address,
+		factoryImplementation.address,
+		strategyImplementation.address,
+		ensoOracle.address,
+		tokenRegistry.address,
+		whitelist.address,
+		deployedContracts[network].ensoPool
 	)
 	add2Deployments('StrategyProxyFactory', factoryAddress)
 	add2Deployments('StrategyController', controllerAddress)
@@ -262,11 +272,11 @@ async function main() {
 	tx = await tokenRegistry.transferOwnership(factoryAddress)
 	await tx.wait()
 
-  const LoopRouter = await hre.ethers.getContractFactory('LoopRouter', {
-    libraries: {
-      StrategyLibrary: library.address
-    }
-  })
+	const LoopRouter = await hre.ethers.getContractFactory('LoopRouter', {
+		libraries: {
+			StrategyLibrary: library.address,
+		},
+	})
 	const loopRouter = await LoopRouter.deploy(controllerAddress)
 	await loopRouter.deployed()
 
@@ -276,10 +286,10 @@ async function main() {
 	await tx.wait()
 
 	const FullRouter = await hre.ethers.getContractFactory('FullRouter', {
-    libraries: {
-      StrategyLibrary: library.address
-    }
-  })
+		libraries: {
+			StrategyLibrary: library.address,
+		},
+	})
 	const fullRouter = await FullRouter.deploy(deployedContracts[network].aaveAddressProvider, controllerAddress)
 	await fullRouter.deployed()
 
@@ -298,10 +308,10 @@ async function main() {
 	await tx.wait()
 
 	const BatchDepositRouter = await hre.ethers.getContractFactory('BatchDepositRouter', {
-    libraries: {
-      StrategyLibrary: library.address
-    }
-  })
+		libraries: {
+			StrategyLibrary: library.address,
+		},
+	})
 	const batchDepositRouter = await BatchDepositRouter.deploy(controllerAddress)
 	await batchDepositRouter.deployed()
 
@@ -321,7 +331,9 @@ async function main() {
 
 	const UniswapV3Adapter = await hre.ethers.getContractFactory('UniswapV3Adapter')
 	const uniswapV3Adapter = await UniswapV3Adapter.deploy(
-		deployedContracts[network].uniswapFactory,
+		uniswapV3Registry.address,
+		deployedContracts[network].uniswapV3Factory,
+		deployedContracts[network].uniswapV3Router,
 		deployedContracts[network].weth
 	)
 	await uniswapV3Adapter.deployed()
@@ -357,7 +369,10 @@ async function main() {
 	await tx.wait()
 
 	const CurveAdapter = await hre.ethers.getContractFactory('CurveAdapter')
-	const curveAdapter = await CurveAdapter.deploy(deployedContracts[network].curveAddressProvider, deployedContracts[network].weth)
+	const curveAdapter = await CurveAdapter.deploy(
+		deployedContracts[network].curveAddressProvider,
+		deployedContracts[network].weth
+	)
 	await curveAdapter.deployed()
 
 	add2Deployments('CurveAdapter', curveAdapter.address)
