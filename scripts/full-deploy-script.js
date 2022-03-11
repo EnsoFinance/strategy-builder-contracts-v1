@@ -319,6 +319,15 @@ async function main() {
 
 	add2Deployments('UniswapV2Adapter', uniswapV2Adapter.address)
 
+	const UniswapV3Adapter = await hre.ethers.getContractFactory('UniswapV3Adapter')
+	const uniswapV3Adapter = await UniswapV3Adapter.deploy(
+		deployedContracts[network].uniswapFactory,
+		deployedContracts[network].weth
+	)
+	await uniswapV3Adapter.deployed()
+
+	add2Deployments('UniswapV3Adapter', uniswapV3Adapter.address)
+
 	tx = await whitelist.approve(uniswapV2Adapter.address)
 	await tx.wait()
 
