@@ -8,7 +8,7 @@ import 'solidity-coverage'
 import '@typechain/hardhat'
 import './tasks/accounts'
 import './tasks/clean'
-import "./tasks/addOwnerFunds";
+import './tasks/addOwnerFunds'
 
 dotenv.config()
 
@@ -18,6 +18,7 @@ const chainIds = {
 	hardhat: 31337,
 	kovan: 42,
 	mainnet: 1,
+	ensonet: 1,
 	rinkeby: 4,
 	ropsten: 3,
 }
@@ -69,13 +70,21 @@ function getNetworks(): NetworksUserConfig {
 		networks.kovan = createTestnetConfig('kovan')
 		networks.rinkeby = createTestnetConfig('rinkeby')
 		networks.ropsten = createTestnetConfig('ropsten')
+		networks.ensonet = createTestnetConfig('ensonet')
 	}
 	return networks
 }
 
 function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
 	// Ensure that we have all the environment variables we need.
-	const url: string = 'https://' + network + '.infura.io/v3/' + infuraApiKey
+
+	let url: string
+	if (network === 'ensonet') {
+		url = 'http://testnet.enso.finance'
+	} else {
+		url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
+	}
+
 	return {
 		accounts: {
 			count: 10,
