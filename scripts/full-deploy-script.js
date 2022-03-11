@@ -67,6 +67,12 @@ async function main() {
 
 	add2Deployments('CurveDepositZapRegistry', curveDepositZapRegistry.address)
 
+	const UniswapV3Registry = await hre.ethers.getContractFactory('UniswapV3Registry')
+	const uniswapV3Registry = await UniswapV3Registry.deploy()
+	await uniswapV3Registry.deployed()
+
+	add2Deployments('UniswapV3Registry', uniswapV3Registry.address)
+
 	const ChainlinkRegistry = await hre.ethers.getContractFactory('ChainlinkRegistry')
 	const chainlinkRegistry = await ChainlinkRegistry.deploy()
 	await chainlinkRegistry.deployed()
