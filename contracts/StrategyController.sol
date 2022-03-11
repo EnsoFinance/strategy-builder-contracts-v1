@@ -43,7 +43,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     /**
      * @dev Called to initialize proxy
      */
-    function initialize() external initializer returns (bool) {
+    function initialize() external initializer {
         updateAddresses();
     }
 
@@ -584,7 +584,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         uint256 totalBefore,
         bytes memory data
-    ) internal returns (uint256) {
+    ) internal {
         router.rebalance(address(strategy), data);
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
@@ -592,7 +592,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
-        return totalAfter;
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
