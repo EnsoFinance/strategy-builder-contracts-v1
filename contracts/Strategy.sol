@@ -44,7 +44,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     // a year via inflation. The multiplier (0.001001001) is used to calculate
     // the amount of tokens that need to be minted over a year to give the fee
     // pool 0.1% of the tokens (STREAM_FEE*totalSupply)
-    uint256 public constant STREAM_FEE = uint256(10**33)/uint256(10**18-10**15);
+    uint256 public constant STREAM_FEE = uint256(1001001001001001);
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
