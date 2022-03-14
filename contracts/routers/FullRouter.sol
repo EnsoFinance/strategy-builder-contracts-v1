@@ -122,7 +122,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     estimate,
                     expected
                 )
-            ) buy[i] = (expected == int256(0)) ? int256(2**255 - 1) : expected;
+            ) buy[i] = expected;
             // semantic overloading to cache `expected` since it will be used in next loop. 
             // we ensure that `buy[i]` will always act as a flag, by "flipping" '0' value to 
             // the "opposite" side of the `int256` type. 
