@@ -20,6 +20,8 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
 
     uint256 public immutable distributionTokenScalar;
 
+    event RewardsClaimed(address from, address to, address token, uint256 amount);
+
     constructor(
         address stakedToken_,
         address staking_,
@@ -81,7 +83,9 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
 
     // Intended to be called via delegateCall
     function claim(address token) external override {
-        // FIXME need to work out `claimFor` etc.. 
+      uint256 owed = IStaking(IStaking(staking).distribution()).claim(token); 
+      // uint256 owed = IStaking(staking).claim(token); // FIXME update after `Staking` is refactored to inherit `RewardDistribution`
+      emit RewardsClaimed(staking, address(this), token, owed);
     }
 
 }
