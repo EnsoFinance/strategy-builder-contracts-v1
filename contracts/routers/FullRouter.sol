@@ -131,7 +131,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         for (uint256 i = 0; i < strategyItems.length; i++) {
             if (buy[i] != 0) {
                 address strategyItem = strategyItems[i];
-                int256 expected = (buy[i] == int256(2**255 - 1)) ? int256(0) : buy[i];
+                int256 expected = buy[i];
                 _buyToken(
                     strategy,
                     strategy,
