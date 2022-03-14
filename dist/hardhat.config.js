@@ -18,6 +18,7 @@ var chainIds = {
     hardhat: 31337,
     kovan: 42,
     mainnet: 1,
+    ensonet: 1,
     rinkeby: 4,
     ropsten: 3,
 };
@@ -68,12 +69,19 @@ function getNetworks() {
         networks.kovan = createTestnetConfig('kovan');
         networks.rinkeby = createTestnetConfig('rinkeby');
         networks.ropsten = createTestnetConfig('ropsten');
+        networks.ensonet = createTestnetConfig('ensonet');
     }
     return networks;
 }
 function createTestnetConfig(network) {
     // Ensure that we have all the environment variables we need.
-    var url = 'https://' + network + '.infura.io/v3/' + infuraApiKey;
+    var url;
+    if (network === 'ensonet') {
+        url = 'http://testnet.enso.finance';
+    }
+    else {
+        url = 'https://' + network + '.infura.io/v3/' + infuraApiKey;
+    }
     return {
         accounts: {
             count: 10,

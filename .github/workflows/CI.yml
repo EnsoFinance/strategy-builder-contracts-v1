@@ -14,7 +14,7 @@ jobs:
       ARCHIVE_NODE: ${{ secrets.ARCHIVE_NODE }}
     strategy:
       matrix:
-        node: ["12.x"]
+        node: ["14.x"]
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:

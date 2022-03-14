@@ -30,7 +30,8 @@ export declare class Tokens {
     cDAI: string;
     cUSDC: string;
     crv3: string;
-    crv3Crypto: string;
+    crvTriCrypto: string;
+    crvTriCrypto2: string;
     crvUSDP: string;
     crvSUSD: string;
     crvAAVE: string;
@@ -41,7 +42,6 @@ export declare class Tokens {
     crvUSDN: string;
     crvSETH: string;
     crvREN: string;
-    crv3Gauge: string;
     crvUSDPGauge: string;
     crvSUSDGauge: string;
     crvAAVEGauge: string;
@@ -50,11 +50,12 @@ export declare class Tokens {
     crvCOMPGauge: string;
     crvYGauge: string;
     ycrv3: string;
-    ycrv3Crypto: string;
+    ycrvTriCrypto2: string;
     ycrvUSDP: string;
     yDAI: string;
     yUSDC: string;
     ycrvSUSD: string;
+    yWBTC: string;
     debtDAI: string;
     debtUSDC: string;
     debtWBTC: string;
