@@ -3,8 +3,8 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/SafeCast.sol";
-import "../../libraries/SafeERC20.sol";
 import "../BaseAdapter.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/IStaking.sol";
 import "../../interfaces/IERC1155Supply.sol";
@@ -14,24 +14,24 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
     address public immutable staking;
-    address public immutable distributionToken;
 
     address public immutable stakedToken;
+    address public immutable distributionToken;
 
     uint256 public immutable distributionTokenScalar;
 
     event RewardsClaimed(address from, address to, address token, uint256 amount);
 
     constructor(
-        address stakedToken_,
         address staking_,
+        address stakedToken_,
         address distributionToken_,
-        address weth_,
-        uint256 distributionTokenScalar_
+        uint256 distributionTokenScalar_,
+        address weth_
     ) BaseAdapter(weth_) public {
         staking = staking_;
-        distributionToken = distributionToken_;
         stakedToken = stakedToken_; 
+        distributionToken = distributionToken_;
         require(distributionTokenScalar_ > 0, "EnsoStakingAdapter: invalid scaled distribution scalar.");
         distributionTokenScalar = distributionTokenScalar_;
     }
