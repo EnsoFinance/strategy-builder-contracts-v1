@@ -85,26 +85,24 @@ describe('UniswapV3Oracle', function() {
 		tokens.push(token1)
 		tokens.push(token2)
 		weth = tokens[0]
-
 		;[uniswapV3Factory, uniswapNFTManager] = await deployUniswapV3(trader, tokens)
 		uniswapRouter = await deployContract(trader, SwapRouter, [uniswapV3Factory.address, weth.address])
-		//uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
-
 		nonWethPair = await deployContract(trader, ERC20, [WeiPerEther.mul(10000)])
 		// Create non weth pool
+		const aNum = ethers.BigNumber.from(tokens[2].address)
+		const bNum = ethers.BigNumber.from(nonWethPair.address)
+		const flipper = aNum.lt(bNum)
 		await uniswapNFTManager.createAndInitializePoolIfNecessary(
-			nonWethPair.address,
-			tokens[2].address,
+			flipper ? tokens[2].address : nonWethPair.address,
+			flipper ? nonWethPair.address : tokens[2].address,
 			HIGH_FEE,
 			encodePriceSqrt(1, 1)
 		)
 		// Add liquidity
 		await nonWethPair.connect(trader).approve(uniswapNFTManager.address, MaxUint256)
-		const aNum = ethers.BigNumber.from(tokens[2].address)
-		const bNum = ethers.BigNumber.from(nonWethPair.address)
 		await uniswapNFTManager.connect(trader).mint({
-			token0: aNum.lt(bNum) ? tokens[2].address : nonWethPair.address,
-			token1: aNum.lt(bNum) ? nonWethPair.address : tokens[2].address,
+			token0: flipper ? tokens[2].address : nonWethPair.address,
+			token1: flipper ? nonWethPair.address : tokens[2].address,
 			tickLower: getMinTick(200),
 			tickUpper: getMaxTick(200),
 			fee: HIGH_FEE,
