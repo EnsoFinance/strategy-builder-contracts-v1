@@ -58,26 +58,28 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
     function rebalance(address strategy, bytes calldata data) external override onlyController {
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
-        uint256[] memory buy = new uint256[](strategyItems.length);
+        int256[] memory buy = new int256[](strategyItems.length);
         // Sell loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
+            int expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (!_sellToken(
                     strategy,
                     strategyItems[i],
                     estimates[i],
-                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i])
+                    expected 
                 )
-            ) buy[i] = 1;
+            ) buy[i] = expected;
+            // semantic overloading to cache `expected` since it will be used in next loop. 
         }
         // Buy loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            if (buy[i] == 1) {
+            if (buy[i] != 0) {
                 _buyToken(
                     strategy,
                     strategy,
                     strategyItems[i],
                     estimates[i],
-                    StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i])
+                    buy[i]
                 );
             }
         }

@@ -107,7 +107,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             );
         }
         // Sell loop
-        uint256[] memory buy = new uint256[](strategyItems.length);
+        int256[] memory buy = new int256[](strategyItems.length);
         for (uint256 i = 0; i < strategyItems.length; i++) {
             address strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
@@ -122,13 +122,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     estimate,
                     expected
                 )
-            ) buy[i] = 1;
+            ) buy[i] = expected;
+            // semantic overloading to cache `expected` since it will be used in next loop. 
         }
         // Buy loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            if (buy[i] == 1) {
+            if (buy[i] != 0) {
                 address strategyItem = strategyItems[i];
-                int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
+                int256 expected = buy[i];
                 _buyToken(
                     strategy,
                     strategy,
