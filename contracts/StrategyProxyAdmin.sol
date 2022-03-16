@@ -13,7 +13,7 @@ import "./interfaces/IStrategyProxyFactory.sol";
 contract StrategyProxyAdmin {
     IStrategyProxyFactory private immutable factory;
 
-    constructor() public  {
+    constructor() {
         factory = IStrategyProxyFactory(msg.sender); // Contract is deployed by factory
     }
 

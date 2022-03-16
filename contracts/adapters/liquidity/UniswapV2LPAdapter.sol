@@ -196,7 +196,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         // Transfer underyling token to pair contract
         IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
         IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
-        /**
+        /*
           At this point lp minting should be efficient, meaning that the difference of
           amount0*totalSupply/reserve0 and amount1*totalSupply/reserve1 is negligible.
           Keep in mind however that this mechanism hasn't been fully analyzed with
@@ -229,7 +229,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         int256 amount = int256(uAmount);
         int256 reserveWeth = int256(uReserveWeth);
 
-        /**
+        /*
           we build a quadratic
           f(x) = ax^2 + bx + c
 

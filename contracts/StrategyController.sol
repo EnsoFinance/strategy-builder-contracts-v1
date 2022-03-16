@@ -22,6 +22,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
+    enum Action {
+        WITHDRAW,
+        REBALANCE,
+        RESTRUCTURE
+    }
+
     uint256 private constant DIVISOR = 1000;
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
@@ -170,9 +176,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
-        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
-        _rebalance(strategy, router, totalBefore, data);
-        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
+        // Rebalance
+        _useRouter(strategy, router, Action.REBALANCE, strategy.items(), strategy.debt(), data);
+        // Recheck total
+        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+        require(balancedAfter, "Not balanced");
+        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
     }
 
@@ -477,19 +488,19 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
         if (msg.value > 0) {
-          require(amount == 0, "Ambiguous amount");
-          amount = msg.value;
-          address weth = _weth;
-          IWETH(weth).deposit{value: amount}();
-          IERC20(weth).safeApprove(address(router), amount);
-          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-              data = abi.encode(address(this), amount);
-          router.deposit(address(strategy), data);
-          IERC20(weth).safeApprove(address(router), 0);
+            require(amount == 0, "Ambiguous amount");
+            amount = msg.value;
+            address weth = _weth;
+            IWETH(weth).deposit{value: amount}();
+            IERC20(weth).safeApprove(address(router), amount);
+            if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+                data = abi.encode(address(this), amount);
+            router.deposit(address(strategy), data);
+            IERC20(weth).safeApprove(address(router), 0);
         } else {
-          if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-              data = abi.encode(account, amount);
-          router.deposit(address(strategy), data);
+            if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+                data = abi.encode(account, amount);
+            router.deposit(address(strategy), data);
         }
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
@@ -535,12 +546,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 data = abi.encode(percentage, totalBefore, estimatesBefore);
             }
         }
-        // Approve items
-        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
         // Withdraw
-        router.withdraw(address(strategy), data);
-        // Revoke items approval
-        _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
+        _useRouter(strategy, router, Action.WITHDRAW, strategy.items(), strategy.debt(), data);
         // Check value and balance
         (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
         {
@@ -569,29 +576,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Approve weth amount
         strategy.approveToken(weth, address(this), wethAmount);
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
-    }
-
-    /**
-     * @notice Rebalance the strategy to match the current structure
-     * @dev The calldata that gets passed to this function can differ depending on which router is being used
-     * @param strategy The strategy contract
-     * @param router The address of the router that will be doing the handling the trading logic
-     * @param totalBefore The valuation of the strategy before rebalance
-     * @param data Optional bytes data to be sent if using GenericRouter
-     */
-    function _rebalance(
-        IStrategy strategy,
-        IStrategyRouter router,
-        uint256 totalBefore,
-        bytes memory data
-    ) internal {
-        router.rebalance(address(strategy), data);
-        // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(balancedAfter, "Not balanced");
-        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
-        emit Balanced(address(strategy), totalBefore, totalAfter);
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
@@ -639,14 +623,40 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Set new structure
         strategy.setStructure(newItems);
         // Liquidate unused tokens
-        _approveItems(strategy, currentItems, currentDebt, address(router), uint256(-1));
-        router.restructure(address(strategy), data);
-        _approveItems(strategy, currentItems, currentDebt, address(router), uint256(0));
-
+        _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
+        // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+    }
+
+    /**
+     * @notice Wrap router function with approve and unapprove
+     * @param strategy The strategy contract
+     * @param router The router that will be used
+     * @param action The action that the router will perform
+     * @param strategyItems An array of tokens
+     * @param strategyDebt An array of debt tokens
+     * @param data The data that will be sent to the router
+     */
+    function _useRouter(
+        IStrategy strategy,
+        IStrategyRouter router,
+        Action action,
+        address[] memory strategyItems,
+        address[] memory strategyDebt,
+        bytes memory data
+    ) internal {
+        _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(-1));
+        if (action == Action.WITHDRAW) {
+            router.withdraw(address(strategy), data);
+        } else if (action == Action.REBALANCE) {
+            router.rebalance(address(strategy), data);
+        } else if (action == Action.RESTRUCTURE) {
+            router.restructure(address(strategy), data);
+        }
+        _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(0));
     }
 
     /**

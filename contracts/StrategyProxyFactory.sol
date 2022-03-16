@@ -61,7 +61,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     /**
      * @notice Initialize constructor to disable implementation
      */
-    constructor(address controller_) public initializer {
+    constructor(address controller_) initializer {
         controller = controller_;
     }
 

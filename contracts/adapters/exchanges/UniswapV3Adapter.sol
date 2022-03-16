@@ -16,7 +16,7 @@ contract UniswapV3Adapter is BaseAdapter {
     IUniswapV3Registry public immutable registry;
     ISwapRouter public immutable router;
 
-    constructor(address registry_, address factory_, address router_, address weth_) public BaseAdapter(weth_) {
+    constructor(address registry_, address factory_, address router_, address weth_) BaseAdapter(weth_) {
         registry = IUniswapV3Registry(registry_);
         factory = IUniswapV3Factory(factory_);
         router = ISwapRouter(router_);
