@@ -247,7 +247,7 @@ var Estimator = /** @class */ (function () {
                                             if (!estimatedValue.gt(expectedValue)) return [3 /*break*/, 3];
                                             _b = this.estimateSellPath;
                                             _c = [data];
-                                            return [4 /*yield*/, this.getPathPrice(data, estimatedValue.sub(expectedValue), item)];
+                                            return [4 /*yield*/, this.estimateSellAmount(strategy.address, item, estimatedValue.sub(expectedValue), estimatedValue)];
                                         case 2: return [2 /*return*/, _b.apply(this, _c.concat([_d.sent(), item]))];
                                         case 3: return [2 /*return*/, ethers_1.BigNumber.from('0')];
                                     }
@@ -433,6 +433,25 @@ var Estimator = /** @class */ (function () {
             });
         });
     };
+    Estimator.prototype.estimateSellAmount = function (strategy, token, amount, estimatedValue) {
+        return __awaiter(this, void 0, void 0, function () {
+            var balance;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, (new ethers_1.Contract(token, ERC20_json_1.default.abi, this.signer)).balanceOf(strategy)];
+                    case 1:
+                        balance = _a.sent();
+                        if (estimatedValue.gt(amount)) {
+                            return [2 /*return*/, balance.mul(amount).div(estimatedValue)];
+                        }
+                        else {
+                            return [2 /*return*/, balance];
+                        }
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
     Estimator.prototype.estimateSwap = function (adapter, amount, tokenIn, tokenOut) {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
@@ -606,31 +625,6 @@ var Estimator = /** @class */ (function () {
             return __generator(this, function (_a) {
                 // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
                 return [2 /*return*/, (new ethers_1.Contract(this.yearnV2AdapterAddress, IBaseAdapter_json_1.default.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)];
-            });
-        });
-    };
-    Estimator.prototype.getPathPrice = function (data, amount, token) {
-        return __awaiter(this, void 0, void 0, function () {
-            var balance, i, _tokenIn, _tokenOut;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        balance = amount;
-                        i = 0;
-                        _a.label = 1;
-                    case 1:
-                        if (!(i < data.adapters.length)) return [3 /*break*/, 4];
-                        _tokenIn = (i === 0) ? WETH : data.path[i - 1];
-                        _tokenOut = (i === data.adapters.length - 1) ? token : data.path[i];
-                        return [4 /*yield*/, (new ethers_1.Contract(data.adapters[i], IBaseAdapter_json_1.default.abi, this.signer)).spotPrice(balance, _tokenIn, _tokenOut)];
-                    case 2:
-                        balance = _a.sent();
-                        _a.label = 3;
-                    case 3:
-                        i++;
-                        return [3 /*break*/, 1];
-                    case 4: return [2 /*return*/, balance];
-                }
             });
         });
     };

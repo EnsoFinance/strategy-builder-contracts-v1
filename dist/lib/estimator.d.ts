@@ -34,6 +34,7 @@ export declare class Estimator {
     estimateBuyItem(token: string, estimatedValue: BigNumber, expectedValue: BigNumber, rebalanceRange: BigNumber, data: TradeData): Promise<BigNumber>;
     estimateBuyPath(data: TradeData, amount: BigNumber, token: string): Promise<BigNumber>;
     estimateSellPath(data: TradeData, amount: BigNumber, token: string): Promise<BigNumber>;
+    estimateSellAmount(strategy: string, token: string, amount: BigNumber, estimatedValue: BigNumber): Promise<any>;
     estimateSwap(adapter: string, amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateAaveV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<BigNumber>;
     estimateCompound(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<BigNumber>;
@@ -44,7 +45,6 @@ export declare class Estimator {
     estimateUniswapV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateUniswapV3(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
-    getPathPrice(data: TradeData, amount: BigNumber, token: string): Promise<BigNumber>;
     getStrategyItem(strategy: Contract, item: string): Promise<{
         item: string;
         percentage: any;

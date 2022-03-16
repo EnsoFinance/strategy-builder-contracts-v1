@@ -26,7 +26,10 @@
   },
   "author": "",
   "license": "ISC",
-  "files": ["artifacts", "contracts" ],
+  "files": [
+    "artifacts",
+    "contracts"
+  ],
   "bugs": {
     "url": "https://github.com/EnsoFinance/v1-core/issues"
   },
