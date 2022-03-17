@@ -4,8 +4,7 @@ pragma solidity >=0.6.0 <0.9.0;
 interface IStaking {
     function stakeFor(
         address user,
-        uint128 amount,
-        uint32 hoursToStake
+        uint128 amount
     ) external;
 
     function unstakeFor(
