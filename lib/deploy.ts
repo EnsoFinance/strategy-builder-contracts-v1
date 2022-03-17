@@ -46,6 +46,7 @@ import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter
 import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
 import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
 import GenericRouter from '../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json'
+import EnsoStakingAdapter from '../artifacts/contracts/adapters/staking/EnsoStakingAdapter.sol/EnsoStakingAdapter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
 import UniswapV3Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json'
@@ -413,6 +414,12 @@ export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWi
 
 export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
 	const adapter = await waffle.deployContract(owner, UniswapV2Adapter, [uniswapV2Factory.address, weth.address])
+	await adapter.deployed()
+	return adapter
+}
+
+export async function deployEnsoStakingAdapter(owner: SignerWithAddress, staking: Contract, stakingToken: Contract, distributionToken: Contract, distributionTokenScalar: number, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, EnsoStakingAdapter, [staking.address, stakingToken.address, distributionToken.address, distributionTokenScalar, weth.address])
 	await adapter.deployed()
 	return adapter
 }
