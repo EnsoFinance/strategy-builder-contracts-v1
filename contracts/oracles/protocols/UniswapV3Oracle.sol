@@ -13,7 +13,7 @@ contract UniswapV3Oracle is ProtocolOracle {
     address public immutable override weth;
     IUniswapV3Registry public immutable registry;
 
-    constructor(address registry_, address weth_) public {
+    constructor(address registry_, address weth_) {
         registry = IUniswapV3Registry(registry_);
         weth = weth_;
     }
