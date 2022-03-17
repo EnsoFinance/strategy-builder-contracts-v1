@@ -17,6 +17,7 @@ import {
 	linkBytecode
 } from './link'
 
+import EnsoToken from '../dist/Enso.sol/Enso.json'
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
@@ -402,6 +403,12 @@ export async function deployPlatform(
 	}
 
 	return new Platform(factory, controller, oracles, administration, strategyLibrary)
+}
+
+export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWithAddress, name: string, symbol: string, mintingAllowedAfter: number): Promise<Contract> {
+	const ensoToken = await waffle.deployContract(owner, EnsoToken, [name, symbol, minter.address, mintingAllowedAfter])
+	await ensoToken.deployed()
+	return ensoToken 
 }
 
 export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
