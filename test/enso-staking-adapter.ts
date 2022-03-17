@@ -2,11 +2,11 @@ import chai from 'chai'
 //const { expect } = chai
 import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
-const { AddressZero/*, WeiPerEther*/ } = constants
+const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
-import { /*BigNumber,*/ Contract/*, Event*/ } from 'ethers'
+import { BigNumber, Contract/*, Event*/ } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-//import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 
 import { Tokens } from '../lib/tokens'
 
@@ -14,8 +14,8 @@ import {
 	deployEnsoToken,
   deployEnsoStakingAdapter,
 	deployPlatform,
-	//deployLoopRouter // FIXME ??
-  // anything else // FIXME
+	deployLoopRouter,
+  deployUniswapV2Adapter,
 } from '../lib/deploy'
 
 import { MAINNET_ADDRESSES } from '../lib/utils'
@@ -23,6 +23,7 @@ import { MAINNET_ADDRESSES } from '../lib/utils'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 chai.use(solidity)
 
@@ -36,16 +37,17 @@ describe('EnsoStakingAdapter', function () {
     stakingMock: Contract,
     ensoStakingAdapter: Contract,
     distributionTokenScalar: number,
+    rewardsToken: Contract,
 		uniswapFactory: Contract,
-		//router: Contract,
-		//strategyFactory: Contract,
-		//controller: Contract,
-		//oracle: Contract,
-		//library: Contract,
-		//uniswapAdapter: Contract,
+		router: Contract,
+		strategyFactory: Contract,
+		controller: Contract,
+		oracle: Contract,
+		library: Contract,
+		uniswapAdapter: Contract,
 		//compoundAdapter: Contract,
 		//strategy: Contract,
-		//strategyItems: StrategyItem[],
+		strategyItems: StrategyItem[],
 		//wrapper: Contract,
 		tokens: Tokens//,
 		//cToken: string
@@ -56,13 +58,16 @@ describe('EnsoStakingAdapter', function () {
 	    tokens = new Tokens()
 	    weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 	    usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
-	    distributionToken = usdc
+      rewardsToken = usdc
+
+      rewardsToken=rewardsToken // debug
 	    
 	    ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
 	    
 	    const StakingMockFactory = await getContractFactory('StakingMock')
 	    stakingMock = await StakingMockFactory.deploy(ensoToken.address)
 	    await stakingMock.deployed()
+	    distributionToken = stakingMock 
 	    
 	    distributionTokenScalar = 10
 	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, distributionToken, distributionTokenScalar, weth)
@@ -71,19 +76,44 @@ describe('EnsoStakingAdapter', function () {
 	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 	    const whitelist = platform.administration.whitelist
 	    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
+
+      controller = platform.controller
+      strategyFactory = platform.strategyFactory
+      oracle = platform.oracles.ensoOracle
+      library = platform.library
+      
+      await tokens.registerTokens(accounts[0], strategyFactory)
+      router = await deployLoopRouter(accounts[0], controller, library)
+      await whitelist.connect(accounts[0]).approve(router.address) 
+
+      oracle=oracle // debug
+      
+      await uniswapFactory.createPair(weth.address, ensoToken.address)
+      const pairAddress = await uniswapFactory.getPair(weth.address, ensoToken.address)
+      const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
+
+      // Add liquidity
+      const liquidityAmount = WeiPerEther.mul(100)
+      await weth.connect(accounts[0]).deposit({value: liquidityAmount})
+      await weth.connect(accounts[0]).transfer(pairAddress, liquidityAmount)
+      await ensoToken.connect(accounts[0]).transfer(pairAddress, liquidityAmount)
+      await pair.connect(accounts[0]).mint(accounts[0].address)
+
+      uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+      await whitelist.connect(accounts[0]).approve(uniswapAdapter.address) 
+      await ensoToken.approve(uniswapAdapter.address, constants.MaxUint256)
 	})
 
 	it('Should deploy strategy', async function () {
-    /*
-		cToken = tokens.cUSDC
-
+     
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdc] }
+      { token: distributionToken.address, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
 		]
-		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+    let value = ethers.BigNumber.from('10000000000000000') 
+		strategyItems = prepareStrategy(positions, ensoStakingAdapter.address)
+
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
@@ -94,6 +124,12 @@ describe('EnsoStakingAdapter', function () {
 			set: false
 		}
 
+    // debug console.log(name, value, strategyState, strategyItems, symbol)
+    //
+    /*
+    *https://discordapp.com/channels/@me/949000054394466344/954093797137076275
+    * */
+    
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -104,11 +140,11 @@ describe('EnsoStakingAdapter', function () {
 				strategyState,
 				router.address,
 				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
+				{ value: value }
 			)
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
+    /*
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)

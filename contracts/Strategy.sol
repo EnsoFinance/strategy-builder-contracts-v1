@@ -339,7 +339,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         assembly {
             success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
         }
-        require(success, "Swap failed");
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
     }
 
     /**
@@ -565,7 +572,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         assembly {
             success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
         }
-        require(success, "Claim failed");
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
         emit RewardsClaimed(adapter, token);
     }
 
