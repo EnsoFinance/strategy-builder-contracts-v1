@@ -163,6 +163,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
+    function setReserve(address router) external {
+        _onlyManager();
+        _reserve = router;
+    }
+
     /**
      * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
      * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
@@ -462,6 +467,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _debt;
     }
 
+    function reserves() external view override returns (address[] memory) {
+        return _reserves;
+    }
+
     function rebalanceThreshold() external view override returns (uint256) {
         return uint256(_rebalanceThreshold);
     }
@@ -492,6 +501,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function manager() external view override(IStrategy, IStrategyManagement) returns (address) {
         return _manager;
+    }
+
+    function reserve() external view override returns (address) {
+        return _reserve;
     }
 
     function oracle() public view override returns (IOracle) {
@@ -529,6 +542,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         delete _debt;
         delete _items;
         delete _synths;
+        delete _reserves;
 
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         // Set new items
@@ -545,6 +559,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 _synths.push(newItem);
             } else if (category == ItemCategory.DEBT) {
                 _debt.push(newItem);
+            } else if (category == ItemCategory.RESERVE) {
+                _reserves.push(newItem);
             }
         }
         if (_synths.length > 0) {

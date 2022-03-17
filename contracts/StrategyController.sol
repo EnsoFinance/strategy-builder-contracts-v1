@@ -159,7 +159,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) external override {
         _setStrategyLock(strategy);
-        _onlyApproved(address(router));
+        _onlyApproved(strategy, address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
@@ -259,7 +259,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _notSet(address(strategy));  // Set strategies cannot restructure
         _setStrategyLock(strategy);
-        _onlyApproved(address(router));
+        _onlyApproved(strategy, address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
         StrategyState storage strategyState = _strategyStates[address(strategy)];
@@ -461,7 +461,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 balanceBefore,
         bytes memory data
     ) internal {
-        _onlyApproved(address(router));
+        _onlyApproved(strategy, address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
@@ -711,8 +711,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     /**
      * @notice Checks that router is whitelisted
      */
-    function _onlyApproved(address account) private view {
-        require(whitelist().approved(account), "Not approved");
+    function _onlyApproved(IStrategy strategy, address router) private view {
+        if (strategy.reserve() != router) {
+            require(whitelist().approved(router), "Not approved");
+        }
     }
 
     function _onlyManager(IStrategy strategy) private view {

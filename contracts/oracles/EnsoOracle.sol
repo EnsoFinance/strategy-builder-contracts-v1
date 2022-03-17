@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
+import "../interfaces/IReserveEstimator.sol";
 import "../helpers/StrategyTypes.sol";
 
 contract EnsoOracle is IOracle, StrategyTypes {
@@ -32,7 +33,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         address[] memory strategyItems = strategy.items();
         address[] memory strategyDebt = strategy.debt();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
-        int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
+        int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 2); // +2 for virtual item and private router item
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimate = estimateItem(
                 IERC20(strategyItems[i]).balanceOf(address(strategy)),
@@ -65,10 +66,29 @@ contract EnsoOracle is IOracle, StrategyTypes {
                 susd
             )); //SUSD is never part of synths array but always included in total value
             total = total.add(estimate);
-            estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
+            estimates[estimates.length - 2] = estimate; //Synths' estimates are pooled together in the virtual item address
+        }
+        int256 reserve = estimateReserve(strategy);
+        if (reserve != 0) {
+          total = total.add(reserve);
+          estimates[estimates.length - 1] = reserve;
         }
         require(total >= 0, "Negative total");
         return (uint256(total), estimates);
+    }
+
+    function estimateReserve(IStrategy strategy) public view override returns (int256) {
+        address reserve = strategy.reserve();
+        if (reserve == address(0)) return 0;
+        int256 estimate;
+        address[] memory reserveItems = strategy.reserves();
+        for (uint256 i; i < reserveItems.length; i++) {
+          address reserveItem = reserveItems[i];
+          IReserveEstimator reserveEstimator = IReserveEstimator(address(tokenRegistry.getEstimator(reserveItems[i])));
+          uint256 balance = reserveEstimator.getBalance(reserve, reserveItem);
+          estimate = estimate.add(reserveEstimator.estimateItem(balance, reserveItem));
+        }
+        return estimate;
     }
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {

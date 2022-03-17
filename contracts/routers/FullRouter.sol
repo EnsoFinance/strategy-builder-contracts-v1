@@ -55,6 +55,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             abi.decode(data, (uint256, uint256, int256[]));
 
         uint256 expectedWeth = total.mul(percentage).div(10**18);
+        {
+            int256 reserve = estimates[estimates.length - 1];
+            if (reserve != 0) {
+                require(int256(total) > reserve, "Too much debt"); // This only happens if strategy holds debt while the reserve holds assets
+                total = uint256(int256(total).sub(reserve));
+            }
+        }
         total = total.sub(expectedWeth);
 
         address[] memory strategyItems = IStrategy(strategy).items();

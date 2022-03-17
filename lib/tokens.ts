@@ -143,8 +143,8 @@ export class Tokens {
 
   async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract) {
     await Promise.all([
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SPECIAL, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SPECIAL, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.knc),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sEUR),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sLINK),

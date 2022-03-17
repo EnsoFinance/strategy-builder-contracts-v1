@@ -4,7 +4,7 @@ pragma solidity >=0.6.0 <0.9.0;
 import "../interfaces/IStrategyController.sol";
 
 interface IStrategyRouter {
-    enum RouterCategory {GENERIC, LOOP, SYNTH, BATCH}
+    enum RouterCategory {GENERIC, LOOP, BATCH}
 
     function rebalance(address strategy, bytes calldata data) external;
 

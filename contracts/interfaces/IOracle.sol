@@ -14,6 +14,8 @@ interface IOracle {
 
     function estimateStrategy(IStrategy strategy) external view returns (uint256, int256[] memory);
 
+    function estimateReserve(IStrategy strategy) external view returns (int256);
+
     function estimateItem(
         uint256 balance,
         address token

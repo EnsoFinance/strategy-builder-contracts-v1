@@ -23,6 +23,7 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(address => uint256) internal _paidTokenValues;
 
     address internal _manager;
+    address internal _reserve;
     address internal _pool;
     address internal _oracle;
     address internal _weth;
@@ -31,6 +32,7 @@ contract StrategyTokenStorage is StrategyTypes {
     address[] internal _items;
     address[] internal _synths;
     address[] internal _debt;
+    address[] internal _reserves;
     mapping(address => int256) internal _percentage;
     mapping(address => TradeData) internal _tradeData;
 }

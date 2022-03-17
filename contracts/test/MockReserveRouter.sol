@@ -1,15 +1,18 @@
-//SPDX-License-Identifier: GPL-3.0-or-laterz
+//SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "../libraries/SafeERC20.sol";
 import "../libraries/StrategyLibrary.sol";
-import "./StrategyRouter.sol";
+import "../routers/StrategyRouter.sol";
+import "./MockProtocol.sol";
 
-contract BatchDepositRouter is StrategyRouter {
-    using SafeERC20 for IERC20;
+contract MockReserveRouter is StrategyTypes, StrategyRouter {
 
-    constructor(address controller_) public StrategyRouter(RouterCategory.BATCH, controller_) {}
+    MockProtocol public immutable mockProtocol;
+
+    constructor(address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
+      mockProtocol = new MockProtocol(weth);
+    }
 
     function deposit(address strategy, bytes calldata data)
         external
@@ -18,22 +21,15 @@ contract BatchDepositRouter is StrategyRouter {
     {
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
-        address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i; i < strategyItems.length; i++) {
-          address token = strategyItems[i];
-          uint256 expectedValue =
-              uint256(StrategyLibrary.getExpectedTokenValue(amount, strategy, token));
-          if (expectedValue > 0)
-              IERC20(token).safeTransferFrom(
-                  depositor,
-                  strategy,
-                  _pathPrice(
-                      IStrategy(strategy).getTradeData(token),
-                      expectedValue,
-                      token
-                  )
-              );
+
+        address reserve = IStrategy(strategy).reserve();
+        if (reserve != address(0)) {
+          amount = amount.div(2);
+          IERC20(weth).safeTransferFrom(depositor, address(this), amount);
+          IERC20(weth).safeApprove(address(mockProtocol), amount);
+          mockProtocol.deposit(reserve, amount);
         }
+        IERC20(weth).safeTransferFrom(depositor, strategy, amount);
     }
 
     function withdraw(address strategy, bytes calldata data)

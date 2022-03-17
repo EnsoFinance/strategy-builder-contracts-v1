@@ -100,7 +100,7 @@ describe('UniswapV3Adapter', function() {
 
 		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, basicEstimator.address)
 		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
-		await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
+		await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.SPECIAL, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 
 		const EnsoOracle = await getContractFactory('EnsoOracle')
 		oracle = await EnsoOracle.connect(owner).deploy(tokenRegistry.address, weth.address, AddressZero)
