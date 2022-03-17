@@ -52,7 +52,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address tokenOut,
         address from,
         address to
-    ) internal returns (bool success) {
+    ) internal {
         require(controller.whitelist().approved(adapter), "Not approved");
         bytes memory swapData =
             abi.encodeWithSelector(
@@ -67,8 +67,17 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
                 to
             );
         uint256 txGas = gasleft();
+        bool success;
         assembly {
             success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
+        }
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
         }
     }
 
@@ -101,17 +110,14 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
                     _tokenOut = data.path[uint256(i-1)];
                     _to = address(this);
                 }
-                require(
-                    _delegateSwap(
-                        data.adapters[uint256(i)],
-                        _amount,
-                        1,
-                        _tokenIn,
-                        _tokenOut,
-                        _from,
-                        _to
-                    ),
-                    "Swap failed"
+                _delegateSwap(
+                    data.adapters[uint256(i)],
+                    _amount,
+                    1,
+                    _tokenIn,
+                    _tokenOut,
+                    _from,
+                    _to
                 );
             }
         }
@@ -147,17 +153,14 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
                     _tokenOut = data.path[i];
                     _to = address(this);
                 }
-                require(
-                    _delegateSwap(
-                        data.adapters[i],
-                        _amount,
-                        1,
-                        _tokenIn,
-                        _tokenOut,
-                        _from,
-                        _to
-                    ),
-                    "Swap failed"
+                _delegateSwap(
+                    data.adapters[i],
+                    _amount,
+                    1,
+                    _tokenIn,
+                    _tokenOut,
+                    _from,
+                    _to
                 );
             }
         }

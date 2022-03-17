@@ -74,17 +74,14 @@ contract GenericRouter is StrategyRouter, Multicall {
         address to
     ) public {
         _onlyInternal();
-        require(
-            _delegateSwap(
-                adapter,
-                amount,
-                expected,
-                tokenIn,
-                tokenOut,
-                from,
-                to
-            ),
-            "Swap failed"
+        _delegateSwap(
+            adapter,
+            amount,
+            expected,
+            tokenIn,
+            tokenOut,
+            from,
+            to
         );
     }
 
@@ -97,12 +94,8 @@ contract GenericRouter is StrategyRouter, Multicall {
     ) public {
         _onlyInternal();
         uint256 amount = IERC20(tokenIn).balanceOf(from);
-        if (amount > 0) {
-            require(
-                _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to),
-                "Swap failed"
-            );
-        }
+        if (amount > 0)
+            _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to);
     }
 
     function settleTransfer(

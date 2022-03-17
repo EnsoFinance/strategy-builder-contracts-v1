@@ -52,25 +52,25 @@ describe('EnsoStakingAdapter', function () {
     
 
 	before('Setup StakingAdapter + Factory', async function () {
-	  accounts = await getSigners()
-    tokens = new Tokens()
-    weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
-    usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
-    distributionToken = usdc
-    
-    ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
-    
-    const StakingMockFactory = await getContractFactory('StakingMock')
-    stakingMock = await StakingMockFactory.deploy(ensoToken.address)
-    await stakingMock.deployed()
-    
-    distributionTokenScalar = 10
-    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, distributionToken, distributionTokenScalar, weth)
-    
-    uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
-    const whitelist = platform.administration.whitelist
-    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
+		  accounts = await getSigners()
+	    tokens = new Tokens()
+	    weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
+	    usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
+	    distributionToken = usdc
+	    
+	    ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
+	    
+	    const StakingMockFactory = await getContractFactory('StakingMock')
+	    stakingMock = await StakingMockFactory.deploy(ensoToken.address)
+	    await stakingMock.deployed()
+	    
+	    distributionTokenScalar = 10
+	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, distributionToken, distributionTokenScalar, weth)
+	    
+	    uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+	    const whitelist = platform.administration.whitelist
+	    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 	})
 
 	it('Should deploy strategy', async function () {
