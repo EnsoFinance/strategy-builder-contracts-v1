@@ -32,15 +32,6 @@ contract FailAdapter is BaseAdapter, IRewardsAdapter {
         controller.setSellFail(fail);
     }
 
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (tokenIn, tokenOut);
-        return amount;
-    }
-
     function swap(
         uint256 amount,
         uint256 expected,

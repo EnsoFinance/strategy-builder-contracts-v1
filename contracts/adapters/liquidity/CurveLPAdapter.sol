@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/curve/ICurveAddressProvider.sol";
 import "../../interfaces/curve/ICurveDeposit.sol";
@@ -12,7 +11,6 @@ import "../../interfaces/registries/ICurveDepositZapRegistry.sol";
 import "../BaseAdapter.sol";
 
 contract CurveLPAdapter is BaseAdapter {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     ICurveAddressProvider public immutable addressProvider;
@@ -30,56 +28,6 @@ contract CurveLPAdapter is BaseAdapter {
     ) public BaseAdapter(weth_) {
         addressProvider = ICurveAddressProvider(addressProvider_);
         zapRegistry = ICurveDepositZapRegistry(zapRegistry_);
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        ICurveRegistry curveRegistry = ICurveRegistry(addressProvider.get_registry());
-        address poolIn = curveRegistry.get_pool_from_lp_token(tokenIn);
-        address poolOut = curveRegistry.get_pool_from_lp_token(tokenOut);
-        if (poolIn == address(0) && poolOut != address(0)) {
-            return _depositPrice(amount, tokenIn, poolOut, curveRegistry.get_coins(poolOut));
-        } else if (poolIn != address(0) && poolOut == address(0)) {
-            return _withdrawPrice(amount, tokenIn, tokenOut, poolIn, curveRegistry.get_coins(poolIn));
-        } else if (poolIn != address(0) && poolOut != address(0)) { //Metapool
-            bool isDeposit;
-            address[8] memory depositCoins = curveRegistry.get_coins(poolOut);
-            for (uint256 i = 0; i < 8; i++) {
-                if (depositCoins[i] == address(0)) break;
-                if (depositCoins[i] == tokenIn) {
-                    isDeposit = true;
-                    break;
-                }
-            }
-            if (isDeposit) {
-                return _depositPrice(amount, tokenIn, poolOut, depositCoins);
-            } else {
-                bool isWithdraw;
-                address[8] memory withdrawCoins = curveRegistry.get_coins(poolIn);
-                for (uint256 i = 0; i < 8; i++) {
-                    if (withdrawCoins[i] == address(0)) break;
-                    if (withdrawCoins[i] == tokenOut) {
-                        isWithdraw = true;
-                        break;
-                    }
-                }
-                if (isWithdraw) return _withdrawPrice(amount, tokenIn, tokenOut, poolIn, withdrawCoins);
-            }
-        } else if (tokenIn == TRICRYPTO2 || tokenOut == TRICRYPTO2) {
-            // tricrypto not in registry
-            address[8] memory coins;
-            coins[0] = USDT;
-            coins[1] = WBTC;
-            coins[2] = WETH;
-            if (tokenIn == TRICRYPTO2) return _withdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
-            if (tokenOut == TRICRYPTO2) return _depositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins);
-        } else {
-            return 0;
-        }
     }
 
     function swap(
@@ -200,65 +148,6 @@ contract CurveLPAdapter is BaseAdapter {
           ICurveDeposit(zap).remove_liquidity_one_coin(amount, uint256(tokenIndex), 1);
         } else {
           return revert("Unknown index type");
-        }
-    }
-
-    function _depositPrice(
-        uint256 amount,
-        address tokenIn,
-        address pool,
-        address[8] memory coins
-    ) internal view returns (uint256) {
-        uint256 coinsInPool;
-        uint256 tokenIndex = 8; // Outside of possible index range. If index not found function will return 0
-        for (uint256 i = 0; i < 8; i++) {
-          if (coins[i] == address(0)) {
-              coinsInPool = i;
-              break;
-          }
-          if (coins[i] == tokenIn) tokenIndex = i;
-        }
-        if (tokenIndex == 8) return 0; // Token not found
-        if (coinsInPool == 4) {
-            uint256[4] memory depositAmounts;
-            depositAmounts[tokenIndex] = amount;
-            return ICurveStableSwap(pool).calc_token_amount(depositAmounts, true);
-        } else if (coinsInPool == 3) {
-            uint256[3] memory depositAmounts;
-            depositAmounts[tokenIndex] = amount;
-            return ICurveStableSwap(pool).calc_token_amount(depositAmounts, true);
-        } else if (coinsInPool == 2) {
-            uint256[2] memory depositAmounts;
-            depositAmounts[tokenIndex] = amount;
-            return ICurveStableSwap(pool).calc_token_amount(depositAmounts, true);
-        }
-    }
-
-    function _withdrawPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut,
-        address pool,
-        address[8] memory coins
-    ) internal view returns (uint256) {
-        address zap = zapRegistry.getZap(tokenIn);
-        if (zap == address(0)) zap = pool;
-
-        int128 tokenIndex;
-        for (uint256 i = 0; i < coins.length; i++) {
-          if (coins[i] == address(0)) return 0; // tokenOut is not in list
-          if (coins[i] == tokenOut) {
-              tokenIndex = int128(i);
-              break;
-          }
-        }
-        uint256 indexType = zapRegistry.getIndexType(zap);
-        if (indexType == 0) { //int128
-          return ICurveDeposit(zap).calc_withdraw_one_coin(amount, tokenIndex);
-        } else if (indexType == 1) { //uint256
-          return ICurveDeposit(zap).calc_withdraw_one_coin(amount, uint256(tokenIndex));
-        } else {
-          revert("Unknown index type");
         }
     }
 }

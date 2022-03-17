@@ -22,33 +22,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
         factory = factory_;
     }
 
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        if (tokenIn == weth) {
-            IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
-            if (pair.token0() == weth || pair.token1() == weth) {
-                return _spotPriceForWethPair(amount, pair);
-            } // else
-            return _spotPriceForPair(amount, pair);
-        } else if (tokenOut == weth) {
-            IUniswapV2Pair pair = IUniswapV2Pair(tokenIn);
-            address token0 = pair.token0();
-            address token1 = pair.token1();
-            uint256 totalSupply = pair.totalSupply();
-            uint256 amount0 = amount.mul(IERC20(token0).balanceOf(tokenIn)) / totalSupply;
-            uint256 amount1 = amount.mul(IERC20(token1).balanceOf(tokenIn)) / totalSupply;
-            uint256 wethAmount0 = _quote(amount0, token0, weth);
-            uint256 wethAmount1 = _quote(amount1, token1, weth);
-            return wethAmount0.add(wethAmount1);
-        } else {
-            return 0;
-        }
-    }
-
     /*
      * WARNING: This function can be called by anyone! Never approve this contract
      * to transfer your tokens. It should only ever be called by a contract which
@@ -175,16 +148,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
         return amountOut;
     }
 
-    function _quote(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) internal view returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
-        return UniswapV2Library.quote(amount, reserveIn, reserveOut);
-    }
-
     function _transferWethIntoWethPair(uint256 amount, IUniswapV2Pair pair) private {
         // assumes calling function checks one of the tokens is weth
         address token0 = pair.token0();
@@ -274,52 +237,4 @@ contract UniswapV2LPAdapter is BaseAdapter {
         require(0 < solution && solution < amount, "_calculateWethToSell: solution out of range.");
         return uint256(solution);
     }
-
-    function _calculateWethToSellIgnoringFees(uint256 amount, address otherToken) private view returns(uint256) {
-        (uint256 reserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
-        uint256 solution = amount.mul(reserveWeth).div(amount.add(uint256(2).mul(reserveWeth)));
-        require(solution < amount, "_calculateWethToSellIgnoringFees: solution is out of range.");
-        return solution;
-    }
-
-    function _spotPriceForWethPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
-        // assumes calling function checks one of the tokens is weth
-        address otherToken;
-        { // stack too deep
-            address token0 = pair.token0();
-            address token1 = pair.token1();
-            otherToken = (token0 == weth) ? token1 : token0;
-        }
-        uint256 wethToSell = _calculateWethToSellIgnoringFees(amount, otherToken);
-
-        (uint256 reserveW, uint256 reserveO) = UniswapV2Library.getReserves(factory, weth, otherToken);
-        uint256 amountOut = UniswapV2Library.quote(wethToSell, reserveW, reserveO);
-        reserveW = reserveW.add(wethToSell);
-        reserveO = reserveO.sub(amountOut);
-        uint256 totalSupply = pair.totalSupply();
-        return Math.min(amount.sub(wethToSell).mul(totalSupply) / reserveW, amountOut.mul(totalSupply) / reserveO);
-    }
-
-    function _spotPriceForPair(uint256 amount, IUniswapV2Pair pair) private view returns(uint256) {
-        // assumes calling function checks one of the tokens is not weth
-        address token0 = pair.token0();
-        address token1 = pair.token1();
-        uint256 totalSupply = pair.totalSupply();
-        (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-            address(pair),
-            token0,
-            token1,
-            amount,
-            totalSupply,
-            true
-        );
-        uint256 amount0 = _quote(wethIn0, weth, token0);
-        uint256 amount1 = _quote(wethIn1, weth, token1);
-        if (totalSupply == 0) {
-            return Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
-        } // else
-        (uint256 reserve0, uint256 reserve1, ) = pair.getReserves();
-        return Math.min(amount0.mul(totalSupply) / reserve0, amount1.mul(totalSupply) / reserve1);
-    }
-
 }

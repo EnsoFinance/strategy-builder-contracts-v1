@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/aave/IAToken.sol";
+import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
 contract Leverage2XAdapter is BaseAdapter {
@@ -15,6 +16,7 @@ contract Leverage2XAdapter is BaseAdapter {
     address public immutable aaveLendAdapter;
     address public immutable aaveBorrowAdapter;
     address public immutable debtToken; // Token that is being borrowed against collateral
+    GasCostProvider public immutable gasCostProvider;
 
     constructor(
         address defaultAdapter_,
@@ -27,19 +29,7 @@ contract Leverage2XAdapter is BaseAdapter {
         aaveLendAdapter = aaveLendAdapter_;
         aaveBorrowAdapter = aaveBorrowAdapter_;
         debtToken = debtToken_;
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (tokenIn, tokenOut); // Assume correct tokens are submitted
-        if (_checkAToken(tokenOut)) {
-          return amount.mul(2);
-        } else {
-          return 0;
-        }
+        gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
     }
 
     // Swap to support 2X leverage called from generic router
@@ -114,21 +104,24 @@ contract Leverage2XAdapter is BaseAdapter {
 
     function _checkAToken(address token) internal view returns (bool) {
         bytes32 selector = keccak256("UNDERLYING_ASSET_ADDRESS()");
+        uint256 gasCost = gasCostProvider.gasCost();
 
         bool success;
+        address underlying;
         assembly {
             let ptr := mload(0x40)
             mstore(0x40, add(ptr, 32))
             mstore(ptr, selector)
             success := staticcall(
-                6000, //estimated gas costs
+                gasCost,
                 token,
                 ptr,
                 4,
                 ptr,
                 32
             )
+            underlying := mload(ptr)
         }
-        return success;
+        return success && underlying != address(0);
     }
 }

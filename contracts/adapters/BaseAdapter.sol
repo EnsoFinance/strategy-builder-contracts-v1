@@ -10,13 +10,6 @@ abstract contract BaseAdapter is IBaseAdapter {
         weth = weth_;
     }
 
-    // Abstract external functions to be defined by inheritor
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external virtual view override returns (uint256);
-
     function swap(
         uint256 amount,
         uint256 expected,

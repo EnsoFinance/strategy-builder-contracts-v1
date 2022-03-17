@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/curve/ICurveAddressProvider.sol";
 import "../../interfaces/curve/ICurveStableSwap.sol";
@@ -10,7 +9,6 @@ import "../../interfaces/curve/ICurveRegistry.sol";
 import "../BaseAdapter.sol";
 
 contract CurveAdapter is BaseAdapter {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     ICurveAddressProvider public immutable addressProvider;
@@ -20,22 +18,6 @@ contract CurveAdapter is BaseAdapter {
         address weth_
     ) public BaseAdapter(weth_) {
         addressProvider = ICurveAddressProvider(addressProvider_);
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        ICurveRegistry curveRegistry = ICurveRegistry(addressProvider.get_registry());
-        address pool = curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
-        if (pool != address(0)) {
-            (int128 indexIn, int128 indexOut, ) = curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
-            return  ICurveStableSwap(pool).get_dy(indexIn, indexOut, amount);
-        } else {
-          return 0;
-        }
     }
 
     function swap(

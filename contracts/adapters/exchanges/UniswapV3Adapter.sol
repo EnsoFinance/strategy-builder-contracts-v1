@@ -3,7 +3,6 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
-import "@uniswap/v3-periphery/contracts/libraries/OracleLibrary.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 import "../../interfaces/uniswap/ISwapRouter.sol";
@@ -12,33 +11,12 @@ import "../BaseAdapter.sol";
 contract UniswapV3Adapter is BaseAdapter {
     using SafeERC20 for IERC20;
 
-    IUniswapV3Factory public immutable factory;
     IUniswapV3Registry public immutable registry;
     ISwapRouter public immutable router;
 
-    constructor(address registry_, address factory_, address router_, address weth_) BaseAdapter(weth_) {
+    constructor(address registry_, address router_, address weth_) BaseAdapter(weth_) {
         registry = IUniswapV3Registry(registry_);
-        factory = IUniswapV3Factory(factory_);
         router = ISwapRouter(router_);
-
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        address pool = factory.getPool(
-          tokenIn,
-          tokenOut,
-          registry.getFee(tokenIn, tokenOut)
-        );
-        if (pool != address(0)) {
-            ( , int24 tick, , , , , ) =  IUniswapV3Pool(pool).slot0();
-            return OracleLibrary.getQuoteAtTick(tick, uint128(amount), tokenIn, tokenOut);
-        }
-        return 0;
     }
 
     /*

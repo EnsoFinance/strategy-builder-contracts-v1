@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
@@ -20,24 +19,6 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
     constructor(address comptroller_, address weth_) public BaseAdapter(weth_) {
         comptroller = IComptroller(comptroller_);
         gasCostProvider = new GasCostProvider(400, msg.sender);
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        if (_checkCToken(tokenOut)) {
-            ICToken cToken = ICToken(tokenOut);
-            if (cToken.underlying() == tokenIn)
-                return amount.mul(10**18).div(cToken.exchangeRateStored());
-        } else if (_checkCToken(tokenIn)) {
-            ICToken cToken = ICToken(tokenIn);
-            if (cToken.underlying() == tokenOut)
-                return amount.mul(cToken.exchangeRateStored()).div(10**18);
-        }
-        return 0;
     }
 
     function swap(

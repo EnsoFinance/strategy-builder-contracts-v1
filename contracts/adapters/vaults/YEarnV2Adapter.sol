@@ -2,39 +2,18 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/yearn/IYEarnV2Vault.sol";
-import "../../interfaces/IERC20NonStandard.sol";
 import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
 contract YEarnV2Adapter is BaseAdapter {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     GasCostProvider public immutable gasCostProvider;
 
     constructor(address weth_) public BaseAdapter(weth_) {
         gasCostProvider = new GasCostProvider(9000, msg.sender);
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenIn == tokenOut) return amount;
-        if (_checkVault(tokenOut)) {
-            IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);
-            if (address(vault.token()) == tokenIn)
-                return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(vault.pricePerShare());
-        } else if (_checkVault(tokenIn)) {
-            IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);
-            if (address(vault.token()) == tokenOut)
-                return amount.mul(vault.pricePerShare()).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
-        }
-        return 0;
     }
 
     function swap(
