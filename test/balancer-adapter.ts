@@ -7,7 +7,7 @@ import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/en
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
-const { AddressZero, WeiPerEther } = constants
+const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const NUM_TOKENS = 3
 
 
@@ -112,12 +112,11 @@ describe('BalancerAdapter', function () {
 
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
-		const expected = await balancerAdapter.spotPrice(amount, tokens[1].address, tokens[0].address) //Should fail since spot does not include fees
 		await tokens[1].approve(balancerAdapter.address, amount)
 		await expect(
 			balancerAdapter.swap(
 				amount,
-				expected,
+				MaxUint256,
 				tokens[1].address,
 				tokens[0].address,
 				accounts[0].address,

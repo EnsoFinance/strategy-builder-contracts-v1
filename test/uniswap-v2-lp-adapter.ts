@@ -122,16 +122,11 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
-		/*
-		const expected = ethers.BigNumber.from(
-			await uniswapV2LPAdapter.spotPrice(amount, tokens[1].address, weth.address)
-		)*/
-		const expected = MaxUint256
 		await weth.approve(uniswapV2LPAdapter.address, amount)
 		await expect(
 			uniswapV2LPAdapter.swap(
 				amount,
-				expected,
+				MaxUint256,
 				weth.address,
 				tokenPair.address,
 				owner.address,
@@ -327,29 +322,5 @@ describe('UniswapV2LPAdapter', function () {
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, tokens[2].address, weth.address, accounts[19].address, accounts[19].address)
-	})
-
-	it('Should check spot price (deposit)', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, tokenPair.address)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price (withdraw)', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, tokenPair.address, weth.address)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: same', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, weth.address)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
-
-	it('Should check spot price: zero', async function () {
-		const price = await uniswapV2LPAdapter.spotPrice(WeiPerEther, tokens[1].address, tokenPair.address)
-		expect(price.eq(0)).to.equal(true)
-	})
-
-	it('Should check spot price: no pair', async function () {
-		await expect(uniswapV2LPAdapter.spotPrice(WeiPerEther, weth.address, tokens[1].address)).to.be.revertedWith('')
 	})
 })

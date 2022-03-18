@@ -390,49 +390,4 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
-
-	it('Should check reward spot price', async function () {
-		const price = await curveRewardsAdapter.spotPrice(WeiPerEther, AddressZero, AddressZero)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
-
-	it('Should check lp spot price (withdraw)', async function () {
-		const price = await curveLPAdapter.spotPrice(WeiPerEther, tokens.crvLINK, tokens.link)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check lp spot price (deposit)', async function () {
-		const price = await curveLPAdapter.spotPrice(WeiPerEther, tokens.link, tokens.crvLINK)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: same', async function () {
-		const price = await curveLPAdapter.spotPrice(WeiPerEther, rewardToken, rewardToken)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
-
-	it('Should check meta lp spot price (withdraw)', async function () {
-		const price = await curveLPAdapter.spotPrice(WeiPerEther, tokens.crvUSDN, tokens.crv3)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check meta lp spot price (deposit)', async function () {
-		const price = await curveLPAdapter.spotPrice(WeiPerEther, tokens.crv3, tokens.crvUSDN)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check lp spot price (no lp)', async function () {
-		const price = await curveLPAdapter.spotPrice(WeiPerEther, tokens.dai, tokens.weth)
-		expect(price.eq(0)).to.equal(true)
-	})
-
-	it('Should check curve spot price: zero', async function () {
-		const price = await curveAdapter.spotPrice(WeiPerEther, AddressZero, weth.address)
-		expect(price.eq(0)).to.equal(true)
-	})
-
-	it('Should check curve spot price: same', async function () {
-		const price = await curveAdapter.spotPrice(WeiPerEther, weth.address, weth.address)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
 })

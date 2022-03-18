@@ -304,7 +304,7 @@ export class EnsoBuilder {
 			await this.adapters.uniswapV2.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
 		}
 		if (this.adapters?.uniswapV3 !== undefined) {
-			await this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Factory, uniswapV3Router, weth])
+			await this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Router, weth])
 		}
 		if (this.adapters?.yearnV2 !== undefined) {
 			await this.adapters.yearnV2.deploy(this.signer, ensoPlatform.administration.whitelist, [weth])
@@ -461,8 +461,8 @@ export class Adapter {
 			if (parameters.length == 2)
 				this.contract = await deployUniswapV2Adapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.UniswapV3) {
-			if (parameters.length == 4)
-				this.contract = await deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2], parameters[3])
+			if (parameters.length == 3)
+				this.contract = await deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2])
 		} else if (this.type === Adapters.YEarnV2) {
 			if (parameters.length == 1)
 				this.contract = await deployYEarnAdapter(signer, parameters[0])

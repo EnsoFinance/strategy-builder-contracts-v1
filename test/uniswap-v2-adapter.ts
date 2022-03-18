@@ -7,7 +7,7 @@ import { Contract } from '@ethersproject/contracts'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { deployUniswapV2, deployTokens, deployUniswapV2Adapter } from '../lib/deploy'
 const { constants, getSigners } = ethers
-const { WeiPerEther } = constants
+const { WeiPerEther, MaxUint256 } = constants
 
 const NUM_TOKENS = 2
 
@@ -39,14 +39,11 @@ describe('UniswapV2Adapter', function () {
 
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
-		const expected = ethers.BigNumber.from(
-			await adapter.spotPrice(amount, tokens[1].address, tokens[0].address)
-		)
 		await tokens[1].approve(adapter.address, amount)
 		await expect(
 			adapter.swap(
 				amount,
-				expected,
+				MaxUint256,
 				tokens[1].address,
 				tokens[0].address,
 				accounts[0].address,

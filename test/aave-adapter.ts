@@ -247,34 +247,4 @@ describe('AaveAdapter', function () {
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x')
 	})
-
-	it('Should check spot price (deposit)', async function () {
-		const price = await aaveLendAdapter.spotPrice(WeiPerEther, tokens.usdc, tokens.aDAI)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price (withdraw)', async function () {
-		const price = await aaveLendAdapter.spotPrice(WeiPerEther, tokens.aDAI, tokens.usdc)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: same', async function () {
-		const price = await aaveLendAdapter.spotPrice(WeiPerEther, tokens.aDAI, tokens.aDAI)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
-
-	it('Should check spot price (borrow)', async function () {
-		const price = await aaveBorrowAdapter.spotPrice(WeiPerEther, AddressZero, tokens.usdc)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price (repay)', async function () {
-		const price = await aaveBorrowAdapter.spotPrice(WeiPerEther, tokens.usdc, AddressZero)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check borrow spot price (no lending pool)', async function () {
-		const price = await aaveBorrowAdapter.spotPrice(WeiPerEther, tokens.dai, tokens.weth)
-		expect(price.eq(0)).to.equal(true)
-	})
 })

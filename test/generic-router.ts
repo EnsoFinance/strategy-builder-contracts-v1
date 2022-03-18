@@ -1,6 +1,8 @@
 // const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
+import { Contract, BigNumber } from 'ethers'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployGenericRouter } from '../lib/deploy'
 import {
 	prepareStrategy,
@@ -19,10 +21,8 @@ import {
 	StrategyItem,
 	InitialState
 } from '../lib/encode'
-import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
 
-import { Contract, BigNumber } from 'ethers'
-import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
@@ -242,9 +242,10 @@ describe('GenericRouter', function () {
 			const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
 			if (token.address.toLowerCase() != weth.address.toLowerCase()) {
 				if (estimatedValue.gt(expectedValue)) {
-					//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
-					const diff = await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
-					const expected = estimatedValue.sub(expectedValue).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
+					const balance = await token.balanceOf(strategy.address)
+					const diff = balance.mul(estimatedValue.sub(expectedValue)).div(estimatedValue)
+					//const expected = estimatedValue.sub(expectedValue).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
+					const expected = BigNumber.from(1)
 					calls.push(
 						encodeDelegateSwap(
 							genericRouter,
@@ -275,7 +276,6 @@ describe('GenericRouter', function () {
 			const estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate)
 			if (token.address.toLowerCase() != weth.address.toLowerCase()) {
 				if (!wethInStrategy && i == buyLoop.length - 1) {
-					//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
 					// The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
 					calls.push(
 						await encodeSettleSwap(
@@ -292,9 +292,10 @@ describe('GenericRouter', function () {
 						await getExpectedTokenValue(total, token.address, strategy)
 					)
 					if (estimatedValue.lt(expectedValue)) {
-						//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
 						const diff = expectedValue.sub(estimatedValue)
-						const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
+						//const balance = await token.balanceOf(strategy.address)
+						//const expected = balance.mul(diff).div(estimatedValue)
+						const expected = BigNumber.from(1)
 						calls.push(
 							await encodeDelegateSwap(
 								genericRouter,

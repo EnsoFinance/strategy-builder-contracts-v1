@@ -160,24 +160,4 @@ describe('CompoundAdapter', function () {
 	it('Should claim rewards', async function() {
 		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
 	})
-
-	it('Should check spot price (deposit)', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.usdc, tokens.cUSDC)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price (withdraw)', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cUSDC, tokens.usdc)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: same', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cUSDC, tokens.cUSDC)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
-
-	it('Should check spot price: zero', async function () {
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.usdc, weth.address)
-		expect(price.eq(0)).to.equal(true)
-	})
 })
