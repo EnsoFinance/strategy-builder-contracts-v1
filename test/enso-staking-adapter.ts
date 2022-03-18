@@ -1,10 +1,10 @@
 import chai from 'chai'
-//const { expect } = chai
+const { expect } = chai
 import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
-import { BigNumber, Contract/*, Event*/ } from 'ethers'
+import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 
@@ -37,10 +37,9 @@ describe('EnsoStakingAdapter', function () {
     usdc: Contract,
 		accounts: SignerWithAddress[],
     ensoToken: Contract,
-    distributionToken: Contract,
+    sEnso: Contract,
     stakingMock: Contract,
     ensoStakingAdapter: Contract,
-    distributionTokenScalar: number,
     rewardsToken: Contract,
 		uniswapFactory: Contract,
 		router: Contract,
@@ -50,9 +49,9 @@ describe('EnsoStakingAdapter', function () {
 		library: Contract,
 		uniswapAdapter: Contract,
 		//compoundAdapter: Contract,
-		//strategy: Contract,
+		strategy: Contract,
 		strategyItems: StrategyItem[],
-		//wrapper: Contract,
+		wrapper: Contract,
 		tokens: Tokens//,
 		//cToken: string
     
@@ -73,15 +72,13 @@ describe('EnsoStakingAdapter', function () {
 	    const StakingMockFactory = await getContractFactory('StakingMock')
 	    stakingMock = await StakingMockFactory.deploy(ensoToken.address)
 	    await stakingMock.deployed()
-	    distributionToken = stakingMock 
+	    sEnso = stakingMock 
 	    
-	    distributionTokenScalar = 10
-	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, distributionToken, distributionTokenScalar, weth)
+	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
 	    
       uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken])
-      console.log(uniswapFactory.address);
       
-	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, sEnso)
       const whitelist = platform.administration.whitelist
 	    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 
@@ -103,11 +100,10 @@ describe('EnsoStakingAdapter', function () {
 
 	it('Should deploy strategy', async function () {
      
-    console.log("start of test block debug");
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-      { token: distributionToken.address, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
+      { token: sEnso.address, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
 		]
     let value = ethers.BigNumber.from('10000000000000000') 
 		strategyItems = prepareStrategy(positions, ensoStakingAdapter.address)
@@ -122,13 +118,6 @@ describe('EnsoStakingAdapter', function () {
 			set: false
 		}
 
-    // debug console.log(name, value, strategyState, strategyItems, symbol)
-    //
-    /*
-    *https://discordapp.com/channels/@me/949000054394466344/954093797137076275
-    * */
-    
-    console.log("before createStrategy debug");
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -143,13 +132,15 @@ describe('EnsoStakingAdapter', function () {
 			)
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-    /*
+    
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
 
-		expect(await controller.initialized(strategyAddress)).to.equal(true)
+    strategy=strategy // debug may use later
 
+		expect(await controller.initialized(strategyAddress)).to.equal(true)
+    
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
 				StrategyLibrary: library.address
@@ -160,7 +151,6 @@ describe('EnsoStakingAdapter', function () {
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    */
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
