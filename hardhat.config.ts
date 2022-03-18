@@ -43,9 +43,9 @@ if (networkIndex > 0) {
 		}
 	}
 } else {
-	if (process.argv[2] == 'test' && !archiveNode) {
+	/*if (process.argv[2] == 'test' && !archiveNode) {
 		throw new Error('Please set your ARCHIVE_NODE in a .env file')
-	}
+	}*/
 }
 
 function getNetworks(): NetworksUserConfig {
@@ -59,11 +59,12 @@ function getNetworks(): NetworksUserConfig {
 			networks.hardhat.accounts = {
 				mnemonic,
 			}
-		if (archiveNode)
+		/*if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
 				blockNumber: 14131060,
 			}
+      */
 	}
 	if (mnemonic && infuraApiKey) {
 		networks.goerli = createTestnetConfig('goerli')
@@ -82,7 +83,8 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
 	if (network === 'ensonet') {
 		url = 'http://testnet.enso.finance'
 	} else {
-		url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
+		//url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
+    url = 'https://eth-' + network + '.alchemyapi.io/v2/' + infuraApiKey 
 	}
 
 	return {
@@ -131,7 +133,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 5,
 					},
 				},
 			},

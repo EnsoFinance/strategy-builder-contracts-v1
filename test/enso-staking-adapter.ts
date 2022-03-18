@@ -11,21 +11,25 @@ import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 
 import {
+  deployTokens,
 	deployEnsoToken,
   deployEnsoStakingAdapter,
 	deployPlatform,
 	deployLoopRouter,
   deployUniswapV2Adapter,
+  deployUniswapV2,
 } from '../lib/deploy'
 
-import { MAINNET_ADDRESSES } from '../lib/utils'
+//import { MAINNET_ADDRESSES } from '../lib/utils'
 // import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
-import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
+//import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+//import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+//import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 chai.use(solidity)
+
+let NUM_TOKENS = 2 
 
 describe('EnsoStakingAdapter', function () {
   
@@ -56,11 +60,13 @@ describe('EnsoStakingAdapter', function () {
 	before('Setup StakingAdapter + Factory', async function () {
 		  accounts = await getSigners()
 	    tokens = new Tokens()
-	    weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
+      let tokens_ = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
+
+      weth = tokens_[0]
 	    usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
       rewardsToken = usdc
 
-      rewardsToken=rewardsToken // debug
+      rewardsToken=rewardsToken // debug will be used in tests
 	    
 	    ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
 	    
@@ -72,9 +78,11 @@ describe('EnsoStakingAdapter', function () {
 	    distributionTokenScalar = 10
 	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, distributionToken, distributionTokenScalar, weth)
 	    
-	    uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+      uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken])
+      console.log(uniswapFactory.address);
+      
 	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
-	    const whitelist = platform.administration.whitelist
+      const whitelist = platform.administration.whitelist
 	    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 
       controller = platform.controller
@@ -86,19 +94,8 @@ describe('EnsoStakingAdapter', function () {
       router = await deployLoopRouter(accounts[0], controller, library)
       await whitelist.connect(accounts[0]).approve(router.address) 
 
-      oracle=oracle // debug
+      oracle=oracle // debug will be used in tests??
       
-      await uniswapFactory.createPair(weth.address, ensoToken.address)
-      const pairAddress = await uniswapFactory.getPair(weth.address, ensoToken.address)
-      const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
-
-      // Add liquidity
-      const liquidityAmount = WeiPerEther.mul(100)
-      await weth.connect(accounts[0]).deposit({value: liquidityAmount})
-      await weth.connect(accounts[0]).transfer(pairAddress, liquidityAmount)
-      await ensoToken.connect(accounts[0]).transfer(pairAddress, liquidityAmount)
-      await pair.connect(accounts[0]).mint(accounts[0].address)
-
       uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
       await whitelist.connect(accounts[0]).approve(uniswapAdapter.address) 
       await ensoToken.approve(uniswapAdapter.address, constants.MaxUint256)
@@ -106,6 +103,7 @@ describe('EnsoStakingAdapter', function () {
 
 	it('Should deploy strategy', async function () {
      
+    console.log("start of test block debug");
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
@@ -130,6 +128,7 @@ describe('EnsoStakingAdapter', function () {
     *https://discordapp.com/channels/@me/949000054394466344/954093797137076275
     * */
     
+    console.log("before createStrategy debug");
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
