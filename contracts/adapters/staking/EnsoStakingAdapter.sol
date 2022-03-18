@@ -8,6 +8,7 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/IStaking.sol";
 import "../../interfaces/IERC1155Supply.sol";
+import "../../interfaces/IsEnso.sol";
 
 contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     using SafeMath for uint256;
@@ -18,22 +19,17 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     address public immutable stakedToken;
     address public immutable distributionToken;
 
-    uint256 public immutable distributionTokenScalar;
-
     event RewardsClaimed(address from, address to, address token, uint256 amount);
 
     constructor(
         address staking_,
         address stakedToken_,
         address distributionToken_,
-        uint256 distributionTokenScalar_,
         address weth_
     ) BaseAdapter(weth_) public {
         staking = staking_;
         stakedToken = stakedToken_; 
         distributionToken = distributionToken_;
-        require(distributionTokenScalar_ > 0, "EnsoStakingAdapter: invalid scaled distribution scalar.");
-        distributionTokenScalar = distributionTokenScalar_;
     }
 
     // @notice Calculates the stakedToken minted by staking
@@ -45,7 +41,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         require(tokenIn != tokenOut, "spotPrice: tokens cannot match.");
         require(tokenIn == stakedToken || tokenIn == distributionToken, "spotPrice: invalid `tokenIn`.");
         require(tokenOut == stakedToken || tokenOut == distributionToken, "spotPrice: invalid `tokenOut`.");
-        return (tokenIn == stakedToken) ? amount.mul(distributionTokenScalar) : amount.div(distributionTokenScalar);
+        return (tokenIn == stakedToken) ? IsEnso(tokenOut).boostModifier(SafeCast.toUint128(amount), uint32(0), true) : IsEnso(tokenIn).boostModifier(SafeCast.toUint128(amount), uint32(0), false);
     }
   
     // @dev: stakes and unstakes stakedToken on behalf of `to` 

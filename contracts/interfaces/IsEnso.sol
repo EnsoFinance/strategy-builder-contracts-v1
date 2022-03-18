@@ -5,6 +5,5 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IsEnso {
     function enso() external view returns(IERC20 enso);
-
-    function distributionTokenScalar() external view returns(uint256);
+    function boostModifier(uint128 amount, uint32 stakeHours, bool stakeIn) external view returns(uint256 boost);
 }
