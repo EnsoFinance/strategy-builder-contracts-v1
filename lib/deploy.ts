@@ -418,8 +418,8 @@ export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2
 	return adapter
 }
 
-export async function deployEnsoStakingAdapter(owner: SignerWithAddress, staking: Contract, stakingToken: Contract, distributionToken: Contract, distributionTokenScalar: number, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, EnsoStakingAdapter, [staking.address, stakingToken.address, distributionToken.address, distributionTokenScalar, weth.address])
+export async function deployEnsoStakingAdapter(owner: SignerWithAddress, staking: Contract, stakingToken: Contract, distributionToken: Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, EnsoStakingAdapter, [staking.address, stakingToken.address, distributionToken.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
