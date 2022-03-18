@@ -53,6 +53,11 @@ function getNetworks(): NetworksUserConfig {
 		hardhat: {
 			chainId: chainIds.mainnet,
 		},
+		localhost: {
+			url: 'http://127.0.0.1:8545',
+			timeout: 900000,
+			gasPrice: 100000000000, // 100 gwei
+		},
 	}
 	if (networks.hardhat) {
 		if (mnemonic)
