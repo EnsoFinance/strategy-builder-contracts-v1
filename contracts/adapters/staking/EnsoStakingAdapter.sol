@@ -8,7 +8,7 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/IStaking.sol";
 import "../../interfaces/IERC1155Supply.sol";
-import "../../interfaces/IsEnso.sol";
+import "../../interfaces/IStakedEnso.sol";
 
 contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     using SafeMath for uint256;
@@ -41,7 +41,8 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         require(tokenIn != tokenOut, "spotPrice: tokens cannot match.");
         require(tokenIn == stakedToken || tokenIn == distributionToken, "spotPrice: invalid `tokenIn`.");
         require(tokenOut == stakedToken || tokenOut == distributionToken, "spotPrice: invalid `tokenOut`.");
-        return (tokenIn == stakedToken) ? IsEnso(tokenOut).boostModifier(SafeCast.toUint128(amount), uint32(0), true) : IsEnso(tokenIn).boostModifier(SafeCast.toUint128(amount), uint32(0), false);
+        return (tokenIn == stakedToken) ? 
+            IStakedEnso(tokenOut).boostModifier(SafeCast.toUint128(amount), uint32(0), true) : IStakedEnso(tokenIn).boostModifier(SafeCast.toUint128(amount), uint32(0), false);
     }
   
     // @dev: stakes and unstakes stakedToken on behalf of `to` 
