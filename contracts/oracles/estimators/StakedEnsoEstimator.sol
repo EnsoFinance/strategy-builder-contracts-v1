@@ -15,7 +15,7 @@ contract StakedEnsoEstimator is IEstimator {
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         IStakedEnso sEnso = IStakedEnso(token);
         IERC20 enso = IStakedEnso(token).enso();
-        uint256 amount = sEnso.boostModifier(SafeCast.toUint128(balance), uint32(0), false);
+        uint256 amount = sEnso.boostModifier(SafeCast.toUint128(balance), uint32(0));
         return IOracle(msg.sender).estimateItem(amount, address(enso));
     }
 }
