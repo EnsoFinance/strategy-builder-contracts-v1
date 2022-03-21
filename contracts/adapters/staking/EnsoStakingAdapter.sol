@@ -10,8 +10,6 @@ import "../../interfaces/IStaking.sol";
 import "../../interfaces/IERC1155Supply.sol";
 import "../../interfaces/IStakedEnso.sol";
 
-import "hardhat/console.sol";
-
 contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -63,12 +61,10 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
               IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
             uint256 toBalanceBefore = IERC20(tokenOut).balanceOf(to);
             IERC20(tokenIn).approve(staking, uint256(-1));
-            console.log("enso staked %d", amount);
             IStaking(staking).stakeFor(to, SafeCast.toUint128(amount));
             IERC20(tokenIn).approve(staking, uint256(0));
             uint256 toBalanceAfter = IERC20(tokenOut).balanceOf(to);
             uint256 difference = toBalanceAfter.sub(toBalanceBefore);
-            console.log("sEnso received %d", difference);
             require(difference >= expected, "swap: Insufficient tokenOut amount");
         } else if (tokenIn == distributionToken) {
             require(tokenOut == stakedToken, "swap: invalid `tokenOut`.");
