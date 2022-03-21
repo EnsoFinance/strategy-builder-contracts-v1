@@ -42,7 +42,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         require(tokenIn == stakedToken || tokenIn == distributionToken, "spotPrice: invalid `tokenIn`.");
         require(tokenOut == stakedToken || tokenOut == distributionToken, "spotPrice: invalid `tokenOut`.");
         return (tokenIn == stakedToken) ? 
-            IStakedEnso(tokenOut).boostModifier(SafeCast.toUint128(amount), uint32(0)) : IStakedEnso(tokenIn).boostModifier(SafeCast.toUint128(amount), uint32(0));
+            IStakedEnso(tokenOut).boostModifier(SafeCast.toUint128(amount), uint32(0)) : amount;
     }
   
     // @dev: stakes and unstakes stakedToken on behalf of `to` 
