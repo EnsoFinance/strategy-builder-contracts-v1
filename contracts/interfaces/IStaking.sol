@@ -7,11 +7,10 @@ interface IStaking {
         uint128 amount
     ) external;
 
-    function unstakeFor(
-        address user
+    function redeemFor(
+        address user,
+        uint128 amount
     ) external;
-
-    function distribution() external view returns(address rewardDistribution);
 
     function claim(address token) external returns(uint256 owed);
 }
