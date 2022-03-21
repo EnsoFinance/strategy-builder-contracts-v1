@@ -60,11 +60,19 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
             if (from != address(this))
               IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
             uint256 toBalanceBefore = IERC20(tokenOut).balanceOf(to);
+            uint256 toBalanceAfter;
+            uint256 difference;
             IERC20(tokenIn).approve(staking, uint256(-1));
+            if (IStaking(staking).isStaker(to)) {
+                IStaking(staking).unstakeFor(to);
+                toBalanceAfter = IERC20(tokenOut).balanceOf(to);
+                difference = toBalanceAfter.sub(toBalanceBefore);
+                amount = amount.add(difference); 
+            }
             IStaking(staking).stakeFor(to, SafeCast.toUint128(amount));
             IERC20(tokenIn).approve(staking, uint256(0));
-            uint256 toBalanceAfter = IERC20(tokenOut).balanceOf(to);
-            uint256 difference = toBalanceAfter.sub(toBalanceBefore);
+            toBalanceAfter = IERC20(tokenOut).balanceOf(to);
+            difference = toBalanceAfter.sub(toBalanceBefore);
             require(difference >= expected, "swap: Insufficient tokenOut amount");
         } else if (tokenIn == distributionToken) {
             require(tokenOut == stakedToken, "swap: invalid `tokenOut`.");
