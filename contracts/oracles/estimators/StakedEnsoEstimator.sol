@@ -15,7 +15,10 @@ contract StakedEnsoEstimator is IEstimator {
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         IStakedEnso sEnso = IStakedEnso(token);
         IERC20 enso = IStakedEnso(token).enso();
-        uint256 amount = sEnso.boostModifier(SafeCast.toUint128(balance), uint32(0));
-        return IOracle(msg.sender).estimateItem(amount, address(enso));
+        /*
+         The Staking.unstakeFor flow is distributionToken -> stakedToken 
+           where the amount of received stakedToken being min(amount, userStakes[user].amount)+userRewards[user].owed, a function of the user, which is the Strategy.
+        */
+        return IOracle(msg.sender).estimateItem(balance, address(enso));
     }
 }
