@@ -20,6 +20,6 @@ contract StakedEnsoEstimator is IEstimator {
     }
 
     function estimateItem(address user, address token) public view override returns (int256) { 
-      // TODO
+      revert("DEBUG TODO");
     }
 }

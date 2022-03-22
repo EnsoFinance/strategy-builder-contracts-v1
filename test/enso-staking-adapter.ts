@@ -1,5 +1,6 @@
 import chai from 'chai'
 const { expect } = chai
+import hre from 'hardhat'
 import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -22,14 +23,14 @@ import {
 
 //import { MAINNET_ADDRESSES } from '../lib/utils'
 // import { displayBalances } from '../lib/logging'
-import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
+//import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 //import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 //import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 //import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 chai.use(solidity)
 
-let NUM_TOKENS = 2 
+let NUM_TOKENS = 3 
 
 describe('EnsoStakingAdapter', function () {
   
@@ -40,7 +41,6 @@ describe('EnsoStakingAdapter', function () {
     sEnso: Contract,
     stakingMock: Contract,
     ensoStakingAdapter: Contract,
-    rewardsToken: Contract,
 		uniswapFactory: Contract,
 		router: Contract,
 		strategyFactory: Contract,
@@ -62,13 +62,9 @@ describe('EnsoStakingAdapter', function () {
       let tokens_ = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 
       weth = tokens_[0]
-	    usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
-      rewardsToken = usdc
+	    usdc = tokens_[1] 
 
-      rewardsToken=rewardsToken // debug will be used in tests
-	    
 	    ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
-	    
 	    const StakingMockFactory = await getContractFactory('StakingMock')
 	    stakingMock = await StakingMockFactory.deploy(ensoToken.address)
 	    await stakingMock.deployed()
@@ -76,7 +72,7 @@ describe('EnsoStakingAdapter', function () {
 	    
 	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
 	    
-      uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken])
+      uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken, usdc])
       
 	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, sEnso)
       const whitelist = platform.administration.whitelist
@@ -100,10 +96,13 @@ describe('EnsoStakingAdapter', function () {
 
 	it('Should deploy strategy', async function () {
      
+    await hre.network.provider.send("evm_mine", ["0x100"]);
+
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-      { token: sEnso.address, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
+			{ token: usdc.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address] },
+      { token: sEnso.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
 		]
     let value = ethers.BigNumber.from('10000000000000000') 
 		strategyItems = prepareStrategy(positions, ensoStakingAdapter.address)
@@ -154,7 +153,9 @@ describe('EnsoStakingAdapter', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-    /*
+   /* 
+		expect(await wrapper.isBalanced()).to.equal(true)
+    
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(1000)
 		await weth.connect(accounts[19]).deposit({value: value})
@@ -165,17 +166,19 @@ describe('EnsoStakingAdapter', function () {
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-    */
+   */ 
 	})
 
 	it('Should rebalance strategy', async function () {
-    /*
+    /* 
+    // FIXME reverting with unrecognized systme error
+    console.log(sEnso.address);
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    */
+   */ 
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -209,30 +212,36 @@ describe('EnsoStakingAdapter', function () {
 	})
 
 	it('Should check spot price (deposit)', async function () {
-    /*
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.usdc, tokens.cUSDC)
+    
+		const price = await ensoStakingAdapter.spotPrice(WeiPerEther, ensoToken.address, sEnso.address)
 		expect(price.gt(0)).to.equal(true)
-    */
+    
 	})
 
 	it('Should check spot price (withdraw)', async function () {
-    /*
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cUSDC, tokens.usdc)
+    
+		const price = await ensoStakingAdapter.spotPrice(WeiPerEther, sEnso.address, ensoToken.address)
 		expect(price.gt(0)).to.equal(true)
-    */
+   
 	})
 
-	it('Should check spot price: same', async function () {
-    /*
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.cUSDC, tokens.cUSDC)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-    */
+	it('Should fail check spot price: same', async function () {
+    
+		await expect(ensoStakingAdapter.spotPrice(WeiPerEther, sEnso.address, sEnso.address)).to.be.revertedWith("spotPrice: tokens cannot match.")
+    
+	})
+
+	it('Should fail check spot price: non enso or sEnso', async function () {
+    
+		await expect(ensoStakingAdapter.spotPrice(WeiPerEther, sEnso.address, tokens.usdc)).to.be.revertedWith("spotPrice: invalid `tokenOut`.")
+		await expect(ensoStakingAdapter.spotPrice(WeiPerEther, tokens.usdc, sEnso.address)).to.be.revertedWith("spotPrice: invalid `tokenIn`.")
+    
 	})
 
 	it('Should check spot price: zero', async function () {
-    /*
-		const price = await compoundAdapter.spotPrice(WeiPerEther, tokens.usdc, weth.address)
+    
+		const price = await ensoStakingAdapter.spotPrice(0, ensoToken.address, sEnso.address)
 		expect(price.eq(0)).to.equal(true)
-    */
+    
 	})
 })
