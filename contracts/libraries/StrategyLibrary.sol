@@ -31,7 +31,7 @@ library StrategyLibrary {
      *         whether the strategy is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
      */
-    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
+    function verifyBalance(address strategy, address oracle) public returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
         uint256 threshold = IStrategy(strategy).rebalanceThreshold();

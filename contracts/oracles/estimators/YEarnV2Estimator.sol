@@ -10,13 +10,13 @@ import "../../interfaces/yearn/IYEarnV2Vault.sol";
 contract YEarnV2Estimator is IEstimator {
     using SafeMath for uint256;
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
+    function estimateItem(uint256 balance, address token) public override returns (int256) {
         address underlyingToken = address(IYEarnV2Vault(token).token());
         uint256 share = balance.mul(IYEarnV2Vault(token).pricePerShare()).div(10**uint256(IERC20NonStandard(token).decimals()));
         return IOracle(msg.sender).estimateItem(share, underlyingToken);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(address user, address token) public override returns (int256) { 
         revert("estimateItem: address parameter not supported.");
     }
 }

@@ -26,7 +26,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external view override returns (uint256) {
+    ) external override returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         if (tokenIn == weth) {
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);

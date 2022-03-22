@@ -11,11 +11,11 @@ contract BasicEstimator is IEstimator {
       protocolOracle = IProtocolOracle(protocolOracle_);
     }
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
+    function estimateItem(uint256 balance, address token) public override returns (int256) {
         return int256(protocolOracle.consult(balance, token));
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(address user, address token) public override returns (int256) { 
         revert("estimateItem: address parameter not supported.");
     }
 }

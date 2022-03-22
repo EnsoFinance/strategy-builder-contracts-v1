@@ -5,6 +5,8 @@ pragma experimental ABIEncoderV2;
 import "../libraries/StrategyLibrary.sol";
 import "./StrategyRouter.sol";
 
+import "hardhat/console.sol";
+
 contract LoopRouter is StrategyTypes, StrategyRouter {
 
     constructor(address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {}
@@ -70,6 +72,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             ) buy[i] = 1;
         }
         // Buy loop
+        console.log("router.rebalance: before");
         for (uint256 i = 0; i < strategyItems.length; i++) {
             if (buy[i] == 1) {
                 _buyToken(
@@ -81,6 +84,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
+        console.log("router.rebalance: after");
     }
 
     function restructure(address strategy, bytes calldata data)
@@ -197,6 +201,8 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256 estimatedValue,
         int256 expectedValue
     ) internal {
+      console.log("_buyToken");
+      console.log(token);
         int256 amount;
         if (estimatedValue == 0) {
             amount = expectedValue;
@@ -210,6 +216,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 amount = expectedValue.sub(estimatedValue);
             }
         }
+        console.log("_buyToken: before");
         if (amount > 0) {
             uint256 balance = IERC20(weth).balanceOf(from);
             _buyPath(
@@ -220,5 +227,6 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 from
             );
         }
+        console.log("_buyToken: after");
     }
 }

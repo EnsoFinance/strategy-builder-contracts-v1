@@ -23,14 +23,14 @@ contract LibraryWrapper is StrategyTypes{
         strategy = IStrategy(strategy_);
     }
 
-    function isBalanced() external view returns (bool) {
+    function isBalanced() external returns (bool) {
         return
             _checkBalance(
                 strategy.rebalanceThreshold()
             );
     }
 
-    function isRebalanceNeeded(uint256 alertThreshold) external view returns (bool) {
+    function isRebalanceNeeded(uint256 alertThreshold) external returns (bool) {
         bool balanced = _checkBalance(alertThreshold);
         return !balanced;
     }
@@ -44,12 +44,12 @@ contract LibraryWrapper is StrategyTypes{
         return StrategyLibrary.getRange(expectedValue, range);
     }
 
-    function getStrategyValue() external view returns (uint256) {
+    function getStrategyValue() external returns (uint256) {
         (uint256 total, ) = oracle.estimateStrategy(strategy);
         return total;
     }
 
-    function getTokenValue(address token) external view returns (int256) {
+    function getTokenValue(address token) external returns (int256) {
         return _getTokenValue(strategy, token);
     }
 
@@ -57,7 +57,7 @@ contract LibraryWrapper is StrategyTypes{
         return StrategyLibrary.getExpectedTokenValue(total, address(strategy), token);
     }
 
-    function _getTokenValue(IStrategy s, address token) internal view returns (int256) {
+    function _getTokenValue(IStrategy s, address token) internal returns (int256) {
         if (token == address(0)) {
             return int256(address(s).balance);
         } else if (token == address(-1)) {
@@ -86,7 +86,7 @@ contract LibraryWrapper is StrategyTypes{
 
     function _checkBalance(
         uint256 threshold
-    ) internal view returns (bool) {
+    ) internal returns (bool) {
         (uint256 total, int256[] memory estimates) =
             oracle.estimateStrategy(strategy);
         bool balanced = true;

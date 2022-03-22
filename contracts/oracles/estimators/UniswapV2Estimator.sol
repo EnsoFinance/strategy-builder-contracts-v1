@@ -22,7 +22,7 @@ contract UniswapV2Estimator is IEstimator {
     uint256 public constant MAX_PRICE_DEVIATION_ABOVE = 111111111111111111; // 11.111%
     uint256 public constant MAX_PRICE_DEVIATION_BELOW = 100000000000000000; // 10%
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
+    function estimateItem(uint256 balance, address token) public override returns (int256) {
         return int256(balance).mul(_latestAnswer(IUniswapV2Pair(token))).div(10**18);
     }
 
@@ -35,7 +35,7 @@ contract UniswapV2Estimator is IEstimator {
      *   If there is a price deviation, instead of the reserves, it uses a weighted geometric mean with constant invariant K.
      * @return int256 price
      */
-    function _latestAnswer(IUniswapV2Pair pair) internal view returns (int256) {
+    function _latestAnswer(IUniswapV2Pair pair) internal returns (int256) {
         //Get token reserves in ethers
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         address token0 = pair.token0();
@@ -131,7 +131,7 @@ contract UniswapV2Estimator is IEstimator {
         }
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(address user, address token) public override returns (int256) { 
         revert("estimateItem: address parameter not supported.");
     }
 }

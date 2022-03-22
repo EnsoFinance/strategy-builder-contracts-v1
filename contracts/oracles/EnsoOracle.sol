@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
 import "../helpers/StrategyTypes.sol";
 
+import "hardhat/console.sol";
+
 contract EnsoOracle is IOracle, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -28,23 +30,24 @@ contract EnsoOracle is IOracle, StrategyTypes {
         susd = susd_;
     }
 
-    function estimateStrategy(IStrategy strategy) public view override returns (uint256, int256[] memory) {
+    function estimateStrategy(IStrategy strategy) public override returns (uint256, int256[] memory) {
         address[] memory strategyItems = strategy.items();
         address[] memory strategyDebt = strategy.debt();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 estimate;
-            if (tokenRegistry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.USER)) {
-                estimate = estimateItem(
+            int256 estimate = estimateItem(
+                IERC20(strategyItems[i]).balanceOf(address(strategy)),
+                strategyItems[i]
+            );
+            console.log("estimateStrategy start");
+            if (tokenRegistry.itemCategories(strategyItems[i]) == uint256(ItemCategory.USER)) {
+                console.log("estimateStrategy user");
+                int256 owedEstimate = estimateItem(
                     address(strategy),
                     strategyItems[i]
                 );
-            } else {
-                estimate = estimateItem(
-                    IERC20(strategyItems[i]).balanceOf(address(strategy)),
-                    strategyItems[i]
-                );
+                estimate = estimate.add(owedEstimate);
             }
             total = total.add(estimate);
             estimates[i] = estimate;
@@ -79,15 +82,15 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return (uint256(total), estimates);
     }
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
+    function estimateItem(uint256 balance, address token) public override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(balance, token);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) {
+    function estimateItem(address user, address token) public override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(user, token);
     }
 
-    function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {
+    function estimateStrategies(IStrategy[] memory strategies) external returns (uint256[] memory) {
         uint256[] memory totals = new uint256[](strategies.length);
         for (uint256 i = 0; i < strategies.length; i++) {
             (uint256 total, ) = estimateStrategy(strategies[i]);

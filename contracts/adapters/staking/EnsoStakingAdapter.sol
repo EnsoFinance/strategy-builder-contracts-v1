@@ -10,6 +10,8 @@ import "../../interfaces/IStaking.sol";
 import "../../interfaces/IERC1155Supply.sol";
 import "../../interfaces/IStakedEnso.sol";
 
+import "hardhat/console.sol";
+
 contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -37,7 +39,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external view override returns (uint256) {
+    ) external override returns (uint256) {
         require(tokenIn != tokenOut, "spotPrice: tokens cannot match.");
         require(tokenIn == stakedToken || tokenIn == distributionToken, "spotPrice: invalid `tokenIn`.");
         require(tokenOut == stakedToken || tokenOut == distributionToken, "spotPrice: invalid `tokenOut`.");
@@ -63,13 +65,16 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
             uint256 toBalanceAfter;
             uint256 difference;
             IERC20(tokenIn).approve(staking, uint256(-1));
+            console.log("before");
             if (IStaking(staking).isStaker(to)) {
                 IStaking(staking).unstakeFor(to, uint128(-1));
                 toBalanceAfter = IERC20(tokenOut).balanceOf(to);
                 difference = toBalanceAfter.sub(toBalanceBefore);
                 amount = amount.add(difference); 
             }
+            console.log("after 0");
             IStaking(staking).stakeFor(to, SafeCast.toUint128(amount));
+            console.log("after 1");
             IERC20(tokenIn).approve(staking, uint256(0));
             toBalanceAfter = IERC20(tokenOut).balanceOf(to);
             difference = toBalanceAfter.sub(toBalanceBefore);

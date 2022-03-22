@@ -12,6 +12,8 @@ import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./StrategyControllerStorage.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
@@ -171,7 +173,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(-1));
+        console.log("rebalance: before");
         _rebalance(strategy, router, totalBefore, data);
+        console.log("rebalance: after");
         _approveItems(strategy, strategy.items(), strategy.debt(), address(router), uint256(0));
         _removeStrategyLock(strategy);
     }
@@ -472,6 +476,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 balanceBefore,
         bytes memory data
     ) internal {
+      console.log("_deposit start");
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
@@ -585,7 +590,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 totalBefore,
         bytes memory data
     ) internal returns (uint256) {
+      console.log("_rebalance: before");
         router.rebalance(address(strategy), data);
+      console.log("_rebalance: after");
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");

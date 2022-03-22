@@ -15,7 +15,7 @@ abstract contract BaseAdapter is IBaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external view virtual override returns (uint256);
+    ) external virtual override returns (uint256);
 
     function swap(
         uint256 amount,

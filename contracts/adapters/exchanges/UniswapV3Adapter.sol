@@ -27,7 +27,7 @@ contract UniswapV3Adapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external view override returns (uint256) {
+    ) external override returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         address pool = factory.getPool(
           tokenIn,
