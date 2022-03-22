@@ -8,10 +8,6 @@ interface IStaking {
     ) external;
 
     function unstakeFor(
-        address user
-    ) external;
-
-    function redeemFor(
         address user,
         uint128 amount
     ) external;
