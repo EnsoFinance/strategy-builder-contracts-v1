@@ -15,4 +15,8 @@ contract GasBurnerEstimator is IEstimator {
           return 0;
         }
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        revert("estimateItem: address parameter not supported.");
+    }
 }

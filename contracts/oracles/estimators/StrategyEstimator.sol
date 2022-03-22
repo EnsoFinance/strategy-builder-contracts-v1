@@ -15,4 +15,8 @@ contract StrategyEstimator is IEstimator {
         (uint256 totalValue, ) = IOracle(msg.sender).estimateStrategy(IStrategy(token));
         return int256(totalValue.mul(balance).div(totalSupply));
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        revert("estimateItem: address parameter not supported.");
+    }
 }

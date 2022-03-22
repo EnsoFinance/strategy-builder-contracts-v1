@@ -10,4 +10,8 @@ contract AaveEstimator is IEstimator {
         address underlyingToken = IAToken(token).UNDERLYING_ASSET_ADDRESS();
         return IOracle(msg.sender).estimateItem(balance, underlyingToken);
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        revert("estimateItem: address parameter not supported.");
+    }
 }

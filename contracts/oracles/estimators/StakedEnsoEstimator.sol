@@ -18,4 +18,8 @@ contract StakedEnsoEstimator is IEstimator {
         uint256 amount = balance.mul(uint256(sEnso.maxHours())).div(3); 
         return IOracle(msg.sender).estimateItem(amount, address(enso));
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+      // TODO
+    }
 }

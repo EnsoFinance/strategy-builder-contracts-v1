@@ -6,4 +6,9 @@ interface IEstimator {
         uint256 balance,
         address token
     ) external view returns (int256);
+
+    function estimateItem(
+        address user,
+        address token
+    ) external view returns (int256);
 }

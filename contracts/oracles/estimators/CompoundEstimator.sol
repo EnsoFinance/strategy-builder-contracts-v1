@@ -14,4 +14,8 @@ contract CompoundEstimator is IEstimator {
         uint256 share = balance.mul(ICToken(token).exchangeRateStored()).div(10**18);
         return IOracle(msg.sender).estimateItem(share, underlyingToken);
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        revert("estimateItem: address parameter not supported.");
+    }
 }

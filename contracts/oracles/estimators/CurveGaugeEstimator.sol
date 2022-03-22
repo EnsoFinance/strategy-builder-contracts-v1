@@ -10,4 +10,8 @@ contract CurveGaugeEstimator is IEstimator {
         address underlyingToken = ICurveGauge(token).lp_token();
         return IOracle(msg.sender).estimateItem(balance, underlyingToken);
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        revert("estimateItem: address parameter not supported.");
+    }
 }

@@ -18,4 +18,8 @@ contract EmergencyEstimator is IEstimator, Ownable {
     function setEstimate(address token, int256 amount) external onlyOwner {
         estimates[token] = amount;
     }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        revert("estimateItem: address parameter not supported.");
+    }
 }
