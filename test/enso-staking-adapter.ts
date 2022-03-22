@@ -74,7 +74,7 @@ describe('EnsoStakingAdapter', function () {
 	    
       uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken, usdc])
       
-	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, sEnso)
+	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, ensoToken, sEnso)
       const whitelist = platform.administration.whitelist
 	    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 
@@ -96,7 +96,10 @@ describe('EnsoStakingAdapter', function () {
 
 	it('Should deploy strategy', async function () {
      
-    await hre.network.provider.send("evm_mine", ["0x100"]);
+    console.log(Date.now());
+    let ms = 1000
+    let _3hrs = 3*60*60*ms
+    await hre.network.provider.send("evm_mine", [(Date.now() + _3hrs)/ms]);
 
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
@@ -149,6 +152,7 @@ describe('EnsoStakingAdapter', function () {
 		await wrapper.deployed()
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+    // FIXME not balanced on deployment :((
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -210,7 +214,7 @@ describe('EnsoStakingAdapter', function () {
 		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
     */
 	})
-
+/*
 	it('Should check spot price (deposit)', async function () {
     
 		const price = await ensoStakingAdapter.spotPrice(WeiPerEther, ensoToken.address, sEnso.address)
@@ -244,4 +248,5 @@ describe('EnsoStakingAdapter', function () {
 		expect(price.eq(0)).to.equal(true)
     
 	})
+  */
 })

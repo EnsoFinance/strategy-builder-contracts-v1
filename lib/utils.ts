@@ -39,7 +39,8 @@ export enum ITEM_CATEGORY {
 	BASIC,
 	SYNTH,
 	DEBT,
-	RESERVE
+	RESERVE,
+  USER
 }
 
 export enum ESTIMATOR_CATEGORY {

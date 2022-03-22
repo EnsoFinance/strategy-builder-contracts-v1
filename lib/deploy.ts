@@ -259,6 +259,7 @@ export async function deployPlatform(
 	uniswapOracleFactory: Contract,
 	uniswapV3Factory: Contract,
 	weth: Contract,
+  enso: Contract,
   sEnso: Contract,
 	susd?: Contract,
 	feePool?: string
@@ -330,7 +331,8 @@ export async function deployPlatform(
 
 	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 	if (susd) await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
-  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
+  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.USER, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
+  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, enso.address)	
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
