@@ -34,7 +34,7 @@ contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         return _getPrice(amount, tokenIn, tokenOut);
     }
 
@@ -75,7 +75,7 @@ contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
       uint256 amount,
       address tokenIn,
       address tokenOut
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         if (tokenIn == weth) {
             IStrategy strategy = IStrategy(tokenOut);
@@ -112,7 +112,7 @@ contract MetaStrategyAdapter is BaseAdapter, StrategyTypes {
         TradeData memory data,
         uint256 amount,
         address token
-    ) internal returns (uint256){
+    ) internal view returns (uint256){
         for (uint256 i = 0; i < data.adapters.length; i++) {
             address tokenIn;
             address tokenOut;

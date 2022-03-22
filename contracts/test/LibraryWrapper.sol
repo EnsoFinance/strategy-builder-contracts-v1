@@ -23,7 +23,7 @@ contract LibraryWrapper is StrategyTypes{
         strategy = IStrategy(strategy_);
     }
 
-    function isBalanced() external returns (bool) {
+    function isBalanced() external view returns (bool) {
         return
             _checkBalance(
                 strategy.rebalanceThreshold()
@@ -86,7 +86,7 @@ contract LibraryWrapper is StrategyTypes{
 
     function _checkBalance(
         uint256 threshold
-    ) internal returns (bool) {
+    ) internal view returns (bool) {
         (uint256 total, int256[] memory estimates) =
             oracle.estimateStrategy(strategy);
         bool balanced = true;

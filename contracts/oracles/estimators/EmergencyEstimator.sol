@@ -11,7 +11,7 @@ contract EmergencyEstimator is IEstimator, Ownable {
 
     mapping(address => int256) public estimates;
 
-    function estimateItem(uint256 balance, address token) public override returns (int256) {
+    function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return int256(balance).mul(estimates[token]).div(int256(10**uint256(IERC20NonStandard(token).decimals())));
     }
 
@@ -19,7 +19,7 @@ contract EmergencyEstimator is IEstimator, Ownable {
         estimates[token] = amount;
     }
 
-    function estimateItem(address user, address token) public override returns (int256) { 
+    function estimateItem(address user, address token) public view override returns (int256) { 
         revert("estimateItem: address parameter not supported.");
     }
 }

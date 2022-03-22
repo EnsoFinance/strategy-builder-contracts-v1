@@ -28,7 +28,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         susd = susd_;
     }
 
-    function estimateStrategy(IStrategy strategy) public override returns (uint256, int256[] memory) {
+    function estimateStrategy(IStrategy strategy) public view override returns (uint256, int256[] memory) {
         address[] memory strategyItems = strategy.items();
         address[] memory strategyDebt = strategy.debt();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
@@ -78,11 +78,11 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return (uint256(total), estimates);
     }
 
-    function estimateItem(uint256 balance, address token) public override returns (int256) {
+    function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(balance, token);
     }
 
-    function estimateItem(address user, address token) public override returns (int256) {
+    function estimateItem(address user, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(user, token);
     }
 

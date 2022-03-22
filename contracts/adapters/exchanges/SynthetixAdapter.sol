@@ -24,7 +24,7 @@ contract SynthetixAdapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         ISynthetix synthetix = _resolveSynthetix();
         (bytes32 nameIn, bytes32 nameOut) = _resolveTokens(synthetix, tokenIn, tokenOut);
         IExchanger exchanger = IExchanger(resolver.getAddress("Exchanger"));

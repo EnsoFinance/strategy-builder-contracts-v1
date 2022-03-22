@@ -26,7 +26,7 @@ contract CurveAdapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         ICurveRegistry curveRegistry = ICurveRegistry(addressProvider.get_registry());
         address pool = curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);

@@ -21,7 +21,7 @@ contract UniswapV2Adapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         (uint256 reserveA, uint256 reserveB) =
             UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
         return UniswapV2Library.quote(amount, reserveA, reserveB);

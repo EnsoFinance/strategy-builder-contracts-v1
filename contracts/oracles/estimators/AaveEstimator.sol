@@ -6,12 +6,12 @@ import "../../interfaces/IOracle.sol";
 import "../../interfaces/aave/IAToken.sol";
 
 contract AaveEstimator is IEstimator {
-    function estimateItem(uint256 balance, address token) public override returns (int256) {
+    function estimateItem(uint256 balance, address token) public view override returns (int256) {
         address underlyingToken = IAToken(token).UNDERLYING_ASSET_ADDRESS();
         return IOracle(msg.sender).estimateItem(balance, underlyingToken);
     }
 
-    function estimateItem(address user, address token) public override returns (int256) { 
+    function estimateItem(address user, address token) public view override returns (int256) { 
         revert("estimateItem: address parameter not supported.");
     }
 }

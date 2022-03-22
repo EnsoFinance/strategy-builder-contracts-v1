@@ -25,7 +25,7 @@ contract AaveBorrowAdapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         if (tokenOut == address(0)) {
             return _convert(amount, tokenIn, weth);
         } else if (tokenIn == address(0)) {

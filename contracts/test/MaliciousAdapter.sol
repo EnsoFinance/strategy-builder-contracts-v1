@@ -17,7 +17,7 @@ contract MaliciousAdapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         (tokenIn, tokenOut);
         return amount;
     }

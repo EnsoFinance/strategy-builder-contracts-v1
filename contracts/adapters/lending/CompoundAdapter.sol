@@ -26,7 +26,7 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         if (_checkCToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);

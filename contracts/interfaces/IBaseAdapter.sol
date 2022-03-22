@@ -15,5 +15,5 @@ interface IBaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external returns (uint256);
+    ) external view returns (uint256);
 }

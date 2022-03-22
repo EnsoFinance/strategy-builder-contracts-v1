@@ -37,7 +37,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         require(tokenIn != tokenOut, "spotPrice: tokens cannot match.");
         require(tokenIn == stakedToken || tokenIn == distributionToken, "spotPrice: invalid `tokenIn`.");
         require(tokenOut == stakedToken || tokenOut == distributionToken, "spotPrice: invalid `tokenOut`.");

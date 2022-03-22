@@ -8,7 +8,7 @@ interface Gas {
 }
 
 contract GasBurnerEstimator is IEstimator {
-    function estimateItem(uint256, address) public override returns (int256) {
+    function estimateItem(uint256, address) public view override returns (int256) {
         try Gas(address(0)).burn() returns (int256 response) {
           return response;
         } catch {
@@ -16,7 +16,7 @@ contract GasBurnerEstimator is IEstimator {
         }
     }
 
-    function estimateItem(address user, address token) public override returns (int256) { 
+    function estimateItem(address user, address token) public view override returns (int256) { 
         revert("estimateItem: address parameter not supported.");
     }
 }

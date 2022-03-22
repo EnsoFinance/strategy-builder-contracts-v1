@@ -23,7 +23,7 @@ contract YEarnV2Adapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         if (_checkVault(tokenOut)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);

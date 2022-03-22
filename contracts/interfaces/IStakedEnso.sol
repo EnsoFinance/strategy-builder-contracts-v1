@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 interface IStakedEnso {
     function enso() external view returns(IERC20 enso);
     function boostModifier(uint128 amount, uint32 stakeHours) external view returns(uint256 boost);
-    function updateUserRewards(address user) external;
-    function userRewards(address user) external returns(uint256 lastRewardPerToken, uint256 owed);
+    function unclaimedAmount(address user) external view returns(uint256);
+    function userRewards(address user) external view returns(uint256 lastRewardPerToken, uint256 owed);
     function maxHours() external view returns(uint32);
 }

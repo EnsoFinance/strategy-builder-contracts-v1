@@ -54,7 +54,7 @@ contract BalancerAdapter is BaseAdapter {
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override returns (uint256) {
+    ) external view override returns (uint256) {
       (, uint256 totalAmountOut) = _viewSplitExactIn(tokenIn, tokenOut, amount, NPOOLS, true);
       return totalAmountOut;
     }
