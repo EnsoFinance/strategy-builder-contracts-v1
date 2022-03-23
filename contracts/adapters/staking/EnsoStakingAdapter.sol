@@ -7,7 +7,6 @@ import "../BaseAdapter.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/IStaking.sol";
-import "../../interfaces/IERC1155Supply.sol";
 import "../../interfaces/IStakedEnso.sol";
 
 contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
