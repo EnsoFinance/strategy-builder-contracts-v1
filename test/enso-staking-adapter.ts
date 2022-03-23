@@ -21,13 +21,6 @@ import {
   deployUniswapV2,
 } from '../lib/deploy'
 
-//import { MAINNET_ADDRESSES } from '../lib/utils'
-// import { displayBalances } from '../lib/logging'
-//import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-//import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
-//import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-//import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
-
 chai.use(solidity)
 
 let NUM_TOKENS = 3 
@@ -48,13 +41,10 @@ describe('EnsoStakingAdapter', function () {
 		oracle: Contract,
 		library: Contract,
 		uniswapAdapter: Contract,
-		//compoundAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
-		tokens: Tokens//,
-		//cToken: string
-    
+		tokens: Tokens
 
 	before('Setup StakingAdapter + Factory', async function () {
 		  accounts = await getSigners()
@@ -96,7 +86,6 @@ describe('EnsoStakingAdapter', function () {
 
 	it('Should deploy strategy', async function () {
      
-    console.log(Date.now());
     let ms = 1000
     let _3hrs = 3*60*60*ms
     await hre.network.provider.send("evm_mine", [(Date.now() + _3hrs)/ms]);
@@ -104,6 +93,7 @@ describe('EnsoStakingAdapter', function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
+			{ token: ensoToken.address, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address] },
 			{ token: usdc.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address] },
       { token: sEnso.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
 		]
@@ -152,12 +142,11 @@ describe('EnsoStakingAdapter', function () {
 		await wrapper.deployed()
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    // FIXME not balanced on deployment :((
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-   /* 
+    
 		expect(await wrapper.isBalanced()).to.equal(true)
     
 		// Approve the user to use the adapter
@@ -166,55 +155,29 @@ describe('EnsoStakingAdapter', function () {
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
-			.swap(value, 0, weth.address, usdc.address, accounts[19].address, accounts[19].address)
+			.swap(value, 0, weth.address, ensoToken.address, accounts[19].address, accounts[19].address)
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-   */ 
+    
 	})
 
 	it('Should rebalance strategy', async function () {
-    /* 
-    // FIXME reverting with unrecognized systme error
-    console.log(sEnso.address);
+     
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-   */ 
-	})
-
-	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-    /*
-		// Approve the user to use the adapter
-		const value = await usdc.balanceOf(accounts[19].address)
-		await usdc.connect(accounts[19]).approve(uniswapAdapter.address, value)
-		await uniswapAdapter
-			.connect(accounts[19])
-			.swap(value, 0, usdc.address, weth.address, accounts[19].address, accounts[19].address)
-
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(false)
-    */
-	})
-
-	it('Should rebalance strategy', async function () {
-    /*
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(true)
-    */
+    
 	})
 
 	it('Should claim rewards', async function() {
-    /*
-		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
-    */
+    
+		await strategy.connect(accounts[1]).claimRewards(ensoStakingAdapter.address, sEnso.address)
+    
 	})
-/*
+
 	it('Should check spot price (deposit)', async function () {
     
 		const price = await ensoStakingAdapter.spotPrice(WeiPerEther, ensoToken.address, sEnso.address)
@@ -248,5 +211,5 @@ describe('EnsoStakingAdapter', function () {
 		expect(price.eq(0)).to.equal(true)
     
 	})
-  */
+  
 })

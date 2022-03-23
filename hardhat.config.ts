@@ -52,6 +52,7 @@ function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
 			chainId: chainIds.mainnet,
+      allowUnlimitedContractSize: true,
 		},
 	}
 	if (networks.hardhat) {
@@ -83,8 +84,7 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
 	if (network === 'ensonet') {
 		url = 'http://testnet.enso.finance'
 	} else {
-		//url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
-    url = 'https://eth-' + network + '.alchemyapi.io/v2/' + infuraApiKey 
+		url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
 	}
 
 	return {
@@ -133,7 +133,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 5,
+						runs: 20,
 					},
 				},
 			},
@@ -212,7 +212,7 @@ let config: HardhatUserConfig = {
         settings: {} 
       },
     }
-	},
+  },
 	mocha: {
 		timeout: 80000,
 	},
