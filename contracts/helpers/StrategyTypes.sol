@@ -8,8 +8,7 @@ interface StrategyTypes {
       DEFAULT_ORACLE,
       CHAINLINK_ORACLE,
       STRATEGY,
-      BLOCKED,
-      ENSO
+      BLOCKED
     }
     enum TimelockCategory {RESTRUCTURE, THRESHOLD, REBALANCE_SLIPPAGE, RESTRUCTURE_SLIPPAGE, TIMELOCK, PERFORMANCE}
 
