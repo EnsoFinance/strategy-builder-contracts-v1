@@ -23,7 +23,7 @@ contract UniswapV2Estimator is IEstimator {
     uint256 public constant MAX_PRICE_DEVIATION_BELOW = 100000000000000000; // 10%
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return int256(balance).mul(_latestAnswer(IUniswapV2Pair(token))).div(10**18);
+        return _estimateItem(balance, token);
     }
 
     // The following code is adapted from Aave's UniswapV2PriceProvider
@@ -129,5 +129,14 @@ contract UniswapV2Estimator is IEstimator {
                 }
             }
         }
+    }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        uint256 balance = IERC20(token).balanceOf(address(user));
+        return _estimateItem(balance, token);
+    }
+
+    function _estimateItem(uint256 balance, address token) private view returns (int256) {
+        return int256(balance).mul(_latestAnswer(IUniswapV2Pair(token))).div(10**18);
     }
 }

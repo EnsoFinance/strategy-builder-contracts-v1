@@ -102,7 +102,14 @@ contract Leverage2XAdapter is BaseAdapter {
         assembly {
             success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
         }
-        require(success, "Swap failed");
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
     }
 
     function _checkAToken(address token) internal view returns (bool) {
