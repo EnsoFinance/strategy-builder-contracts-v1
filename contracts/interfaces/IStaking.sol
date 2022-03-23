@@ -7,6 +7,11 @@ interface IStaking {
         uint128 amount
     ) external;
 
+    function restakeFor(
+        address user,
+        uint128 amount
+    ) external;
+
     function unstakeFor(
         address user,
         uint128 amount
@@ -14,5 +19,5 @@ interface IStaking {
 
     function isStaker(address user) external returns(bool);
 
-    function claim(address token) external returns(uint256 owed);
+    function claim() external returns(uint256 owed);
 }

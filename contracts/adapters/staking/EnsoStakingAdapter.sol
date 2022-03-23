@@ -93,7 +93,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
 
     // Intended to be called via delegateCall
     function claim(address token) external override {
-      uint256 owed = IStaking(staking).claim(token);
+      uint256 owed = IStaking(staking).claim();
       emit RewardsClaimed(staking, address(this), token, owed);
     }
 
