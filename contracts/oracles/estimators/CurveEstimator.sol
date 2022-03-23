@@ -82,5 +82,4 @@ contract CurveEstimator is IEstimator {
         }
     }
 
-
 }
