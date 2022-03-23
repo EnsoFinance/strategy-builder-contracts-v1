@@ -79,7 +79,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return tokenRegistry.getEstimator(token).estimateItem(user, token);
     }
 
-    function estimateStrategies(IStrategy[] memory strategies) external returns (uint256[] memory) {
+    function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {
         uint256[] memory totals = new uint256[](strategies.length);
         for (uint256 i = 0; i < strategies.length; i++) {
             (uint256 total, ) = estimateStrategy(strategies[i]);

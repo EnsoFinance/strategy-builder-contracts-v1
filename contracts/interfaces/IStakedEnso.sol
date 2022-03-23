@@ -4,7 +4,7 @@ pragma solidity >=0.6.0 <0.9.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IStakedEnso {
-    function enso() external view returns(IERC20 enso);
+    function enso() external view returns(IERC20);
     function boostModifier(uint128 amount, uint32 stakeHours) external view returns(uint256 boost);
     function unclaimedAmount(address user) external view returns(uint256);
     function userRewards(address user) external view returns(uint256 lastRewardPerToken, uint256 owed);

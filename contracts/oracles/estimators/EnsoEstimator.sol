@@ -27,7 +27,7 @@ contract EnsoEstimator is IEstimator {
 
     function estimateItem(address user, address token) public view override returns (int256) { 
         IStakedEnso sEnso = IStakedEnso(stakedEnso);
-        (uint256 lastRewardsPerToken, uint256 owed) = sEnso.userRewards(user);
+        (, uint256 owed) = sEnso.userRewards(user);
         owed = owed.add(sEnso.unclaimedAmount(user));
         uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance.add(owed), token);
