@@ -76,13 +76,15 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
             require(difference >= expected, "swap: Insufficient tokenOut amount");
         } else if (tokenIn == distributionToken) {
             require(tokenOut == stakedToken, "swap: invalid `tokenOut`.");
-            if (from != address(this))
-                IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+            /*
+               stakenEnso doesn't need to be transferred in since it will
+               be burnt from the beneficiary on `unstakeFor`
+             */
             uint256 ensoAmount = amount.mul(uint256(IStakedEnso(tokenIn).maxHours())).div(3);
-            uint256 toBalanceBefore = IERC20(tokenOut).balanceOf(to);
-            IStaking(staking).unstakeFor(to, SafeCast.toUint128(ensoAmount));
-            uint256 toBalanceAfter = IERC20(tokenOut).balanceOf(to);
-            uint256 difference = toBalanceAfter.sub(toBalanceBefore);
+            uint256 fromBalanceBefore = IERC20(tokenOut).balanceOf(from);
+            IStaking(staking).unstakeFor(from, SafeCast.toUint128(ensoAmount));
+            uint256 fromBalanceAfter = IERC20(tokenOut).balanceOf(from);
+            uint256 difference = fromBalanceAfter.sub(fromBalanceBefore);
             require(difference >= expected, "swap: Insufficient tokenOut amount");
         } else {
             revert("swap: token not supported.");
