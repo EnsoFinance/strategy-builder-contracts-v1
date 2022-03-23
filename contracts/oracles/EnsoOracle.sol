@@ -38,7 +38,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
                 IERC20(strategyItems[i]).balanceOf(address(strategy)),
                 strategyItems[i]
             );
-            if (tokenRegistry.itemCategories(strategyItems[i]) == uint256(ItemCategory.USER)) {
+            if (tokenRegistry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.ENSO)) {
                 int256 owedEstimate = estimateItem(
                     address(strategy),
                     strategyItems[i]

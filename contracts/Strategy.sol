@@ -615,7 +615,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             _tradeData[newItem] = newItems[i].data;
             _percentage[newItem] = newItems[i].percentage;
             ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
-            if (category == ItemCategory.BASIC || category == ItemCategory.USER) {
+            if (category == ItemCategory.BASIC) {
                 _items.push(newItem);
             } else if (category == ItemCategory.SYNTH) {
                 virtualPercentage = virtualPercentage.add(_percentage[newItem]);

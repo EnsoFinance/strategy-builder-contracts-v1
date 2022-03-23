@@ -8,7 +8,6 @@ import "../../interfaces/IStakedEnso.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IOracle.sol";
 
-
 contract StakedEnsoEstimator is IEstimator {
     using SafeMath for uint256;
 
@@ -20,10 +19,6 @@ contract StakedEnsoEstimator is IEstimator {
     }
 
     function estimateItem(address user, address token) public view override returns (int256) { 
-        IStakedEnso sEnso = IStakedEnso(token);
-        (uint256 lastRewardsPerToken, uint256 owed) = sEnso.userRewards(user);
-        owed = owed.add(sEnso.unclaimedAmount(user));
-        IERC20 enso = IStakedEnso(token).enso();
-        return IOracle(msg.sender).estimateItem(owed, address(enso));
+        revert("estimateItem: address parameter not supported.");
     }
 }

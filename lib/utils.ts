@@ -39,8 +39,7 @@ export enum ITEM_CATEGORY {
 	BASIC,
 	SYNTH,
 	DEBT,
-	RESERVE,
-  USER
+	RESERVE
 }
 
 export enum ESTIMATOR_CATEGORY {
@@ -61,7 +60,8 @@ export enum ESTIMATOR_CATEGORY {
 	UNISWAP_V3_LP,
 	YEARN_V1,
 	YEARN_V2,
-  STAKED_ENSO
+  STAKED_ENSO,
+  ENSO
 }
 
 export async function increaseTime(seconds: number) {

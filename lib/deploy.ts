@@ -30,6 +30,7 @@ import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkO
 import AaveEstimator from '../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json'
 import AaveDebtEstimator from '../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json'
 import BasicEstimator from '../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json'
+import EnsoEstimator from '../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json'
 import StakedEnsoEstimator from '../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json'
 import CompoundEstimator from '../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json'
 import CurveEstimator from '../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json'
@@ -306,6 +307,8 @@ export async function deployPlatform(
 
 	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)
+	const ensoEstimator = await waffle.deployContract(owner, EnsoEstimator, [sEnso.address, defaultEstimator.address])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)
 	const stakedEnsoEstimator = await waffle.deployContract(owner, StakedEnsoEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)
 	const chainlinkEstimator = await waffle.deployContract(owner, BasicEstimator, [chainlinkOracle.address])
@@ -331,8 +334,8 @@ export async function deployPlatform(
 
 	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 	if (susd) await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
-  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.USER, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
-  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, enso.address)	
+  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.ENSO, enso.address)	
+  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
