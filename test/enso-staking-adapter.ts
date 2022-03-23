@@ -28,12 +28,12 @@ let NUM_TOKENS = 3
 describe('EnsoStakingAdapter', function () {
   
 	let	weth: Contract,
-    usdc: Contract,
+		usdc: Contract,
 		accounts: SignerWithAddress[],
-    ensoToken: Contract,
-    sEnso: Contract,
-    stakingMock: Contract,
-    ensoStakingAdapter: Contract,
+		ensoToken: Contract,
+		sEnso: Contract,
+		stakingMock: Contract,
+		ensoStakingAdapter: Contract,
 		uniswapFactory: Contract,
 		router: Contract,
 		strategyFactory: Contract,
@@ -47,57 +47,57 @@ describe('EnsoStakingAdapter', function () {
 		tokens: Tokens
 
 	before('Setup StakingAdapter + Factory', async function () {
-		  accounts = await getSigners()
-	    tokens = new Tokens()
-      let tokens_ = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
+		accounts = await getSigners()
+		tokens = new Tokens()
+		let tokens_ = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 
-      weth = tokens_[0]
-	    usdc = tokens_[1] 
+		weth = tokens_[0]
+		usdc = tokens_[1] 
 
-	    ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
-	    const StakingMockFactory = await getContractFactory('StakingMock')
-	    stakingMock = await StakingMockFactory.deploy(ensoToken.address)
-	    await stakingMock.deployed()
-	    sEnso = stakingMock 
+		ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
+		const StakingMockFactory = await getContractFactory('StakingMock')
+		stakingMock = await StakingMockFactory.deploy(ensoToken.address)
+		await stakingMock.deployed()
+		sEnso = stakingMock 
 	    
-	    ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
+		ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
 	    
-      uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken, usdc])
+		uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken, usdc])
       
-	    const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, ensoToken, sEnso)
-      const whitelist = platform.administration.whitelist
-	    await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, ensoToken, sEnso)
+		const whitelist = platform.administration.whitelist
+		await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 
-      controller = platform.controller
-      strategyFactory = platform.strategyFactory
-      oracle = platform.oracles.ensoOracle
-      library = platform.library
+		controller = platform.controller
+		strategyFactory = platform.strategyFactory
+		oracle = platform.oracles.ensoOracle
+		library = platform.library
       
-      await tokens.registerTokens(accounts[0], strategyFactory)
-      router = await deployLoopRouter(accounts[0], controller, library)
-      await whitelist.connect(accounts[0]).approve(router.address) 
+		await tokens.registerTokens(accounts[0], strategyFactory)
+		router = await deployLoopRouter(accounts[0], controller, library)
+		await whitelist.connect(accounts[0]).approve(router.address) 
 
-      oracle=oracle // debug will be used in tests??
-      
-      uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
-      await whitelist.connect(accounts[0]).approve(uniswapAdapter.address) 
-      await ensoToken.approve(uniswapAdapter.address, constants.MaxUint256)
+		oracle=oracle // debug will be used in tests??
+
+		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address) 
+		await ensoToken.approve(uniswapAdapter.address, constants.MaxUint256)
 	})
 
 	it('Should deploy strategy', async function () {
      
-    let ms = 1000
-    let _3hrs = 3*60*60*ms
-    await hre.network.provider.send("evm_mine", [(Date.now() + _3hrs)/ms]);
+		let ms = 1000
+		let _3hrs = 3*60*60*ms
+		await hre.network.provider.send("evm_mine", [(Date.now() + _3hrs)/ms]);
 
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
 			{ token: ensoToken.address, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address] },
 			{ token: usdc.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address] },
-      { token: sEnso.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
+			{ token: sEnso.address, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, ensoStakingAdapter.address], path: [ensoToken.address] }
 		]
-    let value = ethers.BigNumber.from('10000000000000000') 
+		let value = ethers.BigNumber.from('10000000000000000') 
 		strategyItems = prepareStrategy(positions, ensoStakingAdapter.address)
 
 		const strategyState: InitialState = {
@@ -128,8 +128,6 @@ describe('EnsoStakingAdapter', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
-
-    strategy=strategy // debug may use later
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
     

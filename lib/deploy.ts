@@ -260,8 +260,8 @@ export async function deployPlatform(
 	uniswapOracleFactory: Contract,
 	uniswapV3Factory: Contract,
 	weth: Contract,
-  enso: Contract,
-  sEnso: Contract,
+	enso: Contract,
+	sEnso: Contract,
 	susd?: Contract,
 	feePool?: string
 ): Promise<Platform> {
@@ -334,8 +334,8 @@ export async function deployPlatform(
 
 	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 	if (susd) await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
-  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.ENSO, enso.address)	
-  await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
+	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.ENSO, enso.address)	
+	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
@@ -381,17 +381,17 @@ export async function deployPlatform(
 
 	// Factory
 	const factory = new Contract(
-    factoryAddress,
-    StrategyProxyFactory.abi,
-    owner
-  )
+		factoryAddress,
+		StrategyProxyFactory.abi,
+		owner
+	)
 
 	// Strategy Controller
 	const controller = new Contract(
-    controllerAddress,
-    StrategyController.abi,
-    owner
-  )
+		controllerAddress,
+		StrategyController.abi,
+		owner
+	)
 
 	await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
