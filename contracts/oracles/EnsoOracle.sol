@@ -43,7 +43,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         }
         for (uint256 i = 0; i < strategyDebt.length; i++) {
             int256 estimate = estimateItem(
-                IERC20(strategyDebt[i]).balanceOf(address(strategy)),
+                address(strategy),
                 strategyDebt[i]
             );
             total = total.add(estimate);
@@ -56,7 +56,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
             int256 estimate = 0;
             for (uint256 i = 0; i < strategySynths.length; i++) {
                 estimate = estimate.add(chainlinkEstimator.estimateItem(
-                    IERC20(strategySynths[i]).balanceOf(address(strategy)),
+                    address(strategy),
                     strategySynths[i]
                 ));
             }
