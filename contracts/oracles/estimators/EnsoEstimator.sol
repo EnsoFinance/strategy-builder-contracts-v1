@@ -22,14 +22,18 @@ contract EnsoEstimator is IEstimator {
     }
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) { 
-        return IEstimator(basicEstimator).estimateItem(balance, token);
+        return _estimateItem(balance, token);
     }
 
     function estimateItem(address user, address token) public view override returns (int256) { 
         IStakedEnso sEnso = IStakedEnso(stakedEnso);
         (uint256 lastRewardsPerToken, uint256 owed) = sEnso.userRewards(user);
         owed = owed.add(sEnso.unclaimedAmount(user));
-        IERC20 enso = IStakedEnso(token).enso();
-        return IOracle(msg.sender).estimateItem(owed, address(enso));
+        uint256 balance = IERC20(token).balanceOf(address(user));
+        return _estimateItem(balance.add(owed), token);
+    }
+
+    function _estimateItem(uint256 balance, address token) private view returns(int256) {
+        return IEstimator(basicEstimator).estimateItem(balance, token);
     }
 }

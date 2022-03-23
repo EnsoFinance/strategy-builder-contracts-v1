@@ -28,6 +28,15 @@ contract CurveEstimator is IEstimator {
     uint256 private constant TRICRYPTO2_PRECISION = 10**30; // lpPrice_precision + (lp_precision - usdt_precision) = 18 + (18 - 6) = 30
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
+        return _estimateItem(balance, token);
+    }
+
+    function estimateItem(address user, address token) public view override returns (int256) { 
+        uint256 balance = IERC20(token).balanceOf(address(user));
+        return _estimateItem(balance, token);
+    }
+
+    function _estimateItem(uint256 balance, address token) private view returns (int256) {
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
             return IOracle(msg.sender).estimateItem(lpPrice.mul(balance).div(TRICRYPTO2_PRECISION), USDT);
@@ -73,7 +82,5 @@ contract CurveEstimator is IEstimator {
         }
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
-        revert("estimateItem: address parameter not supported.");
-    }
+
 }

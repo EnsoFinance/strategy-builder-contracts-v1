@@ -35,16 +35,9 @@ contract EnsoOracle is IOracle, StrategyTypes {
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimate = estimateItem(
-                IERC20(strategyItems[i]).balanceOf(address(strategy)),
+                address(strategy),
                 strategyItems[i]
             );
-            if (tokenRegistry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.ENSO)) {
-                int256 owedEstimate = estimateItem(
-                    address(strategy),
-                    strategyItems[i]
-                );
-                estimate = estimate.add(owedEstimate);
-            }
             total = total.add(estimate);
             estimates[i] = estimate;
         }
