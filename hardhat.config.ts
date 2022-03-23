@@ -52,7 +52,7 @@ function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
 			chainId: chainIds.mainnet,
-      allowUnlimitedContractSize: true,
+      			allowUnlimitedContractSize: true,
 		},
 		localhost: {
 			url: 'http://127.0.0.1:8545',
@@ -179,45 +179,45 @@ let config: HardhatUserConfig = {
 				},
 			},
 		],
-    overrides: {
-      "@uniswap/v3-periphery/contracts/libraries/ChainId.sol": {
-        version: '0.7.0',
-        settings: {}
-      },
-      "@uniswap/lib/contracts/libraries/SafeERC20Namer.sol": {
-        version: '0.5.0',
-        settings: {}
-      },
-      "@uniswap/lib/contracts/libraries/AddressStringUtil.sol": {
-        version: '0.5.0',
-        settings: {}
-      },
-      "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol": {
-        version: '0.5.0',
-        settings: {}
-      },
-      "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol": {
-        version: '0.5.0',
-        settings: {} 
-      },
-      "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol": {
-        version: '0.5.0',
-        settings: {} 
-      },
-      "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol": {
-        version: '0.5.0',
-        settings: {} 
-      },
-      "@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol": {
-        version: '0.5.0',
-        settings: {} 
-      },
-      "@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol": {
-        version: '0.5.0',
-        settings: {} 
-      },
-    }
-  },
+		overrides: {
+			"@uniswap/v3-periphery/contracts/libraries/ChainId.sol": {
+			version: '0.7.0',
+			settings: {}
+			},
+			"@uniswap/lib/contracts/libraries/SafeERC20Namer.sol": {
+			version: '0.5.0',
+			settings: {}
+			},
+			"@uniswap/lib/contracts/libraries/AddressStringUtil.sol": {
+			version: '0.5.0',
+			settings: {}
+			},
+			"@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol": {
+			version: '0.5.0',
+			settings: {}
+			},
+			"@uniswap/v2-periphery/contracts/interfaces/IWETH.sol": {
+			version: '0.5.0',
+			settings: {} 
+			},
+			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol": {
+			version: '0.5.0',
+			settings: {} 
+			},
+			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol": {
+			version: '0.5.0',
+			settings: {} 
+			},
+			"@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol": {
+			version: '0.5.0',
+			settings: {} 
+			},
+			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol": {
+			version: '0.5.0',
+			settings: {} 
+			},
+		}
+	},
 	mocha: {
 		timeout: 80000,
 	},
