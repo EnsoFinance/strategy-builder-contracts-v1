@@ -12,14 +12,21 @@ import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 
 import {
-  deployTokens,
+	deployTokens,
 	deployEnsoToken,
-  deployEnsoStakingAdapter,
+	deployEnsoStakingAdapter,
+	deployEnsoEstimator,
+	deployStakedEnsoEstimator,
 	deployPlatform,
 	deployLoopRouter,
-  deployUniswapV2Adapter,
-  deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployUniswapV2,
 } from '../lib/deploy'
+
+import {
+		ITEM_CATEGORY,
+		ESTIMATOR_CATEGORY,
+} from '../lib/utils'
 
 chai.use(solidity)
 
@@ -55,33 +62,47 @@ describe('EnsoStakingAdapter', function () {
 		usdc = tokens_[1] 
 
 		ensoToken = await deployEnsoToken(accounts[0], accounts[0], "EnsoToken", "ENS", Date.now())
-		const StakingMockFactory = await getContractFactory('StakingMock')
-		stakingMock = await StakingMockFactory.deploy(ensoToken.address)
-		await stakingMock.deployed()
-		sEnso = stakingMock 
-	    
-		ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
-	    
+
 		uniswapFactory = await deployUniswapV2(accounts[0], [weth, ensoToken, usdc])
       
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, ensoToken, sEnso)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+
 		const whitelist = platform.administration.whitelist
-		await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
+		let tokenRegistry = platform.oracles.registries.tokenRegistry
+
+		let defaultEstimator = new Contract(await tokenRegistry.getEstimator(weth.address), [], accounts[0]) // just to use its address in the "deploy" functions
+
+		const StakingMockFactory = await getContractFactory('StakingMock')
+		stakingMock = await StakingMockFactory.deploy(ensoToken.address)
+		await stakingMock.deployed()
+		sEnso = stakingMock 
+
+		let ensoEstimator = await deployEnsoEstimator(accounts[0], sEnso, defaultEstimator, strategyFactory)
+		let stakedEnsoEstimator = await deployStakedEnsoEstimator(accounts[0], strategyFactory)
+
+
+		await strategyFactory.connect(accounts[0]).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)	
+		await strategyFactory.connect(accounts[0]).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.ENSO, ensoToken.address)	
+
+		ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
+		await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
+
+		await strategyFactory.connect(accounts[0]).addEstimatorToRegistry(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)	
+		await strategyFactory.connect(accounts[0]).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
       
 		await tokens.registerTokens(accounts[0], strategyFactory)
 		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address) 
 
-		oracle=oracle // debug will be used in tests??
-
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address) 
 		await ensoToken.approve(uniswapAdapter.address, constants.MaxUint256)
+
 	})
 
 	it('Should deploy strategy', async function () {

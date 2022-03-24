@@ -260,8 +260,6 @@ export async function deployPlatform(
 	uniswapOracleFactory: Contract,
 	uniswapV3Factory: Contract,
 	weth: Contract,
-	enso: Contract,
-	sEnso: Contract,
 	susd?: Contract,
 	feePool?: string
 ): Promise<Platform> {
@@ -307,10 +305,6 @@ export async function deployPlatform(
 
 	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)
-	const ensoEstimator = await waffle.deployContract(owner, EnsoEstimator, [sEnso.address, defaultEstimator.address])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)
-	const stakedEnsoEstimator = await waffle.deployContract(owner, StakedEnsoEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)
 	const chainlinkEstimator = await waffle.deployContract(owner, BasicEstimator, [chainlinkOracle.address])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)
 	const strategyEstimator = await waffle.deployContract(owner, StrategyEstimator, [])
@@ -334,8 +328,6 @@ export async function deployPlatform(
 
 	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 	if (susd) await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
-	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.ENSO, enso.address)	
-	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)	
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
@@ -421,6 +413,18 @@ export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWi
 	const ensoToken = await waffle.deployContract(owner, EnsoToken, [name, symbol, minter.address, mintingAllowedAfter])
 	await ensoToken.deployed()
 	return ensoToken 
+}
+
+export async function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contract, defaultEstimator: Contract, strategyFactory: Contract): Promise<Contract> {
+	const ensoEstimator = await waffle.deployContract(owner, EnsoEstimator, [sEnso.address, defaultEstimator.address])
+	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)
+	return ensoEstimator
+}
+
+export async function deployStakedEnsoEstimator(owner: SignerWithAddress, strategyFactory: Contract): Promise<Contract> {
+	const stakedEnsoEstimator = await waffle.deployContract(owner, StakedEnsoEstimator, [])
+	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)
+	return stakedEnsoEstimator
 }
 
 export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
