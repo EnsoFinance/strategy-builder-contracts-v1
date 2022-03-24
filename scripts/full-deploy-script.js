@@ -340,7 +340,7 @@ async function main() {
 
 	add2Deployments('UniswapV3Adapter', uniswapV3Adapter.address)
 
-	tx = await whitelist.approve(uniswapV2Adapter.address)
+	tx = await whitelist.approve(uniswapV3Adapter.address)
 	await tx.wait()
 
 	const MetaStrategyAdapter = await hre.ethers.getContractFactory('MetaStrategyAdapter')
