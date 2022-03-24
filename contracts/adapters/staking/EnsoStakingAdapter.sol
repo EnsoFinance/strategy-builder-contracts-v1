@@ -74,7 +74,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         } else if (tokenIn == distributionToken) {
             require(tokenOut == stakedToken, "swap: invalid `tokenOut`.");
             /*
-               stakenEnso doesn't need to be transferred in since it will
+               stakedEnso doesn't need to be transferred in since it will
                be burnt from the beneficiary on `unstakeFor`
              */
             uint256 ensoAmount = amount.mul(uint256(IStakedEnso(tokenIn).maxHours())).div(3);
