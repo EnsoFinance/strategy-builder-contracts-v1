@@ -58,8 +58,13 @@ describe('Estimator', function() {
     ensoBuilder.addAdapter('uniswapV3')
     ensoBuilder.addAdapter('yearnV2')
     enso = await ensoBuilder.build()
-
-    const { uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry } = enso.platform.oracles.registries
+    
+    const {
+      tokenRegistry,
+      uniswapV3Registry,
+      chainlinkRegistry,
+      curveDepositZapRegistry
+    } = enso.platform.oracles.registries
 
     tokens = new Tokens()
 		await tokens.registerTokens(owner, enso.platform.strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
@@ -79,8 +84,9 @@ describe('Estimator', function() {
     estimator = new Estimator(
       owner,
       enso.platform.oracles.ensoOracle,
-      enso.platform.oracles.registries.tokenRegistry,
-      enso.platform.oracles.registries.uniswapV3Registry,
+      tokenRegistry,
+      uniswapV3Registry,
+      curveDepositZapRegistry,
       aaveV2AdapterAddress,
       compoundAdapterAddress,
       curveAdapterAddress,
