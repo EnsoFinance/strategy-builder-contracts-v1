@@ -38,7 +38,7 @@
     "@0xsequence/token-directory": "1.1.13",
     "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
     "@chainlink/contracts": "~0.1.6",
-    "@enso/staking": "git+ssh://git@github.com:EnsoFinance/staking#george/core_compatibility/solmate_compatibility",
+    "@enso/staking": "git+ssh://git@github.com:EnsoFinance/staking#core_compatibility",
     "@ethersproject/abstract-signer": "^5.0.6",
     "@ethersproject/bignumber": "^5.0.8",
     "@nomiclabs/hardhat-ethers": "^2.0.1",
