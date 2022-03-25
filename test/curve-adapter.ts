@@ -188,7 +188,7 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 
 	it('Should fail to claim rewards', async function() {
 			await whitelist.connect(accounts[0]).approve(failAdapter.address)
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.revertedWith('Claim failed')
+			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.reverted
 	})
 
 

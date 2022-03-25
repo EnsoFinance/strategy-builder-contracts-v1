@@ -43,16 +43,15 @@ if (networkIndex > 0) {
 		}
 	}
 } else {
-	/*if (process.argv[2] == 'test' && !archiveNode) {
+	if (process.argv[2] == 'test' && !archiveNode) {
 		throw new Error('Please set your ARCHIVE_NODE in a .env file')
-	}*/
+	}
 }
 
 function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
-			chainId: chainIds.mainnet,
-      			allowUnlimitedContractSize: true,
+			chainId: chainIds.mainnet
 		},
 		localhost: {
 			url: 'http://127.0.0.1:8545',
@@ -65,12 +64,11 @@ function getNetworks(): NetworksUserConfig {
 			networks.hardhat.accounts = {
 				mnemonic,
 			}
-		/*if (archiveNode)
+		if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
 				blockNumber: 14131060,
 			}
-      */
 	}
 	if (mnemonic && infuraApiKey) {
 		networks.goerli = createTestnetConfig('goerli')
@@ -198,23 +196,23 @@ let config: HardhatUserConfig = {
 			},
 			"@uniswap/v2-periphery/contracts/interfaces/IWETH.sol": {
 			version: '0.5.0',
-			settings: {} 
+			settings: {}
 			},
 			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol": {
 			version: '0.5.0',
-			settings: {} 
+			settings: {}
 			},
 			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol": {
 			version: '0.5.0',
-			settings: {} 
+			settings: {}
 			},
 			"@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol": {
 			version: '0.5.0',
-			settings: {} 
+			settings: {}
 			},
 			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol": {
 			version: '0.5.0',
-			settings: {} 
+			settings: {}
 			},
 		}
 	},
