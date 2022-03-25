@@ -19,8 +19,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-        with:
-          token: ${{ secrets.TOKEN }}
       - name: Use Node.js
         uses: actions/setup-node@v1
         with:

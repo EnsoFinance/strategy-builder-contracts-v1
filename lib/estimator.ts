@@ -242,7 +242,7 @@ export class Estimator {
               rebalanceRange,
               data
           );
-          return this.oracle.estimateItem(amount, item)
+          return this.oracle['estimateItem(uint256,address)'](amount, item)
       }))
       if (synths.length > 0) {
           // Purchase SUSD
@@ -280,14 +280,14 @@ export class Estimator {
             SUSD,
             synths[i]
           )
-          const value = await this.oracle.estimateItem(balance, synths[i])
+          const value = await this.oracle['estimateItem(uint256,address)'](balance, synths[i])
           totalValue = totalValue.add(value)
           susdRemaining = susdRemaining.sub(amount)
         }
       }
     }
     if (susdRemaining.gt('0')) {
-      const value = await this.oracle.estimateItem(susdRemaining, SUSD)
+      const value = await this.oracle['estimateItem(uint256,address)'](susdRemaining, SUSD)
       totalValue = totalValue.add(value)
     }
     return totalValue
