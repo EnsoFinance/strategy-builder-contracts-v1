@@ -361,7 +361,7 @@ export async function deployPlatform(
 	])
 	await strategyImplementation.deployed()
 
-	await platformProxyAdmin.initialize(
+	await platformProxyAdmin.connect(owner).initialize(
 			controllerImplementation.address,
 			factoryImplementation.address,
 			strategyImplementation.address,

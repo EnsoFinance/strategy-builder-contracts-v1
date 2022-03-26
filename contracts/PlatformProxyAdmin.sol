@@ -11,12 +11,14 @@ import "@openzeppelin/contracts/proxy/ProxyAdmin.sol";
 contract PlatformProxyAdmin is ProxyAdmin {
     address payable public immutable controller;
     address payable public immutable factory;
+    address private immutable deployer;
     bool private initialized;
 
     constructor() public {
         // Set address in storage
         controller = _calculateAddress('StrategyController');
         factory = _calculateAddress('StrategyProxyFactory');
+        deployer = msg.sender;
     }
 
     function initialize(
@@ -28,6 +30,7 @@ contract PlatformProxyAdmin is ProxyAdmin {
         address whitelist,
         address pool
     ) public {
+        require(msg.sender == deployer, "Not deployer");
         require(!initialized, "Initialized");
         initialized = true;
         // Deploy proxies without proper implementation or initialization in order
