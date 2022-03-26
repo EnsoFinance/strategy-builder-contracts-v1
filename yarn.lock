@@ -107,6 +107,10 @@
   resolved "https://registry.yarnpkg.com/@ensdomains/resolver/-/resolver-0.2.4.tgz#c10fe28bf5efbf49bff4666d909aed0265efbc89"
   integrity sha512-bvaTH34PMCbv6anRa9I/0zjLJgY4EuznbEMgbV77JBCQ9KNC46rzi0avuxpOfu+xDjPEtSFGqVEOr5GlUSGudA==
 
+"@enso/staking@git+ssh://git@github.com:EnsoFinance/staking#core_compatibility":
+  version "1.0.0"
+  resolved "git+ssh://git@github.com:EnsoFinance/staking#d670cb622d973a3bfd0abe163b967c7b396c26db"
+
 "@eslint/eslintrc@^0.2.1":
   version "0.2.2"
   resolved "https://registry.yarnpkg.com/@eslint/eslintrc/-/eslintrc-0.2.2.tgz#d01fc791e2fc33e88a29d6f3dc7e93d0cd784b76"
@@ -766,6 +770,11 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.3.0.tgz#ffdb693c5c349fc33bba420248dd3ac0a2d7c408"
   integrity sha512-AemZEsQYtUp1WRkcmZm1div5ORfTpLquLaziCIrSagjxyKdmObxuaY1yjQ5SHFMctR8rLwp706NXTbiIRJg7pw==
 
+"@rari-capital/solmate@^6.2.0":
+  version "6.2.0"
+  resolved "https://registry.yarnpkg.com/@rari-capital/solmate/-/solmate-6.2.0.tgz#4f70dc236606c27ec2cb1b4261dd830235d01fe4"
+  integrity sha512-g94F+Ra9ixyJyNgvnOIufNjUz488uEG0nxIEEtJ7+g+tA1XGUupRB2kB5b+VO7WYO26RNOVD2fW6xE4e14iWpg==
+
 "@resolver-engine/core@^0.3.3":
   version "0.3.3"
   resolved "https://registry.yarnpkg.com/@resolver-engine/core/-/core-0.3.3.tgz#590f77d85d45bc7ecc4e06c654f41345db6ca967"
@@ -1214,7 +1223,7 @@
   resolved "https://registry.yarnpkg.com/@uniswap/lib/-/lib-1.1.1.tgz#0afd29601846c16e5d082866cbb24a9e0758e6bc"
   integrity sha512-2yK7sLpKIT91TiS5sewHtOa7YuM8IuBXVl4GZv2jZFys4D2sY7K5vZh6MqD25TPA95Od+0YzCVq6cTF2IKrOmg==
 
-"@uniswap/lib@^4.0.1-alpha", "@uniswap/lib@~4.0.1-alpha":
+"@uniswap/lib@^4.0.1-alpha":
   version "4.0.1-alpha"
   resolved "https://registry.yarnpkg.com/@uniswap/lib/-/lib-4.0.1-alpha.tgz#2881008e55f075344675b3bca93f020b028fbd02"
   integrity sha512-f6UIliwBbRsgVLxIaBANF6w09tYqc6Y/qXdsrbEmXHyFA7ILiKrIwRFXe1yOg8M3cksgVsO9N7yuL2DdCGQKBA==
@@ -1247,10 +1256,10 @@
   resolved "https://registry.yarnpkg.com/@uniswap/v3-core/-/v3-core-1.0.1.tgz#b6d2bdc6ba3c3fbd610bdc502395d86cd35264a0"
   integrity sha512-7pVk4hEm00j9tc71Y9+ssYpO6ytkeI0y7WE9P6UcmNzhxPePwyAxImuhVsTqWK9YFvzgtvzJHi64pBl4jUzKMQ==
 
-"@uniswap/v3-periphery@~1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@uniswap/v3-periphery/-/v3-periphery-1.1.1.tgz#be6dfca7b29318ea0d76a7baf15d3b33c3c5e90a"
-  integrity sha512-orqD2Xy4lxVPF6pxd7ECSJY0gzEuqyeVSDHjzM86uWxOXlA4Nlh5pvI959KaS32pSOFBOVVA4XbbZywbJj+CZg==
+"@uniswap/v3-periphery@^1.4.0":
+  version "1.4.0"
+  resolved "https://registry.yarnpkg.com/@uniswap/v3-periphery/-/v3-periphery-1.4.0.tgz#9abb733fc596916718070c688b5f426fd8d01fe3"
+  integrity sha512-OXikenS40UIEa2XxQ+TyGpFFcTOfSW8eH3Ngy7sGOYp+7yr6uGU2UzomeTsqzagBEAXUDTwxqkk9oUS1KtWTUw==
   dependencies:
     "@openzeppelin/contracts" "3.4.1-solc-0.7-2"
     "@uniswap/lib" "^4.0.1-alpha"

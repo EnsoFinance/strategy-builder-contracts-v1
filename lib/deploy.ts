@@ -17,6 +17,7 @@ import {
 	linkBytecode
 } from './link'
 
+import EnsoToken from '../dist/Enso.sol/Enso.json'
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
@@ -29,6 +30,8 @@ import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkO
 import AaveEstimator from '../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json'
 import AaveDebtEstimator from '../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json'
 import BasicEstimator from '../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json'
+import EnsoEstimator from '../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json'
+import StakedEnsoEstimator from '../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json'
 import CompoundEstimator from '../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json'
 import CurveEstimator from '../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json'
 import CurveGaugeEstimator from '../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json'
@@ -45,6 +48,7 @@ import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter
 import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
 import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
 import GenericRouter from '../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json'
+import EnsoStakingAdapter from '../artifacts/contracts/adapters/staking/EnsoStakingAdapter.sol/EnsoStakingAdapter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
 import UniswapV3Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json'
@@ -329,6 +333,7 @@ export async function deployPlatform(
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
 	await whitelist.deployed()
 
+
 	// Deploy Platfrom Admin and get controller and factory addresses
 	const platformProxyAdmin = await waffle.deployContract(owner, PlatformProxyAdmin, [])
 	await platformProxyAdmin.deployed()
@@ -368,17 +373,17 @@ export async function deployPlatform(
 
 	// Factory
 	const factory = new Contract(
-    factoryAddress,
-    StrategyProxyFactory.abi,
-    owner
-  )
+		factoryAddress,
+		StrategyProxyFactory.abi,
+		owner
+	)
 
 	// Strategy Controller
 	const controller = new Contract(
-    controllerAddress,
-    StrategyController.abi,
-    owner
-  )
+		controllerAddress,
+		StrategyController.abi,
+		owner
+	)
 
 	await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
@@ -404,8 +409,32 @@ export async function deployPlatform(
 	return new Platform(factory, controller, oracles, administration, strategyLibrary)
 }
 
+export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWithAddress, name: string, symbol: string, mintingAllowedAfter: number): Promise<Contract> {
+	const ensoToken = await waffle.deployContract(owner, EnsoToken, [name, symbol, minter.address, mintingAllowedAfter])
+	await ensoToken.deployed()
+	return ensoToken 
+}
+
+export async function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contract, defaultEstimator: Contract, strategyFactory: Contract): Promise<Contract> {
+	const ensoEstimator = await waffle.deployContract(owner, EnsoEstimator, [sEnso.address, defaultEstimator.address])
+	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)
+	return ensoEstimator
+}
+
+export async function deployStakedEnsoEstimator(owner: SignerWithAddress, strategyFactory: Contract): Promise<Contract> {
+	const stakedEnsoEstimator = await waffle.deployContract(owner, StakedEnsoEstimator, [])
+	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)
+	return stakedEnsoEstimator
+}
+
 export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
 	const adapter = await waffle.deployContract(owner, UniswapV2Adapter, [uniswapV2Factory.address, weth.address])
+	await adapter.deployed()
+	return adapter
+}
+
+export async function deployEnsoStakingAdapter(owner: SignerWithAddress, staking: Contract, stakingToken: Contract, distributionToken: Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, EnsoStakingAdapter, [staking.address, stakingToken.address, distributionToken.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }

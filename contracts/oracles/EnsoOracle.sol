@@ -35,7 +35,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimate = estimateItem(
-                IERC20(strategyItems[i]).balanceOf(address(strategy)),
+                address(strategy),
                 strategyItems[i]
             );
             total = total.add(estimate);
@@ -43,7 +43,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         }
         for (uint256 i = 0; i < strategyDebt.length; i++) {
             int256 estimate = estimateItem(
-                IERC20(strategyDebt[i]).balanceOf(address(strategy)),
+                address(strategy),
                 strategyDebt[i]
             );
             total = total.add(estimate);
@@ -56,7 +56,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
             int256 estimate = 0;
             for (uint256 i = 0; i < strategySynths.length; i++) {
                 estimate = estimate.add(chainlinkEstimator.estimateItem(
-                    IERC20(strategySynths[i]).balanceOf(address(strategy)),
+                    address(strategy),
                     strategySynths[i]
                 ));
             }
@@ -73,6 +73,10 @@ contract EnsoOracle is IOracle, StrategyTypes {
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(balance, token);
+    }
+
+    function estimateItem(address user, address token) public view override returns (int256) {
+        return tokenRegistry.getEstimator(token).estimateItem(user, token);
     }
 
     function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {

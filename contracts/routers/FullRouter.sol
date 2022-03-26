@@ -301,17 +301,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             uint256 percentage = uint256(IStrategy(strategy).getPercentage(synths[i]));
             if (percentage != 0) {
                 uint256 amount = susdBalance.mul(percentage).div(virtualPercentage);
-                require(
-                    _delegateSwap(
-                        IStrategy(strategy).getTradeData(synths[i]).adapters[0], // Assuming that synth only stores single SythetixAdapter
-                        amount,
-                        1,
-                        susd,
-                        synths[i],
-                        strategy,
-                        strategy
-                    ),
-                    "Swap failed"
+                _delegateSwap(
+                    IStrategy(strategy).getTradeData(synths[i]).adapters[0], // Assuming that synth only stores single SythetixAdapter
+                    amount,
+                    1,
+                    susd,
+                    synths[i],
+                    strategy,
+                    strategy
                 );
             }
         }
@@ -520,17 +517,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                         _tokenOut = data.path[uint256(i-1)];
                         _to = address(this);
                     }
-                    require(
-                        _delegateSwap(
-                            data.adapters[uint256(i)],
-                            _amount,
-                            1,
-                            _tokenIn,
-                            _tokenOut,
-                            _from,
-                            _to
-                        ),
-                        "Swap failed"
+                    _delegateSwap(
+                        data.adapters[uint256(i)],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
                     );
                 }
             }
@@ -585,17 +579,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     } else {
                         _to = address(this);
                     }
-                    require(
-                        _delegateSwap(
-                            data.adapters[i],
-                            _amount,
-                            1,
-                            _tokenIn,
-                            _tokenOut,
-                            _from,
-                            _to
-                        ),
-                        "Swap failed"
+                    _delegateSwap(
+                        data.adapters[i],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
                     );
                 }
             }

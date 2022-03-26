@@ -740,7 +740,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to estimate and require emergency estimator', async function () {
-		const originalEstimate = await oracle.estimateItem(WeiPerEther, tokens[1].address)
+		const originalEstimate = await oracle['estimateItem(uint256,address)'](WeiPerEther, tokens[1].address)
 		const emergencyEstimatorAddress = await platform.oracles.registries.tokenRegistry.estimators(ESTIMATOR_CATEGORY.BLOCKED)
 
 		const GasBurnerEstimator = await getContractFactory('GasBurnerEstimator')
