@@ -193,39 +193,4 @@ describe('EnsoStakingAdapter', function () {
 		await strategy.connect(accounts[1]).claimRewards(ensoStakingAdapter.address, sEnso.address)
 
 	})
-
-	it('Should check spot price (deposit)', async function () {
-
-		const price = await ensoStakingAdapter.spotPrice(WeiPerEther, ensoToken.address, sEnso.address)
-		expect(price.gt(0)).to.equal(true)
-
-	})
-
-	it('Should check spot price (withdraw)', async function () {
-
-		const price = await ensoStakingAdapter.spotPrice(WeiPerEther, sEnso.address, ensoToken.address)
-		expect(price.gt(0)).to.equal(true)
-
-	})
-
-	it('Should fail check spot price: same', async function () {
-
-		await expect(ensoStakingAdapter.spotPrice(WeiPerEther, sEnso.address, sEnso.address)).to.be.revertedWith("spotPrice: tokens cannot match.")
-
-	})
-
-	it('Should fail check spot price: non enso or sEnso', async function () {
-
-		await expect(ensoStakingAdapter.spotPrice(WeiPerEther, sEnso.address, tokens.usdc)).to.be.revertedWith("spotPrice: invalid `tokenOut`.")
-		await expect(ensoStakingAdapter.spotPrice(WeiPerEther, tokens.usdc, sEnso.address)).to.be.revertedWith("spotPrice: invalid `tokenIn`.")
-
-	})
-
-	it('Should check spot price: zero', async function () {
-
-		const price = await ensoStakingAdapter.spotPrice(0, ensoToken.address, sEnso.address)
-		expect(price.eq(0)).to.equal(true)
-
-	})
-
 })

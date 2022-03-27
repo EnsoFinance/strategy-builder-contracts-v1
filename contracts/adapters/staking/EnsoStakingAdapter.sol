@@ -14,7 +14,6 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
     address public immutable staking;
-
     address public immutable stakedToken;
     address public immutable distributionToken;
 
@@ -27,24 +26,11 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
         address weth_
     ) BaseAdapter(weth_) public {
         staking = staking_;
-        stakedToken = stakedToken_; 
+        stakedToken = stakedToken_;
         distributionToken = distributionToken_;
     }
 
-    // @notice Calculates the stakedToken minted by staking
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        require(tokenIn != tokenOut, "spotPrice: tokens cannot match.");
-        require(tokenIn == stakedToken || tokenIn == distributionToken, "spotPrice: invalid `tokenIn`.");
-        require(tokenOut == stakedToken || tokenOut == distributionToken, "spotPrice: invalid `tokenOut`.");
-        return (tokenIn == stakedToken) ? 
-            IStakedEnso(tokenOut).boostModifier(SafeCast.toUint128(amount), uint32(0)) : amount.mul(uint256(IStakedEnso(tokenIn).maxHours())).div(3);
-    }
-  
-    // @dev: stakes and unstakes stakedToken on behalf of `to` 
+    // @dev: stakes and unstakes stakedToken on behalf of `to`
     function swap(
         uint256 amount,
         uint256 expected,
