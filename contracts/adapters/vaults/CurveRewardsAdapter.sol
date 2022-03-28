@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/curve/ICurveAddressProvider.sol";
@@ -11,7 +10,6 @@ import "../../interfaces/curve/ICurveRegistry.sol";
 import "../BaseAdapter.sol";
 
 contract CurveRewardsAdapter is BaseAdapter, IRewardsAdapter {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     ICurveAddressProvider public immutable addressProvider;
@@ -21,15 +19,6 @@ contract CurveRewardsAdapter is BaseAdapter, IRewardsAdapter {
         address weth_
     ) public BaseAdapter(weth_) {
         addressProvider = ICurveAddressProvider(addressProvider_);
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (tokenIn, tokenOut);
-        return amount; //LiquidityGauge tokens are issued at 1:1 ratio with their underlying
     }
 
     // @dev: Only works with LiquidityGaugeV2 and up since they implement ERC20

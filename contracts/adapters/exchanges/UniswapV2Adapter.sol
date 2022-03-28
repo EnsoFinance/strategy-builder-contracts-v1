@@ -17,16 +17,6 @@ contract UniswapV2Adapter is BaseAdapter {
         factory = factory_;
     }
 
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (uint256 reserveA, uint256 reserveB) =
-            UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
-        return UniswapV2Library.quote(amount, reserveA, reserveB);
-    }
-
     /*
      * WARNING: This function can be called by anyone! Never approve this contract
      * to transfer your tokens. It should only ever be called by a contract which

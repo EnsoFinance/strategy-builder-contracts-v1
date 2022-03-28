@@ -160,24 +160,4 @@ describe('YEarnV2Adapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
-
-	it('Should check spot price (deposit)', async function () {
-		const price = await yearnAdapter.spotPrice(WeiPerEther, tokens.crvSUSD, tokens.ycrvSUSD)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price (withdraw)', async function () {
-		const price = await yearnAdapter.spotPrice(WeiPerEther, tokens.ycrvSUSD, tokens.crvSUSD)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: same', async function () {
-		const price = await yearnAdapter.spotPrice(WeiPerEther, tokens.ycrvSUSD, tokens.ycrvSUSD)
-		expect(price.eq(WeiPerEther)).to.equal(true)
-	})
-
-	it('Should check spot price: zero', async function () {
-		const price = await yearnAdapter.spotPrice(WeiPerEther, crv.address, weth.address)
-		expect(price.eq(0)).to.equal(true)
-	})
 })

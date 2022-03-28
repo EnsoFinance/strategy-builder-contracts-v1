@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/aave/ILendingPool.sol";
 import "../../interfaces/aave/ILendingPoolAddressesProvider.sol";
@@ -13,7 +12,6 @@ import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
 contract AaveLendAdapter is BaseAdapter {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
@@ -24,15 +22,6 @@ contract AaveLendAdapter is BaseAdapter {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         strategyController = IStrategyController(strategyController_);
         gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        (tokenIn, tokenOut); // Assume correct tokens are submitted
-        return amount;
     }
 
     function swap(

@@ -342,14 +342,4 @@ describe('SynthetixAdapter', function () {
 			.finalizeStructure(strategy.address, router.address, '0x')
 		expect((await strategy.synths()).length).to.be.equal(0)
 	})
-
-	it('Should check spot price (deposit)', async function () {
-		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sUSD, tokens.sEUR)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price (withdraw)', async function () {
-		const price = await synthetixAdapter.spotPrice(WeiPerEther, tokens.sEUR, tokens.sUSD)
-		expect(price.gt(0)).to.equal(true)
-	})
 })

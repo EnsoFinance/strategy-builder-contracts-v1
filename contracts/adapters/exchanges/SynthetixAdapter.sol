@@ -8,8 +8,6 @@ import "../../interfaces/synthetix/IAddressResolver.sol";
 import "../BaseAdapter.sol";
 
 contract SynthetixAdapter is BaseAdapter {
-    //using SafeERC20 for IERC20;
-
     IAddressResolver public immutable resolver;
 
     constructor(
@@ -17,19 +15,6 @@ contract SynthetixAdapter is BaseAdapter {
         address weth_
     ) public BaseAdapter(weth_) {
         resolver = IAddressResolver(resolver_);
-    }
-
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        ISynthetix synthetix = _resolveSynthetix();
-        (bytes32 nameIn, bytes32 nameOut) = _resolveTokens(synthetix, tokenIn, tokenOut);
-        IExchanger exchanger = IExchanger(resolver.getAddress("Exchanger"));
-        (uint256 received, uint256 fee, ) =
-            exchanger.getAmountsForExchange(amount, nameIn, nameOut);
-        return received + fee;
     }
 
     function swap(

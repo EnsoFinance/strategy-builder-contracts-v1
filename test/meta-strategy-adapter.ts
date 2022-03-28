@@ -307,31 +307,6 @@ describe('MetaStrategyAdapter', function () {
 		})
 	})
 
-	it('Should check spot price', async function () {
-		const price = await metaStrategyAdapter.spotPrice(WeiPerEther, weth.address, basicStrategy.address)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price', async function () {
-		const price = await metaStrategyAdapter.spotPrice(WeiPerEther, basicStrategy.address, weth.address)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: weth to meta', async function () {
-		const price = await metaStrategyAdapter.spotPrice(WeiPerEther, weth.address, metaStrategy.address)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: meta to weth', async function () {
-		const price = await metaStrategyAdapter.spotPrice(WeiPerEther, metaStrategy.address, weth.address)
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price: no weth', async function () {
-		const price = await metaStrategyAdapter.spotPrice(WeiPerEther, metaStrategy.address, basicStrategy.address)
-		expect(price.eq(0)).to.equal(true)
-	})
-
 	it('Should fail to swap to weth with MetaStrategyAdapter: no strategy token', async function() {
 		const value = await tokens[1].balanceOf(accounts[2].address)
 		await tokens[1].connect(accounts[2]).approve(metaStrategyAdapter.address, value)

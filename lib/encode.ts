@@ -2,11 +2,9 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
 import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from './utils'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 const hre = require('hardhat')
 const { ethers } = hre
-const { constants, getContractFactory } = ethers
-const { AddressZero } = constants
+const { getContractFactory } = ethers
 
 export const FEE_SIZE = 3
 
@@ -80,40 +78,6 @@ export function prepareStrategy(positions: Position[], defaultAdapter: string): 
 		return items
 }
 
-export async function prepareUniswapSwap(
-	router: Contract,
-	adapter: Contract,
-	factory: Contract,
-	from: string,
-	to: string,
-	amount: BigNumber,
-	tokenIn: Contract,
-	tokenOut: Contract
-) {
-	const calls = [] as Multicall[]
-	//Get pair address
-	const pairAddress = await factory.getPair(tokenIn.address, tokenOut.address)
-	if (pairAddress !== AddressZero) {
-		const pair = await ethers.getContractAt(UniswapV2Pair.abi, pairAddress)
-		//Transfer input token to pair address
-		if (from.toLowerCase() === router.address.toLowerCase()) {
-			calls.push(encodeTransfer(tokenIn, pairAddress, amount))
-		} else {
-			calls.push(encodeTransferFrom(tokenIn, from, pairAddress, amount))
-		}
-		//Swap tokens
-		const received = await adapter.spotPrice(amount, tokenIn.address, tokenOut.address)
-		const tokenInNum = ethers.BigNumber.from(tokenIn.address)
-		const tokenOutNum = ethers.BigNumber.from(tokenOut.address)
-		if (tokenInNum.lt(tokenOutNum)) {
-			calls.push(encodeUniswapPairSwap(pair, BigNumber.from(0), received, to))
-		} else if (tokenOutNum.lt(tokenInNum)) {
-			calls.push(encodeUniswapPairSwap(pair, received, BigNumber.from(0), to))
-		}
-	}
-	return calls
-}
-
 export async function prepareRebalanceMulticall(
 	strategy: Contract,
 	router: Contract,
@@ -133,8 +97,8 @@ export async function prepareRebalanceMulticall(
 		const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
 		if (token.address.toLowerCase() != weth.address.toLowerCase()) {
 			if (estimatedValue.gt(expectedValue)) {
-				//console.log('Sell token: ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
-				const diff = await adapter.spotPrice(estimatedValue.sub(expectedValue), weth.address, token.address)
+				const balance = await token.balanceOf(strategy.address)
+				const diff = balance.mul(estimatedValue.sub(expectedValue)).div(estimatedValue)
 				const expected = estimatedValue.sub(expectedValue).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 				calls.push(
 					encodeDelegateSwap(
@@ -164,7 +128,6 @@ export async function prepareRebalanceMulticall(
 		const estimatedValue = ethers.BigNumber.from(buyLoop[i].estimate)
 		if (token.address.toLowerCase() != weth.address.toLowerCase()) {
 			if (!wethInStrategy && i == buyLoop.length - 1) {
-				//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString())
 				// The last token must use up the remainder of funds, but since balance is unknown, we call this function which does the final cleanup
 				calls.push(
 					encodeSettleSwap(
@@ -179,9 +142,9 @@ export async function prepareRebalanceMulticall(
 			} else {
 				const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
 				if (estimatedValue.lt(expectedValue)) {
-					//console.log('Buy token:  ', ('00' + i).slice(-2), ' estimated value: ', estimatedValue.toString(), ' expected value: ', expectedValue.toString())
+					const balance = await token.balanceOf(strategy.address)
 					const diff = expectedValue.sub(estimatedValue)
-					const expected = BigNumber.from(await adapter.spotPrice(diff, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
+					const expected = balance.mul(diff).div(estimatedValue).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
 					calls.push(
 						encodeDelegateSwap(
 							router,
@@ -233,8 +196,9 @@ export async function prepareDepositMulticall(
 					)
 				} else {
 					const amount = BigNumber.from(total).mul(percentage).div(DIVISOR)
-					const expected = BigNumber.from(await adapter.spotPrice(amount, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
-					//console.log('Buy token: ', i, ' estimated value: ', 0, ' expected value: ', amount.toString())
+					// TODO: Get expected value
+					//const expected = BigNumber.from(await adapter.spotPrice(amount, weth.address, token.address)).mul(DEFAULT_DEPOSIT_SLIPPAGE).div(DIVISOR)
+					const expected = BigNumber.from(1)
 					calls.push(
 						encodeDelegateSwap(
 							router,
@@ -398,16 +362,6 @@ export function encodeDelegateSwap(
 		accountTo
 	])
 	return { target: router.address, callData: delegateSwapEncoded }
-}
-
-export function encodeUniswapPairSwap(
-	pair: Contract,
-	amount0Out: BigNumber,
-	amount1Out: BigNumber,
-	accountTo: string
-): Multicall {
-	const pairSwapEncoded = pair.interface.encodeFunctionData('swap', [amount0Out, amount1Out, accountTo, '0x'])
-	return { target: pair.address, callData: pairSwapEncoded }
 }
 
 export function encodeSettleSwap(

@@ -156,12 +156,11 @@ describe('UniswapV3Adapter', function() {
 
 		await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
 
-		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapV3Factory, uniswapRouter, weth)
+		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
 		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(owner).approve(router.address)
-
 
 		uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
 	})
@@ -227,32 +226,12 @@ describe('UniswapV3Adapter', function() {
 		await increaseTime(60)
 	})
 
-	it('Should check spot price', async function () {
-		const quote = await uniswapQuoter.callStatic.quoteExactInput(encodePath([weth.address, tokens[1].address], [UNI_V3_FEE]), WeiPerEther)
-		console.log('Quote Price: ', quote.toString())
-		const price = await adapter.spotPrice(WeiPerEther, weth.address, tokens[1].address)
-		console.log('Spot Price: ', price.toString())
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price', async function () {
+	it('Should check oracle price', async function () {
 		const quote = await uniswapQuoter.callStatic.quoteExactInput(encodePath([tokens[1].address, weth.address], [UNI_V3_FEE]), WeiPerEther)
 		console.log('Quote Price: ', quote.toString())
-		const price = await adapter.spotPrice(WeiPerEther, tokens[1].address, weth.address)
-		console.log('Spot Price: ', price.toString())
 		const oraclePrice = await uniswapOracle.consult(WeiPerEther, tokens[1].address)
 		console.log('Oracle Price: ', oraclePrice.toString())
-		expect(price.gt(0)).to.equal(true)
-	})
-
-	it('Should check spot price', async function () {
-		const price = await adapter.spotPrice(WeiPerEther, AddressZero, weth.address)
-		expect(price.eq(0)).to.equal(true)
-	})
-
-	it('Should check spot price', async function () {
-		const price = await adapter.spotPrice(WeiPerEther, weth.address, weth.address)
-		expect(price.eq(WeiPerEther)).to.equal(true)
+		expect(oraclePrice.gt(0)).to.equal(true)
 	})
 
 	it('Should rebalance strategy', async function () {

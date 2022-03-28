@@ -21,19 +21,6 @@ contract AaveBorrowAdapter is BaseAdapter {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
     }
 
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-        if (tokenOut == address(0)) {
-            return _convert(amount, tokenIn, weth);
-        } else if (tokenIn == address(0)) {
-            return _convert(amount, weth, tokenOut);
-        }
-        return 0;
-    }
-
     function swap(
         uint256 amount,
         uint256 expected,

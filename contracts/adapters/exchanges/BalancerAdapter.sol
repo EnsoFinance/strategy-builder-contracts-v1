@@ -50,15 +50,6 @@ contract BalancerAdapter is BaseAdapter {
         registry = RegistryInterface(registry_);
     }
 
-    function spotPrice(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) external view override returns (uint256) {
-      (, uint256 totalAmountOut) = _viewSplitExactIn(tokenIn, tokenOut, amount, NPOOLS, true);
-      return totalAmountOut;
-    }
-
     /*
      * WARNING: This function can be called by anyone! Never approve this contract
      * to transfer your tokens. It should only ever be called by a contract which

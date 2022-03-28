@@ -445,8 +445,8 @@ export async function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswap
 	return adapter
 }
 
-export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapV3Factory: Contract, uniswapRouter:Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [uniswapRegistry.address, uniswapV3Factory.address, uniswapRouter.address, weth.address])
+export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapRouter: Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [uniswapRegistry.address, uniswapRouter.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
