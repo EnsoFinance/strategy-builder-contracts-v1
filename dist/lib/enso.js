@@ -362,7 +362,7 @@ var EnsoBuilder = /** @class */ (function () {
                         _6.label = 32;
                     case 32:
                         if (!(((_w = this.adapters) === null || _w === void 0 ? void 0 : _w.uniswapV3) !== undefined)) return [3 /*break*/, 34];
-                        return [4 /*yield*/, this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Factory, uniswapV3Router, weth])];
+                        return [4 /*yield*/, this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Router, weth])];
                     case 33:
                         _6.sent();
                         _6.label = 34;
@@ -576,9 +576,9 @@ var Adapter = /** @class */ (function () {
                     case 35: return [3 /*break*/, 41];
                     case 36:
                         if (!(this.type === Adapters.UniswapV3)) return [3 /*break*/, 39];
-                        if (!(parameters.length == 4)) return [3 /*break*/, 38];
+                        if (!(parameters.length == 3)) return [3 /*break*/, 38];
                         _o = this;
-                        return [4 /*yield*/, deploy_1.deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2], parameters[3])];
+                        return [4 /*yield*/, deploy_1.deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2])];
                     case 37:
                         _o.contract = _q.sent();
                         _q.label = 38;

@@ -7,6 +7,7 @@ export declare class Estimator {
     signer: Signer;
     oracle: Contract;
     tokenRegistry: Contract;
+    curveDepositZapRegistry: Contract;
     curveRegistry: Contract;
     synthetix: Contract;
     synthetixExchanger: Contract;
@@ -25,7 +26,7 @@ export declare class Estimator {
     uniswapV2LPAdapterAddress: string;
     uniswapV3AdapterAddress: string;
     yearnV2AdapterAddress: string;
-    constructor(signer: Signer, oracle: Contract, tokenRegistry: Contract, uniswapV3Registry: Contract, aaveV2AdapterAddress: string, compoundAdapterAddress: string, curveAdapterAddress: string, curveLPAdapterAddress: string, curveRewardsAdapterAddress: string, synthetixAdapterAddress: string, uniswapV2AdapterAddress: string, uniswapV3AdapterAddress: string, yearnV2AdapterAddress: string);
+    constructor(signer: Signer, oracle: Contract, tokenRegistry: Contract, uniswapV3Registry: Contract, curveDepositZapRegistry: Contract, aaveV2AdapterAddress: string, compoundAdapterAddress: string, curveAdapterAddress: string, curveLPAdapterAddress: string, curveRewardsAdapterAddress: string, synthetixAdapterAddress: string, uniswapV2AdapterAddress: string, uniswapV3AdapterAddress: string, yearnV2AdapterAddress: string);
     create(strategyItems: StrategyItem[], rebalanceThreshold: BigNumber, amount: BigNumber): Promise<BigNumber>;
     deposit(strategy: Contract, amount: BigNumber): Promise<BigNumber>;
     withdraw(strategy: Contract, amount: BigNumber): Promise<BigNumber>;
@@ -44,11 +45,9 @@ export declare class Estimator {
     estimateSynthetix(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateUniswapV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateUniswapV3(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
-    estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
-    getStrategyItem(strategy: Contract, item: string): Promise<{
-        item: string;
-        percentage: any;
-        data: any;
-    }>;
+    estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<BigNumber>;
+    private getStrategyItem;
+    private curveDepositPrice;
+    private curveWithdrawPrice;
 }
 export {};

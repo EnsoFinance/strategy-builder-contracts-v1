@@ -49,7 +49,9 @@ export declare enum ESTIMATOR_CATEGORY {
     UNISWAP_V2_LP = 13,
     UNISWAP_V3_LP = 14,
     YEARN_V1 = 15,
-    YEARN_V2 = 16
+    YEARN_V2 = 16,
+    STAKED_ENSO = 17,
+    ENSO = 18
 }
 export declare function increaseTime(seconds: number): Promise<any>;
 export declare function encodePriceSqrt(reserve1: number, reserve0: number): BigNumber;

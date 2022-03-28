@@ -39,11 +39,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deployGenericRouter = exports.deployBatchDepositRouter = exports.deployFullRouter = exports.deployLoopRouter = exports.deployLeverage2XAdapter = exports.deploySynthetixAdapter = exports.deployCurveRewardsAdapter = exports.deployCurveLPAdapter = exports.deployCurveAdapter = exports.deployYEarnAdapter = exports.deployCompoundAdapter = exports.deployAaveBorrowAdapter = exports.deployAaveLendAdapter = exports.deployMetaStrategyAdapter = exports.deployUniswapV3Adapter = exports.deployUniswapV2LPAdapter = exports.deployUniswapV2Adapter = exports.deployPlatform = exports.deployUniswapV3 = exports.deployUniswapV2 = exports.deployBalancerAdapter = exports.deployBalancer = exports.deployTokens = exports.Platform = void 0;
+exports.deployGenericRouter = exports.deployBatchDepositRouter = exports.deployFullRouter = exports.deployLoopRouter = exports.deployLeverage2XAdapter = exports.deploySynthetixAdapter = exports.deployCurveRewardsAdapter = exports.deployCurveLPAdapter = exports.deployCurveAdapter = exports.deployYEarnAdapter = exports.deployCompoundAdapter = exports.deployAaveBorrowAdapter = exports.deployAaveLendAdapter = exports.deployMetaStrategyAdapter = exports.deployUniswapV3Adapter = exports.deployUniswapV2LPAdapter = exports.deployEnsoStakingAdapter = exports.deployUniswapV2Adapter = exports.deployStakedEnsoEstimator = exports.deployEnsoEstimator = exports.deployEnsoToken = exports.deployPlatform = exports.deployUniswapV3 = exports.deployUniswapV2 = exports.deployBalancerAdapter = exports.deployBalancer = exports.deployTokens = exports.Platform = void 0;
 var hardhat_1 = __importDefault(require("hardhat"));
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
 var link_1 = require("./link");
+var Enso_json_1 = __importDefault(require("../dist/Enso.sol/Enso.json"));
 var PlatformProxyAdmin_json_1 = __importDefault(require("../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json"));
 var Strategy_json_1 = __importDefault(require("../artifacts/contracts/Strategy.sol/Strategy.json"));
 var StrategyController_json_1 = __importDefault(require("../artifacts/contracts/StrategyController.sol/StrategyController.json"));
@@ -56,6 +57,8 @@ var ChainlinkOracle_json_1 = __importDefault(require("../artifacts/contracts/ora
 var AaveEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json"));
 var AaveDebtEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json"));
 var BasicEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json"));
+var EnsoEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json"));
+var StakedEnsoEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json"));
 var CompoundEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json"));
 var CurveEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json"));
 var CurveGaugeEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json"));
@@ -72,6 +75,7 @@ var LoopRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/
 var FullRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/FullRouter.sol/FullRouter.json"));
 var BatchDepositRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json"));
 var GenericRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json"));
+var EnsoStakingAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/staking/EnsoStakingAdapter.sol/EnsoStakingAdapter.json"));
 var UniswapV2Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json"));
 var UniswapV2LPAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json"));
 var UniswapV3Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json"));
@@ -559,7 +563,7 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
                     return [4 /*yield*/, strategyImplementation.deployed()];
                 case 56:
                     _a.sent();
-                    return [4 /*yield*/, platformProxyAdmin.initialize(controllerImplementation.address, factoryImplementation.address, strategyImplementation.address, ensoOracle.address, tokenRegistry.address, whitelist.address, feePool || owner.address)
+                    return [4 /*yield*/, platformProxyAdmin.connect(owner).initialize(controllerImplementation.address, factoryImplementation.address, strategyImplementation.address, ensoOracle.address, tokenRegistry.address, whitelist.address, feePool || owner.address)
                         // Factory
                     ];
                 case 57:
@@ -592,6 +596,57 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
     });
 }
 exports.deployPlatform = deployPlatform;
+function deployEnsoToken(owner, minter, name, symbol, mintingAllowedAfter) {
+    return __awaiter(this, void 0, void 0, function () {
+        var ensoToken;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, Enso_json_1.default, [name, symbol, minter.address, mintingAllowedAfter])];
+                case 1:
+                    ensoToken = _a.sent();
+                    return [4 /*yield*/, ensoToken.deployed()];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/, ensoToken];
+            }
+        });
+    });
+}
+exports.deployEnsoToken = deployEnsoToken;
+function deployEnsoEstimator(owner, sEnso, defaultEstimator, strategyFactory) {
+    return __awaiter(this, void 0, void 0, function () {
+        var ensoEstimator;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, EnsoEstimator_json_1.default, [sEnso.address, defaultEstimator.address])];
+                case 1:
+                    ensoEstimator = _a.sent();
+                    return [4 /*yield*/, strategyFactory.connect(owner).addEstimatorToRegistry(utils_1.ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/, ensoEstimator];
+            }
+        });
+    });
+}
+exports.deployEnsoEstimator = deployEnsoEstimator;
+function deployStakedEnsoEstimator(owner, strategyFactory) {
+    return __awaiter(this, void 0, void 0, function () {
+        var stakedEnsoEstimator;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, StakedEnsoEstimator_json_1.default, [])];
+                case 1:
+                    stakedEnsoEstimator = _a.sent();
+                    return [4 /*yield*/, strategyFactory.connect(owner).addEstimatorToRegistry(utils_1.ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/, stakedEnsoEstimator];
+            }
+        });
+    });
+}
+exports.deployStakedEnsoEstimator = deployStakedEnsoEstimator;
 function deployUniswapV2Adapter(owner, uniswapV2Factory, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
@@ -609,6 +664,23 @@ function deployUniswapV2Adapter(owner, uniswapV2Factory, weth) {
     });
 }
 exports.deployUniswapV2Adapter = deployUniswapV2Adapter;
+function deployEnsoStakingAdapter(owner, staking, stakingToken, distributionToken, weth) {
+    return __awaiter(this, void 0, void 0, function () {
+        var adapter;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, EnsoStakingAdapter_json_1.default, [staking.address, stakingToken.address, distributionToken.address, weth.address])];
+                case 1:
+                    adapter = _a.sent();
+                    return [4 /*yield*/, adapter.deployed()];
+                case 2:
+                    _a.sent();
+                    return [2 /*return*/, adapter];
+            }
+        });
+    });
+}
+exports.deployEnsoStakingAdapter = deployEnsoStakingAdapter;
 function deployUniswapV2LPAdapter(owner, uniswapV2Factory, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
@@ -626,12 +698,12 @@ function deployUniswapV2LPAdapter(owner, uniswapV2Factory, weth) {
     });
 }
 exports.deployUniswapV2LPAdapter = deployUniswapV2LPAdapter;
-function deployUniswapV3Adapter(owner, uniswapRegistry, uniswapV3Factory, uniswapRouter, weth) {
+function deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, UniswapV3Adapter_json_1.default, [uniswapRegistry.address, uniswapV3Factory.address, uniswapRouter.address, weth.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, UniswapV3Adapter_json_1.default, [uniswapRegistry.address, uniswapRouter.address, weth.address])];
                 case 1:
                     adapter = _a.sent();
                     return [4 /*yield*/, adapter.deployed()];

@@ -47,7 +47,6 @@ export declare type InitialState = {
     set: boolean;
 };
 export declare function prepareStrategy(positions: Position[], defaultAdapter: string): StrategyItem[];
-export declare function prepareUniswapSwap(router: Contract, adapter: Contract, factory: Contract, from: string, to: string, amount: BigNumber, tokenIn: Contract, tokenOut: Contract): Promise<Multicall[]>;
 export declare function prepareRebalanceMulticall(strategy: Contract, router: Contract, adapter: Contract, oracle: Contract, weth: Contract): Promise<Multicall[]>;
 export declare function prepareDepositMulticall(strategy: Contract, controller: Contract, router: Contract, adapter: Contract, weth: Contract, total: BigNumber, strategyItems: StrategyItem[]): Promise<Multicall[]>;
 export declare function preparePermit(strategy: Contract, owner: SignerWithAddress, spender: SignerWithAddress, value: BigNumber, deadline: BigNumber): Promise<any>;
@@ -57,7 +56,6 @@ export declare function getRebalanceRange(expectedValue: BigNumber, controller: 
 export declare function encodeStrategyItem(position: Position): StrategyItem;
 export declare function encodeSwap(adapter: Contract, amountTokens: BigNumber, minTokens: BigNumber, tokenIn: string, tokenOut: string, accountFrom: string, accountTo: string): Multicall;
 export declare function encodeDelegateSwap(router: Contract, adapter: string, amount: BigNumber, minTokens: BigNumber, tokenIn: string, tokenOut: string, accountFrom: string, accountTo: string): Multicall;
-export declare function encodeUniswapPairSwap(pair: Contract, amount0Out: BigNumber, amount1Out: BigNumber, accountTo: string): Multicall;
 export declare function encodeSettleSwap(router: Contract, adapter: string, tokenIn: string, tokenOut: string, accountFrom: string, accountTo: string): Multicall;
 export declare function encodeSettleTransfer(router: Contract, token: string, accountTo: string): Multicall;
 export declare function encodeSettleTransferFrom(router: Contract, token: string, accountFrom: string, accountTo: string): Multicall;

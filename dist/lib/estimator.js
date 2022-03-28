@@ -43,13 +43,14 @@ exports.Estimator = void 0;
 var hardhat_1 = __importDefault(require("hardhat"));
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
-var IBaseAdapter_json_1 = __importDefault(require("../artifacts/contracts/interfaces/IBaseAdapter.sol/IBaseAdapter.json"));
 var ICToken_json_1 = __importDefault(require("../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json"));
 var ISynth_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json"));
 var ISynthetix_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json"));
 var IExchanger_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json"));
 var ICurveRegistry_json_1 = __importDefault(require("../artifacts/contracts/interfaces/curve/ICurveRegistry.sol/ICurveRegistry.json"));
 var ICurveStableSwap_json_1 = __importDefault(require("../artifacts/contracts/interfaces/curve/ICurveStableSwap.sol/ICurveStableSwap.json"));
+var ICurveDeposit_json_1 = __importDefault(require("../artifacts/contracts/interfaces/curve/ICurveDeposit.sol/ICurveDeposit.json"));
+var IYEarnV2Vault_json_1 = __importDefault(require("../artifacts/contracts/interfaces/yearn/IYEarnV2Vault.sol/IYEarnV2Vault.json"));
 var UniswapV2Router01_json_1 = __importDefault(require("@uniswap/v2-periphery/build/UniswapV2Router01.json"));
 var Quoter_json_1 = __importDefault(require("@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json"));
 var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
@@ -60,6 +61,10 @@ var SYNTHETIX_EXCHANGER = '0x3e343E89F4fF8057806F54F2208940B1Cd5C40ca';
 var CURVE_REGISTRY = '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5';
 var UNISWAP_V2_ROUTER = '0xf164fC0Ec4E93095b804a4795bBe1e041497b92a';
 var UNISWAP_V3_QUOTER = '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6';
+var TRICRYPTO2 = '0xc4AD29ba4B3c580e6D59105FFf484999997675Ff';
+var TRICRYPTO2_POOL = '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46';
+var USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
+var WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
 var WETH = utils_1.MAINNET_ADDRESSES.WETH;
 var SUSD = utils_1.MAINNET_ADDRESSES.SUSD;
 var VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff';
@@ -69,7 +74,7 @@ var NULL_TRADE_DATA = {
     cache: '0x'
 };
 var Estimator = /** @class */ (function () {
-    function Estimator(signer, oracle, tokenRegistry, uniswapV3Registry, aaveV2AdapterAddress, compoundAdapterAddress, curveAdapterAddress, curveLPAdapterAddress, curveRewardsAdapterAddress, synthetixAdapterAddress, uniswapV2AdapterAddress, uniswapV3AdapterAddress, yearnV2AdapterAddress) {
+    function Estimator(signer, oracle, tokenRegistry, uniswapV3Registry, curveDepositZapRegistry, aaveV2AdapterAddress, compoundAdapterAddress, curveAdapterAddress, curveLPAdapterAddress, curveRewardsAdapterAddress, synthetixAdapterAddress, uniswapV2AdapterAddress, uniswapV3AdapterAddress, yearnV2AdapterAddress) {
         this.signer = signer;
         this.curveRegistry = new ethers_1.Contract(CURVE_REGISTRY, ICurveRegistry_json_1.default.abi, signer);
         this.synthetix = new ethers_1.Contract(SYNTHETIX, ISynthetix_json_1.default.abi, signer);
@@ -79,6 +84,7 @@ var Estimator = /** @class */ (function () {
         this.oracle = oracle;
         this.tokenRegistry = tokenRegistry;
         this.uniswapV3Registry = uniswapV3Registry;
+        this.curveDepositZapRegistry = curveDepositZapRegistry;
         this.aaveV2AdapterAddress = aaveV2AdapterAddress;
         this.aaveDebtAdapterAddress = AddressZero;
         this.balancerAdapterAddress = AddressZero;
@@ -288,7 +294,7 @@ var Estimator = /** @class */ (function () {
                                         return [4 /*yield*/, this.estimateBuyItem(item, estimates[index], expectedValue, rebalanceRange, data)];
                                     case 1:
                                         amount = _b.sent();
-                                        return [2 /*return*/, this.oracle.estimateItem(amount, item)];
+                                        return [2 /*return*/, this.oracle['estimateItem(uint256,address)'](amount, item)];
                                 }
                             });
                         }); }))];
@@ -336,7 +342,7 @@ var Estimator = /** @class */ (function () {
                         return [4 /*yield*/, this.estimateSwap(data.adapters[0], amount, SUSD, synths[i])];
                     case 2:
                         balance = _b.sent();
-                        return [4 /*yield*/, this.oracle.estimateItem(balance, synths[i])];
+                        return [4 /*yield*/, this.oracle['estimateItem(uint256,address)'](balance, synths[i])];
                     case 3:
                         value = _b.sent();
                         totalValue = totalValue.add(value);
@@ -347,7 +353,7 @@ var Estimator = /** @class */ (function () {
                         return [3 /*break*/, 1];
                     case 5:
                         if (!susdRemaining.gt('0')) return [3 /*break*/, 7];
-                        return [4 /*yield*/, this.oracle.estimateItem(susdRemaining, SUSD)];
+                        return [4 /*yield*/, this.oracle['estimateItem(uint256,address)'](susdRemaining, SUSD)];
                     case 6:
                         value = _b.sent();
                         totalValue = totalValue.add(value);
@@ -369,7 +375,7 @@ var Estimator = /** @class */ (function () {
                     amount = expectedValue.sub(estimatedValue);
                 }
                 if (amount.gt('0')) {
-                    if (data.cache != '0x') {
+                    if (data.cache !== '0x') {
                         multiplier = defaultAbiCoder.decode(['uint16'], data.cache)[0];
                         amount = amount.mul(multiplier).div(utils_1.DIVISOR);
                     }
@@ -544,7 +550,7 @@ var Estimator = /** @class */ (function () {
                     case 0: return [4 /*yield*/, this.curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0)];
                     case 1:
                         pool = _b.sent();
-                        if (!(pool != AddressZero)) return [3 /*break*/, 3];
+                        if (!(pool !== AddressZero)) return [3 /*break*/, 3];
                         return [4 /*yield*/, this.curveRegistry.get_coin_indices(pool, tokenIn, tokenOut)];
                     case 2:
                         _a = _b.sent(), indexIn = _a[0], indexOut = _a[1];
@@ -556,9 +562,70 @@ var Estimator = /** @class */ (function () {
     };
     Estimator.prototype.estimateCurveLP = function (amount, tokenIn, tokenOut) {
         return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
-                return [2 /*return*/, (new ethers_1.Contract(this.curveLPAdapterAddress, IBaseAdapter_json_1.default.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)];
+            var _a, poolIn, poolOut, _b, _c, _d, _e, isDeposit, depositCoins, i, isWithdraw, withdrawCoins, i, coins;
+            return __generator(this, function (_f) {
+                switch (_f.label) {
+                    case 0: return [4 /*yield*/, Promise.all([
+                            this.curveRegistry.get_pool_from_lp_token(tokenIn),
+                            this.curveRegistry.get_pool_from_lp_token(tokenOut)
+                        ])];
+                    case 1:
+                        _a = _f.sent(), poolIn = _a[0], poolOut = _a[1];
+                        if (!(poolIn === AddressZero && poolOut !== AddressZero)) return [3 /*break*/, 3];
+                        _b = this.curveDepositPrice;
+                        _c = [amount, tokenIn, poolOut];
+                        return [4 /*yield*/, this.curveRegistry.get_coins(poolOut)];
+                    case 2: return [2 /*return*/, _b.apply(this, _c.concat([_f.sent()]))];
+                    case 3:
+                        if (!(poolIn !== AddressZero && poolOut === AddressZero)) return [3 /*break*/, 5];
+                        _d = this.curveWithdrawPrice;
+                        _e = [amount, tokenIn, tokenOut, poolIn];
+                        return [4 /*yield*/, this.curveRegistry.get_coins(poolIn)];
+                    case 4: return [2 /*return*/, _d.apply(this, _e.concat([_f.sent()]))];
+                    case 5:
+                        if (!(poolIn !== AddressZero && poolOut !== AddressZero)) return [3 /*break*/, 10];
+                        isDeposit = void 0;
+                        return [4 /*yield*/, this.curveRegistry.get_coins(poolOut)];
+                    case 6:
+                        depositCoins = _f.sent();
+                        for (i = 0; i < 8; i++) {
+                            if (depositCoins[i] === AddressZero)
+                                break;
+                            if (depositCoins[i] === tokenIn) {
+                                isDeposit = true;
+                                break;
+                            }
+                        }
+                        if (!isDeposit) return [3 /*break*/, 7];
+                        return [2 /*return*/, this.curveDepositPrice(amount, tokenIn, poolOut, depositCoins)];
+                    case 7:
+                        isWithdraw = void 0;
+                        return [4 /*yield*/, this.curveRegistry.get_coins(poolIn)];
+                    case 8:
+                        withdrawCoins = _f.sent();
+                        for (i = 0; i < 8; i++) {
+                            if (withdrawCoins[i] === AddressZero)
+                                break;
+                            if (withdrawCoins[i] === tokenOut) {
+                                isWithdraw = true;
+                                break;
+                            }
+                        }
+                        if (isWithdraw)
+                            return [2 /*return*/, this.curveWithdrawPrice(amount, tokenIn, tokenOut, poolIn, withdrawCoins)];
+                        _f.label = 9;
+                    case 9: return [3 /*break*/, 11];
+                    case 10:
+                        if (tokenIn === TRICRYPTO2 || tokenOut === TRICRYPTO2) {
+                            coins = [USDT, WBTC, WETH];
+                            if (tokenIn === TRICRYPTO2)
+                                return [2 /*return*/, this.curveWithdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins)];
+                            if (tokenOut === TRICRYPTO2)
+                                return [2 /*return*/, this.curveDepositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins)];
+                        }
+                        _f.label = 11;
+                    case 11: return [2 /*return*/, ethers_1.BigNumber.from(0)];
+                }
             });
         });
     };
@@ -622,9 +689,50 @@ var Estimator = /** @class */ (function () {
     };
     Estimator.prototype.estimateYearnV2 = function (amount, tokenIn, tokenOut) {
         return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
-                return [2 /*return*/, (new ethers_1.Contract(this.yearnV2AdapterAddress, IBaseAdapter_json_1.default.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)];
+            var vault, token, _a, decimals, pricePerShare, multiplier, e_2, vault, token, _b, decimals, pricePerShare, divisor, e_3;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
+                    case 0:
+                        _c.trys.push([0, 3, , 9]);
+                        vault = new ethers_1.Contract(tokenOut, IYEarnV2Vault_json_1.default.abi, this.signer);
+                        return [4 /*yield*/, vault.token()];
+                    case 1:
+                        token = _c.sent();
+                        if (token !== tokenIn)
+                            throw new Error("Not compatible");
+                        return [4 /*yield*/, Promise.all([
+                                vault.decimals(),
+                                vault.pricePerShare()
+                            ])];
+                    case 2:
+                        _a = _c.sent(), decimals = _a[0], pricePerShare = _a[1];
+                        multiplier = ethers_1.BigNumber.from(10).pow(decimals);
+                        return [2 /*return*/, amount.mul(multiplier).div(pricePerShare)];
+                    case 3:
+                        e_2 = _c.sent();
+                        _c.label = 4;
+                    case 4:
+                        _c.trys.push([4, 7, , 8]);
+                        vault = new ethers_1.Contract(tokenIn, IYEarnV2Vault_json_1.default.abi, this.signer);
+                        return [4 /*yield*/, vault.token()];
+                    case 5:
+                        token = _c.sent();
+                        if (token !== tokenOut)
+                            throw new Error("Not compatible");
+                        return [4 /*yield*/, Promise.all([
+                                vault.decimals(),
+                                vault.pricePerShare()
+                            ])];
+                    case 6:
+                        _b = _c.sent(), decimals = _b[0], pricePerShare = _b[1];
+                        divisor = ethers_1.BigNumber.from(10).pow(decimals);
+                        return [2 /*return*/, amount.mul(pricePerShare).div(divisor)];
+                    case 7:
+                        e_3 = _c.sent();
+                        return [2 /*return*/, ethers_1.BigNumber.from(0)];
+                    case 8: return [3 /*break*/, 9];
+                    case 9: return [2 /*return*/];
+                }
             });
         });
     };
@@ -644,6 +752,53 @@ var Estimator = /** @class */ (function () {
                                 percentage: percentage,
                                 data: data
                             }];
+                }
+            });
+        });
+    };
+    Estimator.prototype.curveDepositPrice = function (amount, tokenIn, pool, coins) {
+        return __awaiter(this, void 0, void 0, function () {
+            var coinsInPool, tokenIndex, i, depositAmounts;
+            return __generator(this, function (_a) {
+                tokenIndex = 8;
+                for (i = 0; i < 8; i++) {
+                    if (coins[i] === AddressZero) {
+                        coinsInPool = i;
+                        break;
+                    }
+                    if (coins[i] === tokenIn)
+                        tokenIndex = i;
+                }
+                if (tokenIndex === 8)
+                    return [2 /*return*/, ethers_1.BigNumber.from(0)]; // Token not found
+                depositAmounts = (new Array(coinsInPool)).fill(ethers_1.BigNumber.from(0));
+                depositAmounts[tokenIndex] = amount;
+                return [2 /*return*/, (new ethers_1.Contract(pool, ICurveStableSwap_json_1.default.abi, this.signer))["calc_token_amount(uint256[" + coinsInPool + "],bool)"](depositAmounts, true)];
+            });
+        });
+    };
+    Estimator.prototype.curveWithdrawPrice = function (amount, tokenIn, tokenOut, pool, coins) {
+        return __awaiter(this, void 0, void 0, function () {
+            var zap, tokenIndex, i, indexType;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, this.curveDepositZapRegistry.getZap(tokenIn)];
+                    case 1:
+                        zap = _a.sent();
+                        if (zap === AddressZero)
+                            zap = pool;
+                        for (i = 0; i < coins.length; i++) {
+                            if (coins[i] === AddressZero)
+                                return [2 /*return*/, ethers_1.BigNumber.from(0)]; // tokenOut is not in list
+                            if (coins[i] === tokenOut) {
+                                tokenIndex = i;
+                                break;
+                            }
+                        }
+                        return [4 /*yield*/, this.curveDepositZapRegistry.getIndexType(zap)];
+                    case 2:
+                        indexType = _a.sent();
+                        return [2 /*return*/, (new ethers_1.Contract(zap, ICurveDeposit_json_1.default.abi, this.signer))["calc_withdraw_one_coin(uint256," + (indexType.eq(0) ? 'int128' : 'uint256') + ")"](amount, tokenIndex)];
                 }
             });
         });
