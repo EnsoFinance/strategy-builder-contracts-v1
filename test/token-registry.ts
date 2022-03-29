@@ -121,4 +121,11 @@ describe('TokenRegistry', function () {
 		expect(await this.wrapper.isBalanced()).to.equal(true)
 	})
 
+	// it("Should add a batch of tokens", async function() {
+	// 	const itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
+	// 	const estimatorCategories = [ESTIMATOR_CATEGORY.STAKED_ENSO, ESTIMATOR_CATEGORY.STRATEGY]
+	// 	const tokens = [0x0000000000000000000000000000000000000001, 0x0000000000000000000000000000000000000002]
+	// 	await this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
+	// })
+
 })

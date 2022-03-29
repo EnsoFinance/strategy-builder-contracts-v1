@@ -7,6 +7,8 @@ cache
 coverage.json
 coverage/
 
+artifacts/
+
 #Documenation
 docs/markdown
 
