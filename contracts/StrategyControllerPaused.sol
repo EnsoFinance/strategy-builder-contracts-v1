@@ -249,7 +249,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         @notice Refresh StrategyController's addresses
      */
     function updateAddresses() public {
-	revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused.");
     }
 
     function oracle() public view override returns (IOracle) {
