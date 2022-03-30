@@ -5,6 +5,7 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../interfaces/IStrategyController.sol";
+import "../../interfaces/IStrategyProxyFactory.sol";
 import "../../StrategyControllerStorage.sol";
 
 /**
@@ -16,8 +17,11 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     uint256 private constant DIVISOR = 1000;
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
+    address public immutable factory;
+
     // Initialize constructor to disable implementation
-    constructor() public initializer {
+    constructor(address factory_) public initializer {
+        factory = factory_;
     }
 
     /**
@@ -249,7 +253,15 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         @notice Refresh StrategyController's addresses
      */
     function updateAddresses() public {
-        revert("StrategyControllerPaused.");
+        IStrategyProxyFactory f = IStrategyProxyFactory(factory);
+        _whitelist = f.whitelist();
+        address o = f.oracle();
+        if (o != _oracle) {
+          IOracle ensoOracle = IOracle(o);
+          _oracle = o;
+          _weth = ensoOracle.weth();
+          _susd = ensoOracle.susd();
+        }
     }
 
     function oracle() public view override returns (IOracle) {
