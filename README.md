@@ -3,6 +3,25 @@
 
 Enso V1 core contracts allow users to create strategies for a set of assets within the Defi ecosystem.The contracts are made up of 5 core components:  Strategy, StrategyController, Routers, Adapters, and the Oracle
 
+## Security
+
+Enso offers a simple results-driven bounty program aligning incentives of hackers and tinkerers across the gradient to ensure rapid discovery and subsequent patches to vulnerabilities in this system.
+
+This bounty program addresses discovery of bugs that would lead to economic exploits, loss of funds, and griefing attacks. 
+
+All "griefing attack" bug submissions must go through Immunefi's bug submission process on [Enso's bug bounty page]().
+
+The discoverer of an "economic exploit" or "loss of funds" bug will be rewarded with 10% of the token they steal through such a vector so long as they:
+
+- Invoke the attack only once, and cease exploiting that vector immediately.
+
+- Report the bug, with reference to the proof-of-concept transaction to security@enso.finance.
+
+- Send the remaining 90% of the token stolen to the Enso Treasury ETH mainnnet address 0xEE0e85c384F7370FF3eb551E92A71A4AFc1B259F.
+
+- Advise and collaborate with the Enso team in patching the bug.
+
+
 ## Installation
 Github
 ```bash
@@ -105,4 +124,5 @@ yarn run test
 ├── StrategyTokenStorage.sol
 └── Whitelist.sol
 ```
+
 
