@@ -278,6 +278,31 @@ describe('StrategyController', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	it('Should fail on any and all external calls: StrategyControllerPaused', async function () {
+		let platformProxyAdmin = platform.administration.platformProxyAdmin
+		let controllerImplementation = await platformProxyAdmin.controllerImplementation()
+
+		let StrategyControllerPaused = await getContractFactory('StrategyControllerPaused')
+		let strategyControllerPaused = await StrategyControllerPaused.deploy(strategyFactory.address)
+		await strategyControllerPaused.deployed()
+
+		let controllerProxy = await platformProxyAdmin.controller()
+		// "pause"
+		await platformProxyAdmin.connect(owner).upgrade(controllerProxy, strategyControllerPaused.address)
+
+		let controllerPaused = await StrategyControllerPaused.attach(controllerProxy)
+		// we just demo one external call since its obvious this behavior will
+		// occur on all other public/external calls, and replicating this entire test
+		// suite is overkill
+		await expect(controllerPaused.connect(accounts[1]).setStrategy(strategy.address)).to.be.revertedWith(
+			'StrategyControllerPaused'
+		)
+		// reset to original controllerImplementation
+		// "unpause"
+		await platformProxyAdmin.connect(owner).upgrade(controllerProxy, controllerImplementation)
+		// now all following tests will pass
+	})
+
 	it('Should fail to setup strategy: initialized', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
@@ -779,4 +804,5 @@ describe('StrategyController', function () {
 			'Strategy already set'
 		)
 	})
+
 })
