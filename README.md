@@ -5,7 +5,7 @@ Enso V1 core contracts allow users to create strategies for a set of assets with
 
 ## Security
 
-See the [Enso security repo]("https://github.com/EnsoFinance/security")
+See the [Enso security repo](https://github.com/EnsoFinance/security)
 
 ## Installation
 Github
