@@ -24,7 +24,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @dev Called to initialize proxy
      */
     function initialize() external initializer {
-	revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -42,8 +42,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         address router_,
         bytes memory data_
     ) external payable override {
-	(manager_, strategy_, state_, router_, data_); // shh compiler
-	revert("StrategyControllerPaused.");
+        (manager_, strategy_, state_, router_, data_); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -60,8 +60,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         uint256 slippage,
         bytes memory data
     ) external payable override {
-	(strategy, router, amount, slippage, data); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, router, amount, slippage, data); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -78,8 +78,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         uint256 slippage,
         bytes memory data
     ) external override {
-	(strategy, router, amount, slippage, data); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, router, amount, slippage, data); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -96,8 +96,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         uint256 slippage,
         bytes memory data
     ) external override {
-	(strategy, router, amount, slippage, data); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, router, amount, slippage, data); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -110,8 +110,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         IStrategyRouter router,
         bytes memory data
     ) external override {
-	(strategy, router, data); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, router, data); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -122,8 +122,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
     function repositionSynths(IStrategy strategy, address adapter, address token) external {
-	(strategy, adapter, token); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, adapter, token); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -135,8 +135,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         IStrategy strategy,
         StrategyItem[] memory strategyItems
     ) external override {
-	(strategy, strategyItems); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, strategyItems); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -150,8 +150,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         IStrategyRouter router,
         bytes memory data
     ) external override {
-	(strategy, router, data); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, router, data); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -164,8 +164,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         TimelockCategory category,
         uint256 newValue
     ) external override {
-	(strategy, category, newValue); // shh compiler
-	revert("StrategyControllerPaused.");
+        (strategy, category, newValue); // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -173,8 +173,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @param strategy The address of the strategy that is being updated
      */
     function finalizeValue(IStrategy strategy) external override {
-	strategy; // shh compiler
-	revert("StrategyControllerPaused.");
+        strategy; // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -182,8 +182,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @dev A social profile allows other users to deposit into the strategy
      */
     function openStrategy(IStrategy strategy) external override {
-	strategy; // shh compiler
-	revert("StrategyControllerPaused.");
+        strategy; // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     /**
@@ -191,8 +191,8 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @dev A set strategy cannot be restructured
      */
     function setStrategy(IStrategy strategy) external override {
-	strategy; // shh compiler
-	revert("StrategyControllerPaused.");
+        strategy; // shh compiler
+        revert("StrategyControllerPaused.");
     }
 
     // @notice Initialized getter
@@ -277,6 +277,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     }
 
     receive() external payable {
-	revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused.");
     }
 }
