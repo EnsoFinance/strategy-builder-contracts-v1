@@ -4,8 +4,8 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "./interfaces/IStrategyController.sol";
-import "./StrategyControllerStorage.sol";
+import "../../interfaces/IStrategyController.sol";
+import "../../StrategyControllerStorage.sol";
 
 /**
  * @notice This contract has the same interface and storage as `StrategyController` but all mutating external functions will revert.
