@@ -202,7 +202,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
 
     // @notice StrategyState getter
     function strategyState(address strategy) external view override returns (StrategyState memory) {
-      return _strategyStates[strategy];
+        return _strategyStates[strategy];
     }
 
     /**
