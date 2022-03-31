@@ -169,8 +169,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         ITokenRegistry(_registry).addEstimator(estimatorCategoryIndex, estimator);
     }
 
-    function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimateCategoryIndex, address[] calldata tokens) external onlyOwner {
-        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, token);
+    function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata tokens) external onlyOwner {
+        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, tokens);
     }
 
     function addItemToRegistry(
