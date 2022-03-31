@@ -21,18 +21,22 @@ contract TokenRegistry is ITokenRegistry, Ownable {
         emit EstimatorAdded(estimator, estimatorCategoryIndex);
     }
 
-    function addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) public override onlyOwner {
-        require(address(estimators[estimatorCategoryIndex]) != address(0), "Invalid category");
-        itemCategories[token] = itemCategoryIndex;
-        estimatorCategories[token] = estimatorCategoryIndex;
-        emit ItemAdded(token, itemCategoryIndex, estimatorCategoryIndex);
+    function addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) external override onlyOwner {
+        _addItem(itemCategoryIndex, estimatorCategoryIndex, token);    
     }
 
     function addItems(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata token) external override onlyOwner {
         uint numItems = itemCategoryIndex.length; 
         require(itemCategoryIndex.length == numItems && numItems == token.length, "Mismatched array lengths");
         for (uint i = 0; i < numItems; i++) {
-           addItem(itemCategoryIndex[i], estimatorCategoryIndex[i], token[i]); 
+           _addItem(itemCategoryIndex[i], estimatorCategoryIndex[i], token[i]); 
         }
+    }
+
+    function _addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) internal {
+        require(address(estimators[estimatorCategoryIndex]) != address(0), "Invalid category");
+        itemCategories[token] = itemCategoryIndex;
+        estimatorCategories[token] = estimatorCategoryIndex;
+        emit ItemAdded(token, itemCategoryIndex, estimatorCategoryIndex);
     }
 }

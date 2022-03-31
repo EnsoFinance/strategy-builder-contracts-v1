@@ -170,7 +170,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimateCategoryIndex, address[] calldata tokens) external onlyOwner {
-        _addItemsToRegistry(itemCategoryIndex, estimateCategoryIndex, tokens);
+        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
     function addItemToRegistry(
@@ -289,14 +289,6 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address token
     ) internal {
         ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token);
-    }
-
-    function _addItemsToRegistry(
-        uint256[] calldata itemCategoryIndex,
-        uint256[] calldata estimatorCategoryIndex,
-        address[] calldata token
-    ) internal {
-        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
 }
