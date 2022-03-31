@@ -1,5 +1,4 @@
-import hre from 'hardhat'
-import { BigNumber, Contract, Signer } from 'ethers'
+import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
 import { ITEM_CATEGORY, MAINNET_ADDRESSES, DIVISOR } from './utils'
 
@@ -15,8 +14,8 @@ import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 
-const { AddressZero } = hre.ethers.constants
-const { defaultAbiCoder } = hre.ethers.utils
+const { AddressZero } = constants
+const { defaultAbiCoder } = utils
 
 const SYNTHETIX = '0xDC01020857afbaE65224CfCeDb265d1216064c59'
 const SYNTHETIX_EXCHANGER = '0x3e343E89F4fF8057806F54F2208940B1Cd5C40ca'
