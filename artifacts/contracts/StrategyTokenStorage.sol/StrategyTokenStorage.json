@@ -1,0 +1,24 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StrategyTokenStorage",
+  "sourceName": "contracts/StrategyTokenStorage.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "DOMAIN_SEPARATOR",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b5060818061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80633644e51514602d575b600080fd5b60336045565b60408051918252519081900360200190f35b6000548156fea264697066735822122088ec87eacf2dd26b4202e6f07197bf2c86a1da5e7389f9c14e35d1a4e9d1d2d964736f6c634300060c0033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c80633644e51514602d575b600080fd5b60336045565b60408051918252519081900360200190f35b6000548156fea264697066735822122088ec87eacf2dd26b4202e6f07197bf2c86a1da5e7389f9c14e35d1a4e9d1d2d964736f6c634300060c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
