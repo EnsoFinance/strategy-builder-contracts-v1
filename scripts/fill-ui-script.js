@@ -5,7 +5,9 @@ const dictionary = require('../dictionary.json')
 
 const fs = require('fs')
 const util = require('util')
+const { wallets } = require('./constants/constants')
 const log_file = fs.createWriteStream(__dirname + '/debug-strategies.log', { flags: 'w' })
+const network = process.env.HARDHAT_NETWORK
 
 const createStrategies = async (matrix, strategyFactory, wallet) => {
 	const logObject = {
@@ -43,12 +45,12 @@ const createStrategies = async (matrix, strategyFactory, wallet) => {
 }
 
 const main = async () => {
-	const uniswapAdapter = deployedContracts[process.env.HARDHAT_NETWORK].UniswapV2Adapter
-	const curveLPAdapter = deployedContracts[process.env.HARDHAT_NETWORK].CurveLPAdapter
-	const yearnAdapter = deployedContracts[process.env.HARDHAT_NETWORK].YEarnV2Adapter
-	const curveRewardsAdapter = deployedContracts[process.env.HARDHAT_NETWORK].CurveRewardsAdapter
-	const aaveLendAdapter = deployedContracts[process.env.HARDHAT_NETWORK].AaveLendAdapter
-	const compoundAdapter = deployedContracts[process.env.HARDHAT_NETWORK].CompoundAdapter
+	const uniswapAdapter = deployedContracts[network].UniswapV2Adapter
+	const curveLPAdapter = deployedContracts[network].CurveLPAdapter
+	const yearnAdapter = deployedContracts[network].YEarnV2Adapter
+	const curveRewardsAdapter = deployedContracts[network].CurveRewardsAdapter
+	const aaveLendAdapter = deployedContracts[network].AaveLendAdapter
+	const compoundAdapter = deployedContracts[network].CompoundAdapter
 
 	const DICTIONARY_ADAPTER_MAPPER = {
 		'0x11b6dd97b8d2dEC7aF4E544e966c80f3B6D50E0c': uniswapAdapter,
@@ -61,15 +63,14 @@ const main = async () => {
 
 	const strategyFactory = await hre.ethers.getContractAt(
 		'StrategyProxyFactory',
-		deployedContracts[process.env.HARDHAT_NETWORK === 'ensonet' ? 'localhost' : process.env.HARDHAT_NETWORK]
+		deployedContracts[network]
 			.StrategyProxyFactory
 	)
-	console.log(process.env.HARDHAT_NETWORK)
 	const wallet = new hre.ethers.Wallet(
-		'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+		network === 'ensonet' ? wallets[0] : 'ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
 		hre.ethers.provider
 	)
-	const routerAddress = deployedContracts[process.env.HARDHAT_NETWORK].LoopRouter
+	const routerAddress = deployedContracts[network].LoopRouter
 	const amount = hre.ethers.BigNumber.from('1000000000000000')
 	const dictionaryEntries = Object.entries(dictionary).map(([_, value]) => value)
 	const derivedTokens = dictionaryEntries.reduce((m, { derivedAssets }) => [...m, ...derivedAssets], [])
