@@ -7,28 +7,39 @@ const fs = require('fs')
 const util = require('util')
 const log_file = fs.createWriteStream(__dirname + '/debug-strategies.log', { flags: 'w' })
 
-
 const createStrategies = async (matrix, strategyFactory, wallet) => {
-	let i = 0,
-		success = 0,
-		failed = 0
+	const logObject = {
+		i: 0,
+		success: 0,
+		fail: 0,
+		errors: {},
+	}
 	for (const createStrategyArgs of matrix) {
 		try {
 			let tx = await strategyFactory.connect(wallet).createStrategy(...createStrategyArgs)
 			let receipt = await tx.wait()
-			success++
+			logObject.success++
 			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 		} catch (e) {
-			const errMessage = `${e.message} \n Failed to create a strategy at index: ${i}. \n ${
-				e.message
-			} \n ${JSON.stringify(createStrategyArgs, null, 2)}`
-			log_file.write(util.format(errMessage) + '\n')
-			failed++
-			console.log(errMessage)
+			const eMessage = e.message
+			const errorArgs = { symbol: createStrategyArgs[1], ...createStrategyArgs[3][0] };
+			const stringifiedEArgs = JSON.stringify(errorArgs, null, 2);
+			console.log('ERROR: ',stringifiedEArgs)
+			if (logObject.errors[eMessage]) {
+				logObject.errors[eMessage].args.push(errorArgs)
+				logObject.errors[eMessage].occurrences++
+			} else {
+				logObject.errors[eMessage] = {
+					args: [errorArgs],
+					occurrences: 1,
+				}
+			}
 		}
-		i++
+		logObject.i++
 	}
-	console.log(`Successfully deployed ${((success * 100) / matrix.length).toFixed(2)}% of strategies.`)
+
+	log_file.write(util.format(JSON.stringify(logObject.errors, null, 2)) + '\n')
+	console.log(`Successfully deployed ${((logObject.success * 100) / matrix.length).toFixed(2)}% of strategies.`)
 }
 
 const main = async () => {
@@ -45,7 +56,7 @@ const main = async () => {
 		'0x69e98aA7e9EcAb7dF7d54cFf8cCAa48b2E72a5a4': yearnAdapter,
 		'0xD73E8c234AAC92657d94FD1541106c2f4cb14654': curveRewardsAdapter,
 		'0xec49b0Fe6941b1a3c90F75e6A43d812Cd6aDa2ff': aaveLendAdapter,
-		'0x250ea055E49F890cb269e729Cf81A04D7Ccd5f3E': compoundAdapter
+		'0x250ea055E49F890cb269e729Cf81A04D7Ccd5f3E': compoundAdapter,
 	}
 
 	const strategyFactory = await hre.ethers.getContractAt(
@@ -63,19 +74,18 @@ const main = async () => {
 	const dictionaryEntries = Object.entries(dictionary).map(([_, value]) => value)
 	const derivedTokens = dictionaryEntries.reduce((m, { derivedAssets }) => [...m, ...derivedAssets], [])
 	const createStrategyArgsMatrix = derivedTokens.map((derivedToken, i) => {
-		const strategyName = i + '/' + derivedToken.symbol
+		const strategyName = derivedToken.symbol
 		const position = derivedToken.position
 		position.percentage = 1000
-		position.adapters = position.adapters.map(adapter => DICTIONARY_ADAPTER_MAPPER[adapter])
+		position.adapters = position.adapters.map((adapter) => DICTIONARY_ADAPTER_MAPPER[adapter])
 		const strategyItems = prepareStrategy([position], uniswapAdapter)
 		const isSocial = Math.random() > 0.05
 		let fee = isSocial ? 100 : 0
 		const strategyState = {
 			timelock: 60,
-			slippage: 0,
 			rebalanceThreshold: 10,
 			rebalanceSlippage: 997,
-			restructureSlippage: 995,
+			restructureSlippage: 0,
 			performanceFee: fee,
 			social: isSocial,
 			set: false,
