@@ -2,7 +2,7 @@ const hre = require('hardhat')
 const deployedContracts = require('../deployments.json')
 const { prepareStrategy } = require('../lib/encode')
 
-const { wallets, strategyNames, positions } = require('./constants/constants')
+const { strategyNames, positions } = require('./constants/constants')
 
 function getRandomName() {
 	return strategyNames[Math.floor(Math.random() * strategyNames.length)]
@@ -19,55 +19,48 @@ function getRandomPosition() {
 async function main() {
 	const strategyFactory = await hre.ethers.getContractAt(
 		'StrategyProxyFactory',
-		deployedContracts[process.env.HARDHAT_NETWORK === 'ensonet' ? 'localhost' : process.env.HARDHAT_NETWORK]
-			.StrategyProxyFactory
+		deployedContracts[process.env.HARDHAT_NETWORK].StrategyProxyFactory
 	)
 
+	const accounts = await hre.ethers.getSigners()
 	const routerAddress = deployedContracts[process.env.HARDHAT_NETWORK].LoopRouter
-	const amount = hre.ethers.BigNumber.from('100000000000000000')
 
-	for (const pkey of wallets) {
-		let wallet = new hre.ethers.Wallet(pkey, hre.ethers.provider)
+	for (let i = 0; i < 10; i++) {
+		const account = accounts[Math.floor(Math.random() * accounts.length)]
+		const amount = hre.ethers.utils.parseEther(getRandomArbitrary(5, 100).toString())
 
-		let numberOfStrategys = getRandomArbitrary(1, 4)
+		const strategyName = getRandomName()
+		const position = getRandomPosition()
 
-		for (let i = 0; i < numberOfStrategys; i++) {
-			const strategyName = getRandomName()
-			const position = getRandomPosition()
+		const strategyItems = prepareStrategy(position, deployedContracts[process.env.HARDHAT_NETWORK].UniswapV2Adapter)
 
-			const strategyItems = prepareStrategy(
-				position,
-				deployedContracts[process.env.HARDHAT_NETWORK].UniswapV2Adapter
-			)
+		const isSocial = Math.random() > 0.5 ? true : false
+		let fee = isSocial ? 100 : 0
 
-			const isSocial = Math.random() > 0.5 ? true : false
-			let fee = isSocial ? 100 : 0
-
-			const strategyState = {
-				timelock: 60,
-				rebalanceThreshold: 10,
-				rebalanceSlippage: 997,
-				restructureSlippage: 995,
-				performanceFee: fee,
-				social: isSocial,
-				set: false,
-			}
-
-			let tx = await strategyFactory
-				.connect(wallet)
-				.createStrategy(
-					wallet.address,
-					strategyName,
-					strategyName.substring(0, 3),
-					strategyItems,
-					strategyState,
-					routerAddress,
-					'0x',
-					{ value: amount, gasLimit: 5000000 }
-				)
-			let receipt = await tx.wait()
-			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+		const strategyState = {
+			timelock: 60,
+			rebalanceThreshold: 10,
+			rebalanceSlippage: 997,
+			restructureSlippage: 995,
+			performanceFee: fee,
+			social: isSocial,
+			set: false,
 		}
+
+		let tx = await strategyFactory
+			.connect(account)
+			.createStrategy(
+				account.address,
+				strategyName,
+				strategyName.substring(0, 3),
+				strategyItems,
+				strategyState,
+				routerAddress,
+				'0x',
+				{ value: amount, gasLimit: 5000000 }
+			)
+		let receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 	}
 }
 

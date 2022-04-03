@@ -1,12 +1,3 @@
-const wallets = [
-	'0x4c481b1c8f15763ca1870b34633e86c57c42faedd254bad206318e0768648ea1',
-	'0xfba00005be6999e592134b534be8187e51da83ebc450a627149970c0b77ba27f',
-	'0xe166c5df344ea4cc2c7b77c324c4231a3be129b378c31a8bcfa18e17080b6ff9',
-	'0xd6964100c6e865f04ce215df9da33efec6df9f5cf30a2572efc9df560368c90e',
-	'0x453dcee50a81647bd8e968dafbfe85808a6b37369e0ec94f90fc39dd93bf514b',
-	'0x9c5617ad61790c1b98935a604dc0d6e366895bbaa0946fe2033bfdf1177c4479',
-]
-
 const strategyNames = [
 	"AMM's",
 	'Derivatives',
@@ -73,6 +64,5 @@ const positions = [
 
 module.exports = {
 	strategyNames,
-	wallets,
 	positions,
 }
