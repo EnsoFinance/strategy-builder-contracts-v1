@@ -25,42 +25,51 @@ async function main() {
 	const accounts = await hre.ethers.getSigners()
 	const routerAddress = deployedContracts[process.env.HARDHAT_NETWORK].LoopRouter
 
-	for (let i = 0; i < 10; i++) {
+	const amountOfManagers = 5
+
+	for (let i = 0; i < amountOfManagers; i++) {
 		const account = accounts[Math.floor(Math.random() * accounts.length)]
-		const amount = hre.ethers.utils.parseEther(getRandomArbitrary(5, 100).toString())
+		const amountOfStrategies = getRandomArbitrary(5, 15)
 
-		const strategyName = getRandomName()
-		const position = getRandomPosition()
+		for (let j = 0; j < amountOfStrategies; j++) {
+			const amount = hre.ethers.utils.parseEther(getRandomArbitrary(5, 100).toString())
 
-		const strategyItems = prepareStrategy(position, deployedContracts[process.env.HARDHAT_NETWORK].UniswapV2Adapter)
+			const strategyName = getRandomName()
+			const position = getRandomPosition()
 
-		const isSocial = Math.random() > 0.5 ? true : false
-		let fee = isSocial ? 100 : 0
-
-		const strategyState = {
-			timelock: 60,
-			rebalanceThreshold: 10,
-			rebalanceSlippage: 997,
-			restructureSlippage: 995,
-			performanceFee: fee,
-			social: isSocial,
-			set: false,
-		}
-
-		let tx = await strategyFactory
-			.connect(account)
-			.createStrategy(
-				account.address,
-				strategyName,
-				strategyName.substring(0, 3),
-				strategyItems,
-				strategyState,
-				routerAddress,
-				'0x',
-				{ value: amount, gasLimit: 5000000 }
+			const strategyItems = prepareStrategy(
+				position,
+				deployedContracts[process.env.HARDHAT_NETWORK].UniswapV2Adapter
 			)
-		let receipt = await tx.wait()
-		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+			const isSocial = Math.random() > 0.5 ? true : false
+			let fee = isSocial ? 100 : 0
+
+			const strategyState = {
+				timelock: 60,
+				rebalanceThreshold: 10,
+				rebalanceSlippage: 997,
+				restructureSlippage: 995,
+				performanceFee: fee,
+				social: isSocial,
+				set: false,
+			}
+
+			let tx = await strategyFactory
+				.connect(account)
+				.createStrategy(
+					account.address,
+					strategyName,
+					strategyName.substring(0, 3),
+					strategyItems,
+					strategyState,
+					routerAddress,
+					'0x',
+					{ value: amount, gasLimit: 5000000 }
+				)
+			let receipt = await tx.wait()
+			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+		}
 	}
 }
 
