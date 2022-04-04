@@ -12,7 +12,6 @@ import {
 	linkBytecode
 } from './link'
 
-import EnsoToken from '../dist/Enso.sol/Enso.json'
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
@@ -62,6 +61,7 @@ import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.j
 import BalancerRegistry from '../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json'
 import BPool from '../artifacts/@balancer-labs/core/contracts/BPool.sol/BPool.json'
 
+import EnsoToken from '@enso/token/artifacts/contracts/Enso.sol/Enso.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -408,7 +408,7 @@ export async function deployPlatform(
 export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWithAddress, name: string, symbol: string, mintingAllowedAfter: number): Promise<Contract> {
 	const ensoToken = await waffle.deployContract(owner, EnsoToken, [name, symbol, minter.address, mintingAllowedAfter])
 	await ensoToken.deployed()
-	return ensoToken 
+	return ensoToken
 }
 
 export async function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contract, defaultEstimator: Contract, strategyFactory: Contract): Promise<Contract> {

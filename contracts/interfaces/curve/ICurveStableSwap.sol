@@ -26,6 +26,10 @@ interface ICurveStableSwap {
 
     function exchange(int128 i, int128 j, uint256 dx, uint256 minDy) external;
 
+    function exchange_underlying(uint256 i, uint256 j, uint256 dx, uint256 minDy) external;
+
+    function exchange_underlying(int128 i, int128 j, uint256 dx, uint256 minDy) external;
+
     function add_liquidity(uint256[2] calldata amounts, uint256 min_mint_amount) external;
 
     function add_liquidity(uint256[3] calldata amounts, uint256 min_mint_amount) external;

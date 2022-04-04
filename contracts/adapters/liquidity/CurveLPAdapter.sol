@@ -140,7 +140,7 @@ contract CurveLPAdapter is BaseAdapter {
               break;
           }
         }
-        IERC20(tokenIn).approve(zap, amount);
+        IERC20(tokenIn).safeApprove(zap, amount);
         uint256 indexType = zapRegistry.getIndexType(zap);
         if (indexType == 0) { //int128
           ICurveDeposit(zap).remove_liquidity_one_coin(amount, tokenIndex, 1);

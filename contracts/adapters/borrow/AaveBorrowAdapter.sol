@@ -36,7 +36,7 @@ contract AaveBorrowAdapter is BaseAdapter {
             // since tokenOut is collateral pool, we are paying back loan
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-            IERC20(tokenIn).approve(lendingPool, amount);
+            IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
         } else if (tokenIn == address(0)) {
             // tokenIn is collateral pool meaning we are taking out loan

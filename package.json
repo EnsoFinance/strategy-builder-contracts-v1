@@ -38,6 +38,7 @@
     "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
     "@chainlink/contracts": "~0.1.6",
     "@enso/staking": "git+ssh://git@github.com:EnsoFinance/staking#core_compatibility",
+    "@enso/token": "git+ssh://git@github.com:EnsoFinance/ETH_Token.git",
     "@ethersproject/abstract-signer": "^5.0.6",
     "@ethersproject/bignumber": "^5.0.8",
     "@nomiclabs/hardhat-ethers": "^2.0.1",

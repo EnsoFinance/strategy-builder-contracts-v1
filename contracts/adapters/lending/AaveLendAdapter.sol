@@ -39,7 +39,7 @@ contract AaveLendAdapter is BaseAdapter {
         if (_checkAToken(tokenOut)) {
             require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");
             address lendingPool = addressesProvider.getLendingPool();
-            IERC20(tokenIn).approve(lendingPool, amount);
+            IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).deposit(tokenIn, amount, to, 0);
             if (strategyController.initialized(to)) {
                 //Add as collateral if strategy supports debt

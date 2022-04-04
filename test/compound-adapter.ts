@@ -24,7 +24,7 @@ chai.use(solidity)
 
 describe('CompoundAdapter', function () {
 	let	weth: Contract,
-		usdc: Contract,
+		usdt: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
@@ -44,7 +44,7 @@ describe('CompoundAdapter', function () {
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
-		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
+		usdt = new Contract(tokens.usdt, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
@@ -64,13 +64,13 @@ describe('CompoundAdapter', function () {
 	})
 
 	it('Should deploy strategy', async function () {
-		cToken = tokens.cUSDC
+		cToken = tokens.cUSDT
 
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdc] }
+			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
@@ -123,7 +123,7 @@ describe('CompoundAdapter', function () {
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
-			.swap(value, 0, weth.address, usdc.address, accounts[19].address, accounts[19].address)
+			.swap(value, 0, weth.address, usdt.address, accounts[19].address, accounts[19].address)
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -139,11 +139,11 @@ describe('CompoundAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = await usdc.balanceOf(accounts[19].address)
-		await usdc.connect(accounts[19]).approve(uniswapAdapter.address, value)
+		const value = await usdt.balanceOf(accounts[19].address)
+		await usdt.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
-			.swap(value, 0, usdc.address, weth.address, accounts[19].address, accounts[19].address)
+			.swap(value, 0, usdt.address, weth.address, accounts[19].address, accounts[19].address)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)

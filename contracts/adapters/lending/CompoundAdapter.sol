@@ -37,7 +37,7 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
         if (_checkCToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);
             require(cToken.underlying() == tokenIn, "Incompatible");
-            IERC20(tokenIn).approve(tokenOut, amount);
+            IERC20(tokenIn).safeApprove(tokenOut, amount);
             cToken.mint(amount);
         } else {
             ICToken cToken = ICToken(tokenIn);
