@@ -4,7 +4,7 @@
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
 const hre = require('hardhat')
-const { ESTIMATOR_CATEGORY, ITEM_CATEGORY } = require('../lib/utils')
+const { ESTIMATOR_CATEGORY, ITEM_CATEGORY } = require('../lib/constants')
 const deployments = require('../deployments.json')
 const fs = require('fs')
 const network = process.env.HARDHAT_NETWORK
