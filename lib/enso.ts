@@ -33,7 +33,7 @@ import {
 	deployBatchDepositRouter,
 	Platform
 } from './deploy'
-import { MAINNET_ADDRESSES } from './utils'
+import { MAINNET_ADDRESSES } from './constants'
 
 const { AddressZero, WeiPerEther } = ethers.constants
 
