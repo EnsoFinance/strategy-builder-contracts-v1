@@ -14,9 +14,9 @@ const deployedContracts = {
 		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
 		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-		uniswapV3Factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
-		uniswapV3Router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		uniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		uniswapV3Factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+		uniswapV3Router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
 		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
@@ -27,9 +27,9 @@ const deployedContracts = {
 		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
 		usdc: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-		uniswapV3Factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
-		uniswapV3Router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		uniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		uniswapV3Factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+		uniswapV3Router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
 		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
@@ -40,10 +40,11 @@ const deployedContracts = {
 		weth: '0xd0a1e359811322d97991e03f863a0c30c2cf029c',
 		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
 		usdc: '0xe22da380ee6B445bb8273C81944ADEB6E8450422',
-		uniswapFactory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
-		uniswapV3Factory: '0x1f98431c8ad98523631ae4a59f267346ea31f984',
-		uniswapV3Router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+		uniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+		uniswapV3Factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
+		uniswapV3Router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
 		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
+		curveAddressProvider: '',
 		synthetixAddressProvider: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
 		compoundComptroller: '',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b',
@@ -90,9 +91,9 @@ async function main() {
 	add2Deployments('ChainlinkRegistry', chainlinkRegistry.address)
 
 	// Add oracles
-	const UniswapOracle = await hre.ethers.getContractFactory('UniswapNaiveOracle')
+	const UniswapOracle = await hre.ethers.getContractFactory('UniswapV3Oracle')
 	const uniswapOracle = await UniswapOracle.deploy(
-		deployedContracts[network].uniswapFactory,
+		uniswapV3Registry.address,
 		deployedContracts[network].weth
 	)
 	await uniswapOracle.deployed()
@@ -322,7 +323,7 @@ async function main() {
 
 	const UniswapV2Adapter = await hre.ethers.getContractFactory('UniswapV2Adapter')
 	const uniswapV2Adapter = await UniswapV2Adapter.deploy(
-		deployedContracts[network].uniswapFactory,
+		deployedContracts[network].uniswapV2Factory,
 		deployedContracts[network].weth
 	)
 	await uniswapV2Adapter.deployed()
