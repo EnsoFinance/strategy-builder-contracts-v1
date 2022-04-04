@@ -26,7 +26,7 @@ import {
   TIMELOCK_CATEGORY,
   ITEM_CATEGORY,
   ESTIMATOR_CATEGORY
-} from './utils'
+} from './constants'
 
 import {
   createLink,
