@@ -70,7 +70,7 @@ contract EnsoStakingAdapter is BaseAdapter, IRewardsAdapter {
             uint256 difference = fromBalanceAfter.sub(fromBalanceBefore);
             require(difference >= expected, "swap: Insufficient tokenOut amount");
             if (to != from)
-              IERC20(tokenOut).transferFrom(from, to, difference);
+              IERC20(tokenOut).safeTransferFrom(from, to, difference);
         } else {
             revert("swap: token not supported.");
         }
