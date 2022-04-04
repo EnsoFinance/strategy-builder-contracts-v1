@@ -7,7 +7,6 @@ import "../../interfaces/curve/ICurveAddressProvider.sol";
 import "../../interfaces/curve/ICurveStableSwap.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
 import "../BaseAdapter.sol";
-import "hardhat/console.sol";
 
 contract CurveAdapter is BaseAdapter {
     using SafeERC20 for IERC20;
@@ -42,7 +41,6 @@ contract CurveAdapter is BaseAdapter {
         } else {
             ICurveStableSwap(pool).exchange(indexIn, indexOut, amount, 1);
         }
-        console.log("Exchange successful");
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
         if (to != address(this))

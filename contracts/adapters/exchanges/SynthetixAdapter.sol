@@ -3,7 +3,6 @@ pragma solidity 0.6.12;
 
 import "../../interfaces/synthetix/ISynth.sol";
 import "../../interfaces/synthetix/ISynthetix.sol";
-import "../../interfaces/synthetix/IExchanger.sol";
 import "../../interfaces/synthetix/IAddressResolver.sol";
 import "../BaseAdapter.sol";
 
