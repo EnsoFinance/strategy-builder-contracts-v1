@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants

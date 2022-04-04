@@ -15,7 +15,7 @@ import {
 	deployLoopRouter,
 	deployGenericRouter
 } from '../lib/deploy'
-import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/utils'
+import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 const { constants, getSigners, getContractFactory } = ethers

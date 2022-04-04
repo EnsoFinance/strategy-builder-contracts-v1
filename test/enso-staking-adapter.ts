@@ -25,7 +25,7 @@ import {
 import {
 		ITEM_CATEGORY,
 		ESTIMATOR_CATEGORY,
-} from '../lib/utils'
+} from '../lib/constants'
 
 chai.use(solidity)
 

@@ -27,7 +27,7 @@ import {
 	deployLoopRouter,
 	deployGenericRouter
 } from '../lib/deploy'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 
 const NUM_TOKENS = 15

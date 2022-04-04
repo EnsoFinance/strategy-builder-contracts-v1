@@ -18,7 +18,7 @@ import {
 	StrategyItem,
 	InitialState
 } from '../lib/encode'
-import { MAINNET_ADDRESSES } from '../lib/utils'
+import { MAINNET_ADDRESSES } from '../lib/constants'
 
 import { displayBalances } from '../lib/logging'
 import { Contract, BigNumber } from 'ethers'

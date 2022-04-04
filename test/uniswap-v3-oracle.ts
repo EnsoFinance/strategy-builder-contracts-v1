@@ -10,7 +10,9 @@ const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const { deployTokens, deployUniswapV3 } = require('../lib/deploy')
 const { encodePath } = require('../lib/encode')
-const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline, UNI_V3_FEE } = require('../lib/utils')
+const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline } = require('../lib/utils')
+const {  UNI_V3_FEE } = require('../lib/constants')
+
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
 const UniswapV3Pool = require('@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json')
 const SwapRouter = require('@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json')

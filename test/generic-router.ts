@@ -21,7 +21,7 @@ import {
 	StrategyItem,
 	InitialState
 } from '../lib/encode'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
