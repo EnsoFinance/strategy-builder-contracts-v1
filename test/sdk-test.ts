@@ -1,9 +1,10 @@
+import { MAINNET_ADDRESSES } from '../lib/constants'
+
 const hre = require('hardhat')
 const { ethers } = hre
 // const { getContractFactory } = waffle
 const { getSigners} = ethers
 const { EnsoBuilder, EnsoEnvironment } = require('../lib/index')
-import * as utils from '../lib/utils'
 // import { StrategyBuilder } from '@enso/contracts/lib/encode'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
@@ -18,11 +19,11 @@ describe('SDK', function () {
 	})
 	it('deploy platform with defaults', async () => {
 		mainnetForkEnso = await new EnsoBuilder(accounts[1]).build()
-		expect(mainnetForkEnso.uniswapV2Factory.address.toLowerCase()).to.eq(utils.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase())
+		expect(mainnetForkEnso.uniswapV2Factory.address.toLowerCase()).to.eq(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase())
 	})
 	it('deploy platform with testnet defaults', async () => {
 		localTestnetEnso = await new EnsoBuilder(accounts[1]).testnet().build()
-		expect(localTestnetEnso.uniswapV2Factory.address.toLowerCase()).to.not.eq(utils.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase())
+		expect(localTestnetEnso.uniswapV2Factory.address.toLowerCase()).to.not.eq(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase())
 	})
 	it('deploy platform with leverage adapter', async () => {
 		const builder = new EnsoBuilder(accounts[1])
