@@ -15,7 +15,7 @@ import {
 	deployCurveRewardsAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
-	deployLoopRouter
+	deployLoopRouter,
 } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
@@ -31,8 +31,14 @@ describe('TokenRegistry', function () {
 		this.crv = new Contract(this.tokens.crv, ERC20.abi, this.accounts[0])
 		this.dai = new Contract(this.tokens.dai, ERC20.abi, this.accounts[0])
 		this.uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, this.accounts[0])
-		const susd =  new Contract(this.tokens.sUSD, ERC20.abi, this.accounts[0])
-		const platform = await deployPlatform(this.accounts[0], this.uniswapFactory, new Contract(AddressZero, [], this.accounts[0]), this.weth, susd)
+		const susd = new Contract(this.tokens.sUSD, ERC20.abi, this.accounts[0])
+		const platform = await deployPlatform(
+			this.accounts[0],
+			this.uniswapFactory,
+			new Contract(AddressZero, [], this.accounts[0]),
+			this.weth,
+			susd
+		)
 		this.factory = platform.strategyFactory
 		this.controller = platform.controller
 		this.oracle = platform.oracles.ensoOracle
@@ -41,7 +47,13 @@ describe('TokenRegistry', function () {
 		this.tokenRegistry = platform.oracles.registries.tokenRegistry
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await this.tokens.registerTokens(this.accounts[0], this.factory, undefined, chainlinkRegistry, curveDepositZapRegistry)
+		await this.tokens.registerTokens(
+			this.accounts[0],
+			this.factory,
+			undefined,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.accounts[0])
 		this.router = await deployLoopRouter(this.accounts[0], this.controller, this.library)
@@ -50,7 +62,12 @@ describe('TokenRegistry', function () {
 		await this.whitelist.connect(this.accounts[0]).approve(this.uniswapAdapter.address)
 		this.curveAdapter = await deployCurveAdapter(this.accounts[0], addressProvider, this.weth)
 		await this.whitelist.connect(this.accounts[0]).approve(this.curveAdapter.address)
-		this.curveLPAdapter = await deployCurveLPAdapter(this.accounts[0], addressProvider, curveDepositZapRegistry, this.weth)
+		this.curveLPAdapter = await deployCurveLPAdapter(
+			this.accounts[0],
+			addressProvider,
+			curveDepositZapRegistry,
+			this.weth
+		)
 		await this.whitelist.connect(this.accounts[0]).approve(this.curveLPAdapter.address)
 		this.curveRewardsAdapter = await deployCurveRewardsAdapter(this.accounts[0], addressProvider, this.weth)
 		await this.whitelist.connect(this.accounts[0]).approve(this.curveRewardsAdapter.address)
@@ -72,11 +89,12 @@ describe('TokenRegistry', function () {
 		const positions = [
 			{ token: this.dai.address, percentage: BigNumber.from(500) },
 			{ token: this.crv.address, percentage: BigNumber.from(0) },
-			{ token: this.rewardToken,
+			{
+				token: this.rewardToken,
 				percentage: BigNumber.from(500),
 				adapters: [this.uniswapAdapter.address, this.curveLPAdapter.address, this.curveRewardsAdapter.address],
-				path: [this.tokens.link, this.tokens.crvLINK]
-			}
+				path: [this.tokens.link, this.tokens.crvLINK],
+			},
 		]
 		const strategyItems = prepareStrategy(positions, this.uniswapAdapter.address)
 		const strategyState: InitialState = {
@@ -86,7 +104,7 @@ describe('TokenRegistry', function () {
 			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await this.factory
 			.connect(this.accounts[1])
@@ -111,8 +129,8 @@ describe('TokenRegistry', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: this.library.address
-			}
+				StrategyLibrary: this.library.address,
+			},
 		})
 		this.wrapper = await LibraryWrapper.deploy(this.oracle.address, strategyAddress)
 		await this.wrapper.deployed()
@@ -121,4 +139,65 @@ describe('TokenRegistry', function () {
 		expect(await this.wrapper.isBalanced()).to.equal(true)
 	})
 
+	it('Only owner can call', async function () {
+		const itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
+		const estimatorCategories = [ESTIMATOR_CATEGORY.AAVE_V2, ESTIMATOR_CATEGORY.COMPOUND]
+		const tokens = [this.tokens.aWETH, this.tokens.cUSDC]
+		await expect(
+			this.factory
+				.connect(this.accounts[5].address)
+				.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
+		).to.be.revertedWith('Not owner')
+	})
+
+	it('Should add a batch of tokens', async function () {
+		const itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
+		const estimatorCategories = [ESTIMATOR_CATEGORY.AAVE_V2, ESTIMATOR_CATEGORY.COMPOUND]
+		const tokens = [this.tokens.aWETH, this.tokens.cUSDC]
+		await this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
+		const promises = []
+		promises.push(this.tokenRegistry.estimatorCategories(this.tokens.aWETH))
+		promises.push(this.tokenRegistry.estimatorCategories(this.tokens.cUSDC))
+		promises.push(this.tokenRegistry.itemCategories(this.tokens.aWETH))
+		promises.push(this.tokenRegistry.itemCategories(this.tokens.cUSDC))
+		const results = await Promise.all(promises)
+		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.AAVE_V2)
+		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
+		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
+		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
+	})
+
+	it('Should change estimator categories on a batch of tokens', async function () {
+		const itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
+		const estimatorCategories = [ESTIMATOR_CATEGORY.UNISWAP_V2_LP, ESTIMATOR_CATEGORY.STAKED_ENSO]
+		const tokens = [this.tokens.aWETH, this.tokens.cUSDC]
+		const promises = []
+		await this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
+		promises.push( this.tokenRegistry.estimatorCategories(this.tokens.aWETH))
+		promises.push(this.tokenRegistry.estimatorCategories(this.tokens.cUSDC))
+		promises.push(this.tokenRegistry.itemCategories(this.tokens.aWETH))
+		promises.push(this.tokenRegistry.itemCategories(this.tokens.cUSDC))
+		const results = await Promise.all(promises)
+		expect(results[0]).to.be.eq(
+			ESTIMATOR_CATEGORY.UNISWAP_V2_LP
+		)
+		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.STAKED_ENSO)
+		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
+		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
+	})
+
+	it("Should fail if array lengths don't match", async function () {
+		let itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
+		let estimatorCategories = [ESTIMATOR_CATEGORY.AAVE_V2, ESTIMATOR_CATEGORY.COMPOUND]
+		let tokens = [this.tokens.aWETH, this.tokens.cUSDC, this.tokens.dai]
+		await expect(this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)).to.be.revertedWith(
+			'Mismatched array lengths'
+		)
+		itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
+		estimatorCategories = [ESTIMATOR_CATEGORY.AAVE_V2, ESTIMATOR_CATEGORY.COMPOUND]
+		tokens = [this.tokens.aWETH, this.tokens.cUSDC]
+		await expect(this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)).to.be.revertedWith(
+			'Mismatched array lengths'
+		)
+	})
 })
