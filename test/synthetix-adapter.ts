@@ -16,7 +16,8 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { increaseTime, MAINNET_ADDRESSES } from '../lib/utils'
+import { increaseTime } from '../lib/utils'
+import { MAINNET_ADDRESSES} from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import IAddressResolver from '../artifacts/contracts/interfaces/synthetix/IAddressResolver.sol/IAddressResolver.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'

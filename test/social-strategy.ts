@@ -6,7 +6,8 @@ const hre = require('hardhat')
 const { ethers } = hre
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { increaseTime, DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/utils'
+import { increaseTime  } from '../lib/utils'
+import {  DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers

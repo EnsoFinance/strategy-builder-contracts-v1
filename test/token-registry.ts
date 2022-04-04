@@ -7,7 +7,7 @@ const { AddressZero } = constants
 import { solidity } from 'ethereum-waffle'
 import { Contract } from 'ethers'
 import { Tokens } from '../lib/tokens'
-import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES } from '../lib/utils'
+import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES } from '../lib/constants'
 import { prepareStrategy, InitialState } from '../lib/encode'
 import {
 	deployCurveAdapter,

@@ -1,6 +1,5 @@
 import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
-import { ITEM_CATEGORY, MAINNET_ADDRESSES, DIVISOR } from './utils'
 
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
@@ -13,6 +12,7 @@ import IYEarnV2Vault from '../artifacts/contracts/interfaces/yearn/IYEarnV2Vault
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
+import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES } from './constants'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils

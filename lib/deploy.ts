@@ -6,11 +6,6 @@ import {
 		getDeadline,
 		getMinTick,
 		getMaxTick,
-		MAINNET_ADDRESSES,
-		ITEM_CATEGORY,
-		ESTIMATOR_CATEGORY,
-		UNI_V3_FEE,
-		ORACLE_TIME_WINDOW
 } from './utils'
 import {
 	createLink,
@@ -74,6 +69,7 @@ import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import NFTDescriptor from '@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json'
 import NonfungiblePositionManager from '@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json'
+import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, ORACLE_TIME_WINDOW, UNI_V3_FEE } from './constants'
 //import NonfungibleTokenPositionDescriptor from '../artifacts/contracts/test/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json'
 
 const { ethers, waffle } = hre

@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
-import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from "./utils"
+import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from "./constants"
 
 export class Tokens {
   // Basic

@@ -15,7 +15,7 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
