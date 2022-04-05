@@ -39,12 +39,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deployGenericRouter = exports.deployBatchDepositRouter = exports.deployFullRouter = exports.deployLoopRouter = exports.deployLeverage2XAdapter = exports.deploySynthetixAdapter = exports.deployCurveRewardsAdapter = exports.deployCurveLPAdapter = exports.deployCurveAdapter = exports.deployYEarnAdapter = exports.deployCompoundAdapter = exports.deployAaveBorrowAdapter = exports.deployAaveLendAdapter = exports.deployMetaStrategyAdapter = exports.deployUniswapV3Adapter = exports.deployUniswapV2LPAdapter = exports.deployEnsoStakingAdapter = exports.deployUniswapV2Adapter = exports.deployStakedEnsoEstimator = exports.deployEnsoEstimator = exports.deployEnsoToken = exports.deployPlatform = exports.deployUniswapV3 = exports.deployUniswapV2 = exports.deployBalancerAdapter = exports.deployBalancer = exports.deployTokens = exports.Platform = void 0;
+exports.deployMulticallRouter = exports.deployBatchDepositRouter = exports.deployFullRouter = exports.deployLoopRouter = exports.deployLeverage2XAdapter = exports.deploySynthetixAdapter = exports.deployCurveGaugeAdapter = exports.deployCurveLPAdapter = exports.deployCurveAdapter = exports.deployYEarnAdapter = exports.deployCompoundAdapter = exports.deployAaveV2DebtAdapter = exports.deployAaveV2Adapter = exports.deployMetaStrategyAdapter = exports.deployUniswapV3Adapter = exports.deployUniswapV2LPAdapter = exports.deployEnsoStakingAdapter = exports.deployUniswapV2Adapter = exports.deployStakedEnsoEstimator = exports.deployEnsoEstimator = exports.deployEnsoToken = exports.deployPlatform = exports.deployUniswapV3 = exports.deployUniswapV2 = exports.deployBalancerAdapter = exports.deployBalancer = exports.deployTokens = exports.Platform = void 0;
 var hardhat_1 = __importDefault(require("hardhat"));
 var ethers_1 = require("ethers");
 var utils_1 = require("./utils");
 var link_1 = require("./link");
-var Enso_json_1 = __importDefault(require("../dist/Enso.sol/Enso.json"));
 var PlatformProxyAdmin_json_1 = __importDefault(require("../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json"));
 var Strategy_json_1 = __importDefault(require("../artifacts/contracts/Strategy.sol/Strategy.json"));
 var StrategyController_json_1 = __importDefault(require("../artifacts/contracts/StrategyController.sol/StrategyController.json"));
@@ -54,17 +53,17 @@ var EnsoOracle_json_1 = __importDefault(require("../artifacts/contracts/oracles/
 var UniswapNaiveOracle_json_1 = __importDefault(require("../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json"));
 var UniswapV3Oracle_json_1 = __importDefault(require("../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json"));
 var ChainlinkOracle_json_1 = __importDefault(require("../artifacts/contracts/oracles/protocols/ChainlinkOracle.sol/ChainlinkOracle.json"));
-var AaveEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json"));
-var AaveDebtEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json"));
+var AaveV2Estimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/AaveV2Estimator.sol/AaveV2Estimator.json"));
+var AaveV2DebtEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/AaveV2DebtEstimator.sol/AaveV2DebtEstimator.json"));
 var BasicEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json"));
 var EnsoEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json"));
 var StakedEnsoEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json"));
 var CompoundEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json"));
-var CurveEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json"));
+var CurveLPEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveLPEstimator.sol/CurveLPEstimator.json"));
 var CurveGaugeEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json"));
 var EmergencyEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/EmergencyEstimator.sol/EmergencyEstimator.json"));
 var StrategyEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/StrategyEstimator.sol/StrategyEstimator.json"));
-var UniswapV2Estimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/UniswapV2Estimator.sol/UniswapV2Estimator.json"));
+var UniswapV2LPEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/UniswapV2LPEstimator.sol/UniswapV2LPEstimator.json"));
 var YEarnV2Estimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/YEarnV2Estimator.sol/YEarnV2Estimator.json"));
 var TokenRegistry_json_1 = __importDefault(require("../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json"));
 var CurveDepositZapRegistry_json_1 = __importDefault(require("../artifacts/contracts/oracles/registries/CurveDepositZapRegistry.sol/CurveDepositZapRegistry.json"));
@@ -74,18 +73,18 @@ var Whitelist_json_1 = __importDefault(require("../artifacts/contracts/Whitelist
 var LoopRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json"));
 var FullRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/FullRouter.sol/FullRouter.json"));
 var BatchDepositRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json"));
-var GenericRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json"));
+var MulticallRouter_json_1 = __importDefault(require("../artifacts/contracts/routers/MulticallRouter.sol/MulticallRouter.json"));
 var EnsoStakingAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/staking/EnsoStakingAdapter.sol/EnsoStakingAdapter.json"));
 var UniswapV2Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json"));
 var UniswapV2LPAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json"));
 var UniswapV3Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json"));
 var MetaStrategyAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/strategy/MetaStrategyAdapter.sol/MetaStrategyAdapter.json"));
-var AaveLendAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/lending/AaveLendAdapter.sol/AaveLendAdapter.json"));
-var AaveBorrowAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/borrow/AaveBorrowAdapter.sol/AaveBorrowAdapter.json"));
+var AaveV2Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/lending/AaveV2Adapter.sol/AaveV2Adapter.json"));
+var AaveV2DebtAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/borrow/AaveV2DebtAdapter.sol/AaveV2DebtAdapter.json"));
 var CompoundAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/lending/CompoundAdapter.sol/CompoundAdapter.json"));
 var CurveAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/CurveAdapter.sol/CurveAdapter.json"));
 var CurveLPAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json"));
-var CurveRewardsAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/vaults/CurveRewardsAdapter.sol/CurveRewardsAdapter.json"));
+var CurveGaugeAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/vaults/CurveGaugeAdapter.sol/CurveGaugeAdapter.json"));
 var Leverage2XAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json"));
 var SynthetixAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json"));
 var YEarnV2Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json"));
@@ -93,6 +92,7 @@ var BalancerAdapter_json_1 = __importDefault(require("../artifacts/contracts/ada
 var Balancer_json_1 = __importDefault(require("../artifacts/contracts/test/Balancer.sol/Balancer.json"));
 var BalancerRegistry_json_1 = __importDefault(require("../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json"));
 var BPool_json_1 = __importDefault(require("../artifacts/@balancer-labs/core/contracts/BPool.sol/BPool.json"));
+var Enso_json_1 = __importDefault(require("@enso/token/artifacts/contracts/Enso.sol/Enso.json"));
 var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
 var WETH9_json_1 = __importDefault(require("@uniswap/v2-periphery/build/WETH9.json"));
 var UniswapV2Factory_json_1 = __importDefault(require("@uniswap/v2-core/build/UniswapV2Factory.json"));
@@ -100,7 +100,7 @@ var UniswapV2Pair_json_1 = __importDefault(require("@uniswap/v2-core/build/Unisw
 var UniswapV3Factory_json_1 = __importDefault(require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"));
 var NFTDescriptor_json_1 = __importDefault(require("@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json"));
 var NonfungiblePositionManager_json_1 = __importDefault(require("@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json"));
-//import NonfungibleTokenPositionDescriptor from '../artifacts/contracts/test/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json'
+var constants_1 = require("./constants");
 var ethers = hardhat_1.default.ethers, waffle = hardhat_1.default.waffle;
 var constants = ethers.constants, getContractFactory = ethers.getContractFactory;
 var WeiPerEther = constants.WeiPerEther, AddressZero = constants.AddressZero;
@@ -330,7 +330,7 @@ function deployUniswapV3(owner, tokens) {
                     bNum = ethers.BigNumber.from(tokens[i].address);
                     flipper = aNum.lt(bNum);
                     //tokens[0] is used as the trading pair (WETH)
-                    return [4 /*yield*/, uniswapNFTManager.createAndInitializePoolIfNecessary(flipper ? tokens[0].address : tokens[i].address, flipper ? tokens[i].address : tokens[0].address, utils_1.UNI_V3_FEE, utils_1.encodePriceSqrt(1, 1))
+                    return [4 /*yield*/, uniswapNFTManager.createAndInitializePoolIfNecessary(flipper ? tokens[0].address : tokens[i].address, flipper ? tokens[i].address : tokens[0].address, constants_1.UNI_V3_FEE, utils_1.encodePriceSqrt(1, 1))
                         // Add liquidity
                     ];
                 case 10:
@@ -346,7 +346,7 @@ function deployUniswapV3(owner, tokens) {
                             token1: flipper ? tokens[i].address : tokens[0].address,
                             tickLower: utils_1.getMinTick(60),
                             tickUpper: utils_1.getMaxTick(60),
-                            fee: utils_1.UNI_V3_FEE,
+                            fee: constants_1.UNI_V3_FEE,
                             recipient: owner.address,
                             amount0Desired: WeiPerEther.mul(100),
                             amount1Desired: WeiPerEther.mul(100),
@@ -368,7 +368,7 @@ function deployUniswapV3(owner, tokens) {
 exports.deployUniswapV3 = deployUniswapV3;
 function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, susd, feePool) {
     return __awaiter(this, void 0, void 0, function () {
-        var strategyLibrary, strategyLibraryLink, tokenRegistry, curveDepositZapRegistry, uniswapV3Registry, chainlinkRegistry, uniswapOracle, chainlinkOracle, ensoOracle, defaultEstimator, chainlinkEstimator, strategyEstimator, emergencyEstimator, aaveEstimator, aaveDebtEstimator, compoundEstimator, curveEstimator, curveGaugeEstimator, uniswapV2Estimator, yearnV2Estimator, whitelist, platformProxyAdmin, controllerAddress, factoryAddress, controllerImplementation, factoryImplementation, strategyImplementation, factory, controller, oracles, administration;
+        var strategyLibrary, strategyLibraryLink, tokenRegistry, curveDepositZapRegistry, uniswapV3Registry, chainlinkRegistry, uniswapOracle, chainlinkOracle, ensoOracle, defaultEstimator, chainlinkEstimator, strategyEstimator, emergencyEstimator, aaveV2Estimator, aaveV2DebtEstimator, compoundEstimator, curveLPEstimator, curveGaugeEstimator, uniswapV2LPEstimator, yearnV2Estimator, whitelist, platformProxyAdmin, controllerAddress, factoryAddress, controllerImplementation, factoryImplementation, strategyImplementation, factory, controller, oracles, administration;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, StrategyLibrary_json_1.default, [])];
@@ -390,7 +390,7 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
                     return [4 /*yield*/, curveDepositZapRegistry.deployed()];
                 case 6:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, UniswapV3Registry_json_1.default, [utils_1.ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address])];
+                    return [4 /*yield*/, waffle.deployContract(owner, UniswapV3Registry_json_1.default, [constants_1.ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address])];
                 case 7:
                     uniswapV3Registry = _a.sent();
                     return [4 /*yield*/, uniswapV3Registry.deployed()];
@@ -441,74 +441,74 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
                     return [4 /*yield*/, waffle.deployContract(owner, BasicEstimator_json_1.default, [uniswapOracle.address])];
                 case 20:
                     defaultEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)];
                 case 21:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, BasicEstimator_json_1.default, [chainlinkOracle.address])];
                 case 22:
                     chainlinkEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)];
                 case 23:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, StrategyEstimator_json_1.default, [])];
                 case 24:
                     strategyEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)];
                 case 25:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, EmergencyEstimator_json_1.default, [])];
                 case 26:
                     emergencyEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)];
                 case 27:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, AaveEstimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, AaveV2Estimator_json_1.default, [])];
                 case 28:
-                    aaveEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.AAVE_V2, aaveEstimator.address)];
+                    aaveV2Estimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)];
                 case 29:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, AaveDebtEstimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, AaveV2DebtEstimator_json_1.default, [])];
                 case 30:
-                    aaveDebtEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.AAVE_DEBT, aaveDebtEstimator.address)];
+                    aaveV2DebtEstimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)];
                 case 31:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, CompoundEstimator_json_1.default, [])];
                 case 32:
                     compoundEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)];
                 case 33:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, CurveEstimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, CurveLPEstimator_json_1.default, [])];
                 case 34:
-                    curveEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)];
+                    curveLPEstimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)];
                 case 35:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, CurveGaugeEstimator_json_1.default, [])];
                 case 36:
                     curveGaugeEstimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)];
                 case 37:
                     _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, UniswapV2Estimator_json_1.default, [])];
+                    return [4 /*yield*/, waffle.deployContract(owner, UniswapV2LPEstimator_json_1.default, [])];
                 case 38:
-                    uniswapV2Estimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2Estimator.address)];
+                    uniswapV2LPEstimator = _a.sent();
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2LPEstimator.address)];
                 case 39:
                     _a.sent();
                     return [4 /*yield*/, waffle.deployContract(owner, YEarnV2Estimator_json_1.default, [])];
                 case 40:
                     yearnV2Estimator = _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(utils_1.ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addEstimator(constants_1.ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)];
                 case 41:
                     _a.sent();
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)];
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(constants_1.ITEM_CATEGORY.RESERVE, constants_1.ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)];
                 case 42:
                     _a.sent();
                     if (!susd) return [3 /*break*/, 44];
-                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
+                    return [4 /*yield*/, tokenRegistry.connect(owner).addItem(constants_1.ITEM_CATEGORY.RESERVE, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
                         // Whitelist
                     ];
                 case 43:
@@ -555,8 +555,8 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
                     return [4 /*yield*/, waffle.deployContract(owner, Strategy_json_1.default, [
                             factoryAddress,
                             controllerAddress,
-                            utils_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
-                            utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
+                            constants_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
+                            constants_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
                         ])];
                 case 55:
                     strategyImplementation = _a.sent();
@@ -621,7 +621,7 @@ function deployEnsoEstimator(owner, sEnso, defaultEstimator, strategyFactory) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, EnsoEstimator_json_1.default, [sEnso.address, defaultEstimator.address])];
                 case 1:
                     ensoEstimator = _a.sent();
-                    return [4 /*yield*/, strategyFactory.connect(owner).addEstimatorToRegistry(utils_1.ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)];
+                    return [4 /*yield*/, strategyFactory.connect(owner).addEstimatorToRegistry(constants_1.ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)];
                 case 2:
                     _a.sent();
                     return [2 /*return*/, ensoEstimator];
@@ -638,7 +638,7 @@ function deployStakedEnsoEstimator(owner, strategyFactory) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, StakedEnsoEstimator_json_1.default, [])];
                 case 1:
                     stakedEnsoEstimator = _a.sent();
-                    return [4 /*yield*/, strategyFactory.connect(owner).addEstimatorToRegistry(utils_1.ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)];
+                    return [4 /*yield*/, strategyFactory.connect(owner).addEstimatorToRegistry(constants_1.ESTIMATOR_CATEGORY.ENSO_STAKED, stakedEnsoEstimator.address)];
                 case 2:
                     _a.sent();
                     return [2 /*return*/, stakedEnsoEstimator];
@@ -732,12 +732,12 @@ function deployMetaStrategyAdapter(owner, controller, router, weth) {
     });
 }
 exports.deployMetaStrategyAdapter = deployMetaStrategyAdapter;
-function deployAaveLendAdapter(owner, addressProvider, strategyController, weth) {
+function deployAaveV2Adapter(owner, addressProvider, strategyController, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, AaveLendAdapter_json_1.default, [addressProvider.address, strategyController.address, weth.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, AaveV2Adapter_json_1.default, [addressProvider.address, strategyController.address, weth.address])];
                 case 1:
                     adapter = _a.sent();
                     return [4 /*yield*/, adapter.deployed()];
@@ -748,13 +748,13 @@ function deployAaveLendAdapter(owner, addressProvider, strategyController, weth)
         });
     });
 }
-exports.deployAaveLendAdapter = deployAaveLendAdapter;
-function deployAaveBorrowAdapter(owner, addressProvider, weth) {
+exports.deployAaveV2Adapter = deployAaveV2Adapter;
+function deployAaveV2DebtAdapter(owner, addressProvider, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, AaveBorrowAdapter_json_1.default, [addressProvider.address, weth.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, AaveV2DebtAdapter_json_1.default, [addressProvider.address, weth.address])];
                 case 1:
                     adapter = _a.sent();
                     return [4 /*yield*/, adapter.deployed()];
@@ -765,7 +765,7 @@ function deployAaveBorrowAdapter(owner, addressProvider, weth) {
         });
     });
 }
-exports.deployAaveBorrowAdapter = deployAaveBorrowAdapter;
+exports.deployAaveV2DebtAdapter = deployAaveV2DebtAdapter;
 function deployCompoundAdapter(owner, comptroller, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
@@ -841,12 +841,12 @@ function deployCurveLPAdapter(owner, curveAddressProvider, curveDepositZapRegist
     });
 }
 exports.deployCurveLPAdapter = deployCurveLPAdapter;
-function deployCurveRewardsAdapter(owner, curveAddressProvider, weth) {
+function deployCurveGaugeAdapter(owner, curveAddressProvider, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, CurveRewardsAdapter_json_1.default, [
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, CurveGaugeAdapter_json_1.default, [
                         curveAddressProvider.address,
                         weth.address
                     ])];
@@ -860,7 +860,7 @@ function deployCurveRewardsAdapter(owner, curveAddressProvider, weth) {
         });
     });
 }
-exports.deployCurveRewardsAdapter = deployCurveRewardsAdapter;
+exports.deployCurveGaugeAdapter = deployCurveGaugeAdapter;
 function deploySynthetixAdapter(owner, resolver, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
@@ -881,15 +881,15 @@ function deploySynthetixAdapter(owner, resolver, weth) {
     });
 }
 exports.deploySynthetixAdapter = deploySynthetixAdapter;
-function deployLeverage2XAdapter(owner, defaultAdapter, aaveLendAdapter, aaveBorrowAdapter, debtToken, weth) {
+function deployLeverage2XAdapter(owner, defaultAdapter, aaveV2Adapter, aaveV2DebtAdapter, debtToken, weth) {
     return __awaiter(this, void 0, void 0, function () {
         var adapter;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0: return [4 /*yield*/, waffle.deployContract(owner, Leverage2XAdapter_json_1.default, [
                         defaultAdapter.address,
-                        aaveLendAdapter.address,
-                        aaveBorrowAdapter.address,
+                        aaveV2Adapter.address,
+                        aaveV2DebtAdapter.address,
                         debtToken.address,
                         weth.address
                     ])];
@@ -955,12 +955,12 @@ function deployBatchDepositRouter(owner, controller, library) {
     });
 }
 exports.deployBatchDepositRouter = deployBatchDepositRouter;
-function deployGenericRouter(owner, controller) {
+function deployMulticallRouter(owner, controller) {
     return __awaiter(this, void 0, void 0, function () {
         var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, GenericRouter_json_1.default, [controller.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, MulticallRouter_json_1.default, [controller.address])];
                 case 1:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
@@ -971,4 +971,4 @@ function deployGenericRouter(owner, controller) {
         });
     });
 }
-exports.deployGenericRouter = deployGenericRouter;
+exports.deployMulticallRouter = deployMulticallRouter;

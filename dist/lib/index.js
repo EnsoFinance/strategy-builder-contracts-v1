@@ -19,10 +19,10 @@ Object.defineProperty(exports, "encodeSettleTransfer", { enumerable: true, get: 
 Object.defineProperty(exports, "encodeTransfer", { enumerable: true, get: function () { return encode_1.encodeTransfer; } });
 Object.defineProperty(exports, "encodeTransferFrom", { enumerable: true, get: function () { return encode_1.encodeTransferFrom; } });
 Object.defineProperty(exports, "encodeApprove", { enumerable: true, get: function () { return encode_1.encodeApprove; } });
-var utils_1 = require("./utils");
-Object.defineProperty(exports, "TIMELOCK_CATEGORY", { enumerable: true, get: function () { return utils_1.TIMELOCK_CATEGORY; } });
-Object.defineProperty(exports, "ITEM_CATEGORY", { enumerable: true, get: function () { return utils_1.ITEM_CATEGORY; } });
-Object.defineProperty(exports, "ESTIMATOR_CATEGORY", { enumerable: true, get: function () { return utils_1.ESTIMATOR_CATEGORY; } });
+var constants_1 = require("./constants");
+Object.defineProperty(exports, "TIMELOCK_CATEGORY", { enumerable: true, get: function () { return constants_1.TIMELOCK_CATEGORY; } });
+Object.defineProperty(exports, "ITEM_CATEGORY", { enumerable: true, get: function () { return constants_1.ITEM_CATEGORY; } });
+Object.defineProperty(exports, "ESTIMATOR_CATEGORY", { enumerable: true, get: function () { return constants_1.ESTIMATOR_CATEGORY; } });
 var link_1 = require("./link");
 Object.defineProperty(exports, "createLink", { enumerable: true, get: function () { return link_1.createLink; } });
 Object.defineProperty(exports, "linkBytecode", { enumerable: true, get: function () { return link_1.linkBytecode; } });

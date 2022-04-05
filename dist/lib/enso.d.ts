@@ -3,13 +3,13 @@ import { BigNumber, Contract } from 'ethers';
 import { Platform } from './deploy';
 export declare const wethPerToken: (numTokens: number) => BigNumber;
 export declare type EnsoAdapters = {
-    aavelend: Adapter;
-    aaveborrow: Adapter;
+    aaveV2: Adapter;
+    aaveV2Debt: Adapter;
     balancer: Adapter;
     compound: Adapter;
     curve: Adapter;
     curveLP: Adapter;
-    curveRewards: Adapter;
+    curveGauge: Adapter;
     leverage: Adapter;
     synthetix: Adapter;
     metastrategy: Adapter;
@@ -63,13 +63,13 @@ export declare type Defaults = {
     wethSupply: BigNumber;
 };
 export declare enum Adapters {
-    AaveLend = "aavelend",
-    AaveBorrow = "aaveborrow",
+    AaveV2 = "aavev2",
+    AaveV2Debt = "aavev2debt",
     Balancer = "balancer",
     Compound = "compound",
     Curve = "curve",
     CurveLP = "curvelp",
-    CurveRewards = "curverewards",
+    CurveGauge = "curvegauge",
     Leverage = "leverage",
     MetaStrategy = "metastrategy",
     Synthetix = "synthetix",
@@ -85,7 +85,7 @@ export declare class Adapter {
     deploy(signer: SignerWithAddress, whitelist: Contract, parameters: Contract[]): Promise<void>;
 }
 export declare enum Routers {
-    Generic = 0,
+    Multicall = 0,
     Loop = 1,
     Full = 2,
     Batch = 3

@@ -29,6 +29,7 @@ export declare class Tokens {
     aCRV: string;
     cDAI: string;
     cUSDC: string;
+    cUSDT: string;
     crv3: string;
     crvTriCrypto: string;
     crvTriCrypto2: string;

@@ -41,8 +41,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.encodePath = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransferFrom = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.getRebalanceRange = exports.getExpectedTokenValue = exports.calculateAddress = exports.preparePermit = exports.prepareDepositMulticall = exports.prepareRebalanceMulticall = exports.prepareStrategy = exports.FEE_SIZE = void 0;
 var ethers_1 = require("ethers");
-var utils_1 = require("./utils");
 var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
+var constants_1 = require("./constants");
 var hre = require('hardhat');
 var ethers = hre.ethers;
 var getContractFactory = ethers.getContractFactory;
@@ -99,7 +99,7 @@ function prepareRebalanceMulticall(strategy, router, adapter, oracle, weth) {
                 case 6:
                     balance = _f.sent();
                     diff = balance.mul(estimatedValue.sub(expectedValue)).div(estimatedValue);
-                    expected = estimatedValue.sub(expectedValue).mul(utils_1.DEFAULT_DEPOSIT_SLIPPAGE).div(utils_1.DIVISOR);
+                    expected = estimatedValue.sub(expectedValue).mul(constants_1.DEFAULT_DEPOSIT_SLIPPAGE).div(constants_1.DIVISOR);
                     calls.push(encodeDelegateSwap(router, adapter.address, diff, expected, token.address, weth.address, strategy.address, strategy.address));
                     return [3 /*break*/, 8];
                 case 7:
@@ -140,7 +140,7 @@ function prepareRebalanceMulticall(strategy, router, adapter, oracle, weth) {
                 case 16:
                     balance = _f.sent();
                     diff = expectedValue.sub(estimatedValue);
-                    expected = balance.mul(diff).div(estimatedValue).mul(utils_1.DEFAULT_DEPOSIT_SLIPPAGE).div(utils_1.DIVISOR);
+                    expected = balance.mul(diff).div(estimatedValue).mul(constants_1.DEFAULT_DEPOSIT_SLIPPAGE).div(constants_1.DIVISOR);
                     calls.push(encodeDelegateSwap(router, adapter.address, diff, expected, weth.address, token.address, strategy.address, strategy.address));
                     _f.label = 17;
                 case 17:
@@ -175,7 +175,7 @@ function prepareDepositMulticall(strategy, controller, router, adapter, weth, to
                             calls.push(encodeSettleSwap(router, adapter.address, weth.address, token.address, controller.address, strategy.address));
                         }
                         else {
-                            amount = ethers_1.BigNumber.from(total).mul(percentage).div(utils_1.DIVISOR);
+                            amount = ethers_1.BigNumber.from(total).mul(percentage).div(constants_1.DIVISOR);
                             expected = ethers_1.BigNumber.from(1);
                             calls.push(encodeDelegateSwap(router, adapter.address, amount, expected, weth.address, token.address, controller.address, strategy.address));
                         }
@@ -289,7 +289,7 @@ function getExpectedTokenValue(total, token, strategy) {
                 case 0: return [4 /*yield*/, strategy.getPercentage(token)];
                 case 1:
                     percentage = _a.sent();
-                    return [2 /*return*/, ethers.BigNumber.from(total).mul(percentage).div(utils_1.DIVISOR)];
+                    return [2 /*return*/, ethers.BigNumber.from(total).mul(percentage).div(constants_1.DIVISOR)];
             }
         });
     });
@@ -303,7 +303,7 @@ function getRebalanceRange(expectedValue, controller, strategy) {
                 case 0: return [4 /*yield*/, controller.rebalanceThreshold(strategy.address)];
                 case 1:
                     threshold = _a.sent();
-                    return [2 /*return*/, ethers.BigNumber.from(expectedValue).mul(threshold).div(utils_1.DIVISOR)];
+                    return [2 /*return*/, ethers.BigNumber.from(expectedValue).mul(threshold).div(constants_1.DIVISOR)];
             }
         });
     });

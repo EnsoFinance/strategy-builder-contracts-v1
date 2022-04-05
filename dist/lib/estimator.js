@@ -40,9 +40,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Estimator = void 0;
-var hardhat_1 = __importDefault(require("hardhat"));
 var ethers_1 = require("ethers");
-var utils_1 = require("./utils");
 var ICToken_json_1 = __importDefault(require("../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json"));
 var ISynth_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json"));
 var ISynthetix_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json"));
@@ -54,9 +52,10 @@ var IYEarnV2Vault_json_1 = __importDefault(require("../artifacts/contracts/inter
 var UniswapV2Router01_json_1 = __importDefault(require("@uniswap/v2-periphery/build/UniswapV2Router01.json"));
 var Quoter_json_1 = __importDefault(require("@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json"));
 var ERC20_json_1 = __importDefault(require("@uniswap/v2-periphery/build/ERC20.json"));
-var AddressZero = hardhat_1.default.ethers.constants.AddressZero;
-var defaultAbiCoder = hardhat_1.default.ethers.utils.defaultAbiCoder;
-var SYNTHETIX = '0xDC01020857afbaE65224CfCeDb265d1216064c59';
+var constants_1 = require("./constants");
+var AddressZero = ethers_1.constants.AddressZero;
+var defaultAbiCoder = ethers_1.utils.defaultAbiCoder;
+var SYNTHETIX = '0xE95A536cF5C7384FF1ef54819Dc54E03d0FF1979';
 var SYNTHETIX_EXCHANGER = '0x3e343E89F4fF8057806F54F2208940B1Cd5C40ca';
 var CURVE_REGISTRY = '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5';
 var UNISWAP_V2_ROUTER = '0xf164fC0Ec4E93095b804a4795bBe1e041497b92a';
@@ -65,8 +64,8 @@ var TRICRYPTO2 = '0xc4AD29ba4B3c580e6D59105FFf484999997675Ff';
 var TRICRYPTO2_POOL = '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46';
 var USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7';
 var WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599';
-var WETH = utils_1.MAINNET_ADDRESSES.WETH;
-var SUSD = utils_1.MAINNET_ADDRESSES.SUSD;
+var WETH = constants_1.MAINNET_ADDRESSES.WETH;
+var SUSD = constants_1.MAINNET_ADDRESSES.SUSD;
 var VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff';
 var NULL_TRADE_DATA = {
     adapters: [],
@@ -74,7 +73,7 @@ var NULL_TRADE_DATA = {
     cache: '0x'
 };
 var Estimator = /** @class */ (function () {
-    function Estimator(signer, oracle, tokenRegistry, uniswapV3Registry, curveDepositZapRegistry, aaveV2AdapterAddress, compoundAdapterAddress, curveAdapterAddress, curveLPAdapterAddress, curveRewardsAdapterAddress, synthetixAdapterAddress, uniswapV2AdapterAddress, uniswapV3AdapterAddress, yearnV2AdapterAddress) {
+    function Estimator(signer, oracle, tokenRegistry, uniswapV3Registry, curveDepositZapRegistry, aaveV2AdapterAddress, compoundAdapterAddress, curveAdapterAddress, curveLPAdapterAddress, curveGaugeAdapterAddress, synthetixAdapterAddress, uniswapV2AdapterAddress, uniswapV3AdapterAddress, yearnV2AdapterAddress) {
         this.signer = signer;
         this.curveRegistry = new ethers_1.Contract(CURVE_REGISTRY, ICurveRegistry_json_1.default.abi, signer);
         this.synthetix = new ethers_1.Contract(SYNTHETIX, ISynthetix_json_1.default.abi, signer);
@@ -86,12 +85,12 @@ var Estimator = /** @class */ (function () {
         this.uniswapV3Registry = uniswapV3Registry;
         this.curveDepositZapRegistry = curveDepositZapRegistry;
         this.aaveV2AdapterAddress = aaveV2AdapterAddress;
-        this.aaveDebtAdapterAddress = AddressZero;
+        this.aaveV2DebtAdapterAddress = AddressZero;
         this.balancerAdapterAddress = AddressZero;
         this.compoundAdapterAddress = compoundAdapterAddress;
         this.curveAdapterAddress = curveAdapterAddress;
         this.curveLPAdapterAddress = curveLPAdapterAddress;
-        this.curveRewardsAdapterAddress = curveRewardsAdapterAddress;
+        this.curveGaugeAdapterAddress = curveGaugeAdapterAddress;
         this.synthetixAdapterAddress = synthetixAdapterAddress;
         this.uniswapV2AdapterAddress = uniswapV2AdapterAddress;
         this.uniswapV2LPAdapterAddress = AddressZero;
@@ -120,10 +119,10 @@ var Estimator = /** @class */ (function () {
                         categories = _a.sent();
                         // Sort by category
                         for (i = 0; i < strategyItems.length; i++) {
-                            if (categories[i].eq(utils_1.ITEM_CATEGORY.BASIC)) {
+                            if (categories[i].eq(constants_1.ITEM_CATEGORY.BASIC)) {
                                 items.push(strategyItems[i].item);
                             }
-                            if (categories[i].eq(utils_1.ITEM_CATEGORY.SYNTH)) {
+                            if (categories[i].eq(constants_1.ITEM_CATEGORY.SYNTH)) {
                                 synths.push(strategyItems[i].item);
                                 virtPercentage = virtPercentage.add(strategyItems[i].percentage);
                             }
@@ -249,7 +248,7 @@ var Estimator = /** @class */ (function () {
                                         case 1:
                                             _a = _d.sent(), percentage = _a[0], data = _a[1];
                                             estimatedValue = estimates[index];
-                                            expectedValue = percentage.eq('0') ? ethers_1.BigNumber.from('0') : totalAfter.mul(percentage).div(utils_1.DIVISOR);
+                                            expectedValue = percentage.eq('0') ? ethers_1.BigNumber.from('0') : totalAfter.mul(percentage).div(constants_1.DIVISOR);
                                             if (!estimatedValue.gt(expectedValue)) return [3 /*break*/, 3];
                                             _b = this.estimateSellPath;
                                             _c = [data];
@@ -268,7 +267,7 @@ var Estimator = /** @class */ (function () {
                         return [4 /*yield*/, (new ethers_1.Contract(WETH, ERC20_json_1.default.abi, this.signer)).balanceOf(strategy.address)];
                     case 4:
                         wethBalance = _b.sent();
-                        expectedValue = totalAfter.mul(percentage).div(utils_1.DIVISOR);
+                        expectedValue = totalAfter.mul(percentage).div(constants_1.DIVISOR);
                         if (expectedValue.lt(wethBalance))
                             amounts.push(wethBalance.sub(expectedValue));
                         _b.label = 5;
@@ -289,8 +288,8 @@ var Estimator = /** @class */ (function () {
                                 switch (_b.label) {
                                     case 0:
                                         _a = itemsData[item], percentage = _a.percentage, data = _a.data;
-                                        expectedValue = percentage.eq('0') ? ethers_1.BigNumber.from('0') : total.mul(percentage).div(utils_1.DIVISOR);
-                                        rebalanceRange = rebalanceThreshold.eq('0') ? ethers_1.BigNumber.from('0') : expectedValue.mul(rebalanceThreshold).div(utils_1.DIVISOR);
+                                        expectedValue = percentage.eq('0') ? ethers_1.BigNumber.from('0') : total.mul(percentage).div(constants_1.DIVISOR);
+                                        rebalanceRange = rebalanceThreshold.eq('0') ? ethers_1.BigNumber.from('0') : expectedValue.mul(rebalanceThreshold).div(constants_1.DIVISOR);
                                         return [4 /*yield*/, this.estimateBuyItem(item, estimates[index], expectedValue, rebalanceRange, data)];
                                     case 1:
                                         amount = _b.sent();
@@ -303,8 +302,8 @@ var Estimator = /** @class */ (function () {
                         if (!(synths.length > 0)) return [3 /*break*/, 4];
                         percentage_1 = itemsData[VIRTUAL_ITEM].percentage;
                         data = itemsData[SUSD].data;
-                        expectedValue = percentage_1.eq('0') ? ethers_1.BigNumber.from('0') : total.mul(percentage_1).div(utils_1.DIVISOR);
-                        rebalanceRange = rebalanceThreshold.eq('0') ? ethers_1.BigNumber.from('0') : expectedValue.mul(rebalanceThreshold).div(utils_1.DIVISOR);
+                        expectedValue = percentage_1.eq('0') ? ethers_1.BigNumber.from('0') : total.mul(percentage_1).div(constants_1.DIVISOR);
+                        rebalanceRange = rebalanceThreshold.eq('0') ? ethers_1.BigNumber.from('0') : expectedValue.mul(rebalanceThreshold).div(constants_1.DIVISOR);
                         return [4 /*yield*/, this.estimateBuyItem(SUSD, estimates[estimates.length - 1], expectedValue, rebalanceRange, data)];
                     case 2:
                         susdAmount = _c.sent();
@@ -316,7 +315,7 @@ var Estimator = /** @class */ (function () {
                     case 4:
                         percentage = itemsData[WETH].percentage;
                         if (percentage.gt('0')) {
-                            amounts.push(total.mul(percentage).div(utils_1.DIVISOR));
+                            amounts.push(total.mul(percentage).div(constants_1.DIVISOR));
                         }
                         return [2 /*return*/, amounts.reduce(function (a, b) { return a.add(b); })];
                 }
@@ -377,7 +376,7 @@ var Estimator = /** @class */ (function () {
                 if (amount.gt('0')) {
                     if (data.cache !== '0x') {
                         multiplier = defaultAbiCoder.decode(['uint16'], data.cache)[0];
-                        amount = amount.mul(multiplier).div(utils_1.DIVISOR);
+                        amount = amount.mul(multiplier).div(constants_1.DIVISOR);
                     }
                     return [2 /*return*/, this.estimateBuyPath(data, amount, token)];
                 }
@@ -464,8 +463,8 @@ var Estimator = /** @class */ (function () {
                 switch (adapter.toLowerCase()) {
                     case this.aaveV2AdapterAddress.toLowerCase():
                         return [2 /*return*/, this.estimateAaveV2(amount, tokenIn, tokenOut)];
-                    case this.aaveDebtAdapterAddress.toLowerCase():
-                        return [2 /*return*/, ethers_1.BigNumber.from('0')]; //this.estimateAaveDebt(amount, tokenIn, tokenOut)
+                    case this.aaveV2DebtAdapterAddress.toLowerCase():
+                        return [2 /*return*/, ethers_1.BigNumber.from('0')]; //this.estimateAaveV2Debt(amount, tokenIn, tokenOut)
                     case this.balancerAdapterAddress.toLowerCase():
                         return [2 /*return*/, ethers_1.BigNumber.from('0')]; //this.estimateBalancer(amount, tokenIn, tokenOut)
                     case this.compoundAdapterAddress.toLowerCase():
@@ -474,7 +473,7 @@ var Estimator = /** @class */ (function () {
                         return [2 /*return*/, this.estimateCurve(amount, tokenIn, tokenOut)];
                     case this.curveLPAdapterAddress.toLowerCase():
                         return [2 /*return*/, this.estimateCurveLP(amount, tokenIn, tokenOut)];
-                    case this.curveRewardsAdapterAddress.toLowerCase():
+                    case this.curveGaugeAdapterAddress.toLowerCase():
                         return [2 /*return*/, this.estimateCurveGauge(amount, tokenIn, tokenOut)];
                     case this.synthetixAdapterAddress.toLowerCase():
                         return [2 /*return*/, this.estimateSynthetix(amount, tokenIn, tokenOut)];
