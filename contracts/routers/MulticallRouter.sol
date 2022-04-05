@@ -9,7 +9,7 @@ import "./StrategyRouter.sol";
 /**
  * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
  */
-contract GenericRouter is StrategyRouter, Multicall {
+contract MulticallRouter is StrategyRouter, Multicall {
     using SafeERC20 for IERC20;
 
     /**

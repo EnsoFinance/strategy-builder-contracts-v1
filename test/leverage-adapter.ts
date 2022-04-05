@@ -2,12 +2,12 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import {
-	deployAaveLendAdapter,
-	deployAaveBorrowAdapter,
+	deployAaveV2Adapter,
+	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
 	deployLeverage2XAdapter,
 	deployPlatform,
-	deployGenericRouter
+	deployMulticallRouter
 } from '../lib/deploy'
 import { Tokens } from '../lib/tokens'
 import {
@@ -36,21 +36,21 @@ describe('Leverage2XAdapter', function () {
 		usdc: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
-		genericRouter: Contract,
+		multicallRouter: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
 		library: Contract,
 		uniswapAdapter: Contract,
-		aaveLendAdapter: Contract,
-		aaveBorrowAdapter: Contract,
+		aaveV2Adapter: Contract,
+		aaveV2DebtAdapter: Contract,
 		leverageAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
-	before('Setup Uniswap, Factory, GenericRouter', async function () {
+	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -68,14 +68,14 @@ describe('Leverage2XAdapter', function () {
 
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveLendAdapter = await deployAaveLendAdapter(accounts[0], addressProvider, controller, weth)
-		await whitelist.connect(accounts[0]).approve(aaveLendAdapter.address)
-		aaveBorrowAdapter = await deployAaveBorrowAdapter(accounts[0], addressProvider, weth)
-		await whitelist.connect(accounts[0]).approve(aaveBorrowAdapter.address)
-		leverageAdapter = await deployLeverage2XAdapter(accounts[0], uniswapAdapter, aaveLendAdapter, aaveBorrowAdapter, usdc, weth)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], addressProvider, controller, weth)
+		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
+		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], addressProvider, weth)
+		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
+		leverageAdapter = await deployLeverage2XAdapter(accounts[0], uniswapAdapter, aaveV2Adapter, aaveV2DebtAdapter, usdc, weth)
 		await whitelist.connect(accounts[0]).approve(leverageAdapter.address)
-		genericRouter = await deployGenericRouter(accounts[0], controller)
-		await whitelist.connect(accounts[0]).approve(genericRouter.address)
+		multicallRouter = await deployMulticallRouter(accounts[0], controller)
+		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -84,7 +84,7 @@ describe('Leverage2XAdapter', function () {
 		const positions = [
 			{ token: tokens.aWETH,
 				percentage: BigNumber.from(2000),
-				adapters: [aaveLendAdapter.address],
+				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
@@ -93,7 +93,7 @@ describe('Leverage2XAdapter', function () {
 			},
 			{ token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
-				adapters: [aaveBorrowAdapter.address, uniswapAdapter.address],
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['address[]'],
@@ -126,7 +126,7 @@ describe('Leverage2XAdapter', function () {
 		const calls = [] as Multicall[]
 		calls.push(
 			encodeSettleSwap(
-				genericRouter,
+				multicallRouter,
 				leverageAdapter.address,
 				weth.address,
 				tokens.aWETH,
@@ -134,7 +134,7 @@ describe('Leverage2XAdapter', function () {
 				strategy.address
 			)
 		)
-		const data = await genericRouter.encodeCalls(calls)
+		const data = await multicallRouter.encodeCalls(calls)
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
@@ -144,7 +144,7 @@ describe('Leverage2XAdapter', function () {
 				symbol,
 				strategyItems,
 				strategyState,
-				genericRouter.address,
+				multicallRouter.address,
 				data,
 				{ value: total }
 			)

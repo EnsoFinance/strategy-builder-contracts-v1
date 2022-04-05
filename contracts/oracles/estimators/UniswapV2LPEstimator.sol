@@ -11,7 +11,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IOracle.sol";
 
-contract UniswapV2Estimator is IEstimator {
+contract UniswapV2LPEstimator is IEstimator {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
@@ -131,7 +131,7 @@ contract UniswapV2Estimator is IEstimator {
         }
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(address user, address token) public view override returns (int256) {
         uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance, token);
     }

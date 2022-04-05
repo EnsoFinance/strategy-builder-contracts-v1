@@ -22,14 +22,14 @@ import {
 	deployCompoundAdapter,
 	deployCurveAdapter,
 	deployCurveLPAdapter,
-	deployCurveRewardsAdapter,
-	deployAaveLendAdapter,
-	deployAaveBorrowAdapter,
+	deployCurveGaugeAdapter,
+	deployAaveV2Adapter,
+	deployAaveV2DebtAdapter,
 	deployLeverage2XAdapter,
 	deployYEarnAdapter,
 	deployFullRouter,
 	deployLoopRouter,
-	deployGenericRouter,
+	deployMulticallRouter,
 	deployBatchDepositRouter,
 	Platform
 } from './deploy'
@@ -42,13 +42,13 @@ const NULL_CONTRACT =  new Contract(AddressZero, [], ethers.provider)
 export const wethPerToken = (numTokens: number) => BigNumber.from(WeiPerEther).mul(100 * (numTokens - 1))
 
 export type EnsoAdapters = {
-	aavelend: Adapter
-	aaveborrow: Adapter
+	aaveV2: Adapter
+	aaveV2Debt: Adapter
 	balancer: Adapter
 	compound: Adapter
 	curve: Adapter
 	curveLP: Adapter
-	curveRewards: Adapter
+	curveGauge: Adapter
 	leverage: Adapter
 	synthetix: Adapter
 	metastrategy: Adapter
@@ -95,11 +95,11 @@ export class EnsoBuilder {
 		this.adapters = this.adapters ?? ({} as EnsoAdapters)
 		const adapter = new Adapter(type)
 		switch (adapter.type) {
-			case Adapters.AaveBorrow:
-				this.adapters.aaveborrow = adapter
+			case Adapters.AaveV2Debt:
+				this.adapters.aaveV2Debt = adapter
 				break
-			case Adapters.AaveLend:
-				this.adapters.aavelend = adapter
+			case Adapters.AaveV2:
+				this.adapters.aaveV2 = adapter
 				break
 			case Adapters.Balancer:
 				this.adapters.balancer = adapter
@@ -113,8 +113,8 @@ export class EnsoBuilder {
 			case Adapters.CurveLP:
 				this.adapters.curveLP = adapter
 				break
-			case Adapters.CurveRewards:
-				this.adapters.curveRewards = adapter
+			case Adapters.CurveGauge:
+				this.adapters.curveGauge = adapter
 				break
 			case Adapters.Leverage:
 				this.adapters.leverage = adapter
@@ -263,16 +263,16 @@ export class EnsoBuilder {
 			this.addAdapter('metastrategy')
 		}
 		if (this.adapters?.leverage !== undefined) {
-			// AaveLend and AaveBorrow always needed for leverage
-			if (this.adapters?.aavelend === undefined) this.addAdapter('aavelend')
-			if (this.adapters?.aaveborrow === undefined) this.addAdapter('aaveborrow')
+			// AaveV2 and AaveV2Debt always needed for leverage
+			if (this.adapters?.aaveV2 === undefined) this.addAdapter('aavev2')
+			if (this.adapters?.aaveV2Debt === undefined) this.addAdapter('aavev2debt')
 		}
 		// Deploy adapters
-		if (this.adapters?.aavelend !== undefined) {
-			await this.adapters.aavelend.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth])
+		if (this.adapters?.aaveV2 !== undefined) {
+			await this.adapters.aaveV2.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth])
 		}
-		if (this.adapters?.aaveborrow !== undefined) {
-			await this.adapters.aaveborrow.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])
+		if (this.adapters?.aaveV2Debt !== undefined) {
+			await this.adapters.aaveV2Debt.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])
 		}
 		if (this.adapters?.balancer !== undefined) {
 			balancer = await this.deployBalancer()
@@ -291,8 +291,8 @@ export class EnsoBuilder {
 				weth
 			])
 		}
-		if (this.adapters?.curveRewards !== undefined) {
-			await this.adapters.curveRewards.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])
+		if (this.adapters?.curveGauge !== undefined) {
+			await this.adapters.curveGauge.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])
 		}
 		if (this.adapters?.synthetix !== undefined) {
 			await this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer), weth])
@@ -313,8 +313,8 @@ export class EnsoBuilder {
 		if (this.adapters?.leverage !== undefined) {
 			await this.adapters.leverage.deploy(this.signer, ensoPlatform.administration.whitelist, [
 				this.adapters?.uniswap.contract || NULL_CONTRACT,
-				this.adapters?.aavelend.contract || NULL_CONTRACT,
-				this.adapters?.aaveborrow.contract || NULL_CONTRACT,
+				this.adapters?.aaveV2.contract || NULL_CONTRACT,
+				this.adapters?.aaveV2Debt.contract || NULL_CONTRACT,
 				usdc,
 				weth
 			])
@@ -395,13 +395,13 @@ export type Defaults = {
 }
 
 export enum Adapters {
-	AaveLend = 'aavelend',
-	AaveBorrow = 'aaveborrow',
+	AaveV2 = 'aavev2',
+	AaveV2Debt = 'aavev2debt',
 	Balancer = 'balancer',
 	Compound = 'compound',
 	Curve = 'curve',
 	CurveLP = 'curvelp',
-	CurveRewards = 'curverewards',
+	CurveGauge = 'curvegauge',
 	Leverage = 'leverage',
 	MetaStrategy = 'metastrategy',
 	Synthetix = 'synthetix',
@@ -424,12 +424,12 @@ export class Adapter {
 	}
 
 	async deploy(signer: SignerWithAddress, whitelist: Contract, parameters: Contract[]) {
-		if (this.type === Adapters.AaveBorrow) {
+		if (this.type === Adapters.AaveV2Debt) {
 			if (parameters.length == 2)
-				this.contract = await deployAaveBorrowAdapter(signer, parameters[0], parameters[1])
-		} else if (this.type === Adapters.AaveLend) {
+				this.contract = await deployAaveV2DebtAdapter(signer, parameters[0], parameters[1])
+		} else if (this.type === Adapters.AaveV2) {
 			if (parameters.length == 3)
-				this.contract = await deployAaveLendAdapter(signer, parameters[0], parameters[1], parameters[2])
+				this.contract = await deployAaveV2Adapter(signer, parameters[0], parameters[1], parameters[2])
 		} else if (this.type === Adapters.Balancer) {
 			if (parameters.length == 2)
 				this.contract = await deployBalancerAdapter(signer, parameters[0], parameters[1])
@@ -442,9 +442,9 @@ export class Adapter {
 		} else if (this.type === Adapters.CurveLP) {
 			if (parameters.length == 3)
 				this.contract = await deployCurveLPAdapter(signer, parameters[0], parameters[1], parameters[2])
-		} else if (this.type === Adapters.CurveRewards) {
+		} else if (this.type === Adapters.CurveGauge) {
 			if (parameters.length == 2)
-				this.contract = await deployCurveRewardsAdapter(signer, parameters[0], parameters[1])
+				this.contract = await deployCurveGaugeAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.Leverage) {
 			if (parameters.length == 5)
 				this.contract = await deployLeverage2XAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])
@@ -472,26 +472,26 @@ export class Adapter {
 }
 
 export enum Routers {
-	Generic,
+	Multicall,
 	Loop,
 	Full,
 	Batch
 }
 
-// TODO: implement encoding for each Router (chain calldata for each type of router GenericRouter is IRouter, LoopRouter is IRouter etc..)
+// TODO: implement encoding for each Router (chain calldata for each type of router MulticallRouter is IRouter, LoopRouter is IRouter etc..)
 export class Router {
 	type: Routers
 	contract?: Contract
 	constructor(routerType: string) {
 		switch (routerType.toLowerCase()) {
-			case 'generic' || 'genericrouter':
-				this.type = Routers.Generic
-				break
-			case 'full' || 'fullrouter':
-				this.type = Routers.Full
+			case 'generic' || 'genericrouter' || 'multicall' || 'multicallrouter':
+				this.type = Routers.Multicall
 				break
 			case 'loop' || 'looprouter':
 				this.type = Routers.Loop
+				break
+			case 'full' || 'fullrouter':
+				this.type = Routers.Full
 				break
 			case 'batch' || 'batchrouter' || 'batchdepositrouter':
 				this.type = Routers.Loop
@@ -504,8 +504,8 @@ export class Router {
 	}
 
 	async deploy(signer: SignerWithAddress, controller: Contract, library: Contract) {
-		if (this.type == Routers.Generic) {
-			this.contract = await deployGenericRouter(signer, controller)
+		if (this.type == Routers.Multicall) {
+			this.contract = await deployMulticallRouter(signer, controller)
 		} else if (this.type == Routers.Full) {
 			this.contract = await deployFullRouter(signer, new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], ethers.provider), controller, library)
 		} else if (this.type == Routers.Batch) {

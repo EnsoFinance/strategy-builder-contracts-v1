@@ -9,8 +9,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
-	deployAaveLendAdapter,
-	deployAaveBorrowAdapter,
+	deployAaveV2Adapter,
+	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
 	deployCurveLPAdapter,
 	deployYEarnAdapter,
@@ -38,8 +38,8 @@ describe('Experimental Strategy', function () {
 		uniswapV2Adapter: Contract,
 		curveLPAdapter: Contract,
 		yearnAdapter: Contract,
-		aaveLendAdapter: Contract,
-		aaveBorrowAdapter: Contract,
+		aaveV2Adapter: Contract,
+		aaveV2DebtAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
@@ -71,10 +71,10 @@ describe('Experimental Strategy', function () {
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
 		yearnAdapter = await deployYEarnAdapter(accounts[0], weth)
 		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
-		aaveLendAdapter = await deployAaveLendAdapter(accounts[0], aaveAddressProvider, controller, weth)
-		await whitelist.connect(accounts[0]).approve(aaveLendAdapter.address)
-		aaveBorrowAdapter = await deployAaveBorrowAdapter(accounts[0], aaveAddressProvider, weth)
-		await whitelist.connect(accounts[0]).approve(aaveBorrowAdapter.address)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth)
+		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
+		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], aaveAddressProvider, weth)
+		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -83,12 +83,12 @@ describe('Experimental Strategy', function () {
 		const positions = [
 			{ token: tokens.aCRV,
 				percentage: BigNumber.from(1000),
-				adapters: [uniswapV2Adapter.address, aaveLendAdapter.address],
+				adapters: [uniswapV2Adapter.address, aaveV2Adapter.address],
 				path: [crv.address],
 			},
 			{ token: tokens.debtWETH,
 				percentage: BigNumber.from(-400),
-				adapters: [aaveBorrowAdapter.address, curveLPAdapter.address, yearnAdapter.address],
+				adapters: [aaveV2DebtAdapter.address, curveLPAdapter.address, yearnAdapter.address],
 				path: [tokens.weth, tokens.crvTriCrypto2, tokens.ycrvTriCrypto2]
 			},
 			{ token: tokens.ycrvTriCrypto2,

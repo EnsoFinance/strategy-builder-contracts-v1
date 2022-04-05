@@ -53,12 +53,12 @@ export class Estimator {
   uniswapV3Registry: Contract
 
   aaveV2AdapterAddress: string
-  aaveDebtAdapterAddress: string
+  aaveV2DebtAdapterAddress: string
   balancerAdapterAddress: string
   compoundAdapterAddress: string
   curveAdapterAddress: string
   curveLPAdapterAddress: string
-  curveRewardsAdapterAddress: string
+  curveGaugeAdapterAddress: string
   synthetixAdapterAddress: string
   uniswapV2AdapterAddress: string
   uniswapV2LPAdapterAddress: string
@@ -76,7 +76,7 @@ export class Estimator {
     compoundAdapterAddress: string,
     curveAdapterAddress: string,
     curveLPAdapterAddress: string,
-    curveRewardsAdapterAddress: string,
+    curveGaugeAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
     uniswapV3AdapterAddress: string,
@@ -96,12 +96,12 @@ export class Estimator {
     this.curveDepositZapRegistry = curveDepositZapRegistry
 
     this.aaveV2AdapterAddress = aaveV2AdapterAddress
-    this.aaveDebtAdapterAddress = AddressZero
+    this.aaveV2DebtAdapterAddress = AddressZero
     this.balancerAdapterAddress = AddressZero
     this.compoundAdapterAddress = compoundAdapterAddress
     this.curveAdapterAddress = curveAdapterAddress
     this.curveLPAdapterAddress = curveLPAdapterAddress
-    this.curveRewardsAdapterAddress = curveRewardsAdapterAddress
+    this.curveGaugeAdapterAddress = curveGaugeAdapterAddress
     this.synthetixAdapterAddress = synthetixAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV2LPAdapterAddress = AddressZero
@@ -395,8 +395,8 @@ export class Estimator {
     switch (adapter.toLowerCase()) {
       case this.aaveV2AdapterAddress.toLowerCase():
         return this.estimateAaveV2(amount, tokenIn, tokenOut)
-      case this.aaveDebtAdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateAaveDebt(amount, tokenIn, tokenOut)
+      case this.aaveV2DebtAdapterAddress.toLowerCase():
+        return BigNumber.from('0')//this.estimateAaveV2Debt(amount, tokenIn, tokenOut)
       case this.balancerAdapterAddress.toLowerCase():
         return BigNumber.from('0')//this.estimateBalancer(amount, tokenIn, tokenOut)
       case this.compoundAdapterAddress.toLowerCase():
@@ -405,7 +405,7 @@ export class Estimator {
         return this.estimateCurve(amount, tokenIn, tokenOut)
       case this.curveLPAdapterAddress.toLowerCase():
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
-      case this.curveRewardsAdapterAddress.toLowerCase():
+      case this.curveGaugeAdapterAddress.toLowerCase():
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
       case this.synthetixAdapterAddress.toLowerCase():
         return this.estimateSynthetix(amount, tokenIn, tokenOut)

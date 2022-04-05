@@ -12,7 +12,7 @@ import { prepareStrategy, InitialState } from '../lib/encode'
 import {
 	deployCurveAdapter,
 	deployCurveLPAdapter,
-	deployCurveRewardsAdapter,
+	deployCurveGaugeAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployLoopRouter,
@@ -69,8 +69,8 @@ describe('TokenRegistry', function () {
 			this.weth
 		)
 		await this.whitelist.connect(this.accounts[0]).approve(this.curveLPAdapter.address)
-		this.curveRewardsAdapter = await deployCurveRewardsAdapter(this.accounts[0], addressProvider, this.weth)
-		await this.whitelist.connect(this.accounts[0]).approve(this.curveRewardsAdapter.address)
+		this.curveGaugeAdapter = await deployCurveGaugeAdapter(this.accounts[0], addressProvider, this.weth)
+		await this.whitelist.connect(this.accounts[0]).approve(this.curveGaugeAdapter.address)
 	})
 
 	it('Should add CURVE estimator to unknown index', async function () {
@@ -92,7 +92,7 @@ describe('TokenRegistry', function () {
 			{
 				token: this.rewardToken,
 				percentage: BigNumber.from(500),
-				adapters: [this.uniswapAdapter.address, this.curveLPAdapter.address, this.curveRewardsAdapter.address],
+				adapters: [this.uniswapAdapter.address, this.curveLPAdapter.address, this.curveGaugeAdapter.address],
 				path: [this.tokens.link, this.tokens.crvLINK],
 			},
 		]
@@ -155,12 +155,12 @@ describe('TokenRegistry', function () {
 		const estimatorCategories = [ESTIMATOR_CATEGORY.AAVE_V2, ESTIMATOR_CATEGORY.COMPOUND]
 		const tokens = [this.tokens.aWETH, this.tokens.cUSDC]
 		await this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
-		const promises = []
-		promises.push(this.tokenRegistry.estimatorCategories(this.tokens.aWETH))
-		promises.push(this.tokenRegistry.estimatorCategories(this.tokens.cUSDC))
-		promises.push(this.tokenRegistry.itemCategories(this.tokens.aWETH))
-		promises.push(this.tokenRegistry.itemCategories(this.tokens.cUSDC))
-		const results = await Promise.all(promises)
+		const results = await Promise.all([
+			this.tokenRegistry.estimatorCategories(this.tokens.aWETH),
+			this.tokenRegistry.estimatorCategories(this.tokens.cUSDC),
+			this.tokenRegistry.itemCategories(this.tokens.aWETH),
+			this.tokenRegistry.itemCategories(this.tokens.cUSDC)
+		])
 		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.AAVE_V2)
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
@@ -169,19 +169,17 @@ describe('TokenRegistry', function () {
 
 	it('Should change estimator categories on a batch of tokens', async function () {
 		const itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
-		const estimatorCategories = [ESTIMATOR_CATEGORY.UNISWAP_V2_LP, ESTIMATOR_CATEGORY.STAKED_ENSO]
+		const estimatorCategories = [ESTIMATOR_CATEGORY.UNISWAP_V2_LP, ESTIMATOR_CATEGORY.CURVE_GAUGE]
 		const tokens = [this.tokens.aWETH, this.tokens.cUSDC]
-		const promises = []
 		await this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
-		promises.push( this.tokenRegistry.estimatorCategories(this.tokens.aWETH))
-		promises.push(this.tokenRegistry.estimatorCategories(this.tokens.cUSDC))
-		promises.push(this.tokenRegistry.itemCategories(this.tokens.aWETH))
-		promises.push(this.tokenRegistry.itemCategories(this.tokens.cUSDC))
-		const results = await Promise.all(promises)
-		expect(results[0]).to.be.eq(
-			ESTIMATOR_CATEGORY.UNISWAP_V2_LP
-		)
-		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.STAKED_ENSO)
+		const results = await Promise.all([
+			this.tokenRegistry.estimatorCategories(this.tokens.aWETH),
+			this.tokenRegistry.estimatorCategories(this.tokens.cUSDC),
+			this.tokenRegistry.itemCategories(this.tokens.aWETH),
+			this.tokenRegistry.itemCategories(this.tokens.cUSDC)
+		])
+		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.UNISWAP_V2_LP)
+		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.CURVE_GAUGE)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
 		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
 	})

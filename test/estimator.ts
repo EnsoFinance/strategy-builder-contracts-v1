@@ -35,7 +35,7 @@ describe('Estimator', function() {
       compoundAdapterAddress: string,
       curveAdapterAddress: string,
       curveLPAdapterAddress: string,
-      curveRewardsAdapterAddress: string,
+      curveGaugeAdapterAddress: string,
       synthetixAdapterAddress: string,
       uniswapV2AdapterAddress: string,
       uniswapV3AdapterAddress: string,
@@ -47,19 +47,19 @@ describe('Estimator', function() {
 
     const ensoBuilder = new EnsoBuilder(owner)
     ensoBuilder.addRouter('full')
-    ensoBuilder.addAdapter('aaveLend')
+    ensoBuilder.addAdapter('aaveV2')
     ensoBuilder.addAdapter('balancer')
     ensoBuilder.addAdapter('compound')
     ensoBuilder.addAdapter('curve')
     ensoBuilder.addAdapter('curveLP')
-    ensoBuilder.addAdapter('curveRewards')
+    ensoBuilder.addAdapter('curveGauge')
     ensoBuilder.addAdapter('metastrategy')
     ensoBuilder.addAdapter('synthetix')
     ensoBuilder.addAdapter('uniswapV2')
     ensoBuilder.addAdapter('uniswapV3')
     ensoBuilder.addAdapter('yearnV2')
     enso = await ensoBuilder.build()
-    
+
     const {
       tokenRegistry,
       uniswapV3Registry,
@@ -72,11 +72,11 @@ describe('Estimator', function() {
     weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 
     routerAddress = enso.routers[0]?.contract?.address || AddressZero
-    aaveV2AdapterAddress = enso.adapters?.aavelend?.contract?.address || AddressZero
+    aaveV2AdapterAddress = enso.adapters?.aaveV2?.contract?.address || AddressZero
     compoundAdapterAddress = enso.adapters?.compound?.contract?.address || AddressZero
     curveAdapterAddress = enso.adapters?.curve?.contract?.address || AddressZero
     curveLPAdapterAddress = enso.adapters?.curveLP?.contract?.address || AddressZero
-    curveRewardsAdapterAddress = enso.adapters?.curveRewards?.contract?.address || AddressZero
+    curveGaugeAdapterAddress = enso.adapters?.curveGauge?.contract?.address || AddressZero
     synthetixAdapterAddress = enso.adapters?.synthetix?.contract?.address || AddressZero
     uniswapV2AdapterAddress = enso.adapters?.uniswapV2?.contract?.address || AddressZero
     uniswapV3AdapterAddress = enso.adapters?.uniswapV3?.contract?.address || AddressZero
@@ -92,7 +92,7 @@ describe('Estimator', function() {
       compoundAdapterAddress,
       curveAdapterAddress,
       curveLPAdapterAddress,
-      curveRewardsAdapterAddress,
+      curveGaugeAdapterAddress,
       synthetixAdapterAddress,
       uniswapV2AdapterAddress,
       uniswapV3AdapterAddress,
@@ -184,7 +184,7 @@ describe('Estimator', function() {
           uniswapV2AdapterAddress,
           aaveV2AdapterAddress,
           curveLPAdapterAddress,
-          curveRewardsAdapterAddress
+          curveGaugeAdapterAddress
         ],
         path: [tokens.dai, tokens.aDAI, tokens.crvAAVE]
       },

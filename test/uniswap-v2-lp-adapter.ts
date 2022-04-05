@@ -13,7 +13,7 @@ import {
 	deployUniswapV2Adapter,
 	deployUniswapV2LPAdapter,
 	deployLoopRouter,
-	deployGenericRouter
+	deployMulticallRouter
 } from '../lib/deploy'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
@@ -43,7 +43,7 @@ describe('UniswapV2LPAdapter', function () {
 			oracle: Contract,
 			library: Contract,
 			loopRouter: Contract,
-			genericRouter: Contract,
+			multicallRouter: Contract,
 			uniswapV2Adapter: Contract,
 			uniswapV2LPAdapter: Contract,
 			strategy: Contract,
@@ -53,7 +53,7 @@ describe('UniswapV2LPAdapter', function () {
 			owner: SignerWithAddress
 
 
-	before('Setup Uniswap, Factory, GenericRouter', async function () {
+	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
 		owner = accounts[15]
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS)))
@@ -90,8 +90,8 @@ describe('UniswapV2LPAdapter', function () {
 		await whitelist.connect(owner).approve(uniswapV2LPAdapter.address)
 		loopRouter = await deployLoopRouter(owner, controller, library)
 		await whitelist.connect(owner).approve(loopRouter.address)
-		genericRouter = await deployGenericRouter(owner, controller)
-		await whitelist.connect(owner).approve(genericRouter.address)
+		multicallRouter = await deployMulticallRouter(owner, controller)
+		await whitelist.connect(owner).approve(multicallRouter.address)
 	})
 
 	it('Should fail to swap: tokens cannot match', async function () {
@@ -217,7 +217,7 @@ describe('UniswapV2LPAdapter', function () {
 	it('Should fail to do a flash swap attack', async function () {
 			const attacker = accounts[13];
 			const FlashSwapAttack = await getContractFactory('FlashSwapAttack')
-			const flashSwapAttack = await FlashSwapAttack.connect(attacker).deploy(controller.address, genericRouter.address, loopRouter.address, weth.address)
+			const flashSwapAttack = await FlashSwapAttack.connect(attacker).deploy(controller.address, multicallRouter.address, loopRouter.address, weth.address)
 			// Fund the attack contract to pay Uniswap fees
 			await tokens[1].connect(owner).transfer(flashSwapAttack.address, WeiPerEther.mul(10))
 			await tokens[2].connect(owner).transfer(flashSwapAttack.address, WeiPerEther.mul(10))
