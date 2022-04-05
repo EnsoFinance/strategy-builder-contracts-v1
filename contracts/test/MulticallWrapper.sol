@@ -8,14 +8,14 @@ import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IStrategyController.sol";
 import "../helpers/Multicall.sol";
 
-contract GenericWrapper is Multicall {
+contract MulticallWrapper is Multicall {
     using SafeERC20 for IERC20;
     IStrategyController public immutable controller;
-    IStrategyRouter public immutable genericRouter;
+    IStrategyRouter public immutable multicallRouter;
 
-    constructor(address controller_, address genericRouter_) public {
+    constructor(address controller_, address multicallRouter_) public {
         controller = IStrategyController(controller_);
-        genericRouter = IStrategyRouter(genericRouter_);
+        multicallRouter = IStrategyRouter(multicallRouter_);
     }
 
     function singleTokenDeposit(IStrategy strategy, IERC20 token, uint256 amount) external {
@@ -29,8 +29,8 @@ contract GenericWrapper is Multicall {
             )
         );
         bytes memory data = abi.encode(calls);
-        token.safeTransferFrom(msg.sender, address(genericRouter), amount);
-        controller.deposit(strategy, genericRouter, 0, 0, data);
+        token.safeTransferFrom(msg.sender, address(multicallRouter), amount);
+        controller.deposit(strategy, multicallRouter, 0, 0, data);
         strategy.transfer(msg.sender, strategy.balanceOf(address(this)));
     }
 }

@@ -13,26 +13,26 @@ contract Leverage2XAdapter is BaseAdapter {
     using SafeERC20 for IERC20;
 
     address public immutable defaultAdapter;
-    address public immutable aaveLendAdapter;
-    address public immutable aaveBorrowAdapter;
+    address public immutable aaveV2Adapter;
+    address public immutable aaveV2DebtAdapter;
     address public immutable debtToken; // Token that is being borrowed against collateral
     GasCostProvider public immutable gasCostProvider;
 
     constructor(
         address defaultAdapter_,
-        address aaveLendAdapter_,
-        address aaveBorrowAdapter_,
+        address aaveV2Adapter_,
+        address aaveV2DebtAdapter_,
         address debtToken_,
         address weth_
     ) public BaseAdapter(weth_) {
         defaultAdapter = defaultAdapter_;
-        aaveLendAdapter = aaveLendAdapter_;
-        aaveBorrowAdapter = aaveBorrowAdapter_;
+        aaveV2Adapter = aaveV2Adapter_;
+        aaveV2DebtAdapter = aaveV2DebtAdapter_;
         debtToken = debtToken_;
         gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
     }
 
-    // Swap to support 2X leverage called from generic router
+    // Swap to support 2X leverage called from multicall router
     function swap(
         uint256 amount,
         uint256 expected,
@@ -50,19 +50,19 @@ contract Leverage2XAdapter is BaseAdapter {
         require(_checkAToken(tokenOut), "Only supports deposit");
         require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");
         // Lend all underlying tokens (Amount received will equal amount sent)
-        _delegateSwap(aaveLendAdapter, amount, 1, tokenIn, tokenOut, address(this), to);
+        _delegateSwap(aaveV2Adapter, amount, 1, tokenIn, tokenOut, address(this), to);
         //Take out equivalent of 50% debt
-        _delegateSwap(aaveBorrowAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
+        _delegateSwap(aaveV2DebtAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
         //Trade debt for underlying
         _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
         // Lend all underlying tokens
-        _delegateSwap(aaveLendAdapter, IERC20(tokenIn).balanceOf(address(this)), 1, tokenIn, tokenOut, address(this), to);
+        _delegateSwap(aaveV2Adapter, IERC20(tokenIn).balanceOf(address(this)), 1, tokenIn, tokenOut, address(this), to);
         //Take out equivalent of 50% debt (should be able to borrow another 50% since we've added to our reserve)
-        _delegateSwap(aaveBorrowAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
+        _delegateSwap(aaveV2DebtAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
         //Trade debt for underlying
         _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
         // Lend all underlying tokens
-        _delegateSwap(aaveLendAdapter, IERC20(tokenIn).balanceOf(address(this)), expected, tokenIn, tokenOut, address(this), to);
+        _delegateSwap(aaveV2Adapter, IERC20(tokenIn).balanceOf(address(this)), expected, tokenIn, tokenOut, address(this), to);
     }
 
     function _delegateSwap(

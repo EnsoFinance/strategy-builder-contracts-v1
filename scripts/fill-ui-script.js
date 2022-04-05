@@ -49,7 +49,7 @@ const main = async () => {
 	const curveLPAdapter = deployedContracts[network].CurveLPAdapter
 	const yearnAdapter = deployedContracts[network].YEarnV2Adapter
 	const curveRewardsAdapter = deployedContracts[network].CurveRewardsAdapter
-	const aaveLendAdapter = deployedContracts[network].AaveLendAdapter
+	const aaveV2Adapter = deployedContracts[network].AaveV2Adapter
 	const compoundAdapter = deployedContracts[network].CompoundAdapter
 
 	const DICTIONARY_ADAPTER_MAPPER = {
@@ -57,7 +57,7 @@ const main = async () => {
 		'0xeABF5ff735Eb522e2765f41cf213D9550093a3a3': curveLPAdapter,
 		'0x69e98aA7e9EcAb7dF7d54cFf8cCAa48b2E72a5a4': yearnAdapter,
 		'0xD73E8c234AAC92657d94FD1541106c2f4cb14654': curveRewardsAdapter,
-		'0xec49b0Fe6941b1a3c90F75e6A43d812Cd6aDa2ff': aaveLendAdapter,
+		'0xec49b0Fe6941b1a3c90F75e6A43d812Cd6aDa2ff': aaveV2Adapter,
 		'0x250ea055E49F890cb269e729Cf81A04D7Ccd5f3E': compoundAdapter,
 	}
 

@@ -14,7 +14,7 @@ const NUM_TOKENS = 2
 describe('UniswapV2Adapter', function () {
 	let tokens: Contract[], accounts: SignerWithAddress[], uniswapFactory: Contract, adapter: Contract
 
-	before('Setup Uniswap, Factory, GenericRouter', async function () {
+	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)

@@ -11,7 +11,7 @@ import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../BaseAdapter.sol";
 
-contract AaveBorrowAdapter is BaseAdapter {
+contract AaveV2DebtAdapter is BaseAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 

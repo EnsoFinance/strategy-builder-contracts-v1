@@ -133,21 +133,23 @@ async function main() {
 
 	add2Deployments('ChainlinkEstimator', chainlinkEstimator.address)
 
-	const AaveEstimator = await hre.ethers.getContractFactory('AaveEstimator')
-	const aaveEstimator = await AaveEstimator.deploy()
-	await aaveEstimator.deployed()
-	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveEstimator.address)
+	const AaveV2Estimator = await hre.ethers.getContractFactory('AaveV2Estimator')
+	const aaveV2Estimator = await AaveV2Estimator.deploy()
+	await aaveV2Estimator.deployed()
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
 	await tx.wait()
 
-	add2Deployments('AaveEstimator', aaveEstimator.address)
+	add2Deployments('AaveV2Estimator', aaveV2Estimator.address)
+	add2Deployments('AaveEstimator', aaveV2Estimator.address) //Alias
 
-	const AaveDebtEstimator = await hre.ethers.getContractFactory('AaveDebtEstimator')
-	const aaveDebtEstimator = await AaveDebtEstimator.deploy()
-	await aaveDebtEstimator.deployed()
-	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_DEBT, aaveDebtEstimator.address)
+	const AaveV2DebtEstimator = await hre.ethers.getContractFactory('AaveV2DebtEstimator')
+	const aaveV2DebtEstimator = await AaveV2DebtEstimator.deploy()
+	await aaveV2DebtEstimator.deployed()
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)
 	await tx.wait()
 
-	add2Deployments('AaveDebtEstimator', aaveDebtEstimator.address)
+	add2Deployments('AaveV2DebtEstimator', aaveV2DebtEstimator.address)
+	add2Deployments('AaveDebtEstimator', aaveV2DebtEstimator.address) //Alias
 
 	const CompoundEstimator = await hre.ethers.getContractFactory('CompoundEstimator')
 	const compoundEstimator = await CompoundEstimator.deploy()
@@ -157,13 +159,14 @@ async function main() {
 
 	add2Deployments('CompoundEstimator', compoundEstimator.address)
 
-	const CurveEstimator = await hre.ethers.getContractFactory('CurveEstimator')
-	const curveEstimator = await CurveEstimator.deploy()
-	await curveEstimator.deployed()
-	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)
+	const CurveLPEstimator = await hre.ethers.getContractFactory('CurveLPEstimator')
+	const curveLPEstimator = await CurveLPEstimator.deploy()
+	await curveLPEstimator.deployed()
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)
 	await tx.wait()
 
-	add2Deployments('CurveEstimator', curveEstimator.address)
+	add2Deployments('CurveLPEstimator', curveLPEstimator.address)
+	add2Deployments('CurveEstimator', curveLPEstimator.address) //Alias
 
 	const CurveGaugeEstimator = await hre.ethers.getContractFactory('CurveGaugeEstimator')
 	const curveGaugeEstimator = await CurveGaugeEstimator.deploy()
@@ -189,14 +192,15 @@ async function main() {
 
 	add2Deployments('StrategyEstimator', strategyEstimator.address)
 
-	const UniswapV2Estimator = await hre.ethers.getContractFactory('UniswapV2Estimator')
-	const uniswapV2Estimator = await UniswapV2Estimator.deploy()
+	const UniswapV2LPEstimator = await hre.ethers.getContractFactory('UniswapV2LPEstimator')
+	const uniswapV2LPEstimator = await UniswapV2LPEstimator.deploy()
 
-	await uniswapV2Estimator.deployed()
-	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2Estimator.address)
+	await uniswapV2LPEstimator.deployed()
+	tx = await tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2LPEstimator.address)
 	await tx.wait()
 
-	add2Deployments('UniswapV2Estimator', uniswapV2Estimator.address)
+	add2Deployments('UniswapV2LPEstimator', uniswapV2LPEstimator.address)
+	add2Deployments('UniswapV2Estimator', uniswapV2LPEstimator.address) //Alias
 
 	const YEarnV2Estimator = await hre.ethers.getContractFactory('YEarnV2Estimator')
 	const yearnV2Estimator = await YEarnV2Estimator.deploy()
@@ -299,13 +303,14 @@ async function main() {
 	tx = await whitelist.approve(fullRouter.address)
 	await tx.wait()
 
-	const GenericRouter = await hre.ethers.getContractFactory('GenericRouter')
-	const genericRouter = await GenericRouter.deploy(controllerAddress)
-	await genericRouter.deployed()
+	const MulticallRouter = await hre.ethers.getContractFactory('MulticallRouter')
+	const multicallRouter = await MulticallRouter.deploy(controllerAddress)
+	await multicallRouter.deployed()
 
-	add2Deployments('GenericRouter', genericRouter.address)
+	add2Deployments('MulticallRouter', multicallRouter.address)
+	add2Deployments('GenericRouter', multicallRouter.address) //Alias
 
-	tx = await whitelist.approve(genericRouter.address)
+	tx = await whitelist.approve(multicallRouter.address)
 	await tx.wait()
 
 	const BatchDepositRouter = await hre.ethers.getContractFactory('BatchDepositRouter', {
@@ -396,41 +401,44 @@ async function main() {
 	tx = await whitelist.approve(curveLPAdapter.address)
 	await tx.wait()
 
-	const CurveRewardsAdapter = await hre.ethers.getContractFactory('CurveRewardsAdapter')
-	const curveRewardsAdapter = await CurveRewardsAdapter.deploy(
+	const CurveGaugeAdapter = await hre.ethers.getContractFactory('CurveGaugeAdapter')
+	const curveGaugeAdapter = await CurveGaugeAdapter.deploy(
 		deployedContracts[network].curveAddressProvider,
 		deployedContracts[network].weth
 	)
-	await curveRewardsAdapter.deployed()
+	await curveGaugeAdapter.deployed()
 
-	add2Deployments('CurveRewardsAdapter', curveRewardsAdapter.address)
+	add2Deployments('CurveGaugeAdapter', curveGaugeAdapter.address)
+	add2Deployments('CurveRewardsAdapter', curveGaugeAdapter.address) //Alias
 
-	tx = await whitelist.approve(curveRewardsAdapter.address)
+	tx = await whitelist.approve(curveGaugeAdapter.address)
 	await tx.wait()
 
-	const AaveLendAdapter = await hre.ethers.getContractFactory('AaveLendAdapter')
-	const aaveLendAdapter = await AaveLendAdapter.deploy(
+	const AaveV2Adapter = await hre.ethers.getContractFactory('AaveV2Adapter')
+	const aaveV2Adapter = await AaveV2Adapter.deploy(
 		deployedContracts[network].aaveAddressProvider,
 		controllerAddress,
 		deployedContracts[network].weth
 	)
-	await aaveLendAdapter.deployed()
+	await aaveV2Adapter.deployed()
 
-	add2Deployments('AaveLendAdapter', aaveLendAdapter.address)
+	add2Deployments('AaveV2Adapter', aaveV2Adapter.address)
+	add2Deployments('AaveLendAdapter', aaveV2Adapter.address) //Alias
 
-	tx = await whitelist.approve(aaveLendAdapter.address)
+	tx = await whitelist.approve(aaveV2Adapter.address)
 	await tx.wait()
 
-	const AaveBorrowAdapter = await hre.ethers.getContractFactory('AaveBorrowAdapter')
-	const aaveBorrowAdapter = await AaveBorrowAdapter.deploy(
+	const AaveV2DebtAdapter = await hre.ethers.getContractFactory('AaveV2DebtAdapter')
+	const aaveV2DebtAdapter = await AaveV2DebtAdapter.deploy(
 		deployedContracts[network].aaveAddressProvider,
 		deployedContracts[network].weth
 	)
-	await aaveBorrowAdapter.deployed()
+	await aaveV2DebtAdapter.deployed()
 
-	add2Deployments('AaveBorrowAdapter', aaveBorrowAdapter.address)
+	add2Deployments('AaveV2DebtAdapter', aaveV2DebtAdapter.address)
+	add2Deployments('AaveBorrowAdapter', aaveV2DebtAdapter.address) //Alias
 
-	tx = await whitelist.approve(aaveBorrowAdapter.address)
+	tx = await whitelist.approve(aaveV2DebtAdapter.address)
 	await tx.wait()
 
 	const CompoundAdapter = await hre.ethers.getContractFactory('CompoundAdapter')
@@ -457,8 +465,8 @@ async function main() {
 	const Leverage2XAdapter = await hre.ethers.getContractFactory('Leverage2XAdapter')
 	const leverageAdapter = await Leverage2XAdapter.deploy(
 		uniswapV2Adapter.address,
-		aaveLendAdapter.address,
-		aaveBorrowAdapter.address,
+		aaveV2Adapter.address,
+		aaveV2DebtAdapter.address,
 		deployedContracts[process.env.HARDHAT_NETWORK].usdc,
 		deployedContracts[process.env.HARDHAT_NETWORK].weth
 	)

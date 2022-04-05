@@ -11,7 +11,7 @@ import "../../interfaces/IERC20NonStandard.sol";
 import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
-contract AaveLendAdapter is BaseAdapter {
+contract AaveV2Adapter is BaseAdapter {
     using SafeERC20 for IERC20;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;

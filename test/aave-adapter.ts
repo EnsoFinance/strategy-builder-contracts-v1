@@ -9,8 +9,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
-	deployAaveLendAdapter,
-	deployAaveBorrowAdapter,
+	deployAaveV2Adapter,
+	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployFullRouter
@@ -34,8 +34,8 @@ describe('AaveAdapter', function () {
 		oracle: Contract,
 		library: Contract,
 		uniswapAdapter: Contract,
-		aaveLendAdapter: Contract,
-		aaveBorrowAdapter: Contract,
+		aaveV2Adapter: Contract,
+		aaveV2DebtAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
@@ -63,10 +63,10 @@ describe('AaveAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveLendAdapter = await deployAaveLendAdapter(accounts[0], addressProvider, controller, weth)
-		await whitelist.connect(accounts[0]).approve(aaveLendAdapter.address)
-		aaveBorrowAdapter = await deployAaveBorrowAdapter(accounts[0], addressProvider, weth)
-		await whitelist.connect(accounts[0]).approve(aaveBorrowAdapter.address)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], addressProvider, controller, weth)
+		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
+		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], addressProvider, weth)
+		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -77,7 +77,7 @@ describe('AaveAdapter', function () {
 		const positions = [
 			{ token: collateralToken,
 				percentage: BigNumber.from(1000),
-				adapters: [aaveLendAdapter.address],
+				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
 	        ['uint16'],
@@ -86,7 +86,7 @@ describe('AaveAdapter', function () {
 			},
 			{ token: collateralToken2,
 				percentage: BigNumber.from(1000),
-				adapters: [uniswapAdapter.address, aaveLendAdapter.address],
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
 				path: [tokens.wbtc],
 				cache: ethers.utils.defaultAbiCoder.encode(
 	        ['uint16'],
@@ -95,7 +95,7 @@ describe('AaveAdapter', function () {
 			},
 			{ token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
-				adapters: [aaveBorrowAdapter.address, uniswapAdapter.address],
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
 				cache: ethers.utils.defaultAbiCoder.encode(
 	        ['address[]'],
@@ -221,7 +221,7 @@ describe('AaveAdapter', function () {
 		const positions = [
 			{ token: collateralToken,
 				percentage: BigNumber.from(2000),
-				adapters: [aaveLendAdapter.address],
+				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
 	        ['uint16'],
@@ -230,7 +230,7 @@ describe('AaveAdapter', function () {
 			},
 			{ token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
-				adapters: [aaveBorrowAdapter.address, uniswapAdapter.address],
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth],
 				cache: ethers.utils.defaultAbiCoder.encode(
 	        ['address[]'],

@@ -91,8 +91,8 @@ describe('EnsoStakingAdapter', function () {
 		ensoStakingAdapter = await deployEnsoStakingAdapter(accounts[0], stakingMock, ensoToken, sEnso, weth)
 		await whitelist.connect(accounts[0]).approve(ensoStakingAdapter.address)
 
-		await strategyFactory.connect(accounts[0]).addEstimatorToRegistry(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)
-		await strategyFactory.connect(accounts[0]).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.STAKED_ENSO, sEnso.address)
+		await strategyFactory.connect(accounts[0]).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO_STAKED, stakedEnsoEstimator.address)
+		await strategyFactory.connect(accounts[0]).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.ENSO_STAKED, sEnso.address)
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 		router = await deployLoopRouter(accounts[0], controller, library)

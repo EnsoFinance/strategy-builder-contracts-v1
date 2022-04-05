@@ -9,7 +9,7 @@ import "../../interfaces/curve/ICurveGauge.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
 import "../BaseAdapter.sol";
 
-contract CurveRewardsAdapter is BaseAdapter, IRewardsAdapter {
+contract CurveGaugeAdapter is BaseAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
     ICurveAddressProvider public immutable addressProvider;

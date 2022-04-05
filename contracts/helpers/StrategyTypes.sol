@@ -2,15 +2,23 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 interface StrategyTypes {
-
     enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE}
+
     enum EstimatorCategory {
       DEFAULT_ORACLE,
       CHAINLINK_ORACLE,
       STRATEGY,
       BLOCKED
     }
-    enum TimelockCategory {RESTRUCTURE, THRESHOLD, REBALANCE_SLIPPAGE, RESTRUCTURE_SLIPPAGE, TIMELOCK, PERFORMANCE}
+
+    enum TimelockCategory {
+      RESTRUCTURE,
+      THRESHOLD,
+      REBALANCE_SLIPPAGE,
+      RESTRUCTURE_SLIPPAGE,
+      TIMELOCK,
+      PERFORMANCE
+    }
 
     struct StrategyItem {
         address item;

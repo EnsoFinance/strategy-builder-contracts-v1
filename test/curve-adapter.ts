@@ -11,7 +11,7 @@ import { Tokens } from '../lib/tokens'
 import {
 	deployCurveAdapter,
 	deployCurveLPAdapter,
-	deployCurveRewardsAdapter,
+	deployCurveGaugeAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployLoopRouter
@@ -23,7 +23,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
 
-describe('CurveLPAdapter + CurveRewardsAdapter', function () {
+describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	let	weth: Contract,
 		crv: Contract,
 		dai: Contract,
@@ -38,7 +38,7 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		uniswapAdapter: Contract,
 		curveAdapter: Contract,
 		curveLPAdapter: Contract,
-		curveRewardsAdapter: Contract,
+		curveGaugeAdapter: Contract,
 		failAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -73,8 +73,8 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		curveLPAdapter = await deployCurveLPAdapter(accounts[0], addressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
-		curveRewardsAdapter = await deployCurveRewardsAdapter(accounts[0], addressProvider, weth)
-		await whitelist.connect(accounts[0]).approve(curveRewardsAdapter.address)
+		curveGaugeAdapter = await deployCurveGaugeAdapter(accounts[0], addressProvider, weth)
+		await whitelist.connect(accounts[0]).approve(curveGaugeAdapter.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -86,7 +86,7 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 			{ token: crv.address, percentage: BigNumber.from(0) },
 			{ token: rewardToken,
 				percentage: BigNumber.from(500),
-				adapters: [uniswapAdapter.address, curveLPAdapter.address, curveRewardsAdapter.address],
+				adapters: [uniswapAdapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
 				path: [tokens.link, tokens.crvLINK]
 			}
 		]
@@ -193,7 +193,7 @@ describe('CurveLPAdapter + CurveRewardsAdapter', function () {
 
 
 	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).batchClaimRewards([curveRewardsAdapter.address], [rewardToken])
+		await strategy.connect(accounts[1]).batchClaimRewards([curveGaugeAdapter.address], [rewardToken])
 	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {

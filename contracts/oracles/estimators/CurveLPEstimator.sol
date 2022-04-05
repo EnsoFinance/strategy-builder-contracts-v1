@@ -15,7 +15,7 @@ interface IAddressProvider {
     function get_registry() external view returns (address);
 }
 
-contract CurveEstimator is IEstimator {
+contract CurveLPEstimator is IEstimator {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
@@ -31,7 +31,7 @@ contract CurveEstimator is IEstimator {
         return _estimateItem(balance, token);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(address user, address token) public view override returns (int256) {
         uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance, token);
     }
