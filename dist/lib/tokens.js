@@ -37,7 +37,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Tokens = void 0;
-var utils_1 = require("./utils");
+var constants_1 = require("./constants");
 var Tokens = /** @class */ (function () {
     function Tokens() {
         // Basic Tokens
@@ -78,6 +78,7 @@ var Tokens = /** @class */ (function () {
         // Compound Tokens
         this.cDAI = '0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643';
         this.cUSDC = '0x39aa39c021dfbae8fac545936693ac917d5e7563';
+        this.cUSDT = '0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9';
         // Curve LP Tokens
         this.crv3 = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490';
         this.crvTriCrypto = '0xcA3d75aC011BF5aD07a98d02f18225F9bD9A6BDF';
@@ -114,53 +115,54 @@ var Tokens = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, Promise.all([
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.RESERVE, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.knc),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sEUR),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sLINK),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sETH),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sAAVE),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sBTC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDOT),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.SYNTH, utils_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sADA),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aWETH),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aWBTC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aDAI),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDT),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aCRV),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.DEBT, utils_1.ESTIMATOR_CATEGORY.AAVE_DEBT, this.debtDAI),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.DEBT, utils_1.ESTIMATOR_CATEGORY.AAVE_DEBT, this.debtUSDC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.DEBT, utils_1.ESTIMATOR_CATEGORY.AAVE_DEBT, this.debtWBTC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.DEBT, utils_1.ESTIMATOR_CATEGORY.AAVE_DEBT, this.debtWETH),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.COMPOUND, this.cDAI),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.COMPOUND, this.cUSDC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crv3),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvTriCrypto2),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvUSDP),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvSUSD),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvAAVE),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvSAAVE),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvLINK),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvCOMP),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvUSDN),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvSETH),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE, this.crvREN),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSUSDGauge),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvTriCrypto2),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yWBTC),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.BLOCKED, this.crvTriCrypto),
-                            strategyFactory.connect(owner).addItemToRegistry(utils_1.ITEM_CATEGORY.BASIC, utils_1.ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.RESERVE, constants_1.ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.RESERVE, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.knc),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sEUR),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sLINK),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sETH),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sAAVE),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sBTC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDOT),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.SYNTH, constants_1.ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sADA),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aWETH),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aWBTC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aDAI),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDT),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.AAVE_V2, this.aCRV),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.DEBT, constants_1.ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtDAI),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.DEBT, constants_1.ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtUSDC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.DEBT, constants_1.ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtWBTC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.DEBT, constants_1.ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtWETH),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.COMPOUND, this.cDAI),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.COMPOUND, this.cUSDC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.COMPOUND, this.cUSDT),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crv3),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvTriCrypto2),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvUSDP),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvSUSD),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvAAVE),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvSAAVE),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvLINK),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvCOMP),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvUSDN),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvSETH),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_LP, this.crvREN),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSUSDGauge),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvTriCrypto2),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.YEARN_V2, this.yWBTC),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.BLOCKED, this.crvTriCrypto),
+                            strategyFactory.connect(owner).addItemToRegistry(constants_1.ITEM_CATEGORY.BASIC, constants_1.ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
                         ])];
                     case 1:
                         _a.sent();

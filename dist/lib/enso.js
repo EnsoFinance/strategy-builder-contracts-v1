@@ -50,7 +50,7 @@ var UniswapV2Factory_json_1 = __importDefault(require("@uniswap/v2-core/build/Un
 var UniswapV3Factory_json_1 = __importDefault(require("@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json"));
 var SwapRouter_json_1 = __importDefault(require("@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json"));
 var deploy_1 = require("./deploy");
-var utils_1 = require("./utils");
+var constants_1 = require("./constants");
 var _a = hardhat_1.ethers.constants, AddressZero = _a.AddressZero, WeiPerEther = _a.WeiPerEther;
 var NULL_CONTRACT = new ethers_1.Contract(AddressZero, [], hardhat_1.ethers.provider);
 var wethPerToken = function (numTokens) { return ethers_1.BigNumber.from(WeiPerEther).mul(100 * (numTokens - 1)); };
@@ -88,11 +88,11 @@ var EnsoBuilder = /** @class */ (function () {
         this.adapters = (_a = this.adapters) !== null && _a !== void 0 ? _a : {};
         var adapter = new Adapter(type);
         switch (adapter.type) {
-            case Adapters.AaveBorrow:
-                this.adapters.aaveborrow = adapter;
+            case Adapters.AaveV2Debt:
+                this.adapters.aaveV2Debt = adapter;
                 break;
-            case Adapters.AaveLend:
-                this.adapters.aavelend = adapter;
+            case Adapters.AaveV2:
+                this.adapters.aaveV2 = adapter;
                 break;
             case Adapters.Balancer:
                 this.adapters.balancer = adapter;
@@ -106,8 +106,8 @@ var EnsoBuilder = /** @class */ (function () {
             case Adapters.CurveLP:
                 this.adapters.curveLP = adapter;
                 break;
-            case Adapters.CurveRewards:
-                this.adapters.curveRewards = adapter;
+            case Adapters.CurveGauge:
+                this.adapters.curveGauge = adapter;
                 break;
             case Adapters.Leverage:
                 this.adapters.leverage = adapter;
@@ -160,14 +160,14 @@ var EnsoBuilder = /** @class */ (function () {
                         balancer = new Balancer(factory, registry);
                         return [3 /*break*/, 6];
                     case 3:
-                        factory = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.BALANCER_FACTORY, Balancer_json_1.default.abi, this.signer);
-                        registry = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.BALANCER_REGISTRY, BalancerRegistry_json_1.default.abi, this.signer);
+                        factory = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.BALANCER_FACTORY, Balancer_json_1.default.abi, this.signer);
+                        registry = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.BALANCER_REGISTRY, BalancerRegistry_json_1.default.abi, this.signer);
                         balancer = new Balancer(factory, registry);
                         return [3 /*break*/, 6];
                     case 4: throw Error('External testnet not implemented yet');
                     case 5:
-                        factory = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.BALANCER_FACTORY, Balancer_json_1.default.abi, this.signer);
-                        registry = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.BALANCER_REGISTRY, BalancerRegistry_json_1.default.abi, this.signer);
+                        factory = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.BALANCER_FACTORY, Balancer_json_1.default.abi, this.signer);
+                        registry = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.BALANCER_REGISTRY, BalancerRegistry_json_1.default.abi, this.signer);
                         balancer = new Balancer(factory, registry);
                         return [3 /*break*/, 6];
                     case 6: return [2 /*return*/, balancer];
@@ -222,27 +222,27 @@ var EnsoBuilder = /** @class */ (function () {
                         uniswapV3Router = _6.sent();
                         return [3 /*break*/, 9];
                     case 6:
-                        this.tokens[0] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
+                        this.tokens[0] = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
                         this.tokens[0].connect(this.signer);
-                        this.tokens[1] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.SUSD, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[1] = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.SUSD, ERC20_json_1.default.abi, this.signer);
                         this.tokens[1].connect(this.signer);
-                        this.tokens[2] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.USDC, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[2] = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.USDC, ERC20_json_1.default.abi, this.signer);
                         this.tokens[2].connect(this.signer);
-                        uniswapV2Factory = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory_json_1.default.abi, this.signer);
-                        uniswapV3Factory = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory_json_1.default.abi, this.signer);
-                        uniswapV3Router = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, SwapRouter_json_1.default.abi, this.signer);
+                        uniswapV2Factory = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory_json_1.default.abi, this.signer);
+                        uniswapV3Factory = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory_json_1.default.abi, this.signer);
+                        uniswapV3Router = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, SwapRouter_json_1.default.abi, this.signer);
                         return [3 /*break*/, 9];
                     case 7: throw Error('External testnet not implemented yet');
                     case 8:
-                        this.tokens[0] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
+                        this.tokens[0] = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.WETH, WETH9_json_1.default.abi, this.signer);
                         this.tokens[0].connect(this.signer);
-                        this.tokens[1] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.SUSD, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[1] = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.SUSD, ERC20_json_1.default.abi, this.signer);
                         this.tokens[1].connect(this.signer);
-                        this.tokens[2] = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.USDC, ERC20_json_1.default.abi, this.signer);
+                        this.tokens[2] = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.USDC, ERC20_json_1.default.abi, this.signer);
                         this.tokens[2].connect(this.signer);
-                        uniswapV2Factory = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory_json_1.default.abi, this.signer);
-                        uniswapV3Factory = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory_json_1.default.abi, this.signer);
-                        uniswapV3Router = new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, SwapRouter_json_1.default.abi, this.signer);
+                        uniswapV2Factory = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory_json_1.default.abi, this.signer);
+                        uniswapV3Factory = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory_json_1.default.abi, this.signer);
+                        uniswapV3Router = new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, SwapRouter_json_1.default.abi, this.signer);
                         _6.label = 9;
                     case 9:
                         weth = this.tokens[0];
@@ -288,20 +288,20 @@ var EnsoBuilder = /** @class */ (function () {
                             this.addAdapter('metastrategy');
                         }
                         if (((_h = this.adapters) === null || _h === void 0 ? void 0 : _h.leverage) !== undefined) {
-                            // AaveLend and AaveBorrow always needed for leverage
-                            if (((_j = this.adapters) === null || _j === void 0 ? void 0 : _j.aavelend) === undefined)
-                                this.addAdapter('aavelend');
-                            if (((_k = this.adapters) === null || _k === void 0 ? void 0 : _k.aaveborrow) === undefined)
-                                this.addAdapter('aaveborrow');
+                            // AaveV2 and AaveV2Debt always needed for leverage
+                            if (((_j = this.adapters) === null || _j === void 0 ? void 0 : _j.aaveV2) === undefined)
+                                this.addAdapter('aavev2');
+                            if (((_k = this.adapters) === null || _k === void 0 ? void 0 : _k.aaveV2Debt) === undefined)
+                                this.addAdapter('aavev2debt');
                         }
-                        if (!(((_l = this.adapters) === null || _l === void 0 ? void 0 : _l.aavelend) !== undefined)) return [3 /*break*/, 13];
-                        return [4 /*yield*/, this.adapters.aavelend.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth])];
+                        if (!(((_l = this.adapters) === null || _l === void 0 ? void 0 : _l.aaveV2) !== undefined)) return [3 /*break*/, 13];
+                        return [4 /*yield*/, this.adapters.aaveV2.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth])];
                     case 12:
                         _6.sent();
                         _6.label = 13;
                     case 13:
-                        if (!(((_m = this.adapters) === null || _m === void 0 ? void 0 : _m.aaveborrow) !== undefined)) return [3 /*break*/, 15];
-                        return [4 /*yield*/, this.adapters.aaveborrow.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])];
+                        if (!(((_m = this.adapters) === null || _m === void 0 ? void 0 : _m.aaveV2Debt) !== undefined)) return [3 /*break*/, 15];
+                        return [4 /*yield*/, this.adapters.aaveV2Debt.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])];
                     case 14:
                         _6.sent();
                         _6.label = 15;
@@ -316,20 +316,20 @@ var EnsoBuilder = /** @class */ (function () {
                         _6.label = 18;
                     case 18:
                         if (!(((_p = this.adapters) === null || _p === void 0 ? void 0 : _p.compound) !== undefined)) return [3 /*break*/, 20];
-                        return [4 /*yield*/, this.adapters.compound.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], this.signer), weth])];
+                        return [4 /*yield*/, this.adapters.compound.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], this.signer), weth])];
                     case 19:
                         _6.sent();
                         _6.label = 20;
                     case 20:
                         if (!(((_q = this.adapters) === null || _q === void 0 ? void 0 : _q.curve) !== undefined)) return [3 /*break*/, 22];
-                        return [4 /*yield*/, this.adapters.curve.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])];
+                        return [4 /*yield*/, this.adapters.curve.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])];
                     case 21:
                         _6.sent();
                         _6.label = 22;
                     case 22:
                         if (!(((_r = this.adapters) === null || _r === void 0 ? void 0 : _r.curveLP) !== undefined)) return [3 /*break*/, 24];
                         return [4 /*yield*/, this.adapters.curveLP.deploy(this.signer, ensoPlatform.administration.whitelist, [
-                                new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
+                                new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
                                 ensoPlatform.oracles.registries.curveDepositZapRegistry,
                                 weth
                             ])];
@@ -337,14 +337,14 @@ var EnsoBuilder = /** @class */ (function () {
                         _6.sent();
                         _6.label = 24;
                     case 24:
-                        if (!(((_s = this.adapters) === null || _s === void 0 ? void 0 : _s.curveRewards) !== undefined)) return [3 /*break*/, 26];
-                        return [4 /*yield*/, this.adapters.curveRewards.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])];
+                        if (!(((_s = this.adapters) === null || _s === void 0 ? void 0 : _s.curveGauge) !== undefined)) return [3 /*break*/, 26];
+                        return [4 /*yield*/, this.adapters.curveGauge.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])];
                     case 25:
                         _6.sent();
                         _6.label = 26;
                     case 26:
                         if (!(((_t = this.adapters) === null || _t === void 0 ? void 0 : _t.synthetix) !== undefined)) return [3 /*break*/, 28];
-                        return [4 /*yield*/, this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer), weth])];
+                        return [4 /*yield*/, this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer), weth])];
                     case 27:
                         _6.sent();
                         _6.label = 28;
@@ -376,8 +376,8 @@ var EnsoBuilder = /** @class */ (function () {
                         if (!(((_y = this.adapters) === null || _y === void 0 ? void 0 : _y.leverage) !== undefined)) return [3 /*break*/, 38];
                         return [4 /*yield*/, this.adapters.leverage.deploy(this.signer, ensoPlatform.administration.whitelist, [
                                 ((_z = this.adapters) === null || _z === void 0 ? void 0 : _z.uniswap.contract) || NULL_CONTRACT,
-                                ((_0 = this.adapters) === null || _0 === void 0 ? void 0 : _0.aavelend.contract) || NULL_CONTRACT,
-                                ((_1 = this.adapters) === null || _1 === void 0 ? void 0 : _1.aaveborrow.contract) || NULL_CONTRACT,
+                                ((_0 = this.adapters) === null || _0 === void 0 ? void 0 : _0.aaveV2.contract) || NULL_CONTRACT,
+                                ((_1 = this.adapters) === null || _1 === void 0 ? void 0 : _1.aaveV2Debt.contract) || NULL_CONTRACT,
                                 usdc,
                                 weth
                             ])];
@@ -436,13 +436,13 @@ var Networks;
 })(Networks = exports.Networks || (exports.Networks = {}));
 var Adapters;
 (function (Adapters) {
-    Adapters["AaveLend"] = "aavelend";
-    Adapters["AaveBorrow"] = "aaveborrow";
+    Adapters["AaveV2"] = "aavev2";
+    Adapters["AaveV2Debt"] = "aavev2debt";
     Adapters["Balancer"] = "balancer";
     Adapters["Compound"] = "compound";
     Adapters["Curve"] = "curve";
     Adapters["CurveLP"] = "curvelp";
-    Adapters["CurveRewards"] = "curverewards";
+    Adapters["CurveGauge"] = "curvegauge";
     Adapters["Leverage"] = "leverage";
     Adapters["MetaStrategy"] = "metastrategy";
     Adapters["Synthetix"] = "synthetix";
@@ -467,19 +467,19 @@ var Adapter = /** @class */ (function () {
             return __generator(this, function (_q) {
                 switch (_q.label) {
                     case 0:
-                        if (!(this.type === Adapters.AaveBorrow)) return [3 /*break*/, 3];
+                        if (!(this.type === Adapters.AaveV2Debt)) return [3 /*break*/, 3];
                         if (!(parameters.length == 2)) return [3 /*break*/, 2];
                         _a = this;
-                        return [4 /*yield*/, deploy_1.deployAaveBorrowAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, deploy_1.deployAaveV2DebtAdapter(signer, parameters[0], parameters[1])];
                     case 1:
                         _a.contract = _q.sent();
                         _q.label = 2;
                     case 2: return [3 /*break*/, 41];
                     case 3:
-                        if (!(this.type === Adapters.AaveLend)) return [3 /*break*/, 6];
+                        if (!(this.type === Adapters.AaveV2)) return [3 /*break*/, 6];
                         if (!(parameters.length == 3)) return [3 /*break*/, 5];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployAaveLendAdapter(signer, parameters[0], parameters[1], parameters[2])];
+                        return [4 /*yield*/, deploy_1.deployAaveV2Adapter(signer, parameters[0], parameters[1], parameters[2])];
                     case 4:
                         _b.contract = _q.sent();
                         _q.label = 5;
@@ -521,10 +521,10 @@ var Adapter = /** @class */ (function () {
                         _q.label = 17;
                     case 17: return [3 /*break*/, 41];
                     case 18:
-                        if (!(this.type === Adapters.CurveRewards)) return [3 /*break*/, 21];
+                        if (!(this.type === Adapters.CurveGauge)) return [3 /*break*/, 21];
                         if (!(parameters.length == 2)) return [3 /*break*/, 20];
                         _g = this;
-                        return [4 /*yield*/, deploy_1.deployCurveRewardsAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, deploy_1.deployCurveGaugeAdapter(signer, parameters[0], parameters[1])];
                     case 19:
                         _g.contract = _q.sent();
                         _q.label = 20;
@@ -607,23 +607,23 @@ var Adapter = /** @class */ (function () {
 exports.Adapter = Adapter;
 var Routers;
 (function (Routers) {
-    Routers[Routers["Generic"] = 0] = "Generic";
+    Routers[Routers["Multicall"] = 0] = "Multicall";
     Routers[Routers["Loop"] = 1] = "Loop";
     Routers[Routers["Full"] = 2] = "Full";
     Routers[Routers["Batch"] = 3] = "Batch";
 })(Routers = exports.Routers || (exports.Routers = {}));
-// TODO: implement encoding for each Router (chain calldata for each type of router GenericRouter is IRouter, LoopRouter is IRouter etc..)
+// TODO: implement encoding for each Router (chain calldata for each type of router MulticallRouter is IRouter, LoopRouter is IRouter etc..)
 var Router = /** @class */ (function () {
     function Router(routerType) {
         switch (routerType.toLowerCase()) {
-            case 'generic' || 'genericrouter':
-                this.type = Routers.Generic;
-                break;
-            case 'full' || 'fullrouter':
-                this.type = Routers.Full;
+            case 'generic' || 'genericrouter' || 'multicall' || 'multicallrouter':
+                this.type = Routers.Multicall;
                 break;
             case 'loop' || 'looprouter':
                 this.type = Routers.Loop;
+                break;
+            case 'full' || 'fullrouter':
+                this.type = Routers.Full;
                 break;
             case 'batch' || 'batchrouter' || 'batchdepositrouter':
                 this.type = Routers.Loop;
@@ -638,16 +638,16 @@ var Router = /** @class */ (function () {
             return __generator(this, function (_e) {
                 switch (_e.label) {
                     case 0:
-                        if (!(this.type == Routers.Generic)) return [3 /*break*/, 2];
+                        if (!(this.type == Routers.Multicall)) return [3 /*break*/, 2];
                         _a = this;
-                        return [4 /*yield*/, deploy_1.deployGenericRouter(signer, controller)];
+                        return [4 /*yield*/, deploy_1.deployMulticallRouter(signer, controller)];
                     case 1:
                         _a.contract = _e.sent();
                         return [3 /*break*/, 8];
                     case 2:
                         if (!(this.type == Routers.Full)) return [3 /*break*/, 4];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, new ethers_1.Contract(utils_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller, library)];
+                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller, library)];
                     case 3:
                         _b.contract = _e.sent();
                         return [3 /*break*/, 8];
