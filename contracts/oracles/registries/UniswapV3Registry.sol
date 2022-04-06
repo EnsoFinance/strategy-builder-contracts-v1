@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
@@ -46,18 +47,23 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     function addPool(address token, address pair, uint24 fee) public override onlyOwner {
         _addPool(token, pair, fee);
     }
+
     function removePool(address token) external override onlyOwner {
-        bytes32 id = _pairId[token];
-        address pair = _fees[id].pair;
-        require(pair != address(0), "Pool doesnt exist");
-        delete _fees[id];
+        bytes32 pairId = _pairId[token];
+        require(pairId != bytes32(0), "Pool not found");
+        delete _fees[pairId];
         delete _pairId[token];
     }
 
     function getPoolData(address token) external view override returns (PoolData memory) {
-        FeeData memory fees = _fees[_pairId[token]];
-        address pool = factory.getPool(token, fees.pair, fees.fee);
-        return PoolData(pool, fees.pair);
+        bytes32 pairId = _pairId[token];
+        require(pairId != bytes32(0), "Pool not found");
+        FeeData memory feeData = _fees[pairId];
+        address pool = PoolAddress.computeAddress(
+            address(factory),
+            PoolAddress.getPoolKey(token, feeData.pair, feeData.fee)
+        );
+        return PoolData(pool, feeData.pair);
     }
 
     function getFee(address token, address pair) external view override returns (uint24) {
@@ -74,7 +80,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         bytes32 pairId = _pairHash(token, pair);
         _fees[pairId] = FeeData(fee, pair);
         _pairId[token] = pairId;
-        address pool = factory.getPool(token, pair, fee); 
+        address pool = factory.getPool(token, pair, fee);
         require(pool != address(0), "Not valid pool");
         (, , , , uint16 observationCardinalityNext, , ) = IUniswapV3Pool(pool).slot0();
         if (observationCardinalityNext < 2) IUniswapV3Pool(pool).increaseObservationCardinalityNext(2);
@@ -87,6 +93,4 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
             return keccak256(abi.encodePacked(b, a));
         }
     }
-
-
 }
