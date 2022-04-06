@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.11;
+pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -47,20 +47,21 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         _addPool(token, pair, fee);
     }
     function removePool(address token) external override onlyOwner {
-        // TODO: check for bytes32(0)
-        address pair = _fees[_pairId[token]].pair;
         bytes32 id = _pairId[token];
+        address pair = _fees[id].pair;
+        require(pair != address(0), "Pool doesnt exist");
         delete _fees[id];
         delete _pairId[token];
     }
 
     function getPoolData(address token) external view override returns (PoolData memory) {
-        bytes32 id = _pairId[token];
-        return PoolData(token, _fees[id].pair);
+        FeeData memory fees = _fees[_pairId[token]];
+        address pool = factory.getPool(token, fees.pair, fees.fee);
+        return PoolData(pool, fees.pair);
     }
 
     function getFee(address token, address pair) external view override returns (uint24) {
-        return _fees[_hash(token, pair)].fee;
+        return _fees[_pairHash(token, pair)].fee;
     }
 
     function updateTimeWindow(uint32 newTimeWindow) external onlyOwner {
@@ -70,16 +71,16 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     }
 
     function _addPool(address token, address pair, uint24 fee) internal {
-        bytes32 pairId = _hash(token, pair);
+        bytes32 pairId = _pairHash(token, pair);
         _fees[pairId] = FeeData(fee, pair);
         _pairId[token] = pairId;
-        address pool = factory.getPool(token, pair, fee);
+        address pool = factory.getPool(token, pair, fee); 
         require(pool != address(0), "Not valid pool");
         (, , , , uint16 observationCardinalityNext, , ) = IUniswapV3Pool(pool).slot0();
         if (observationCardinalityNext < 2) IUniswapV3Pool(pool).increaseObservationCardinalityNext(2);
     }
 
-    function _hash(address a, address b) internal pure returns (bytes32) {
+    function _pairHash(address a, address b) internal pure returns (bytes32) {
         if (a < b) {
             return keccak256(abi.encodePacked(a, b));
         } else {
