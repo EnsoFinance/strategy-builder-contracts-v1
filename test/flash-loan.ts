@@ -6,7 +6,7 @@ import {
 	deployTokens,
 	deployPlatform,
 	deployUniswapV2Adapter,
-	deployGenericRouter,
+	deployMulticallRouter,
 } from '../lib/deploy'
 import {
 	prepareStrategy,
@@ -30,7 +30,7 @@ describe('Flash Loan', function () {
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		arbitrager: Contract,
-		genericRouter: Contract,
+		multicallRouter: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
@@ -42,7 +42,7 @@ describe('Flash Loan', function () {
 		strategy: Contract,
 		wrapper: Contract
 
-	it('Setup Uniswap, Sushiswap, Factory, GenericRouter', async function () {
+	it('Setup Uniswap, Sushiswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -58,8 +58,8 @@ describe('Flash Loan', function () {
 		sushiAdapter = await deployUniswapV2Adapter(accounts[0], sushiFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		await whitelist.connect(accounts[0]).approve(sushiAdapter.address)
-		genericRouter = await deployGenericRouter(accounts[0], controller)
-		await whitelist.connect(accounts[0]).approve(genericRouter.address)
+		multicallRouter = await deployMulticallRouter(accounts[0], controller)
+		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -93,13 +93,13 @@ describe('Flash Loan', function () {
 		const calls = await prepareDepositMulticall(
 			strategy,
 			controller,
-			genericRouter,
+			multicallRouter,
 			uniswapAdapter,
 			weth,
 			total,
 			strategyItems
 		)
-		const data = await genericRouter.encodeCalls(calls)
+		const data = await multicallRouter.encodeCalls(calls)
 
 		await strategyFactory
 			.connect(accounts[1])
@@ -109,7 +109,7 @@ describe('Flash Loan', function () {
 				symbol,
 				strategyItems,
 				strategyState,
-				genericRouter.address,
+				multicallRouter.address,
 				data,
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
@@ -153,7 +153,7 @@ describe('Flash Loan', function () {
 		// Multicall gets initial tokens from uniswap
 		const rebalanceCalls = await prepareRebalanceMulticall(
 			strategy,
-			genericRouter,
+			multicallRouter,
 			uniswapAdapter,
 			oracle,
 			weth
@@ -168,8 +168,8 @@ describe('Flash Loan', function () {
 			weth
 		)
 		const calls = [...rebalanceCalls, ...flashLoanCalls]
-		const data = await genericRouter.encodeCalls(calls)
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, genericRouter.address, data)
+		const data = await multicallRouter.encodeCalls(calls)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await tokens[1].balanceOf(accounts[1].address)

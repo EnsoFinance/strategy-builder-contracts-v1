@@ -1,10 +1,10 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployGenericRouter } from '../lib/deploy'
+import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployMulticallRouter } from '../lib/deploy'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { StrategyItem, InitialState, prepareStrategy, prepareDepositMulticall, calculateAddress, encodeSettleSwap } from '../lib/encode'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
@@ -15,7 +15,7 @@ describe('Reentrancy    ', function () {
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
-		genericRouter: Contract,
+		multicallRouter: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
@@ -25,7 +25,7 @@ describe('Reentrancy    ', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
-	before('Setup Uniswap, Factory, GenericRouter', async function () {
+	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -38,8 +38,8 @@ describe('Reentrancy    ', function () {
 		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		genericRouter = await deployGenericRouter(accounts[0], controller)
-		await whitelist.connect(accounts[0]).approve(genericRouter.address)
+		multicallRouter = await deployMulticallRouter(accounts[0], controller)
+		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
 	})
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
@@ -72,13 +72,13 @@ describe('Reentrancy    ', function () {
 		const calls = await prepareDepositMulticall(
 			strategy,
 			controller,
-			genericRouter,
+			multicallRouter,
 			adapter,
 			weth,
 			total,
 			strategyItems
 		)
-		const data = await genericRouter.encodeCalls(calls)
+		const data = await multicallRouter.encodeCalls(calls)
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
@@ -88,7 +88,7 @@ describe('Reentrancy    ', function () {
 				symbol,
 				strategyItems,
 				strategyState,
-				genericRouter.address,
+				multicallRouter.address,
 				data,
 				{ value: total }
 			)
@@ -126,25 +126,25 @@ describe('Reentrancy    ', function () {
 		const depositCalls = await prepareDepositMulticall(
 			strategy,
 			controller,
-			genericRouter,
+			multicallRouter,
 			adapter,
 			weth,
 			total,
 			strategyItems
 		)
 		calls.push(...depositCalls)
-		let secondDeposit = await genericRouter.encodeCalls(calls)
+		let secondDeposit = await multicallRouter.encodeCalls(calls)
 		let depositCalldata = controller.interface.encodeFunctionData('deposit', [
 			strategy.address,
-			genericRouter.address,
+			multicallRouter.address,
 			0,
 			DEFAULT_DEPOSIT_SLIPPAGE,
 			secondDeposit,
 		])
 		calls.push({ target: controller.address, callData: depositCalldata, value: 0 })
-		let data = await genericRouter.encodeCalls(calls)
+		let data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 	})
 
@@ -156,7 +156,7 @@ describe('Reentrancy    ', function () {
 		const depositCalls = await prepareDepositMulticall(
 			strategy,
 			controller,
-			genericRouter,
+			multicallRouter,
 			adapter,
 			weth,
 			total,
@@ -166,7 +166,7 @@ describe('Reentrancy    ', function () {
 
 		calls.push(
 			encodeSettleSwap(
-				genericRouter,
+				multicallRouter,
 				adapter.address,
 				tokens[2].address,
 				tokens[1].address,
@@ -175,19 +175,19 @@ describe('Reentrancy    ', function () {
 			)
 		)
 
-		let data = await genericRouter.encodeCalls(calls)
+		let data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 
 		// Remove last call
 		calls.pop()
-		data = await genericRouter.encodeCalls(calls)
+		data = await multicallRouter.encodeCalls(calls)
 
 		// Deposit should work now
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, genericRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 

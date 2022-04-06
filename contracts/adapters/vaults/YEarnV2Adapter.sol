@@ -32,7 +32,7 @@ contract YEarnV2Adapter is BaseAdapter {
         if (_checkVault(tokenOut)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);
             require(address(vault.token()) == tokenIn, "Incompatible");
-            IERC20(tokenIn).approve(tokenOut, amount);
+            IERC20(tokenIn).safeApprove(tokenOut, amount);
             received = vault.deposit(amount, address(this));
         } else {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);

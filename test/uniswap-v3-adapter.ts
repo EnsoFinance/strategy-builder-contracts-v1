@@ -8,7 +8,9 @@ const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther, AddressZero } = constants
 import { deployTokens, deployUniswapV3, deployUniswapV3Adapter, deployLoopRouter } from '../lib/deploy'
 import { encodePath, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
-import { increaseTime, getDeadline, ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/utils'
+import { increaseTime, getDeadline } from '../lib/utils'
+import {  ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/constants'
+
 
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'

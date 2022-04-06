@@ -25,9 +25,9 @@ import {
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployLoopRouter,
-	deployGenericRouter
+	deployMulticallRouter
 } from '../lib/deploy'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 
 const NUM_TOKENS = 15
@@ -49,7 +49,7 @@ describe('MetaStrategyAdapter', function () {
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		loopRouter: Contract,
-		genericRouter: Contract,
+		multicallRouter: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
@@ -80,8 +80,8 @@ describe('MetaStrategyAdapter', function () {
 		library = platform.library
 		loopRouter = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(loopRouter.address)
-		genericRouter = await deployGenericRouter(accounts[0], controller)
-		await whitelist.connect(accounts[0]).approve(genericRouter.address)
+		multicallRouter = await deployMulticallRouter(accounts[0], controller)
+		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, loopRouter, weth)
@@ -369,7 +369,7 @@ describe('MetaStrategyAdapter', function () {
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
-	it('Should attempt steal from metaStrategy using basicStrategy + genericRouter', async function () {
+	it('Should attempt steal from metaStrategy using basicStrategy + multicallRouter', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(10)
 		await weth.connect(accounts[2]).deposit({value: value})
@@ -388,32 +388,32 @@ describe('MetaStrategyAdapter', function () {
 
 		//Approve weth to the router in order to later deposit into metaStrategy (in a production environment we would use a flash loan)
 		await weth.connect(accounts[1]).deposit({value: depositAmount})
-		await weth.connect(accounts[1]).approve(genericRouter.address, depositAmount);
+		await weth.connect(accounts[1]).approve(multicallRouter.address, depositAmount);
 
 		//Setup multicall
 		const maliciousCalls = [] as Multicall[]
 		//Remove all tokens from basicStrategy to reduce its value
-		maliciousCalls.push(encodeTransferFrom(tokens[1], basicStrategy.address, genericRouter.address, token1Balance))
-		maliciousCalls.push(encodeTransferFrom(tokens[2], basicStrategy.address, genericRouter.address, token2Balance))
-		maliciousCalls.push(encodeTransferFrom(tokens[3], basicStrategy.address, genericRouter.address, token3Balance))
+		maliciousCalls.push(encodeTransferFrom(tokens[1], basicStrategy.address, multicallRouter.address, token1Balance))
+		maliciousCalls.push(encodeTransferFrom(tokens[2], basicStrategy.address, multicallRouter.address, token2Balance))
+		maliciousCalls.push(encodeTransferFrom(tokens[3], basicStrategy.address, multicallRouter.address, token3Balance))
 		//Now metaStrategy will be worth less, deposit into it to get a greater than fair share
-		maliciousCalls.push(encodeTransferFrom(weth, accounts[1].address, genericRouter.address, depositAmount))
+		maliciousCalls.push(encodeTransferFrom(weth, accounts[1].address, multicallRouter.address, depositAmount))
 		const depositCalls = [] as Multicall[]
 		depositCalls.push(encodeTransfer(weth, metaStrategy.address, depositAmount))
-		const depositData = await genericRouter.encodeCalls(depositCalls)
-		const depositEncoded = controller.interface.encodeFunctionData('deposit', [metaStrategy.address, genericRouter.address, depositAmount, DEFAULT_DEPOSIT_SLIPPAGE, depositData])
+		const depositData = await multicallRouter.encodeCalls(depositCalls)
+		const depositEncoded = controller.interface.encodeFunctionData('deposit', [metaStrategy.address, multicallRouter.address, depositAmount, DEFAULT_DEPOSIT_SLIPPAGE, depositData])
 		maliciousCalls.push({ target: controller.address, callData: depositEncoded })
 		//Send all newly minted strategy tokens to account 1
-		maliciousCalls.push(encodeSettleTransfer(genericRouter, metaStrategy.address, accounts[1].address))
+		maliciousCalls.push(encodeSettleTransfer(multicallRouter, metaStrategy.address, accounts[1].address))
 		//Return all tokens to basicStrategy
 		maliciousCalls.push(encodeTransfer(tokens[1], basicStrategy.address, token1Balance))
 		maliciousCalls.push(encodeTransfer(tokens[2], basicStrategy.address, token2Balance))
 		maliciousCalls.push(encodeTransfer(tokens[3], basicStrategy.address, token3Balance))
 		//Do regular rebalance
-		const rebalanceCalls = await prepareRebalanceMulticall(basicStrategy, genericRouter, uniswapAdapter, oracle, weth)
+		const rebalanceCalls = await prepareRebalanceMulticall(basicStrategy, multicallRouter, uniswapAdapter, oracle, weth)
 		//Encode multicalls and rebalance
-		const rebalanceData = await genericRouter.encodeCalls([...maliciousCalls, ...rebalanceCalls])
-		await expect(controller.connect(accounts[1]).rebalance(basicStrategy.address, genericRouter.address, rebalanceData)).to.be.revertedWith('')
+		const rebalanceData = await multicallRouter.encodeCalls([...maliciousCalls, ...rebalanceCalls])
+		await expect(controller.connect(accounts[1]).rebalance(basicStrategy.address, multicallRouter.address, rebalanceData)).to.be.revertedWith('')
 		/*
 		const balanceAfter = await metaStrategy.balanceOf(accounts[1].address)
 		const totalSupply = await metaStrategy.totalSupply()

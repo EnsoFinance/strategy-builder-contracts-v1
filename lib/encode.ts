@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
-import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from './utils'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
+import { DEFAULT_DEPOSIT_SLIPPAGE, DIVISOR } from './constants'
 const hre = require('hardhat')
 const { ethers } = hre
 const { getContractFactory } = ethers

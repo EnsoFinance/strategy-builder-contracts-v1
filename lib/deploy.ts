@@ -6,18 +6,12 @@ import {
 		getDeadline,
 		getMinTick,
 		getMaxTick,
-		MAINNET_ADDRESSES,
-		ITEM_CATEGORY,
-		ESTIMATOR_CATEGORY,
-		UNI_V3_FEE,
-		ORACLE_TIME_WINDOW
 } from './utils'
 import {
 	createLink,
 	linkBytecode
 } from './link'
 
-import EnsoToken from '../dist/Enso.sol/Enso.json'
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
@@ -27,17 +21,17 @@ import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle
 import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
 import UniswapV3Oracle from '../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json'
 import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkOracle.sol/ChainlinkOracle.json'
-import AaveEstimator from '../artifacts/contracts/oracles/estimators/AaveEstimator.sol/AaveEstimator.json'
-import AaveDebtEstimator from '../artifacts/contracts/oracles/estimators/AaveDebtEstimator.sol/AaveDebtEstimator.json'
+import AaveV2Estimator from '../artifacts/contracts/oracles/estimators/AaveV2Estimator.sol/AaveV2Estimator.json'
+import AaveV2DebtEstimator from '../artifacts/contracts/oracles/estimators/AaveV2DebtEstimator.sol/AaveV2DebtEstimator.json'
 import BasicEstimator from '../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json'
 import EnsoEstimator from '../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json'
 import StakedEnsoEstimator from '../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json'
 import CompoundEstimator from '../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json'
-import CurveEstimator from '../artifacts/contracts/oracles/estimators/CurveEstimator.sol/CurveEstimator.json'
+import CurveLPEstimator from '../artifacts/contracts/oracles/estimators/CurveLPEstimator.sol/CurveLPEstimator.json'
 import CurveGaugeEstimator from '../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json'
 import EmergencyEstimator from '../artifacts/contracts/oracles/estimators/EmergencyEstimator.sol/EmergencyEstimator.json'
 import StrategyEstimator from '../artifacts/contracts/oracles/estimators/StrategyEstimator.sol/StrategyEstimator.json'
-import UniswapV2Estimator from '../artifacts/contracts/oracles/estimators/UniswapV2Estimator.sol/UniswapV2Estimator.json'
+import UniswapV2LPEstimator from '../artifacts/contracts/oracles/estimators/UniswapV2LPEstimator.sol/UniswapV2LPEstimator.json'
 import YEarnV2Estimator from '../artifacts/contracts/oracles/estimators/YEarnV2Estimator.sol/YEarnV2Estimator.json'
 import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
 import CurveDepositZapRegistry from '../artifacts/contracts/oracles/registries/CurveDepositZapRegistry.sol/CurveDepositZapRegistry.json'
@@ -47,18 +41,18 @@ import Whitelist from '../artifacts/contracts/Whitelist.sol/Whitelist.json'
 import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
 import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
 import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
-import GenericRouter from '../artifacts/contracts/routers/GenericRouter.sol/GenericRouter.json'
+import MulticallRouter from '../artifacts/contracts/routers/MulticallRouter.sol/MulticallRouter.json'
 import EnsoStakingAdapter from '../artifacts/contracts/adapters/staking/EnsoStakingAdapter.sol/EnsoStakingAdapter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
 import UniswapV3Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json'
 import MetaStrategyAdapter from '../artifacts/contracts/adapters/strategy/MetaStrategyAdapter.sol/MetaStrategyAdapter.json'
-import AaveLendAdapter from '../artifacts/contracts/adapters/lending/AaveLendAdapter.sol/AaveLendAdapter.json'
-import AaveBorrowAdapter from '../artifacts/contracts/adapters/borrow/AaveBorrowAdapter.sol/AaveBorrowAdapter.json'
+import AaveV2Adapter from '../artifacts/contracts/adapters/lending/AaveV2Adapter.sol/AaveV2Adapter.json'
+import AaveV2DebtAdapter from '../artifacts/contracts/adapters/borrow/AaveV2DebtAdapter.sol/AaveV2DebtAdapter.json'
 import CompoundAdapter from '../artifacts/contracts/adapters/lending/CompoundAdapter.sol/CompoundAdapter.json'
 import CurveAdapter from '../artifacts/contracts/adapters/exchanges/CurveAdapter.sol/CurveAdapter.json'
 import CurveLPAdapter from '../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json'
-import CurveRewardsAdapter from '../artifacts/contracts/adapters/vaults/CurveRewardsAdapter.sol/CurveRewardsAdapter.json'
+import CurveGaugeAdapter from '../artifacts/contracts/adapters/vaults/CurveGaugeAdapter.sol/CurveGaugeAdapter.json'
 import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json'
 import SynthetixAdapter from '../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json'
 import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json'
@@ -67,6 +61,7 @@ import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.j
 import BalancerRegistry from '../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json'
 import BPool from '../artifacts/@balancer-labs/core/contracts/BPool.sol/BPool.json'
 
+import EnsoToken from '@enso/token/artifacts/contracts/Enso.sol/Enso.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -74,7 +69,7 @@ import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import NFTDescriptor from '@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json'
 import NonfungiblePositionManager from '@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json'
-//import NonfungibleTokenPositionDescriptor from '../artifacts/contracts/test/NonfungibleTokenPositionDescriptor.sol/NonfungibleTokenPositionDescriptor.json'
+import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, ORACLE_TIME_WINDOW, UNI_V3_FEE } from './constants'
 
 const { ethers, waffle } = hre
 const { constants, getContractFactory } = ethers
@@ -311,18 +306,18 @@ export async function deployPlatform(
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
 	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
-	const aaveEstimator = await waffle.deployContract(owner, AaveEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveEstimator.address)
-	const aaveDebtEstimator = await waffle.deployContract(owner, AaveDebtEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_DEBT, aaveDebtEstimator.address)
+	const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
+	const aaveV2DebtEstimator = await waffle.deployContract(owner, AaveV2DebtEstimator, [])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)
 	const compoundEstimator = await waffle.deployContract(owner, CompoundEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)
-	const curveEstimator = await waffle.deployContract(owner, CurveEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE, curveEstimator.address)
+	const curveLPEstimator = await waffle.deployContract(owner, CurveLPEstimator, [])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)
 	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
-	const uniswapV2Estimator = await waffle.deployContract(owner, UniswapV2Estimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2Estimator.address)
+	const uniswapV2LPEstimator = await waffle.deployContract(owner, UniswapV2LPEstimator, [])
+	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2LPEstimator.address)
 	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
 
@@ -412,7 +407,7 @@ export async function deployPlatform(
 export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWithAddress, name: string, symbol: string, mintingAllowedAfter: number): Promise<Contract> {
 	const ensoToken = await waffle.deployContract(owner, EnsoToken, [name, symbol, minter.address, mintingAllowedAfter])
 	await ensoToken.deployed()
-	return ensoToken 
+	return ensoToken
 }
 
 export async function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contract, defaultEstimator: Contract, strategyFactory: Contract): Promise<Contract> {
@@ -423,7 +418,7 @@ export async function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contr
 
 export async function deployStakedEnsoEstimator(owner: SignerWithAddress, strategyFactory: Contract): Promise<Contract> {
 	const stakedEnsoEstimator = await waffle.deployContract(owner, StakedEnsoEstimator, [])
-	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.STAKED_ENSO, stakedEnsoEstimator.address)
+	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO_STAKED, stakedEnsoEstimator.address)
 	return stakedEnsoEstimator
 }
 
@@ -462,23 +457,23 @@ export async function deployMetaStrategyAdapter(
 	return adapter
 }
 
-export async function deployAaveLendAdapter(
+export async function deployAaveV2Adapter(
 	owner: SignerWithAddress,
 	addressProvider: Contract,
 	strategyController: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, AaveLendAdapter, [addressProvider.address, strategyController.address, weth.address])
+	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [addressProvider.address, strategyController.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployAaveBorrowAdapter(
+export async function deployAaveV2DebtAdapter(
 	owner: SignerWithAddress,
 	addressProvider: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, AaveBorrowAdapter, [addressProvider.address, weth.address])
+	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [addressProvider.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
@@ -530,12 +525,12 @@ export async function deployCurveLPAdapter(
 	return adapter
 }
 
-export async function deployCurveRewardsAdapter(
+export async function deployCurveGaugeAdapter(
 	owner: SignerWithAddress,
 	curveAddressProvider: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, CurveRewardsAdapter, [
+	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [
 			curveAddressProvider.address,
 			weth.address
 	])
@@ -559,15 +554,15 @@ export async function deploySynthetixAdapter(
 export async function deployLeverage2XAdapter(
 	owner: SignerWithAddress,
 	defaultAdapter: Contract,
-	aaveLendAdapter: Contract,
-	aaveBorrowAdapter: Contract,
+	aaveV2Adapter: Contract,
+	aaveV2DebtAdapter: Contract,
 	debtToken: Contract,
 	weth: Contract
 ) {
 	const adapter = await waffle.deployContract(owner, Leverage2XAdapter, [
 			defaultAdapter.address,
-			aaveLendAdapter.address,
-			aaveBorrowAdapter.address,
+			aaveV2Adapter.address,
+			aaveV2DebtAdapter.address,
 			debtToken.address,
 			weth.address
 	])
@@ -621,11 +616,11 @@ export async function deployBatchDepositRouter(
 	return router
 }
 
-export async function deployGenericRouter(
+export async function deployMulticallRouter(
 	owner: SignerWithAddress,
 	controller: Contract
 ) {
-	const router = await waffle.deployContract(owner, GenericRouter, [controller.address])
+	const router = await waffle.deployContract(owner, MulticallRouter, [controller.address])
 	await router.deployed()
 
 	return router

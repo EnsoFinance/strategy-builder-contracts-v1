@@ -1,6 +1,5 @@
 import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
-import { ITEM_CATEGORY, MAINNET_ADDRESSES, DIVISOR } from './utils'
 
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
@@ -13,11 +12,12 @@ import IYEarnV2Vault from '../artifacts/contracts/interfaces/yearn/IYEarnV2Vault
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
+import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES } from './constants'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils
 
-const SYNTHETIX = '0xDC01020857afbaE65224CfCeDb265d1216064c59'
+const SYNTHETIX = '0xE95A536cF5C7384FF1ef54819Dc54E03d0FF1979'
 const SYNTHETIX_EXCHANGER = '0x3e343E89F4fF8057806F54F2208940B1Cd5C40ca'
 const CURVE_REGISTRY = '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5'
 const UNISWAP_V2_ROUTER = '0xf164fC0Ec4E93095b804a4795bBe1e041497b92a'
@@ -53,12 +53,12 @@ export class Estimator {
   uniswapV3Registry: Contract
 
   aaveV2AdapterAddress: string
-  aaveDebtAdapterAddress: string
+  aaveV2DebtAdapterAddress: string
   balancerAdapterAddress: string
   compoundAdapterAddress: string
   curveAdapterAddress: string
   curveLPAdapterAddress: string
-  curveRewardsAdapterAddress: string
+  curveGaugeAdapterAddress: string
   synthetixAdapterAddress: string
   uniswapV2AdapterAddress: string
   uniswapV2LPAdapterAddress: string
@@ -76,7 +76,7 @@ export class Estimator {
     compoundAdapterAddress: string,
     curveAdapterAddress: string,
     curveLPAdapterAddress: string,
-    curveRewardsAdapterAddress: string,
+    curveGaugeAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
     uniswapV3AdapterAddress: string,
@@ -96,12 +96,12 @@ export class Estimator {
     this.curveDepositZapRegistry = curveDepositZapRegistry
 
     this.aaveV2AdapterAddress = aaveV2AdapterAddress
-    this.aaveDebtAdapterAddress = AddressZero
+    this.aaveV2DebtAdapterAddress = AddressZero
     this.balancerAdapterAddress = AddressZero
     this.compoundAdapterAddress = compoundAdapterAddress
     this.curveAdapterAddress = curveAdapterAddress
     this.curveLPAdapterAddress = curveLPAdapterAddress
-    this.curveRewardsAdapterAddress = curveRewardsAdapterAddress
+    this.curveGaugeAdapterAddress = curveGaugeAdapterAddress
     this.synthetixAdapterAddress = synthetixAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV2LPAdapterAddress = AddressZero
@@ -395,8 +395,8 @@ export class Estimator {
     switch (adapter.toLowerCase()) {
       case this.aaveV2AdapterAddress.toLowerCase():
         return this.estimateAaveV2(amount, tokenIn, tokenOut)
-      case this.aaveDebtAdapterAddress.toLowerCase():
-        return BigNumber.from('0')//this.estimateAaveDebt(amount, tokenIn, tokenOut)
+      case this.aaveV2DebtAdapterAddress.toLowerCase():
+        return BigNumber.from('0')//this.estimateAaveV2Debt(amount, tokenIn, tokenOut)
       case this.balancerAdapterAddress.toLowerCase():
         return BigNumber.from('0')//this.estimateBalancer(amount, tokenIn, tokenOut)
       case this.compoundAdapterAddress.toLowerCase():
@@ -405,7 +405,7 @@ export class Estimator {
         return this.estimateCurve(amount, tokenIn, tokenOut)
       case this.curveLPAdapterAddress.toLowerCase():
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
-      case this.curveRewardsAdapterAddress.toLowerCase():
+      case this.curveGaugeAdapterAddress.toLowerCase():
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
       case this.synthetixAdapterAddress.toLowerCase():
         return this.estimateSynthetix(amount, tokenIn, tokenOut)

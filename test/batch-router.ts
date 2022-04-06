@@ -9,7 +9,7 @@ import { BigNumber, Contract, Event } from 'ethers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployBatchDepositRouter } from '../lib/deploy'
 import { displayBalances } from '../lib/logging'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 const NUM_TOKENS = 15

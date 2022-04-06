@@ -6,7 +6,7 @@
   "types": "dist/lib/index.d.ts",
   "scripts": {
     "start": "yarn hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/5IIoZbDFo-8QzhVpR2JDHma79j9_HbIX --hostname 0.0.0.0",
-    "build": "yarn hardhat compile && tsc --build",
+    "build": "yarn hardhat compile --force && tsc --build",
     "coverage": "rm -r artifacts && rm -r typechain && TS_NODE_TRANSPILE_ONLY=true yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
     "register-tokens": "yarn hardhat run scripts/register-token.ts --network",
@@ -27,7 +27,6 @@
   "author": "",
   "license": "ISC",
   "files": [
-    "artifacts",
     "contracts"
   ],
   "bugs": {
@@ -39,6 +38,7 @@
     "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
     "@chainlink/contracts": "~0.1.6",
     "@enso/staking": "git+ssh://git@github.com:EnsoFinance/staking#core_compatibility",
+    "@enso/token": "git+ssh://git@github.com:EnsoFinance/ETH_Token.git",
     "@ethersproject/abstract-signer": "^5.0.6",
     "@ethersproject/bignumber": "^5.0.8",
     "@nomiclabs/hardhat-ethers": "^2.0.1",
@@ -53,6 +53,7 @@
     "@uniswap/v2-core": "~1.0.1",
     "@uniswap/v2-periphery": "~1.1.0-beta.0",
     "@uniswap/v3-core": "~1.0.0",
+    "@uniswap/v3-periphery": "^1.4.0",
     "chai": "~4.3.4",
     "dotenv": "~8.2.0",
     "eslint": "~7.14.0",
@@ -70,7 +71,6 @@
     "typescript": "~4.2.3"
   },
   "devDependencies": {
-    "@rari-capital/solmate": "^6.2.0",
-    "@uniswap/v3-periphery": "^1.4.0"
+    "@rari-capital/solmate": "^6.2.0"
   }
 }

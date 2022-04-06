@@ -3,7 +3,7 @@ import { ethers } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { Tokens } from '../lib/tokens'
-import { MAINNET_ADDRESSES } from '../lib/utils'
+import { MAINNET_ADDRESSES } from '../lib/constants'
 
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
