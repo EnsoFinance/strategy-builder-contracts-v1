@@ -8,7 +8,7 @@
     "start": "yarn hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/5IIoZbDFo-8QzhVpR2JDHma79j9_HbIX --hostname 0.0.0.0",
     "build": "yarn hardhat compile --force && tsc --build",
     "coverage": "rm -r artifacts && rm -r typechain && TS_NODE_TRANSPILE_ONLY=true yarn hardhat coverage",
-    "deploy": "yarn hardhat run scripts/full-deploy-script.js --network",
+    "deploy": "yarn hardhat run scripts/full-deploy-script.ts --network",
     "register-tokens": "yarn hardhat run scripts/register-token.ts --network",
     "register-dictionary": "yarn hardhat run scripts/register-dictionary.js --network",
     "fill-ui": "yarn hardhat run scripts/fill-ui-script.js --network",
