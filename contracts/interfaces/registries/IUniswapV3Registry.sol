@@ -5,6 +5,12 @@ pragma experimental ABIEncoderV2;
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 interface IUniswapV3Registry {
+
+  struct FeeData {
+      uint24 fee;
+      address pair;
+  }
+
   struct PoolData {
       address pool;
       address pair;
