@@ -21,12 +21,8 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     mapping(address =>  bytes32) internal _pairId;
 
-    mapping(bytes32 => PoolInfo) internal _pools;
+    mapping(bytes32 => FeeData) internal _fees;
 
-    struct PoolInfo {
-        uint24 fee;
-        address pair;
-    }
 
     constructor(uint32 timeWindow_, address factory_, address weth_) public {
         factory = IUniswapV3Factory(factory_);
@@ -52,19 +48,19 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     }
     function removePool(address token) external override onlyOwner {
         // TODO: check for bytes32(0)
-        address pair = _pools[_pairId[token]].pair;
+        address pair = _fees[_pairId[token]].pair;
         bytes32 id = _pairId[token];
-        delete _pools[id];
+        delete _fees[id];
         delete _pairId[token];
     }
 
     function getPoolData(address token) external view override returns (PoolData memory) {
         bytes32 id = _pairId[token];
-        return PoolData(token, _pools[id].pair);
+        return PoolData(token, _fees[id].pair);
     }
 
     function getFee(address token, address pair) external view override returns (uint24) {
-        return _pools[_hash(token, pair)].fee;
+        return _fees[_hash(token, pair)].fee;
     }
 
     function updateTimeWindow(uint32 newTimeWindow) external onlyOwner {
@@ -75,7 +71,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     function _addPool(address token, address pair, uint24 fee) internal {
         bytes32 pairId = _hash(token, pair);
-        _pools[pairId] = PoolInfo(fee, pair);
+        _fees[pairId] = FeeData(fee, pair);
         _pairId[token] = pairId;
         address pool = factory.getPool(token, pair, fee);
         require(pool != address(0), "Not valid pool");
