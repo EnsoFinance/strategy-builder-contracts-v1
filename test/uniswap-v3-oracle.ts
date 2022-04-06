@@ -132,7 +132,7 @@ describe('UniswapV3Oracle', function() {
 	})
 
 	it('Should get empty pool', async function() {
-		expect((await registry.getPoolData(tokens[2].address)).pool).to.equal(AddressZero)
+		await expect(registry.getPoolData(tokens[2].address)).to.be.revertedWith('Pool not found')
 	})
 
 	it('Should fail to add pool: not owner', async function() {
