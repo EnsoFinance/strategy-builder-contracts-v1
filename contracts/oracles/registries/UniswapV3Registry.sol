@@ -36,9 +36,9 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         address[] memory pairs,
         uint24[] memory fees
     ) external override onlyOwner {
-        uint length = tokens.length;
-        require(length == pairs.length, "Array mismatch");
-        require(length == fees.length, "Array mismatch");
+        uint256 length = tokens.length;
+        require(pairs.length == length, "Array mismatch");
+        require(fees.length == length, "Array mismatch");
         for (uint256 i = 0; i < length; i++) {
             _addPool(tokens[i], pairs[i], fees[i]);
         }
