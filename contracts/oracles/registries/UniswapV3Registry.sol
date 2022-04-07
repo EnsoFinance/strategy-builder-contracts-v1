@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol";
 import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
@@ -14,12 +15,15 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     using SafeMath for uint256;
 
     IUniswapV3Factory public immutable override factory;
+
     address public immutable override weth;
 
     uint32 public override timeWindow;
 
-    mapping(address => PoolData) internal _pools;
-    mapping(address => mapping(address => uint24)) internal _fees;
+    mapping(address =>  bytes32) internal _pairId;
+
+    mapping(bytes32 => FeeData) internal _fees;
+
 
     constructor(uint32 timeWindow_, address factory_, address weth_) public {
         factory = IUniswapV3Factory(factory_);
@@ -32,9 +36,10 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         address[] memory pairs,
         uint24[] memory fees
     ) external override onlyOwner {
-        require(tokens.length == pairs.length, "Array mismatch");
-        require(tokens.length == fees.length, "Array mismatch");
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint length = tokens.length;
+        require(length == pairs.length, "Array mismatch");
+        require(length == fees.length, "Array mismatch");
+        for (uint256 i = 0; i < length; i++) {
             _addPool(tokens[i], pairs[i], fees[i]);
         }
     }
@@ -44,18 +49,25 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     }
 
     function removePool(address token) external override onlyOwner {
-        address pair = _pools[token].pair;
-        delete _pools[token];
-        delete _fees[token][pair];
-        delete _fees[pair][token];
+        bytes32 pairId = _pairId[token];
+        require(pairId != bytes32(0), "Pool not found");
+        delete _fees[pairId];
+        delete _pairId[token];
     }
 
     function getPoolData(address token) external view override returns (PoolData memory) {
-        return _pools[token];
+        bytes32 pairId = _pairId[token];
+        require(pairId != bytes32(0), "Pool not found");
+        FeeData memory feeData = _fees[pairId];
+        address pool = PoolAddress.computeAddress(
+            address(factory),
+            PoolAddress.getPoolKey(token, feeData.pair, feeData.fee)
+        );
+        return PoolData(pool, feeData.pair);
     }
 
     function getFee(address token, address pair) external view override returns (uint24) {
-        return _fees[token][pair];
+        return _fees[_pairHash(token, pair)].fee;
     }
 
     function updateTimeWindow(uint32 newTimeWindow) external onlyOwner {
@@ -65,15 +77,20 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     }
 
     function _addPool(address token, address pair, uint24 fee) internal {
+        bytes32 pairId = _pairHash(token, pair);
+        _fees[pairId] = FeeData(fee, pair);
+        _pairId[token] = pairId;
         address pool = factory.getPool(token, pair, fee);
         require(pool != address(0), "Not valid pool");
-        _pools[token] = PoolData(
-            pool,
-            pair
-        );
-        _fees[token][pair] = fee;
-        _fees[pair][token] = fee;
         (, , , , uint16 observationCardinalityNext, , ) = IUniswapV3Pool(pool).slot0();
         if (observationCardinalityNext < 2) IUniswapV3Pool(pool).increaseObservationCardinalityNext(2);
+    }
+
+    function _pairHash(address a, address b) internal pure returns (bytes32) {
+        if (a < b) {
+            return keccak256(abi.encodePacked(a, b));
+        } else {
+            return keccak256(abi.encodePacked(b, a));
+        }
     }
 }
