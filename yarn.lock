@@ -107,17 +107,19 @@
   resolved "https://registry.yarnpkg.com/@ensdomains/resolver/-/resolver-0.2.4.tgz#c10fe28bf5efbf49bff4666d909aed0265efbc89"
   integrity sha512-bvaTH34PMCbv6anRa9I/0zjLJgY4EuznbEMgbV77JBCQ9KNC46rzi0avuxpOfu+xDjPEtSFGqVEOr5GlUSGudA==
 
-"@enso/staking@git+ssh://git@github.com:EnsoFinance/staking#core_compatibility":
+"@enso.contracts/erc20@^1.0.0":
   version "1.0.0"
-  resolved "git+ssh://git@github.com:EnsoFinance/staking#d670cb622d973a3bfd0abe163b967c7b396c26db"
-
-"@enso/token@git+ssh://git@github.com:EnsoFinance/ETH_Token.git":
-  version "1.0.0"
-  resolved "git+ssh://git@github.com:EnsoFinance/ETH_Token.git#82cc19a7a7ef5b9dd53a697d2ed94071c7f9c963"
+  resolved "https://registry.yarnpkg.com/@enso.contracts/erc20/-/erc20-1.0.0.tgz#a48fbf77b7be7c6e48742c00d3be192e0eea1e35"
+  integrity sha512-tHbPR0WjKW83b/YhmZEQ3Tnf9KaOwthwI6wMZK7tTKcbImP1we8xRTyazfA/Ok2GEs2sH0obw4YbkA4YGnOJ3g==
   dependencies:
     "@typechain/hardhat" "^1.0.1"
     builder-pattern "^1.3.0"
     solc "0.8.1"
+
+"@enso.contracts/staking@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@enso.contracts/staking/-/staking-1.0.3.tgz#287feac74bf3988fac66eae125ae86480490ff5c"
+  integrity sha512-5jStJPyYJ3UN3Oq8yTA4OqCelOu2ihSXAIt4GtWLP6yV96l6Ckl0rBhhW/K3Q/DBcy9lcx5ihMAq6RQDqqns0g==
 
 "@eslint/eslintrc@^0.2.1":
   version "0.2.2"

@@ -1,9 +1,17 @@
 {
-  "name": "@enso/contracts",
-  "version": "0.1.3",
-  "description": "Enso protocol smart contracts",
-  "main": "./dist/lib/index.js",
+  "name": "@enso.contracts/v1-core",
+  "version": "0.1.1",
+  "description": "Enso v1-core contracts",
+  "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
+  "directories": {
+    "doc": "docs",
+    "lib": "lib",
+    "test": "test"
+  },
+  "engines": {
+    "node": ">=12"
+  },
   "scripts": {
     "start": "yarn hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/5IIoZbDFo-8QzhVpR2JDHma79j9_HbIX --hostname 0.0.0.0",
     "build": "yarn hardhat compile --force && tsc --build",
@@ -17,43 +25,30 @@
     "solhint": "solhint -f table --fix 'contracts/**/*.sol'",
     "test": "yarn hardhat test"
   },
-  "engines": {
-    "node": ">=10"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/EnsoFinance/v1-core"
-  },
-  "author": "",
-  "license": "ISC",
-  "files": [
-    "contracts"
-  ],
-  "bugs": {
-    "url": "https://github.com/EnsoFinance/v1-core/issues"
-  },
-  "homepage": "https://github.com/EnsoFinance/v1-core#readme",
   "dependencies": {
     "@0xsequence/token-directory": "1.1.13",
     "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
     "@chainlink/contracts": "~0.1.6",
-    "@enso/staking": "git+ssh://git@github.com:EnsoFinance/staking#core_compatibility",
-    "@enso/token": "git+ssh://git@github.com:EnsoFinance/ETH_Token.git",
+    "@enso.contracts/erc20": "^1.0.0",
+    "@enso.contracts/staking": "^1.0.3",
+    "@openzeppelin/contracts": "~3.3.0",
+    "@rari-capital/solmate": "^6.2.0",
+    "@uniswap/v2-core": "~1.0.1",
+    "@uniswap/v2-periphery": "~1.1.0-beta.0",
+    "@uniswap/v3-core": "~1.0.0",
+    "@uniswap/v3-periphery": "^1.4.0"
+  },
+  "devDependencies": {
     "@ethersproject/abstract-signer": "^5.0.6",
     "@ethersproject/bignumber": "^5.0.8",
     "@nomiclabs/hardhat-ethers": "^2.0.1",
     "@nomiclabs/hardhat-waffle": "~2.0.1",
-    "@openzeppelin/contracts": "~3.3.0",
     "@typechain/ethers-v5": "6.0.5",
     "@typechain/hardhat": "^1.0.1",
     "@types/chai": "~4.2.16",
     "@types/fs-extra": "~9.0.10",
     "@types/mocha": "~8.2.2",
     "@types/node": "~14.14.37",
-    "@uniswap/v2-core": "~1.0.1",
-    "@uniswap/v2-periphery": "~1.1.0-beta.0",
-    "@uniswap/v3-core": "~1.0.0",
-    "@uniswap/v3-periphery": "^1.4.0",
     "chai": "~4.3.4",
     "dotenv": "~8.2.0",
     "eslint": "~7.14.0",
@@ -70,7 +65,20 @@
     "typechain": "~3.0.0",
     "typescript": "~4.2.3"
   },
-  "devDependencies": {
-    "@rari-capital/solmate": "^6.2.0"
-  }
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EnsoFinance/v1-core.git"
+  },
+  "keywords": [
+    "enso",
+    "web3",
+    "defi",
+    "ethereum"
+  ],
+  "author": "Enso Finance",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/EnsoFinance/v1-core/issues"
+  },
+  "homepage": "https://github.com/EnsoFinance/v1-core#readme"
 }
