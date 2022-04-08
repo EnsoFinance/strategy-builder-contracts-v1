@@ -59,12 +59,7 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
   }
   
   contracts.forEach(c => {
-      client.addContract(c)
-      .then(result => {
-        console.log(result)
-      })
-      .catch(err => {
-        console.error(err)
-      })
+      let result = await client.addContract(c)
+      console.log(result)
   })
 });
