@@ -75,6 +75,7 @@ function getNetworks(): NetworksUserConfig {
 		networks.rinkeby = createTestnetConfig('rinkeby')
 		networks.ropsten = createTestnetConfig('ropsten')
 		networks.ensonet = createTestnetConfig('ensonet')
+		networks.mainnet = createTestnetConfig('mainnet')
 	}
 	return networks
 }
