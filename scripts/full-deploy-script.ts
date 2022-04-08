@@ -94,6 +94,7 @@ async function main() {
 	// await hre.run('compile');
 	const [ signer ] = await hre.ethers.getSigners()
 	const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
+	console.log("Owner: ", owner)
 
 	// Setup library
 	let libraryAddress: string
