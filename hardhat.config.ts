@@ -18,7 +18,6 @@ const chainIds = {
 	hardhat: 31337,
 	kovan: 42,
 	mainnet: 1,
-	ensonet: 1,
 	rinkeby: 4,
 	ropsten: 3,
 }
@@ -51,7 +50,7 @@ if (networkIndex > 0) {
 function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
-			chainId: chainIds.mainnet
+			chainId: chainIds.mainnet,
 		},
 		localhost: {
 			url: 'http://127.0.0.1:8545',
@@ -75,7 +74,6 @@ function getNetworks(): NetworksUserConfig {
 		networks.kovan = createTestnetConfig('kovan')
 		networks.rinkeby = createTestnetConfig('rinkeby')
 		networks.ropsten = createTestnetConfig('ropsten')
-		networks.ensonet = createTestnetConfig('ensonet')
 		networks.mainnet = createTestnetConfig('mainnet')
 	}
 	return networks
@@ -84,12 +82,7 @@ function getNetworks(): NetworksUserConfig {
 function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig {
 	// Ensure that we have all the environment variables we need.
 
-	let url: string
-	if (network === 'ensonet') {
-		url = 'http://testnet.enso.finance'
-	} else {
-		url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
-	}
+	let url = 'https://' + network + '.infura.io/v3/' + infuraApiKey
 
 	return {
 		accounts: {
@@ -179,43 +172,43 @@ let config: HardhatUserConfig = {
 			},
 		],
 		overrides: {
-			"@uniswap/v3-periphery/contracts/libraries/ChainId.sol": {
-			version: '0.7.0',
-			settings: {}
+			'@uniswap/v3-periphery/contracts/libraries/ChainId.sol': {
+				version: '0.7.0',
+				settings: {},
 			},
-			"@uniswap/lib/contracts/libraries/SafeERC20Namer.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/lib/contracts/libraries/SafeERC20Namer.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/lib/contracts/libraries/AddressStringUtil.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/lib/contracts/libraries/AddressStringUtil.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/v3-periphery/contracts/libraries/PoolAddress.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/v2-periphery/contracts/interfaces/IWETH.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/v2-periphery/contracts/interfaces/IWETH.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/v2-core/contracts/interfaces/IUniswapV2ERC20.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-			"@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol": {
-			version: '0.5.0',
-			settings: {}
+			'@uniswap/v2-core/contracts/interfaces/IUniswapV2Callee.sol': {
+				version: '0.5.0',
+				settings: {},
 			},
-		}
+		},
 	},
 	mocha: {
 		timeout: 80000,
