@@ -1,5 +1,5 @@
 {
-  "name": "@enso.contracts/v1-core",
+  "name": "@ensofinance/v1-core",
   "version": "0.1.1",
   "description": "Enso v1-core contracts",
   "main": "dist/lib/index.js",
@@ -29,8 +29,8 @@
     "@0xsequence/token-directory": "1.1.13",
     "@balancer-labs/core": "https://github.com/balancer-labs/balancer-core",
     "@chainlink/contracts": "~0.1.6",
-    "@enso.contracts/erc20": "^1.0.0",
-    "@enso.contracts/staking": "^1.0.3",
+    "@ensofinance/erc20": "^1.0.0",
+    "@ensofinance/staking": "^0.1.0",
     "@openzeppelin/contracts": "~3.3.0",
     "@rari-capital/solmate": "^6.2.0",
     "@uniswap/v2-core": "~1.0.1",

@@ -1,5 +1,5 @@
 import { constants, providers, ContractFactory, Wallet } from 'ethers'
-import Factory from '@enso/contracts/artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import Factory from '@ensofinance/v1-core/contracts/artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 
 const nodeUrl = `https://kovan.infura.io/v3/${process.env.INFURA_KEY}`
 const privateKey = process.env.PRIVATE_KEY || ''

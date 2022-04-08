@@ -2,13 +2,10 @@ import { MAINNET_ADDRESSES } from '../lib/constants'
 
 const hre = require('hardhat')
 const { ethers } = hre
-// const { getContractFactory } = waffle
 const { getSigners} = ethers
 const { EnsoBuilder, EnsoEnvironment } = require('../lib/index')
-// import { StrategyBuilder } from '@enso/contracts/lib/encode'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
-// import { Contract, Event } from '@ethersproject/contracts'
 
 describe('SDK', function () {
 	let accounts: SignerWithAddress[]

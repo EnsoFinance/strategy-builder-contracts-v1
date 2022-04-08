@@ -61,7 +61,7 @@ import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.j
 import BalancerRegistry from '../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json'
 import BPool from '../artifacts/@balancer-labs/core/contracts/BPool.sol/BPool.json'
 
-import EnsoToken from '@enso.contracts/erc20/artifacts/contracts/Enso.sol/Enso.json'
+import EnsoToken from '@ensofinance/erc20/artifacts/contracts/Enso.sol/Enso.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'

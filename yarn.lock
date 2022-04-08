@@ -107,19 +107,19 @@
   resolved "https://registry.yarnpkg.com/@ensdomains/resolver/-/resolver-0.2.4.tgz#c10fe28bf5efbf49bff4666d909aed0265efbc89"
   integrity sha512-bvaTH34PMCbv6anRa9I/0zjLJgY4EuznbEMgbV77JBCQ9KNC46rzi0avuxpOfu+xDjPEtSFGqVEOr5GlUSGudA==
 
-"@enso.contracts/erc20@^1.0.0":
+"@ensofinance/erc20@^1.0.0":
   version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@enso.contracts/erc20/-/erc20-1.0.0.tgz#a48fbf77b7be7c6e48742c00d3be192e0eea1e35"
-  integrity sha512-tHbPR0WjKW83b/YhmZEQ3Tnf9KaOwthwI6wMZK7tTKcbImP1we8xRTyazfA/Ok2GEs2sH0obw4YbkA4YGnOJ3g==
+  resolved "https://registry.yarnpkg.com/@ensofinance/erc20/-/erc20-1.0.0.tgz#c89c6d5d96dd1f61bcaaee632a66e6437dbf9efb"
+  integrity sha512-H08sEtrbiRt2ZiWnfQrtM8KJOOX94orsrGka8v0ET5hF1ZxSm7cdIoFWS0Un5A+wQNjMk2EQhJp8uKLDr1d4wA==
   dependencies:
     "@typechain/hardhat" "^1.0.1"
     builder-pattern "^1.3.0"
     solc "0.8.1"
 
-"@enso.contracts/staking@^1.0.3":
-  version "1.0.3"
-  resolved "https://registry.yarnpkg.com/@enso.contracts/staking/-/staking-1.0.3.tgz#287feac74bf3988fac66eae125ae86480490ff5c"
-  integrity sha512-5jStJPyYJ3UN3Oq8yTA4OqCelOu2ihSXAIt4GtWLP6yV96l6Ckl0rBhhW/K3Q/DBcy9lcx5ihMAq6RQDqqns0g==
+"@ensofinance/staking@^0.1.0":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@ensofinance/staking/-/staking-0.1.1.tgz#a8b4b57efdb70ae6163ab8c23beb453e619320ae"
+  integrity sha512-vwON1qHl1lCGldtbVJHDNrvYEre7/QfrCJX4w854TJQ2DRwiMGUTEip0U/C1IKjPITfVoq17x8DqDxwCbXnosw==
 
 "@eslint/eslintrc@^0.2.1":
   version "0.2.2"
