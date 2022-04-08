@@ -61,6 +61,6 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
   }
   
   for (var i=0; i<contracts.length; i++) {
-      let result = await client.addContract(contracts[i])
+      await client.addContract(contracts[i])
   }
 });
