@@ -1,9 +1,12 @@
 import { task } from "hardhat/config";
 import { ADD_CONTRACTS_TO_DEFENDER_ADMIN } from "./task-names";
 import dotenv from 'dotenv'
-import { AdminClient } from 'defender-admin-client';
+import { AdminClient, Contract } from 'defender-admin-client';
+import { Network } from 'defender-base-client';
 import { mainnet } from '../deployments.json'; 
 import * as fs from 'fs';
+
+declare type Address = string;
 
 task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async () => {
   dotenv.config()
@@ -14,11 +17,14 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
   }
   const client = new AdminClient({apiKey: API_KEY, apiSecret: API_SECRET});
   let contracts = [];
-  let contract = {network: 'mainnet', address: '', name: '', abi: ''};
+  let network : Network = 'mainnet';
+  let address : Address = '';
+  let contract : Contract = {network: network, address: address, name: '', abi: ''};
   let importPath = '';
   // most of core contracts
   for (const [key, value] of Object.entries(mainnet)) {
-      contract.address = value
+      address = value as Address
+      contract.address = address 
       contract.name = key
       importPath = 'artifacts/contracts/'+key+'.sol/'+key+'.json' 
       if (!fs.existsSync(importPath)) continue;
@@ -29,7 +35,8 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
   }
   // hacks for registries
   for (const [key, value] of Object.entries(mainnet)) {
-      contract.address = value
+      address = value as Address
+      contract.address = address 
       contract.name = key
       importPath = 'artifacts/contracts/oracles/registries/'+key+'.sol/'+key+'.json' 
       if (!fs.existsSync(importPath)) continue;
@@ -40,7 +47,8 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
   }
   // hack for oracle
   for (const [key, value] of Object.entries(mainnet)) {
-      contract.address = value
+      address = value as Address
+      contract.address = address 
       contract.name = key
       importPath = 'artifacts/contracts/oracles/'+key+'.sol/'+key+'.json' 
       if (!fs.existsSync(importPath)) continue;
@@ -50,8 +58,7 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
       contracts.push(contract);
   }
   
-  contracts.forEach((c) => {
-    client.addContract(c)
+  contracts.forEach(c => {
+      client.addContract(c)
   })
-
 });
