@@ -57,9 +57,9 @@ task(ADD_CONTRACTS_TO_DEFENDER_ADMIN, "Add Contracts to Defender Admin", async (
       contract.abi = JSON.stringify(imported.abi)
       contracts.push(contract);
   }
-  
-  contracts.forEach(c => {
-      let result = await client.addContract(c)
+
+  for (var i=0; i<contracts.length; i++) {
+      let result = await client.addContract(contracts[i])
       console.log(result)
-  })
+  }
 });
