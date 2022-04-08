@@ -1,12 +1,14 @@
 const hre = require('hardhat')
 const fs = require('fs')
 const util = require('util')
-const positions = require(process.env.TOKEN_POSITIONS_PATH || '')
-const tokens = require(process.env.TOKENS_PATH || '')
+const positions = require(process.env.CRAWLER_DATA_PATH + '/token_positions.json')
+const tokens = require(process.env.CRAWLER_DATA_PATH + '/tokens.json')
 const { prepareStrategy } = require('../lib/encode')
 
-if (!tokens) throw 'set env TOKENS_PATH'
-if (!positions) throw 'set env TOKEN_POSITIONS_PATH'
+if (!process.env.CRAWLER_DATA_PATH) throw 'set env CRAWLER_DATA_PATH'
+
+if (!tokens) throw 'no tokens imported from json!'
+if (!positions) throw 'no positions imported from json!'
 
 const log_file = fs.createWriteStream(__dirname + '/debug-strategies.log', { flags: 'w' })
 
