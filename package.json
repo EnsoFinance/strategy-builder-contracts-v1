@@ -71,6 +71,7 @@
     "typescript": "~4.2.3"
   },
   "devDependencies": {
-    "@rari-capital/solmate": "^6.2.0"
+    "@rari-capital/solmate": "^6.2.0",
+    "defender-admin-client": "^1.18.0"
   }
 }

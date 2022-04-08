@@ -9,6 +9,7 @@ import '@typechain/hardhat'
 import './tasks/accounts'
 import './tasks/clean'
 import './tasks/addOwnerFunds'
+import './tasks/addContractsToDefenderAdmin'
 
 dotenv.config()
 
