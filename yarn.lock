@@ -112,8 +112,8 @@
   resolved "git+ssh://git@github.com:EnsoFinance/staking#d670cb622d973a3bfd0abe163b967c7b396c26db"
 
 "@enso/token@git+ssh://git@github.com:EnsoFinance/ETH_Token.git":
-  version "1.0.0"
-  resolved "git+ssh://git@github.com:EnsoFinance/ETH_Token.git#82cc19a7a7ef5b9dd53a697d2ed94071c7f9c963"
+  version "1.0.1"
+  resolved "git+ssh://git@github.com:EnsoFinance/ETH_Token.git#be9dda0328948310274deb0d019e61246829dce6"
   dependencies:
     "@typechain/hardhat" "^1.0.1"
     builder-pattern "^1.3.0"
@@ -10138,6 +10138,11 @@ union-value@^1.0.0:
     get-value "^2.0.6"
     is-extendable "^0.1.1"
     set-value "^2.0.1"
+
+unique-names-generator@^4.7.1:
+  version "4.7.1"
+  resolved "https://registry.yarnpkg.com/unique-names-generator/-/unique-names-generator-4.7.1.tgz#966407b12ba97f618928f77322cfac8c80df5597"
+  integrity sha512-lMx9dX+KRmG8sq6gulYYpKWZc9RlGsgBR6aoO8Qsm3qvkSJ+3rAymr+TnV8EDMrIrwuFJ4kruzMWM/OpYzPoow==
 
 universalify@^0.1.0:
   version "0.1.2"
