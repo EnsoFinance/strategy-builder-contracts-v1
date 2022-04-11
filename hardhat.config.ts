@@ -8,6 +8,7 @@ import 'solidity-coverage'
 import './tasks/accounts'
 import './tasks/clean'
 import './tasks/addOwnerFunds'
+import './tasks/addContractsToDefenderAdmin'
 
 dotenv.config()
 
@@ -75,6 +76,7 @@ function getNetworks(): NetworksUserConfig {
 		networks.rinkeby = createTestnetConfig('rinkeby')
 		networks.ropsten = createTestnetConfig('ropsten')
 		networks.ensonet = createTestnetConfig('ensonet')
+		networks.mainnet = createTestnetConfig('mainnet')
 	}
 	return networks
 }
