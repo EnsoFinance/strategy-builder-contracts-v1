@@ -200,7 +200,6 @@ export async function deployUniswapV2(owner: SignerWithAddress, tokens: Contract
 	}
 	return uniswapV2Factory
 }
-// deployUniswapV3: async (owner, tokens) => {
 export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract[]) {
 	const uniswapV3Factory = await waffle.deployContract(owner, UniswapV3Factory)
 	await uniswapV3Factory.deployed()
