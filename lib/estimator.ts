@@ -583,16 +583,9 @@ export class Estimator {
     pool: string,
     coins: string[]
   ) {
-    let coinsInPool;
-    let tokenIndex = 8; // Outside of possible index range. If index not found function will return 0
-    for (let i = 0; i < 8; i++) {
-      if (coins[i] === AddressZero) {
-          coinsInPool = i;
-          break;
-      }
-      if (coins[i].toLowerCase() === tokenIn.toLowerCase()) tokenIndex = i;
-    }
-    if (tokenIndex === 8) return BigNumber.from(0); // Token not found
+    const coinsInPool = coins.filter(coin => coin !== AddressZero).length
+    const tokenIndex = coins.findIndex(coin => coin.toLowerCase() === tokenIn.toLowerCase())
+    if (tokenIndex === -1) return BigNumber.from(0); // Token not found
 
     const depositAmounts = (new Array(coinsInPool)).fill(BigNumber.from(0))
     depositAmounts[tokenIndex] = amount
@@ -614,14 +607,9 @@ export class Estimator {
     let zap = await this.curveDepositZapRegistry.getZap(tokenIn);
     if (zap === AddressZero) zap = pool;
 
-    let tokenIndex;
-    for (let i = 0; i < coins.length; i++) {
-      if (coins[i] === AddressZero) return BigNumber.from(0); // tokenOut is not in list
-      if (coins[i].toLowerCase() === tokenOut.toLowerCase()) {
-          tokenIndex = i;
-          break;
-      }
-    }
+    const tokenIndex = coins.findIndex(coin => coin.toLowerCase() === tokenOut.toLowerCase())
+    if (tokenIndex === -1) return BigNumber.from(0); // Token not found
+
     const indexType = await this.curveDepositZapRegistry.getIndexType(zap);
     return (new Contract(
       zap,
