@@ -422,7 +422,7 @@ export class Estimator {
 
   async estimateAaveV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Assumes correct tokenIn/tokenOut pairing
-      if (tokenIn === tokenOut) return BigNumber.from('0')
+      if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return BigNumber.from('0')
       return amount
   }
 
@@ -472,7 +472,7 @@ export class Estimator {
           const depositCoins = await this.curveRegistry.get_coins(poolOut);
           for (let i = 0; i < 8; i++) {
               if (depositCoins[i] === AddressZero) break;
-              if (depositCoins[i] === tokenIn) {
+              if (depositCoins[i].toLowerCase() === tokenIn.toLowerCase()) {
                   isDeposit = true;
                   break;
               }
@@ -484,25 +484,25 @@ export class Estimator {
               const withdrawCoins = await this.curveRegistry.get_coins(poolIn);
               for (let i = 0; i < 8; i++) {
                   if (withdrawCoins[i] === AddressZero) break;
-                  if (withdrawCoins[i] === tokenOut) {
+                  if (withdrawCoins[i].toLowerCase() === tokenOut.toLowerCase()) {
                       isWithdraw = true;
                       break;
                   }
               }
               if (isWithdraw) return this.curveWithdrawPrice(amount, tokenIn, tokenOut, poolIn, withdrawCoins);
           }
-      } else if (tokenIn === TRICRYPTO2 || tokenOut === TRICRYPTO2) {
+      } else if (tokenIn.toLowerCase() === TRICRYPTO2.toLowerCase() || tokenOut.toLowerCase() === TRICRYPTO2.toLowerCase()) {
           // tricrypto2 not in registry
           const coins = [USDT, WBTC, WETH]
-          if (tokenIn === TRICRYPTO2) return this.curveWithdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
-          if (tokenOut === TRICRYPTO2) return this.curveDepositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins);
+          if (tokenIn.toLowerCase() === TRICRYPTO2.toLowerCase()) return this.curveWithdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
+          if (tokenOut.toLowerCase() === TRICRYPTO2.toLowerCase()) return this.curveDepositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins);
       }
       return BigNumber.from(0);
   }
 
   async estimateCurveGauge(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Assumes correct tokenIn/tokenOut pairing
-      if (tokenIn === tokenOut) return BigNumber.from('0')
+      if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return BigNumber.from('0')
       return amount
   }
 
@@ -541,7 +541,7 @@ export class Estimator {
       try {
           const vault = new Contract(tokenOut, IYEarnV2Vault.abi, this.signer)
           const token = await vault.token();
-          if (token !== tokenIn) throw new Error("Not compatible");
+          if (token.toLowerCase() !== tokenIn.toLowerCase()) throw new Error("Not compatible");
           const [ decimals, pricePerShare ] = await Promise.all([
             vault.decimals(),
             vault.pricePerShare()
@@ -552,7 +552,7 @@ export class Estimator {
           try {
               const vault = new Contract(tokenIn, IYEarnV2Vault.abi, this.signer)
               const token = await vault.token();
-              if (token !== tokenOut) throw new Error("Not compatible");
+              if (token.toLowerCase() !== tokenOut.toLowerCase()) throw new Error("Not compatible");
               const [ decimals, pricePerShare ] = await Promise.all([
                 vault.decimals(),
                 vault.pricePerShare()
@@ -590,7 +590,7 @@ export class Estimator {
           coinsInPool = i;
           break;
       }
-      if (coins[i] === tokenIn) tokenIndex = i;
+      if (coins[i].toLowerCase() === tokenIn.toLowerCase()) tokenIndex = i;
     }
     if (tokenIndex === 8) return BigNumber.from(0); // Token not found
 
@@ -617,7 +617,7 @@ export class Estimator {
     let tokenIndex;
     for (let i = 0; i < coins.length; i++) {
       if (coins[i] === AddressZero) return BigNumber.from(0); // tokenOut is not in list
-      if (coins[i] === tokenOut) {
+      if (coins[i].toLowerCase() === tokenOut.toLowerCase()) {
           tokenIndex = i;
           break;
       }
