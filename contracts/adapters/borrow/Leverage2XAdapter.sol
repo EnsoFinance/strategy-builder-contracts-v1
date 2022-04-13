@@ -4,7 +4,10 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
+import "../../interfaces/IERC20NonStandard.sol";
 import "../../interfaces/aave/IAToken.sol";
+import "../../interfaces/aave/IPriceOracleGetter.sol";
+import "../../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../../helpers/GasCostProvider.sol";
 import "../BaseAdapter.sol";
 
@@ -18,10 +21,13 @@ contract Leverage2XAdapter is BaseAdapter {
     address public immutable debtToken; // Token that is being borrowed against collateral
     GasCostProvider public immutable gasCostProvider;
 
+    ILendingPoolAddressesProvider public immutable addressesProvider;
+
     constructor(
         address defaultAdapter_,
         address aaveV2Adapter_,
         address aaveV2DebtAdapter_,
+        address addressesProvider_,
         address debtToken_,
         address weth_
     ) public BaseAdapter(weth_) {
@@ -30,6 +36,7 @@ contract Leverage2XAdapter is BaseAdapter {
         aaveV2DebtAdapter = aaveV2DebtAdapter_;
         debtToken = debtToken_;
         gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
+        addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
     }
 
     // Swap to support 2X leverage called from multicall router
@@ -51,14 +58,16 @@ contract Leverage2XAdapter is BaseAdapter {
         require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");
         // Lend all underlying tokens (Amount received will equal amount sent)
         _delegateSwap(aaveV2Adapter, amount, 1, tokenIn, tokenOut, address(this), to);
+        // since the aaveV2DebtAdapter values the input as weth
+        uint256 wethAmount = _convert(amount, tokenIn, weth);
         //Take out equivalent of 50% debt
-        _delegateSwap(aaveV2DebtAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
+        _delegateSwap(aaveV2DebtAdapter, wethAmount.div(2), 1, address(0), debtToken, to, address(this));
         //Trade debt for underlying
         _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
         // Lend all underlying tokens
         _delegateSwap(aaveV2Adapter, IERC20(tokenIn).balanceOf(address(this)), 1, tokenIn, tokenOut, address(this), to);
         //Take out equivalent of 50% debt (should be able to borrow another 50% since we've added to our reserve)
-        _delegateSwap(aaveV2DebtAdapter, amount.div(2), 1, address(0), debtToken, to, address(this));
+        _delegateSwap(aaveV2DebtAdapter, wethAmount.div(2), 1, address(0), debtToken, to, address(this));
         //Trade debt for underlying
         _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
         // Lend all underlying tokens
@@ -124,4 +133,18 @@ contract Leverage2XAdapter is BaseAdapter {
         }
         return success && underlying != address(0);
     }
+
+    function _convert(uint256 amount, address tokenIn, address tokenOut) internal view returns (uint256) {
+      if (tokenIn == tokenOut) return amount;
+      if (tokenIn == weth) {
+        return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
+      } else if (tokenOut == weth) {
+        return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn)).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
+      } else {
+        return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn))
+                     .mul(10**uint256(IERC20NonStandard(tokenOut).decimals()))
+                     .div(10**uint256(IERC20NonStandard(tokenIn).decimals()))
+                     .div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
+      }
+  }
 }
