@@ -72,7 +72,7 @@ describe('Leverage2XAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], addressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
-		leverageAdapter = await deployLeverage2XAdapter(accounts[0], uniswapAdapter, aaveV2Adapter, aaveV2DebtAdapter, usdc, weth)
+		leverageAdapter = await deployLeverage2XAdapter(accounts[0], uniswapAdapter, aaveV2Adapter, aaveV2DebtAdapter, addressProvider, usdc, weth)
 		await whitelist.connect(accounts[0]).approve(leverageAdapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)

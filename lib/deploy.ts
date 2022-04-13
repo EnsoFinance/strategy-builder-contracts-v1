@@ -555,6 +555,7 @@ export async function deployLeverage2XAdapter(
 	defaultAdapter: Contract,
 	aaveV2Adapter: Contract,
 	aaveV2DebtAdapter: Contract,
+	addressProvider: Contract,
 	debtToken: Contract,
 	weth: Contract
 ) {
@@ -562,6 +563,7 @@ export async function deployLeverage2XAdapter(
 			defaultAdapter.address,
 			aaveV2Adapter.address,
 			aaveV2DebtAdapter.address,
+			addressProvider.address,
 			debtToken.address,
 			weth.address
 	])
