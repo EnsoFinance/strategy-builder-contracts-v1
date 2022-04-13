@@ -135,16 +135,16 @@ contract Leverage2XAdapter is BaseAdapter {
     }
 
     function _convert(uint256 amount, address tokenIn, address tokenOut) internal view returns (uint256) {
-      if (tokenIn == tokenOut) return amount;
-      if (tokenIn == weth) {
-        return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
-      } else if (tokenOut == weth) {
-        return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn)).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
-      } else {
-        return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn))
-                     .mul(10**uint256(IERC20NonStandard(tokenOut).decimals()))
-                     .div(10**uint256(IERC20NonStandard(tokenIn).decimals()))
-                     .div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
-      }
-  }
+        if (tokenIn == tokenOut) return amount;
+        if (tokenIn == weth) {
+            return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
+        } else if (tokenOut == weth) {
+            return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn)).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
+        } else {
+            return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn))
+                       .mul(10**uint256(IERC20NonStandard(tokenOut).decimals()))
+                       .div(10**uint256(IERC20NonStandard(tokenIn).decimals()))
+                       .div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
+        }
+    }
 }
