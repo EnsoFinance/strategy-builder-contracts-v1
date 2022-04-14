@@ -19,7 +19,7 @@ const strategyState: InitialState = {
   rebalanceSlippage: BigNumber.from(995),
   restructureSlippage: BigNumber.from(985),
   performanceFee: BigNumber.from(0),
-  social: false,
+  social: true,
   set: false
 }
 
@@ -30,12 +30,14 @@ describe('Estimator', function() {
       weth: Contract,
       estimator: Estimator,
       strategy: Contract,
+      metaStrategy: Contract,
       routerAddress: string,
       aaveV2AdapterAddress: string,
       compoundAdapterAddress: string,
       curveAdapterAddress: string,
       curveLPAdapterAddress: string,
       curveGaugeAdapterAddress: string,
+      metaStrategyAdapterAddress: string,
       synthetixAdapterAddress: string,
       uniswapV2AdapterAddress: string,
       uniswapV3AdapterAddress: string,
@@ -77,6 +79,7 @@ describe('Estimator', function() {
     curveAdapterAddress = enso.adapters?.curve?.contract?.address || AddressZero
     curveLPAdapterAddress = enso.adapters?.curveLP?.contract?.address || AddressZero
     curveGaugeAdapterAddress = enso.adapters?.curveGauge?.contract?.address || AddressZero
+    metaStrategyAdapterAddress = enso.adapters?.metastrategy?.contract?.address || AddressZero
     synthetixAdapterAddress = enso.adapters?.synthetix?.contract?.address || AddressZero
     uniswapV2AdapterAddress = enso.adapters?.uniswapV2?.contract?.address || AddressZero
     uniswapV3AdapterAddress = enso.adapters?.uniswapV3?.contract?.address || AddressZero
@@ -93,6 +96,7 @@ describe('Estimator', function() {
       curveAdapterAddress,
       curveLPAdapterAddress,
       curveGaugeAdapterAddress,
+      metaStrategyAdapterAddress,
       synthetixAdapterAddress,
       uniswapV2AdapterAddress,
       uniswapV3AdapterAddress,
@@ -170,32 +174,30 @@ describe('Estimator', function() {
     const name = 'Lending Strategy'
 		const symbol = 'LEND'
 		const positions = [
-			{ token: tokens.cUSDC,
+			{ token: tokens.aUSDC,
         percentage: BigNumber.from(400),
         adapters: [
           uniswapV3AdapterAddress,
-          compoundAdapterAddress
+          aaveV2AdapterAddress
         ],
         path: [tokens.usdc]
       },
-      { token: tokens.crvAAVEGauge,
+      { token: tokens.crvSUSD,
         percentage: BigNumber.from(400),
         adapters: [
           uniswapV2AdapterAddress,
-          aaveV2AdapterAddress,
-          curveLPAdapterAddress,
-          curveGaugeAdapterAddress
+          curveAdapterAddress,
+          curveLPAdapterAddress
         ],
-        path: [tokens.dai, tokens.aDAI, tokens.crvAAVE]
+        path: [tokens.dai, tokens.sUSD]
       },
-      { token: tokens.ycrvTriCrypto2,
+      { token: tokens.yWBTC,
         percentage: BigNumber.from(200),
         adapters: [
           uniswapV2AdapterAddress,
-          curveLPAdapterAddress,
           yearnV2AdapterAddress
         ],
-        path: [tokens.wbtc, tokens.crvTriCrypto2]
+        path: [tokens.wbtc]
       }
 		]
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
@@ -237,8 +239,79 @@ describe('Estimator', function() {
     console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
     const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-    const slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue)
+    const slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
     await enso.platform.controller.connect(accounts[1]).withdrawWETH(strategy.address, routerAddress, withdrawAmount, slippage, '0x')
+    const wethAfter = await weth.balanceOf(accounts[1].address)
+    console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+  })
+
+  it('Should deploy meta strategy', async function() {
+    const name = 'Meta Strategy'
+		const symbol = 'META'
+		const positions = [
+			{ token: strategy.address,
+        percentage: BigNumber.from(500),
+        adapters: [
+          metaStrategyAdapterAddress
+        ],
+        path: []
+      },
+      { token: tokens.crv,
+        percentage: BigNumber.from(250),
+        adapters: [
+          uniswapV2AdapterAddress
+        ],
+        path: []
+      },
+      { token: tokens.yfi,
+        percentage: BigNumber.from(250),
+        adapters: [
+          uniswapV2AdapterAddress
+        ],
+        path: []
+      }
+		]
+		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
+
+    const depositAmount = BigNumber.from('10000000000000000')
+    const estimatedDepositValue = await estimator.create(strategyItems, strategyState.rebalanceThreshold, depositAmount)
+    console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+
+		const tx = await enso.platform.strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				accounts[1].address,
+				name,
+				symbol,
+				strategyItems,
+				strategyState,
+				routerAddress,
+				'0x',
+				{ value: depositAmount }
+			)
+		const receipt = await tx.wait()
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await getContractFactory('Strategy')
+		metaStrategy = await Strategy.attach(strategyAddress)
+
+		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
+
+    const [ total ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
+    console.log('Actual deposit value: ', total.toString())
+  })
+
+  it('Should estimate withdraw', async function() {
+    const withdrawAmount = (await metaStrategy.balanceOf(accounts[1].address)).div(2)
+    const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+    const totalSupply = await metaStrategy.totalSupply()
+    const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
+    const wethBefore = await weth.balanceOf(accounts[1].address)
+    const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+    console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+    const estimatedWithdrawValue = await estimator.withdraw(metaStrategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
+    console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+    const slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
+    await enso.platform.controller.connect(accounts[1]).withdrawWETH(metaStrategy.address, routerAddress, withdrawAmount, slippage, '0x')
     const wethAfter = await weth.balanceOf(accounts[1].address)
     console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
   })
