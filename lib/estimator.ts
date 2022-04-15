@@ -2,6 +2,7 @@ import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
 
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
+import IStrategy from '../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
 import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json'
@@ -59,6 +60,7 @@ export class Estimator {
   curveAdapterAddress: string
   curveLPAdapterAddress: string
   curveGaugeAdapterAddress: string
+  metaStrategyAdapterAddress: string
   synthetixAdapterAddress: string
   uniswapV2AdapterAddress: string
   uniswapV2LPAdapterAddress: string
@@ -77,6 +79,7 @@ export class Estimator {
     curveAdapterAddress: string,
     curveLPAdapterAddress: string,
     curveGaugeAdapterAddress: string,
+    metaStrategyAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
     uniswapV3AdapterAddress: string,
@@ -102,6 +105,7 @@ export class Estimator {
     this.curveAdapterAddress = curveAdapterAddress
     this.curveLPAdapterAddress = curveLPAdapterAddress
     this.curveGaugeAdapterAddress = curveGaugeAdapterAddress
+    this.metaStrategyAdapterAddress = metaStrategyAdapterAddress
     this.synthetixAdapterAddress = synthetixAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV2LPAdapterAddress = AddressZero
@@ -407,6 +411,8 @@ export class Estimator {
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
       case this.curveGaugeAdapterAddress.toLowerCase():
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
+      case this.metaStrategyAdapterAddress.toLowerCase():
+        return this.estimateMetaStrategy(amount, tokenIn, tokenOut)
       case this.synthetixAdapterAddress.toLowerCase():
         return this.estimateSynthetix(amount, tokenIn, tokenOut)
       case this.uniswapV2AdapterAddress.toLowerCase():
@@ -506,6 +512,21 @@ export class Estimator {
       return amount
   }
 
+  async estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      if (tokenIn.toLowerCase() === WETH.toLowerCase()) {
+        // Deposit
+        const strategy = new Contract(tokenOut, IStrategy.abi, this.signer)
+        return this.deposit(strategy, amount)
+      } else if (tokenOut.toLowerCase() === WETH.toLowerCase()) {
+        // Withdraw
+        const strategy = new Contract(tokenIn, IStrategy.abi, this.signer)
+        return this.withdraw(strategy, amount)
+      } else {
+        // Meta strategies always have weth as an input or output
+        return BigNumber.from('0')
+      }
+  }
+
   async estimateSynthetix(amount: BigNumber, tokenIn: string, tokenOut: string) {
     const [ targetIn, targetOut ] = await Promise.all([
       (new Contract(tokenIn, ISynth.abi, this.signer)).target(),
@@ -537,7 +558,6 @@ export class Estimator {
   async estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
       // return (new Contract(this.yearnV2AdapterAddress, IBaseAdapter.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)
-
       try {
           const vault = new Contract(tokenOut, IYEarnV2Vault.abi, this.signer)
           const token = await vault.token();

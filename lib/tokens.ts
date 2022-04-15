@@ -16,6 +16,7 @@ export class Tokens {
 	link: string
 	crv: string
 	knc: string
+	yfi: string
 	// Ren
 	renBTC: string
 	// Synth
@@ -55,7 +56,6 @@ export class Tokens {
 	crvEURS: string
 	// Curve Gauge
   crvUSDPGauge: string
-	crvSUSDGauge: string
 	crvAAVEGauge: string
 	crvSAAVEGauge: string
 	crvLINKGauge: string
@@ -89,6 +89,7 @@ export class Tokens {
 		this.link = '0x514910771AF9Ca656af840dff83E8264EcF986CA'
 		this.crv = '0xd533a949740bb3306d119cc777fa900ba034cd52'
 		this.knc = '0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202'
+		this.yfi = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e'
 		// Ren
 		this.renBTC = '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'
 		// Synthetix
@@ -133,7 +134,6 @@ export class Tokens {
 		this.crvEURS = '0x194eBd173F6cDacE046C53eACcE9B953F28411d1'
 		// Curve Gauge Tokens
 		this.crvUSDPGauge = '0x055be5DDB7A925BfEF3417FC157f53CA77cA7222'
-		this.crvSUSDGauge = '0xA90996896660DEcC6E997655E065b23788857849'
 		this.crvAAVEGauge = '0xd662908ADA2Ea1916B3318327A97eB18aD588b5d'
 		this.crvSAAVEGauge = '0x462253b8F74B72304c145DB0e4Eebd326B22ca39'
 		this.crvLINKGauge = '0xFD4D8a17df4C27c1dD245d153ccf4499e806C87D'
@@ -187,9 +187,9 @@ export class Tokens {
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvREN),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvEURS),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSUSDGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvCOMPGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvTriCrypto2),
@@ -208,6 +208,7 @@ export class Tokens {
 			await uniswapV3Registry.connect(owner).addPool(this.dai, this.weth, '3000') //0.3%
 			await uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000') //1%
 			await uniswapV3Registry.connect(owner).addPool(this.eurs, this.usdc, '500') //0.05%
+			await uniswapV3Registry.connect(owner).addPool(this.yfi, this.weth, '3000') //0.3%
 		}
 		if (chainlinkRegistry) {
 			await chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
