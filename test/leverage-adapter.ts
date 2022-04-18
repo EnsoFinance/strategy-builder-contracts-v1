@@ -78,9 +78,9 @@ describe('Leverage2XAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
 	})
 
-	it('Should deploy strategy', async function () {
-		const name = 'Test Strategy'
-		const symbol = 'TEST'
+	it('Should deploy ETH2x strategy', async function () {
+		const name = 'ETH2x Strategy'
+		const symbol = 'ETH2x'
 		const positions = [
 			{ token: tokens.aWETH,
 				percentage: BigNumber.from(2000),
@@ -131,6 +131,103 @@ describe('Leverage2XAdapter', function () {
 				weth.address,
 				tokens.aWETH,
 				controller.address,
+				strategy.address
+			)
+		)
+		const data = await multicallRouter.encodeCalls(calls)
+
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				accounts[1].address,
+				name,
+				symbol,
+				strategyItems,
+				strategyState,
+				multicallRouter.address,
+				data,
+				{ value: total }
+			)
+		let receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		await wrapper.deployed()
+
+		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
+
+	it('Should deploy BTC2X strategy', async function () {
+		const name = 'BTC2X Strategy'
+		const symbol = 'BTC2X'
+		const positions = [
+			{ token: tokens.aWBTC,
+				percentage: BigNumber.from(2000),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{ token: tokens.debtUSDC,
+				percentage: BigNumber.from(-1000),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['address[]'],
+					[[tokens.aWBTC]]
+				),
+			}
+		]
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
+			performanceFee: BigNumber.from(0),
+			social: false,
+			set: false
+		}
+
+		const create2Address = await calculateAddress(
+			strategyFactory,
+			accounts[1].address,
+			name,
+			symbol
+		)
+		const Strategy = await getContractFactory('Strategy')
+		strategy = Strategy.attach(create2Address)
+
+		const total = ethers.BigNumber.from('10000000000000000')
+
+		const calls = [] as Multicall[]
+		// First trade WETH for WBTC
+		calls.push(
+			encodeSettleSwap(
+				multicallRouter,
+				uniswapAdapter.address,
+				weth.address,
+				tokens.wbtc,
+				controller.address,
+				multicallRouter.address
+			)
+		)
+		calls.push(
+			encodeSettleSwap(
+				multicallRouter,
+				leverageAdapter.address,
+				tokens.wbtc,
+				tokens.aWBTC,
+				multicallRouter.address,
 				strategy.address
 			)
 		)
