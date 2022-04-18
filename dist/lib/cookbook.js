@@ -44,7 +44,7 @@ function prepareFlashLoan(strategy, arbitrager, sellAdapter, buyAdapter, loanAmo
         return __generator(this, function (_a) {
             calls = [];
             // Withdraw flash loan
-            calls.push(encode_1.encodeTransferFrom(loanToken, strategy.address, arbitrager.address, loanAmount));
+            calls.push((0, encode_1.encodeTransferFrom)(loanToken, strategy.address, arbitrager.address, loanAmount));
             // Arbitrage and return flash loan
             calls.push(encodeArbitrageLoan(arbitrager, strategy.address, loanAmount, loanToken.address, pairToken.address, sellAdapter.address, buyAdapter.address));
             return [2 /*return*/, calls];

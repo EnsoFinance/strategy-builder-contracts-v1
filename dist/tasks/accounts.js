@@ -38,7 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var config_1 = require("hardhat/config");
 var task_names_1 = require("./task-names");
-config_1.task(task_names_1.TASK_ACCOUNTS, 'Prints the list of accounts', function (_taskArgs, hre) { return __awaiter(void 0, void 0, void 0, function () {
+(0, config_1.task)(task_names_1.TASK_ACCOUNTS, 'Prints the list of accounts', function (_taskArgs, hre) { return __awaiter(void 0, void 0, void 0, function () {
     var accounts, _i, accounts_1, account, _a, _b;
     return __generator(this, function (_c) {
         switch (_c.label) {

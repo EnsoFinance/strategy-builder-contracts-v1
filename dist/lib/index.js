@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.linkBytecode = exports.createLink = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.calculateAddress = exports.prepareStrategy = exports.Tokens = exports.Estimator = exports.EnsoEnvironment = exports.EnsoBuilder = void 0;
+exports.deployLeverage2XAdapter = exports.ESTIMATOR_CATEGORY = exports.ITEM_CATEGORY = exports.TIMELOCK_CATEGORY = exports.linkBytecode = exports.createLink = exports.encodeApprove = exports.encodeTransferFrom = exports.encodeTransfer = exports.encodeSettleTransfer = exports.encodeSettleSwap = exports.encodeDelegateSwap = exports.encodeSwap = exports.encodeStrategyItem = exports.calculateAddress = exports.prepareStrategy = exports.Tokens = exports.Estimator = exports.EnsoEnvironment = exports.EnsoBuilder = void 0;
 var enso_1 = require("./enso");
 Object.defineProperty(exports, "EnsoBuilder", { enumerable: true, get: function () { return enso_1.EnsoBuilder; } });
 Object.defineProperty(exports, "EnsoEnvironment", { enumerable: true, get: function () { return enso_1.EnsoEnvironment; } });
@@ -26,3 +26,5 @@ Object.defineProperty(exports, "ESTIMATOR_CATEGORY", { enumerable: true, get: fu
 var link_1 = require("./link");
 Object.defineProperty(exports, "createLink", { enumerable: true, get: function () { return link_1.createLink; } });
 Object.defineProperty(exports, "linkBytecode", { enumerable: true, get: function () { return link_1.linkBytecode; } });
+var deploy_1 = require("./deploy");
+Object.defineProperty(exports, "deployLeverage2XAdapter", { enumerable: true, get: function () { return deploy_1.deployLeverage2XAdapter; } });

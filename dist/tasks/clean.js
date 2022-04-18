@@ -42,26 +42,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var fs_extra_1 = __importDefault(require("fs-extra"));
 var task_names_1 = require("hardhat/builtin-tasks/task-names");
 var config_1 = require("hardhat/config");
-config_1.task(task_names_1.TASK_CLEAN, "Overrides the standard clean task", function (_taskArgs, _a, runSuper) {
-    var _b;
-    var config = _a.config;
+(0, config_1.task)(task_names_1.TASK_CLEAN, "Overrides the standard clean task", function (_taskArgs, _hre, runSuper) {
     return __awaiter(this, void 0, void 0, function () {
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0: return [4 /*yield*/, fs_extra_1.default.remove("./coverage")];
                 case 1:
-                    _c.sent();
+                    _a.sent();
                     return [4 /*yield*/, fs_extra_1.default.remove("./coverage.json")];
                 case 2:
-                    _c.sent();
-                    if (!((_b = config.typechain) === null || _b === void 0 ? void 0 : _b.outDir)) return [3 /*break*/, 4];
-                    return [4 /*yield*/, fs_extra_1.default.remove(config.typechain.outDir)];
+                    _a.sent();
+                    return [4 /*yield*/, runSuper()];
                 case 3:
-                    _c.sent();
-                    _c.label = 4;
-                case 4: return [4 /*yield*/, runSuper()];
-                case 5:
-                    _c.sent();
+                    _a.sent();
                     return [2 /*return*/];
             }
         });

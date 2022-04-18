@@ -33,6 +33,10 @@ import {
   linkBytecode
 } from './link'
 
+import {
+  deployLeverage2XAdapter
+} from './deploy'
+
 export {
   EnsoBuilder,
   EnsoEnvironment,
@@ -60,5 +64,6 @@ export {
   linkBytecode,
   TIMELOCK_CATEGORY,
   ITEM_CATEGORY,
-  ESTIMATOR_CATEGORY
+  ESTIMATOR_CATEGORY,
+  deployLeverage2XAdapter
 }
