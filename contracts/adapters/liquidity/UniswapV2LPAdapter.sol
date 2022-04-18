@@ -73,12 +73,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address token0,
         address token1,
         uint256 amount,
-        uint256 totalSupply,
-        bool quote
+        uint256 totalSupply
     ) internal view returns (uint256, uint256) {
         // Calculate the amount of weth needed to purchase underlying tokens
-        uint256 amountIn0 = _getAmountIn(token0, pair, totalSupply, quote);
-        uint256 amountIn1 = _getAmountIn(token1, pair, totalSupply, quote);
+        uint256 amountIn0 = _getAmountIn(token0, pair, totalSupply);
+        uint256 amountIn1 = _getAmountIn(token1, pair, totalSupply);
         uint256 wethDivisor = amountIn0.add(amountIn1);
         uint256 wethIn0 = amount.mul(amountIn0).div(wethDivisor);
         uint256 wethIn1 = amount.sub(wethIn0);
@@ -88,17 +87,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
     function _getAmountIn(
         address token,
         address pair,
-        uint256 totalSupply,
-        bool quote
+        uint256 totalSupply
     ) internal view returns (uint256) {
         (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
         uint256 amountOut = DEFAULT_AMOUNT.mul(tokenReserve) / totalSupply;
         if (token == weth) return amountOut;
-        if (quote) {
-            return UniswapV2Library.quote(amountOut, tokenReserve, wethReserve);
-        } else {
-            return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
-        }
+        return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
     }
 
     function _buyToken(
@@ -175,8 +169,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
                 token0,
                 token1,
                 amount,
-                pair.totalSupply(),
-                false
+                pair.totalSupply()
             );
         // Swap weth for underlying tokens
         uint256 amountOut0 = _buyToken(wethIn0, token0);
