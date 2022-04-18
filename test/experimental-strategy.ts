@@ -17,7 +17,7 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES, DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
+import { MAINNET_ADDRESSES } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -101,8 +101,8 @@ describe('Experimental Strategy', function () {
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
-			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(990),
+			rebalanceSlippage: BigNumber.from(995),
+			restructureSlippage: BigNumber.from(985),
 			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false
@@ -166,7 +166,7 @@ describe('Experimental Strategy', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('10000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
+		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, '980', '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
