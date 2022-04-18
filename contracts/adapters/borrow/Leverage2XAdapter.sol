@@ -67,7 +67,7 @@ contract Leverage2XAdapter is BaseAdapter {
         // Lend all underlying tokens
         _delegateSwap(aaveV2Adapter, IERC20(tokenIn).balanceOf(address(this)), 1, tokenIn, tokenOut, address(this), to);
         //Take out equivalent of 50% debt (should be able to borrow another 50% since we've added to our reserve)
-        _delegateSwap(aaveV2DebtAdapter, wethAmount.div(4), 1, address(0), debtToken, to, address(this));
+        _delegateSwap(aaveV2DebtAdapter, wethAmount.div(2), 1, address(0), debtToken, to, address(this));
         //Trade debt for underlying
         _delegateSwap(defaultAdapter, IERC20(debtToken).balanceOf(address(this)), 1, debtToken, tokenIn, address(this), address(this));
         // Lend all underlying tokens
