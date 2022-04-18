@@ -37,6 +37,8 @@ import {
   deployLeverage2XAdapter
 } from './deploy'
 
+import {getLiveContracts, LiveEnvironment, LiveAdapters, LiveRouters} from './mainnet'
+
 export {
   getLiveContracts,
   LiveEnvironment, 
