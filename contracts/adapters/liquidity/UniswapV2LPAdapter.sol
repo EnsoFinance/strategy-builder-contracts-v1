@@ -91,10 +91,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 totalSupply,
         bool quote
     ) internal view returns (uint256) {
-        uint256 balance = IERC20(token).balanceOf(pair);
-        uint256 amountOut = DEFAULT_AMOUNT.mul(balance) / totalSupply;
-        if (token == weth) return amountOut;
         (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
+        uint256 amountOut = DEFAULT_AMOUNT.mul(tokenReserve) / totalSupply;
+        if (token == weth) return amountOut;
         if (quote) {
             return UniswapV2Library.quote(amountOut, tokenReserve, wethReserve);
         } else {
@@ -171,7 +170,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
         // assumes calling function checks one of the tokens is not weth
         address token0 = pair.token0();
         address token1 = pair.token1();
-        pair.sync(); // so that `balanceOf(pair)` will be in line with reserves
         (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
                 address(pair),
                 token0,
