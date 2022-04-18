@@ -33,7 +33,13 @@ import {
   linkBytecode
 } from './link'
 
+import {getLiveContracts, LiveEnvironment, LiveAdapters, LiveRouters} from './mainnet'
+
 export {
+  getLiveContracts,
+  LiveEnvironment, 
+  LiveAdapters, 
+  LiveRouters,
   EnsoBuilder,
   EnsoEnvironment,
   Estimator,
