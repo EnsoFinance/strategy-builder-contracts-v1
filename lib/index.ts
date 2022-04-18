@@ -38,6 +38,10 @@ import {
 } from './deploy'
 
 export {
+  getLiveContracts,
+  LiveEnvironment, 
+  LiveAdapters, 
+  LiveRouters,
   EnsoBuilder,
   EnsoEnvironment,
   Estimator,
