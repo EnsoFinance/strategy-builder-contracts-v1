@@ -1,0 +1,37 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Math",
+  "sourceName": "contracts/libraries/Math.sol",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "BONE",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "TWO_BONES",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60ae610024600b82828239805160001a607314601757fe5b30600052607381538281f3fe7300000000000000000000000000000000000000003014608060405260043610603d5760003560e01c8063aac5f33e146042578063c36596a614605a575b600080fd5b60486060565b60408051918252519081900360200190f35b6048606c565b671bc16d674ec8000081565b670de0b6b3a76400008156fea2646970667358221220d1dd86cf8f472b0ccdfb859e91a7e056a1685818f21adf6ee6e5b9f7912dfba664736f6c634300060c0033",
+  "deployedBytecode": "0x7300000000000000000000000000000000000000003014608060405260043610603d5760003560e01c8063aac5f33e146042578063c36596a614605a575b600080fd5b60486060565b60408051918252519081900360200190f35b6048606c565b671bc16d674ec8000081565b670de0b6b3a76400008156fea2646970667358221220d1dd86cf8f472b0ccdfb859e91a7e056a1685818f21adf6ee6e5b9f7912dfba664736f6c634300060c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
