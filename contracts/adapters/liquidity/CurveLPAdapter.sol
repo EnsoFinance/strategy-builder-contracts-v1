@@ -134,20 +134,23 @@ contract CurveLPAdapter is BaseAdapter {
 
         int128 tokenIndex;
         for (uint256 i = 0; i < 8; i++) {
-          require(coins[i] != address(0), "Token not found in pool");
-          if (coins[i] == tokenOut) {
-              tokenIndex = int128(i);
-              break;
-          }
+            require(coins[i] != address(0), "Token not found in pool");
+            if (coins[i] == tokenOut) {
+                tokenIndex = int128(i);
+                break;
+            }
         }
-        IERC20(tokenIn).safeApprove(zap, amount);
+
+        if (zap != pool)
+            IERC20(tokenIn).safeApprove(zap, amount);
+
         uint256 indexType = zapRegistry.getIndexType(zap);
         if (indexType == 0) { //int128
-          ICurveDeposit(zap).remove_liquidity_one_coin(amount, tokenIndex, 1);
+            ICurveDeposit(zap).remove_liquidity_one_coin(amount, tokenIndex, 1);
         } else if (indexType == 1) { //uint256
-          ICurveDeposit(zap).remove_liquidity_one_coin(amount, uint256(tokenIndex), 1);
+            ICurveDeposit(zap).remove_liquidity_one_coin(amount, uint256(tokenIndex), 1);
         } else {
-          return revert("Unknown index type");
+            return revert("Unknown index type");
         }
     }
 }

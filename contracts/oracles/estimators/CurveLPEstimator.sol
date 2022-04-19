@@ -37,6 +37,7 @@ contract CurveLPEstimator is IEstimator {
     }
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
+        if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
             return IOracle(msg.sender).estimateItem(lpPrice.mul(balance).div(TRICRYPTO2_PRECISION), USDT);
@@ -66,12 +67,13 @@ contract CurveLPEstimator is IEstimator {
                     for (uint256 i = 0; i < coinsInPool; i++) {
                         address underlyingToken = coins[i];
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
+                        uint256 convertedBalance = virtualBalance;
                         if (decimals < 18) {
-                          virtualBalance = virtualBalance.div(10**(18-decimals));
+                          convertedBalance = convertedBalance.div(10**(18-decimals));
                         } else if (decimals > 18) {
-                          virtualBalance = virtualBalance.mul(10**(decimals-18));
+                          convertedBalance = convertedBalance.mul(10**(decimals-18));
                         }
-                        try IOracle(msg.sender).estimateItem(virtualBalance, underlyingToken) returns (int256 value) {
+                        try IOracle(msg.sender).estimateItem(convertedBalance, underlyingToken) returns (int256 value) {
                             if (value > 0) {
                               return value;
                             }

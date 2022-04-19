@@ -36,16 +36,19 @@ contract UniswapV3Adapter is BaseAdapter {
         require(tokenIn != tokenOut, "Tokens cannot match");
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+        uint24 fee = registry.getFee(tokenIn, tokenOut);
+        require(fee > 0, "Pair fee not registered");
         IERC20(tokenIn).safeApprove(address(router), amount);
         router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
             tokenIn,
             tokenOut,
-            registry.getFee(tokenIn, tokenOut),
+            fee,
             to,
             block.timestamp,
             amount,
             expected,
             0
         ));
+        require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
     }
 }
