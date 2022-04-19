@@ -200,9 +200,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
                 address(pair),
                 token0,
                 token1,
-                amount/*,
-                pair.totalSupply(),
-                false*/
+                amount
             );
         // Swap weth for underlying tokens
         uint256 amountOut0 = _buyToken(wethIn0, token0);
