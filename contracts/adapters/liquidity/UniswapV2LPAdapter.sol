@@ -89,10 +89,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
             C = int256(uint256(1000).mul(rA).mul(r_wa).mul(amount)).div(
               int256(uint256(997).mul(r_a).mul(rA.add(rB)))
             );
-            }
-
-            int256 solution;
-            { // stack too deep !!!
+        }
+        int256 solution;
+        { // stack too deep !!!
             int256 d = B.mul(B).sub(int256(4).mul(C));
             require(d >= 0, "_calculateWethAmounts: solution imaginary.");
             int256 center = -B;
