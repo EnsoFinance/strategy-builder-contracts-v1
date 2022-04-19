@@ -63,7 +63,7 @@ var EnsoBuilder = /** @class */ (function () {
             slippage: 995,
             timelock: 60,
             numTokens: 15,
-            wethSupply: exports.wethPerToken(100),
+            wethSupply: (0, exports.wethPerToken)(100),
         };
     }
     EnsoBuilder.prototype.mainnet = function () {
@@ -154,7 +154,7 @@ var EnsoBuilder = /** @class */ (function () {
                             case Networks.ExternalTestnet: return [3 /*break*/, 4];
                         }
                         return [3 /*break*/, 5];
-                    case 1: return [4 /*yield*/, deploy_1.deployBalancer(this.signer, this.tokens)];
+                    case 1: return [4 /*yield*/, (0, deploy_1.deployBalancer)(this.signer, this.tokens)];
                     case 2:
                         _b = _c.sent(), factory = _b[0], registry = _b[1];
                         balancer = new Balancer(factory, registry);
@@ -206,15 +206,15 @@ var EnsoBuilder = /** @class */ (function () {
                         return [3 /*break*/, 8];
                     case 1:
                         _4 = this;
-                        return [4 /*yield*/, deploy_1.deployTokens(this.signer, this.defaults.numTokens, this.defaults.wethSupply)];
+                        return [4 /*yield*/, (0, deploy_1.deployTokens)(this.signer, this.defaults.numTokens, this.defaults.wethSupply)];
                     case 2:
                         _4.tokens = _6.sent();
                         if (this.tokens === undefined)
                             throw Error('Failed to deploy erc20 tokens');
-                        return [4 /*yield*/, deploy_1.deployUniswapV2(this.signer, this.tokens)];
+                        return [4 /*yield*/, (0, deploy_1.deployUniswapV2)(this.signer, this.tokens)];
                     case 3:
                         uniswapV2Factory = _6.sent();
-                        return [4 /*yield*/, deploy_1.deployUniswapV3(this.signer, this.tokens)];
+                        return [4 /*yield*/, (0, deploy_1.deployUniswapV3)(this.signer, this.tokens)];
                     case 4:
                         uniswapV3Factory = (_6.sent())[0];
                         return [4 /*yield*/, hardhat_1.waffle.deployContract(this.signer, SwapRouter_json_1.default, [uniswapV3Factory.address, this.tokens[0].address])];
@@ -250,7 +250,7 @@ var EnsoBuilder = /** @class */ (function () {
                             susd = this.tokens[1];
                         if (this.tokens[2])
                             usdc = this.tokens[2];
-                        return [4 /*yield*/, deploy_1.deployPlatform(this.signer, uniswapV3Factory, uniswapV3Factory, weth, susd)];
+                        return [4 /*yield*/, (0, deploy_1.deployPlatform)(this.signer, uniswapV3Factory, uniswapV3Factory, weth, susd)];
                     case 10:
                         ensoPlatform = _6.sent();
                         ensoPlatform.print();
@@ -470,7 +470,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.AaveV2Debt)) return [3 /*break*/, 3];
                         if (!(parameters.length == 2)) return [3 /*break*/, 2];
                         _a = this;
-                        return [4 /*yield*/, deploy_1.deployAaveV2DebtAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployAaveV2DebtAdapter)(signer, parameters[0], parameters[1])];
                     case 1:
                         _a.contract = _q.sent();
                         _q.label = 2;
@@ -479,7 +479,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.AaveV2)) return [3 /*break*/, 6];
                         if (!(parameters.length == 3)) return [3 /*break*/, 5];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployAaveV2Adapter(signer, parameters[0], parameters[1], parameters[2])];
+                        return [4 /*yield*/, (0, deploy_1.deployAaveV2Adapter)(signer, parameters[0], parameters[1], parameters[2])];
                     case 4:
                         _b.contract = _q.sent();
                         _q.label = 5;
@@ -488,7 +488,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.Balancer)) return [3 /*break*/, 9];
                         if (!(parameters.length == 2)) return [3 /*break*/, 8];
                         _c = this;
-                        return [4 /*yield*/, deploy_1.deployBalancerAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployBalancerAdapter)(signer, parameters[0], parameters[1])];
                     case 7:
                         _c.contract = _q.sent();
                         _q.label = 8;
@@ -497,7 +497,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.Compound)) return [3 /*break*/, 12];
                         if (!(parameters.length == 2)) return [3 /*break*/, 11];
                         _d = this;
-                        return [4 /*yield*/, deploy_1.deployCompoundAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployCompoundAdapter)(signer, parameters[0], parameters[1])];
                     case 10:
                         _d.contract = _q.sent();
                         _q.label = 11;
@@ -506,7 +506,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.Curve)) return [3 /*break*/, 15];
                         if (!(parameters.length == 2)) return [3 /*break*/, 14];
                         _e = this;
-                        return [4 /*yield*/, deploy_1.deployCurveAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployCurveAdapter)(signer, parameters[0], parameters[1])];
                     case 13:
                         _e.contract = _q.sent();
                         _q.label = 14;
@@ -515,7 +515,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.CurveLP)) return [3 /*break*/, 18];
                         if (!(parameters.length == 3)) return [3 /*break*/, 17];
                         _f = this;
-                        return [4 /*yield*/, deploy_1.deployCurveLPAdapter(signer, parameters[0], parameters[1], parameters[2])];
+                        return [4 /*yield*/, (0, deploy_1.deployCurveLPAdapter)(signer, parameters[0], parameters[1], parameters[2])];
                     case 16:
                         _f.contract = _q.sent();
                         _q.label = 17;
@@ -524,16 +524,16 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.CurveGauge)) return [3 /*break*/, 21];
                         if (!(parameters.length == 2)) return [3 /*break*/, 20];
                         _g = this;
-                        return [4 /*yield*/, deploy_1.deployCurveGaugeAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployCurveGaugeAdapter)(signer, parameters[0], parameters[1])];
                     case 19:
                         _g.contract = _q.sent();
                         _q.label = 20;
                     case 20: return [3 /*break*/, 41];
                     case 21:
                         if (!(this.type === Adapters.Leverage)) return [3 /*break*/, 24];
-                        if (!(parameters.length == 5)) return [3 /*break*/, 23];
+                        if (!(parameters.length == 6)) return [3 /*break*/, 23];
                         _h = this;
-                        return [4 /*yield*/, deploy_1.deployLeverage2XAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])];
+                        return [4 /*yield*/, (0, deploy_1.deployLeverage2XAdapter)(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5])];
                     case 22:
                         _h.contract = _q.sent();
                         _q.label = 23;
@@ -542,7 +542,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.Synthetix)) return [3 /*break*/, 27];
                         if (!(parameters.length == 2)) return [3 /*break*/, 26];
                         _j = this;
-                        return [4 /*yield*/, deploy_1.deploySynthetixAdapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deploySynthetixAdapter)(signer, parameters[0], parameters[1])];
                     case 25:
                         _j.contract = _q.sent();
                         _q.label = 26;
@@ -551,7 +551,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.MetaStrategy)) return [3 /*break*/, 30];
                         if (!(parameters.length == 3)) return [3 /*break*/, 29];
                         _k = this;
-                        return [4 /*yield*/, deploy_1.deployMetaStrategyAdapter(signer, parameters[0], parameters[1], parameters[2])];
+                        return [4 /*yield*/, (0, deploy_1.deployMetaStrategyAdapter)(signer, parameters[0], parameters[1], parameters[2])];
                     case 28:
                         _k.contract = _q.sent();
                         _q.label = 29;
@@ -560,7 +560,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.Uniswap)) return [3 /*break*/, 33];
                         if (!(parameters.length == 2)) return [3 /*break*/, 32];
                         _l = this;
-                        return [4 /*yield*/, deploy_1.deployUniswapV2Adapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployUniswapV2Adapter)(signer, parameters[0], parameters[1])];
                     case 31:
                         _l.contract = _q.sent();
                         _q.label = 32;
@@ -569,7 +569,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.UniswapV2)) return [3 /*break*/, 36];
                         if (!(parameters.length == 2)) return [3 /*break*/, 35];
                         _m = this;
-                        return [4 /*yield*/, deploy_1.deployUniswapV2Adapter(signer, parameters[0], parameters[1])];
+                        return [4 /*yield*/, (0, deploy_1.deployUniswapV2Adapter)(signer, parameters[0], parameters[1])];
                     case 34:
                         _m.contract = _q.sent();
                         _q.label = 35;
@@ -578,7 +578,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.UniswapV3)) return [3 /*break*/, 39];
                         if (!(parameters.length == 3)) return [3 /*break*/, 38];
                         _o = this;
-                        return [4 /*yield*/, deploy_1.deployUniswapV3Adapter(signer, parameters[0], parameters[1], parameters[2])];
+                        return [4 /*yield*/, (0, deploy_1.deployUniswapV3Adapter)(signer, parameters[0], parameters[1], parameters[2])];
                     case 37:
                         _o.contract = _q.sent();
                         _q.label = 38;
@@ -587,7 +587,7 @@ var Adapter = /** @class */ (function () {
                         if (!(this.type === Adapters.YEarnV2)) return [3 /*break*/, 41];
                         if (!(parameters.length == 1)) return [3 /*break*/, 41];
                         _p = this;
-                        return [4 /*yield*/, deploy_1.deployYEarnAdapter(signer, parameters[0])];
+                        return [4 /*yield*/, (0, deploy_1.deployYEarnAdapter)(signer, parameters[0])];
                     case 40:
                         _p.contract = _q.sent();
                         _q.label = 41;
@@ -640,27 +640,27 @@ var Router = /** @class */ (function () {
                     case 0:
                         if (!(this.type == Routers.Multicall)) return [3 /*break*/, 2];
                         _a = this;
-                        return [4 /*yield*/, deploy_1.deployMulticallRouter(signer, controller)];
+                        return [4 /*yield*/, (0, deploy_1.deployMulticallRouter)(signer, controller)];
                     case 1:
                         _a.contract = _e.sent();
                         return [3 /*break*/, 8];
                     case 2:
                         if (!(this.type == Routers.Full)) return [3 /*break*/, 4];
                         _b = this;
-                        return [4 /*yield*/, deploy_1.deployFullRouter(signer, new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller, library)];
+                        return [4 /*yield*/, (0, deploy_1.deployFullRouter)(signer, new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], hardhat_1.ethers.provider), controller, library)];
                     case 3:
                         _b.contract = _e.sent();
                         return [3 /*break*/, 8];
                     case 4:
                         if (!(this.type == Routers.Batch)) return [3 /*break*/, 6];
                         _c = this;
-                        return [4 /*yield*/, deploy_1.deployBatchDepositRouter(signer, controller, library)];
+                        return [4 /*yield*/, (0, deploy_1.deployBatchDepositRouter)(signer, controller, library)];
                     case 5:
                         _c.contract = _e.sent();
                         return [3 /*break*/, 8];
                     case 6:
                         _d = this;
-                        return [4 /*yield*/, deploy_1.deployLoopRouter(signer, controller, library)];
+                        return [4 /*yield*/, (0, deploy_1.deployLoopRouter)(signer, controller, library)];
                     case 7:
                         _d.contract = _e.sent();
                         _e.label = 8;

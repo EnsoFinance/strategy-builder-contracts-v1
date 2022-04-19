@@ -41,7 +41,7 @@ var config_1 = require("hardhat/config");
 var task_names_1 = require("./task-names");
 exports.owner = "0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b";
 var ethereumHolder = "0x9bf4001d307dfd62b26a2f1307ee0c0307632d59";
-config_1.task(task_names_1.ADD_OWNER_FUNDS, "Add Owner Funds", function (_taskArgs, hre) { return __awaiter(void 0, void 0, void 0, function () {
+(0, config_1.task)(task_names_1.ADD_OWNER_FUNDS, "Add Owner Funds", function (_taskArgs, hre) { return __awaiter(void 0, void 0, void 0, function () {
     var signer;
     return __generator(this, function (_a) {
         switch (_a.label) {

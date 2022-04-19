@@ -1,0 +1,10 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "Multicall",
+  "sourceName": "contracts/helpers/Multicall.sol",
+  "abi": [],
+  "bytecode": "0x6080604052348015600f57600080fd5b50603f80601d6000396000f3fe6080604052600080fdfea2646970667358221220b6a2fa3f4ebee4e198ab8b420f02c1c804d19e14116e7fbce46102d4a4103dae64736f6c634300080b0033",
+  "deployedBytecode": "0x6080604052600080fdfea2646970667358221220b6a2fa3f4ebee4e198ab8b420f02c1c804d19e14116e7fbce46102d4a4103dae64736f6c634300080b0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -21,12 +21,13 @@ export declare class Estimator {
     curveAdapterAddress: string;
     curveLPAdapterAddress: string;
     curveGaugeAdapterAddress: string;
+    metaStrategyAdapterAddress: string;
     synthetixAdapterAddress: string;
     uniswapV2AdapterAddress: string;
     uniswapV2LPAdapterAddress: string;
     uniswapV3AdapterAddress: string;
     yearnV2AdapterAddress: string;
-    constructor(signer: Signer, oracle: Contract, tokenRegistry: Contract, uniswapV3Registry: Contract, curveDepositZapRegistry: Contract, aaveV2AdapterAddress: string, compoundAdapterAddress: string, curveAdapterAddress: string, curveLPAdapterAddress: string, curveGaugeAdapterAddress: string, synthetixAdapterAddress: string, uniswapV2AdapterAddress: string, uniswapV3AdapterAddress: string, yearnV2AdapterAddress: string);
+    constructor(signer: Signer, oracle: Contract, tokenRegistry: Contract, uniswapV3Registry: Contract, curveDepositZapRegistry: Contract, aaveV2AdapterAddress: string, compoundAdapterAddress: string, curveAdapterAddress: string, curveLPAdapterAddress: string, curveGaugeAdapterAddress: string, metaStrategyAdapterAddress: string, synthetixAdapterAddress: string, uniswapV2AdapterAddress: string, uniswapV3AdapterAddress: string, yearnV2AdapterAddress: string);
     create(strategyItems: StrategyItem[], rebalanceThreshold: BigNumber, amount: BigNumber): Promise<BigNumber>;
     deposit(strategy: Contract, amount: BigNumber): Promise<BigNumber>;
     withdraw(strategy: Contract, amount: BigNumber): Promise<BigNumber>;
@@ -42,6 +43,7 @@ export declare class Estimator {
     estimateCurve(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateCurveLP(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateCurveGauge(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<BigNumber>;
+    estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<BigNumber>;
     estimateSynthetix(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateUniswapV2(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;
     estimateUniswapV3(amount: BigNumber, tokenIn: string, tokenOut: string): Promise<any>;

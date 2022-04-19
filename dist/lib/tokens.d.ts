@@ -9,9 +9,11 @@ export declare class Tokens {
     usdp: string;
     tusd: string;
     usdn: string;
+    eurs: string;
     link: string;
     crv: string;
     knc: string;
+    yfi: string;
     renBTC: string;
     sUSD: string;
     sEUR: string;
@@ -43,8 +45,8 @@ export declare class Tokens {
     crvUSDN: string;
     crvSETH: string;
     crvREN: string;
+    crvEURS: string;
     crvUSDPGauge: string;
-    crvSUSDGauge: string;
     crvAAVEGauge: string;
     crvSAAVEGauge: string;
     crvLINKGauge: string;
