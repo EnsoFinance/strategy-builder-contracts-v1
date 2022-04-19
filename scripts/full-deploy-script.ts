@@ -3,28 +3,24 @@
 //
 // When running the script with `hardhat run <script>` you'll find the Hardhat
 // Runtime Environment's members available in the global scope.
-const hre = require('hardhat')
-import { BigNumber, Contract } from 'ethers'
-const { ESTIMATOR_CATEGORY, ITEM_CATEGORY } = require('../lib/constants')
-const deployments = require('../deployments.json')
-const fs = require('fs')
+import hre from 'hardhat'
+import fs from 'fs'
+import { Contract } from 'ethers'
+import { waitForDeployment, waitForTransaction, TransactionArgs } from './common'
+import { ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
+import deploymentsJSON from '../deployments.json'
 
-const MAX_GAS_PRICE = hre.ethers.BigNumber.from('85000000000') // 85 gWEI
-
+const deployments: {[key: string]: {[key: string]: string}} = deploymentsJSON
 // If true it will deploy contract regardless of whether there is an address currently on the network
-let overwrite = true
+let overwrite = false
 
 let contracts: {[key: string]: string} = {}
 let network: string
 if (process.env.HARDHAT_NETWORK) {
 	network = process.env.HARDHAT_NETWORK
+	//ts-ignore
 	if (deployments[network]) contracts = deployments[network]
 	if (network === 'mainnet') overwrite = false // Don't overwrite on mainnet
-}
-
-type TransactionArgs = {
-	maxPriorityFeePerGas: BigNumber;
-	maxFeePerGas: BigNumber;
 }
 
 type Addresses = {
@@ -37,6 +33,7 @@ type Addresses = {
 	aaveAddressProvider: string;
 	curveAddressProvider: string;
 	synthetixAddressProvider: string;
+	balancerRegistry: string;
 	compoundComptroller: string;
 	ensoPool: string;
 }
@@ -52,6 +49,7 @@ const deployedContracts: {[key: string]: Addresses} = {
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
 		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+		balancerRegistry: '0x65e67cbc342712DF67494ACEfc06fe951EE93982',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
 		ensoPool: '0xEE0e85c384F7370FF3eb551E92A71A4AFc1B259F', // treasury multisig
 	},
@@ -65,6 +63,7 @@ const deployedContracts: {[key: string]: Addresses} = {
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
 		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+		balancerRegistry: '0x65e67cbc342712DF67494ACEfc06fe951EE93982',
 		compoundComptroller: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b', // template address
 	},
@@ -78,12 +77,11 @@ const deployedContracts: {[key: string]: Addresses} = {
 		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
 		curveAddressProvider: '',
 		synthetixAddressProvider: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
+		balancerRegistry: '',
 		compoundComptroller: '',
 		ensoPool: '0x0c58B57E2e0675eDcb2c7c0f713320763Fc9A77b',
 	},
 }
-
-let totalGas: BigNumber = hre.ethers.BigNumber.from('0')
 
 async function main() {
 	// Hardhat always runs the compile task when running scripts with its command
@@ -153,9 +151,12 @@ async function main() {
 	const PlatformProxyAdmin = await hre.ethers.getContractFactory('PlatformProxyAdmin')
 	const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
 	const Strategy = await hre.ethers.getContractFactory('Strategy')
+	const StrategyControllerPaused = await hre.ethers.getContractFactory('StrategyControllerPaused')
 	const MulticallRouter = await hre.ethers.getContractFactory('MulticallRouter')
 	const GasCostProvider = await hre.ethers.getContractFactory('GasCostProvider')
+	const BalancerAdapter = await hre.ethers.getContractFactory('BalancerAdapter')
 	const UniswapV2Adapter = await hre.ethers.getContractFactory('UniswapV2Adapter')
+	const UniswapV2LPAdapter = await hre.ethers.getContractFactory('UniswapV2LPAdapter')
 	const UniswapV3Adapter = await hre.ethers.getContractFactory('UniswapV3Adapter')
 	const MetaStrategyAdapter = await hre.ethers.getContractFactory('MetaStrategyAdapter')
 	const SynthetixAdapter = await hre.ethers.getContractFactory('SynthetixAdapter')
@@ -483,14 +484,17 @@ async function main() {
 	}
 
 	let whitelist: Contract
+	let whitelistOwner: string
 	if (overwrite || !contracts['Whitelist'] ) {
 		whitelist = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return Whitelist.deploy(txArgs)
 		}, signer)
+		whitelistOwner = signer.address
 
 		add2Deployments('Whitelist', whitelist.address)
 	} else {
 		whitelist = Whitelist.attach(contracts['Whitelist'])
+		whitelistOwner = await whitelist.owner()
 	}
 
 	let platformProxyAdmin: Contract
@@ -568,6 +572,14 @@ async function main() {
 		}, signer)
 	}
 
+	if (overwrite || !contracts['StrategyControllerPausedImplementation'] ) {
+		const strategyControllerPaused = await waitForDeployment(async (txArgs: TransactionArgs) => {
+			return StrategyControllerPaused.deploy(factoryAddress, txArgs)
+		}, signer)
+
+		add2Deployments('StrategyControllerPausedImplementation', strategyControllerPaused.address)
+	}
+
 	if (overwrite || !contracts['LoopRouter'] ) {
 		const loopRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return LoopRouter.deploy(controllerAddress, txArgs)
@@ -575,9 +587,12 @@ async function main() {
 
 		add2Deployments('LoopRouter', loopRouter.address)
 
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(loopRouter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(loopRouter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	let fullRouterAddress: string
@@ -589,10 +604,12 @@ async function main() {
 
 		add2Deployments('FullRouter', fullRouter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(fullRouter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(fullRouter.address, txArgs)
+			}, signer)
+		}
 	} else {
 		fullRouterAddress = contracts['FullRouter']
 	}
@@ -605,10 +622,12 @@ async function main() {
 		add2Deployments('MulticallRouter', multicallRouter.address)
 		add2Deployments('GenericRouter', multicallRouter.address) //Alias
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(multicallRouter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(multicallRouter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['BatchDepositRouter'] ) {
@@ -618,10 +637,12 @@ async function main() {
 
 		add2Deployments('BatchDepositRouter', batchDepositRouter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(batchDepositRouter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(batchDepositRouter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['UniswapV2Adapter'] ) {
@@ -635,11 +656,34 @@ async function main() {
 
 		add2Deployments('UniswapV2Adapter', uniswapV2Adapter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(uniswapV2Adapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(uniswapV2Adapter.address, txArgs)
+			}, signer)
+		}
 	}
+
+	/*
+	if (overwrite || !contracts['UniswapV2LPAdapter'] ) {
+		const uniswapV2LPAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
+			return UniswapV2LPAdapter.deploy(
+				deployedContracts[network].uniswapV2Factory,
+				deployedContracts[network].weth,
+				txArgs
+			)
+		}, signer)
+
+		add2Deployments('UniswapV2LPAdapter', uniswapV2LPAdapter.address)
+
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(uniswapV2LPAdapter.address, txArgs)
+			}, signer)
+		}
+	}
+	*/
 
 	if (overwrite || !contracts['UniswapV3Adapter'] ) {
 		const uniswapV3Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
@@ -653,10 +697,12 @@ async function main() {
 
 		add2Deployments('UniswapV3Adapter', uniswapV3Adapter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(uniswapV3Adapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(uniswapV3Adapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['MetaStrategyAdapter'] ) {
@@ -671,10 +717,12 @@ async function main() {
 
 		add2Deployments('MetaStrategyAdapter', metaStrategyAdapter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(metaStrategyAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(metaStrategyAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['SynthetixAdapter'] ) {
@@ -688,10 +736,31 @@ async function main() {
 
 		add2Deployments('SynthetixAdapter', synthetixAdapter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(synthetixAdapter.address, txArgs)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(synthetixAdapter.address, txArgs)
+			}, signer)
+		}
+	}
+
+	if (overwrite || !contracts['BalancerAdapter'] ) {
+		const balancerAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
+			return BalancerAdapter.deploy(
+				deployedContracts[network].balancerRegistry,
+				deployedContracts[network].weth,
+				txArgs
+			)
 		}, signer)
+
+		add2Deployments('BalancerAdapter', balancerAdapter.address)
+
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(balancerAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['CurveAdapter'] ) {
@@ -705,10 +774,12 @@ async function main() {
 
 		add2Deployments('CurveAdapter', curveAdapter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(curveAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(curveAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['CurveLPAdapter'] ) {
@@ -723,10 +794,12 @@ async function main() {
 
 		add2Deployments('CurveLPAdapter', curveLPAdapter.address)
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(curveLPAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(curveLPAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['CurveGaugeAdapter'] ) {
@@ -741,10 +814,12 @@ async function main() {
 		add2Deployments('CurveGaugeAdapter', curveGaugeAdapter.address)
 		add2Deployments('CurveRewardsAdapter', curveGaugeAdapter.address) //Alias
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(curveGaugeAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(curveGaugeAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['AaveV2Adapter'] ) {
@@ -769,10 +844,12 @@ async function main() {
 			}, signer)
 		}
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(aaveV2Adapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(aaveV2Adapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['AaveV2DebtAdapter'] ) {
@@ -787,10 +864,12 @@ async function main() {
 		add2Deployments('AaveV2DebtAdapter', aaveV2DebtAdapter.address)
 		add2Deployments('AaveBorrowAdapter', aaveV2DebtAdapter.address) //Alias
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(aaveV2DebtAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(aaveV2DebtAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['CompoundAdapter'] ) {
@@ -813,10 +892,12 @@ async function main() {
 			}, signer)
 		}
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(compoundAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(compoundAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	if (overwrite || !contracts['YEarnV2Adapter'] ) {
@@ -835,10 +916,12 @@ async function main() {
 			}, signer)
 		}
 
-		console.log("Whitelisting...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(yearnAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(yearnAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 
 	/*
@@ -864,13 +947,15 @@ async function main() {
 			}, signer)
 		}
 
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return whitelist.approve(leverageAdapter.address, txArgs)
-		}, signer)
+		if (signer.address === whitelistOwner) {
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(leverageAdapter.address, txArgs)
+			}, signer)
+		}
 	}
 	*/
 
-	if (owner != signer.address && signer.address == await whitelist.owner()) {
+	if (owner != signer.address && signer.address == whitelistOwner) {
 		console.log("Transfering Whitelist...")
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return whitelist.transferOwnership(owner, txArgs)
@@ -889,124 +974,6 @@ const add2Deployments = (contractTitle: string, address: string) => {
 	contracts[contractTitle] = address
 	console.log(contractTitle + ': ' + address)
 	write2File()
-}
-
-const waitForDeployment = async (
-	txFunc: (txArgs: TransactionArgs) => Promise<Contract>,
-	signer: any
-) => {
-	return new Promise<Contract>(async (resolve) => {
-		let isDeployed = false
-		while (!isDeployed) {
-			const tip = await waitForLowGas(signer);
-			let contract: Contract
-			try {
-					contract = await txFunc({
-						maxPriorityFeePerGas: tip,
-						maxFeePerGas: MAX_GAS_PRICE
-					})
-					await contract.deployed()
-					isDeployed = true;
-			} catch (e) {
-					if (e.toString().includes('max fee per gas less than block base fee')) {
-						//try again
-						console.log(e);
-						continue;
-					} else {
-						throw new Error(e);
-					}
-			}
-			const receipt = await contract.deployTransaction.wait()
-			const gasUsed = receipt.gasUsed;
-			console.log("Gas used: ", gasUsed.toString())
-			totalGas = totalGas.add(gasUsed)
-			console.log("Total gas: ", totalGas.toString())
-			resolve(contract)
-		}
-
-	});
-}
-
-const waitForTransaction = async (
-	txFunc: (txArgs: TransactionArgs) => Promise<any>,
-	signer: any
-) => {
-	return new Promise<any>(async (resolve) => {
-		let isCalled = false
-		while (!isCalled) {
-			const tip = await waitForLowGas(signer);
-			let receipt: any
-			try {
-					const tx = await txFunc({
-						maxPriorityFeePerGas: tip,
-						maxFeePerGas: MAX_GAS_PRICE
-					})
-					receipt = await tx.wait()
-					isCalled = true;
-			} catch (e) {
-					if (e.toString().includes('max fee per gas less than block base fee')) {
-						//try again
-						console.log(e);
-						continue;
-					} else {
-						throw new Error(e);
-					}
-			}
-			const gasUsed = receipt.gasUsed;
-			console.log("Gas used: ", gasUsed.toString())
-			totalGas = totalGas.add(gasUsed)
-			console.log("Total gas: ", totalGas.toString())
-			resolve(receipt)
-		}
-	});
-}
-
-const waitForLowGas = async (signer: any) => {
-  return new Promise<any>(async (resolve) => {
-    const blockNumber = await hre.ethers.provider.getBlockNumber()
-    //console.log('Next Block: ', blockNumber + 1)
-    const [ block, feeData ] = await Promise.all([
-      hre.ethers.provider.getBlock(blockNumber),
-      signer.getFeeData()
-    ])
-    const expectedBaseFee = getExpectedBaseFee(block)
-    if (expectedBaseFee.eq('0')) {
-        console.log('Bad block. Waiting 15 seconds...');
-        setTimeout(async () => {
-          tip = await waitForLowGas(signer);
-          resolve(tip);
-        }, 15000);
-    }
-    // Pay 5% over expected tip
-    let tip = feeData.maxPriorityFeePerGas.add(feeData.maxPriorityFeePerGas.div(20))
-    const estimatedGasPrice = expectedBaseFee.add(tip)
-    //console.log('Expected Base Fee: ', expectedBaseFee.toString())
-    //console.log('Estimated Gas Price: ', estimatedGasPrice.toString())
-    if (estimatedGasPrice.gt(MAX_GAS_PRICE)) {
-        console.log('Gas too high. Waiting 15 seconds...');
-        setTimeout(async () => {
-          tip = await waitForLowGas(signer);
-          resolve(tip);
-        }, 15000);
-    } else {
-        resolve(tip);
-    }
-  });
-}
-
-const getExpectedBaseFee = (block: any) => {
-  let expectedBaseFee = hre.ethers.BigNumber.from('0')
-  if (block.baseFeePerGas) {
-    const target = block.gasLimit.div(2)
-    if (block.gasUsed.gt(target)) {
-        const diff = block.gasUsed.sub(target);
-        expectedBaseFee = block.baseFeePerGas.add(block.baseFeePerGas.mul(1000).div(8).mul(diff).div(target).div(1000))
-    } else {
-        const diff = target.sub(block.gasUsed);
-        expectedBaseFee = block.baseFeePerGas.sub(block.baseFeePerGas.mul(1000).div(8).mul(diff).div(target).div(1000))
-    }
-  }
-  return expectedBaseFee
 }
 
 

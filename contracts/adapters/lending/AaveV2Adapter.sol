@@ -48,6 +48,8 @@ contract AaveV2Adapter is BaseAdapter {
             }
         } else {
             require(IAToken(tokenIn).UNDERLYING_ASSET_ADDRESS() == tokenOut, "Incompatible");
+            uint256 balance = IERC20(tokenIn).balanceOf(address(this));
+            if (balance < amount) amount = balance; //Protoect against Aave's off-by-one rounding issue
             ILendingPool(addressesProvider.getLendingPool()).withdraw(tokenOut, amount, to);
         }
     }
