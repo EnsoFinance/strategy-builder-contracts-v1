@@ -14,7 +14,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    uint256 private constant DEFAULT_AMOUNT = 10**9;
+    uint256 private constant DEFAULT_AMOUNT = 10**18;
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
     address public immutable factory;
 
@@ -69,16 +69,16 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _calculateWethAmounts(
-        address pair,
+        IUniswapV2Pair pair,
         address token0,
         address token1,
         uint256 amount,
-        uint256 totalSupply,
-        bool quote
+        uint256 totalSupply
     ) internal view returns (uint256, uint256) {
         // Calculate the amount of weth needed to purchase underlying tokens
-        uint256 amountIn0 = _getAmountIn(token0, pair, totalSupply, quote);
-        uint256 amountIn1 = _getAmountIn(token1, pair, totalSupply, quote);
+        (uint112 token0Reserve, uint112 token1Reserve, ) = pair.getReserves();
+        uint256 amountIn0 = _getAmountIn(token0, uint256(token0Reserve), totalSupply);
+        uint256 amountIn1 = _getAmountIn(token1, uint256(token1Reserve), totalSupply);
         uint256 wethDivisor = amountIn0.add(amountIn1);
         uint256 wethIn0 = amount.mul(amountIn0).div(wethDivisor);
         uint256 wethIn1 = amount.sub(wethIn0);
@@ -87,19 +87,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
     function _getAmountIn(
         address token,
-        address pair,
-        uint256 totalSupply,
-        bool quote
+        uint256 reserve,
+        uint256 totalSupply
     ) internal view returns (uint256) {
-        uint256 balance = IERC20(token).balanceOf(pair);
-        uint256 amountOut = DEFAULT_AMOUNT.mul(balance) / totalSupply;
-        if (token == weth) return amountOut;
+        uint256 amountOut = DEFAULT_AMOUNT.mul(reserve) / totalSupply;
         (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
-        if (quote) {
-            return UniswapV2Library.quote(amountOut, tokenReserve, wethReserve);
-        } else {
-            return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
-        }
+        return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
     }
 
     function _buyToken(
@@ -172,12 +165,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address token0 = pair.token0();
         address token1 = pair.token1();
         (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-                address(pair),
+                pair,
                 token0,
                 token1,
                 amount,
-                pair.totalSupply(),
-                false
+                pair.totalSupply()
             );
         // Swap weth for underlying tokens
         uint256 amountOut0 = _buyToken(wethIn0, token0);
