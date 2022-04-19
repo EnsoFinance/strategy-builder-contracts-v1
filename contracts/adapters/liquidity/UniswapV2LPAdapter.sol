@@ -70,36 +70,62 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
     function _calculateWethAmounts(
         address pair,
-        address token0,
-        address token1,
-        uint256 amount,
-        uint256 totalSupply,
-        bool quote
+        address tokenA,
+        address tokenB,
+        uint256 amount
     ) internal view returns (uint256, uint256) {
-        // Calculate the amount of weth needed to purchase underlying tokens
-        uint256 amountIn0 = _getAmountIn(token0, pair, totalSupply, quote);
-        uint256 amountIn1 = _getAmountIn(token1, pair, totalSupply, quote);
-        uint256 wethDivisor = amountIn0.add(amountIn1);
-        uint256 wethIn0 = amount.mul(amountIn0).div(wethDivisor);
-        uint256 wethIn1 = amount.sub(wethIn0);
-        return (wethIn0, wethIn1);
+        (uint256 rA, uint256 rB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+        int256 B;
+        int256 C;
+        { // stack too deep !!!
+            (tokenA, tokenB) = (rB >= rA) ? (tokenA, tokenB) : (tokenB, tokenA);
+
+            (uint256 r_wa, uint256 r_a) = UniswapV2Library.getReserves(factory, weth, tokenA);
+            (uint256 r_wb, uint256 r_b) = UniswapV2Library.getReserves(factory, weth, tokenB);
+
+            // this next fn was needed for "stack too deep" shenanigans
+            B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
+
+            C = int256(uint256(1000).mul(rA).mul(r_wa).mul(amount)).div(
+              int256(uint256(997).mul(r_a).mul(rA.add(rB)))
+            );
+            }
+
+            int256 solution;
+            { // stack too deep !!!
+            int256 d = B.mul(B).sub(int256(4).mul(C));
+            require(d >= 0, "_calculateWethAmounts: solution imaginary.");
+            int256 center = -B;
+            uint256 sqrt = Math.sqrt(uint256(d));
+            solution = center.add(int256(sqrt)).div(2);
+            if (!(0 < solution && solution < int256(amount))){
+                solution = center.sub(int256(sqrt)).div(2);
+                require(0 < solution && solution < int256(amount), "_calculateWethAmounts: solution out of range.");
+            }
+        }
+        uint256 uSolution = uint256(solution);
+        (uint256 wethInA, uint256 wethInB) = (rB >= rA) ? (uSolution, amount.sub(uSolution)) : (amount.sub(uSolution), uSolution);
+        return (wethInA, wethInB);
     }
 
-    function _getAmountIn(
-        address token,
-        address pair,
-        uint256 totalSupply,
-        bool quote
-    ) internal view returns (uint256) {
-        uint256 balance = IERC20(token).balanceOf(pair);
-        uint256 amountOut = DEFAULT_AMOUNT.mul(balance) / totalSupply;
-        if (token == weth) return amountOut;
-        (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
-        if (quote) {
-            return UniswapV2Library.quote(amountOut, tokenReserve, wethReserve);
-        } else {
-            return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
-        }
+    function _getBForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a, uint256 r_wb, uint256 r_b) private pure returns(int256) {
+        /*
+           // Stack too deep + SafeMath forces us to break down the arithmetic below.
+           (
+              int256((rB.mul(r_wb).div(r_b).add(rA.mul(r_wa).div(r_a))).mul(uint256(1000)).div(uint256(997)))
+           )
+           .add(
+              int256(amount.mul(rB.sub(rA))) // this sub is why A,B needs sorting
+           ).div(int256(rA.add(rB)));
+          */
+        int256 ret = int256(rB.mul(r_wb).div(r_b));
+        ret = ret.add(int256(rA.mul(r_wa).div(r_a)));
+        ret = ret.mul(int256(1000)).div(int256(997));
+        ret = ret.add(
+              int256(amount.mul(rB-rA)) // this sub is why A,B needs sorting. Since they are sorted, "-" is unchecked.
+        );
+        ret = ret.div(int256(rA.add(rB)));
+        return ret;
     }
 
     function _buyToken(
@@ -175,9 +201,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
                 address(pair),
                 token0,
                 token1,
-                amount,
+                amount/*,
                 pair.totalSupply(),
-                false
+                false*/
             );
         // Swap weth for underlying tokens
         uint256 amountOut0 = _buyToken(wethIn0, token0);
