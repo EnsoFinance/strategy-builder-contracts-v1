@@ -19,7 +19,7 @@ import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { AddressZero, WeiPerEther/*, MaxUint256*/ } = constants
+const { AddressZero, WeiPerEther, MaxUint256 } = constants
 
 const NUM_TOKENS = 3
 
@@ -64,7 +64,6 @@ describe('UniswapV2LPAdapter', function () {
 
 		const wethPairAddress = await uniswapFactory.getPair(tokens[1].address, weth.address)
 		wethPair = new Contract(wethPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
-    wethPair=wethPair// DEBUG
 
 		const tokenPairAddress = await uniswapFactory.getPair(tokens[1].address, tokens[2].address)
 		tokenPair = new Contract(tokenPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
@@ -77,7 +76,6 @@ describe('UniswapV2LPAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
-    oracle=oracle;// DEBUG
 		library = platform.library
 
 		await strategyFactory.connect(owner).addItemToRegistry(
@@ -124,7 +122,6 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should fail to swap: less than expected', async function () {
-    /*
 		const amount = WeiPerEther
 		await weth.approve(uniswapV2LPAdapter.address, amount)
 		await expect(
@@ -137,8 +134,6 @@ describe('UniswapV2LPAdapter', function () {
 				owner.address
 			)
 		).to.be.revertedWith('Insufficient tokenOut amount')
-    */
-    // FIXME may be consistent with model?? solution imaginary
 	})
 
 	it('Should swap weth for LP', async function () {
@@ -209,7 +204,6 @@ describe('UniswapV2LPAdapter', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
-    strategy=strategy;//DEBUG
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -225,7 +219,6 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should fail to do a flash swap attack', async function () {
-    /*
 			const attacker = accounts[13];
 			const FlashSwapAttack = await getContractFactory('FlashSwapAttack')
 			const flashSwapAttack = await FlashSwapAttack.connect(attacker).deploy(controller.address, multicallRouter.address, loopRouter.address, weth.address)
@@ -236,11 +229,9 @@ describe('UniswapV2LPAdapter', function () {
 			await expect(
 				flashSwapAttack.connect(attacker).initiateAttack(tokenPair.address, strategy.address)
 			).to.be.revertedWith('Lost value')
-    */
 	})
 
 	it('Should purchase tokens, increasing pool value, requiring a rebalance of strategy', async function () {
-    /*
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(10)
 		await weth.connect(accounts[19]).deposit({value: value.mul(2)})
@@ -257,11 +248,9 @@ describe('UniswapV2LPAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-    */
 	})
 
 	it('Should rebalance strategy', async function () {
-    /*
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -270,11 +259,9 @@ describe('UniswapV2LPAdapter', function () {
 		expect((await weth.balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 		expect((await tokens[1].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
-    */
 	})
 
 	it('Should sell tokens, reducing pool value, requiring a rebalance of strategy', async function () {
-    /*
 		// Approve the user to use the adapter
 		let value = await tokens[1].balanceOf(accounts[19].address)
 		await tokens[1].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
@@ -290,11 +277,9 @@ describe('UniswapV2LPAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-    */
 	})
 
 	it('Should rebalance strategy', async function () {
-    /*
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -303,11 +288,9 @@ describe('UniswapV2LPAdapter', function () {
 		expect((await weth.balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 		expect((await tokens[1].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
-    */
 	})
 
 	it('Should fail to rebalance: price deviation', async function () {
-    /*
 		// Approve the user to use the adapter
 		let value = WeiPerEther.mul(10)
 		await weth.connect(accounts[19]).deposit({value: value})
@@ -324,12 +307,10 @@ describe('UniswapV2LPAdapter', function () {
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, tokens[1].address, weth.address, accounts[19].address, accounts[19].address)
-    */
 	})
 
 	it('Should fail to rebalance: price deviation', async function () {
 		// Approve the user to use the adapter
-    /*
 		let value = WeiPerEther.mul(10)
 		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
@@ -345,6 +326,5 @@ describe('UniswapV2LPAdapter', function () {
 		await uniswapV2Adapter
 			.connect(accounts[19])
 			.swap(value, 0, tokens[2].address, weth.address, accounts[19].address, accounts[19].address)
-    */
 	})
 })

@@ -14,8 +14,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    uint256 private constant DEFAULT_AMOUNT = 10**9;
-    uint256 private constant MINIMUM_LIQUIDITY = 10**3;
     address public immutable factory;
 
     constructor(address factory_, address weth_) public BaseAdapter(weth_) {
