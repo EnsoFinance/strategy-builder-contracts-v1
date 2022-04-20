@@ -156,7 +156,7 @@ async function main() {
 	const GasCostProvider = await hre.ethers.getContractFactory('GasCostProvider')
 	const BalancerAdapter = await hre.ethers.getContractFactory('BalancerAdapter')
 	const UniswapV2Adapter = await hre.ethers.getContractFactory('UniswapV2Adapter')
-	const UniswapV2LPAdapter = await hre.ethers.getContractFactory('UniswapV2LPAdapter')
+	//const UniswapV2LPAdapter = await hre.ethers.getContractFactory('UniswapV2LPAdapter')
 	const UniswapV3Adapter = await hre.ethers.getContractFactory('UniswapV3Adapter')
 	const MetaStrategyAdapter = await hre.ethers.getContractFactory('MetaStrategyAdapter')
 	const SynthetixAdapter = await hre.ethers.getContractFactory('SynthetixAdapter')
@@ -167,7 +167,7 @@ async function main() {
 	const AaveV2DebtAdapter = await hre.ethers.getContractFactory('AaveV2DebtAdapter')
 	const CompoundAdapter = await hre.ethers.getContractFactory('CompoundAdapter')
 	const YEarnV2Adapter = await hre.ethers.getContractFactory('YEarnV2Adapter')
-	//const Leverage2XAdapter = await hre.ethers.getContractFactory('Leverage2XAdapter')
+	const Leverage2XAdapter = await hre.ethers.getContractFactory('Leverage2XAdapter')
 
 	let tokenRegistry: Contract
 	if (overwrite || !contracts['TokenRegistry'] ) {
@@ -271,6 +271,14 @@ async function main() {
 		ensoOracleAddress = contracts['EnsoOracle']
 	}
 
+	// For registering estimators
+	let strategyProxyFactory: Contract
+	let factoryOwner: string = ''
+	if (contracts['StrategyProxyFactory'] ) {
+		strategyProxyFactory = StrategyProxyFactory.attach(contracts['StrategyProxyFactory'])
+		factoryOwner = await strategyProxyFactory.owner()
+	}
+
 	// Add token estimators
 	if (overwrite || !contracts['DefaultEstimator'] ) {
 		const defaultEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
@@ -283,6 +291,11 @@ async function main() {
 			console.log("Adding estimator...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address, txArgs)
+			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address, txArgs)
 			}, signer)
 		}
 	}
@@ -298,6 +311,11 @@ async function main() {
 			console.log("Adding estimator...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address, txArgs)
+			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address, txArgs)
 			}, signer)
 		}
 	}
@@ -315,6 +333,11 @@ async function main() {
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address, txArgs)
 			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address, txArgs)
+			}, signer)
 		}
 	}
 
@@ -331,6 +354,11 @@ async function main() {
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address, txArgs)
 			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address, txArgs)
+			}, signer)
 		}
 	}
 
@@ -345,6 +373,11 @@ async function main() {
 			console.log("Adding estimator...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address, txArgs)
+			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address, txArgs)
 			}, signer)
 		}
 	}
@@ -362,6 +395,11 @@ async function main() {
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address, txArgs)
 			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address, txArgs)
+			}, signer)
 		}
 	}
 
@@ -376,6 +414,11 @@ async function main() {
 			console.log("Adding estimator...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address, txArgs)
+			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address, txArgs)
 			}, signer)
 		}
 	}
@@ -392,6 +435,11 @@ async function main() {
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address, txArgs)
 			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address, txArgs)
+			}, signer)
 		}
 	}
 
@@ -406,6 +454,11 @@ async function main() {
 			console.log("Adding estimator...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address, txArgs)
+			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address, txArgs)
 			}, signer)
 		}
 	}
@@ -423,6 +476,11 @@ async function main() {
 				console.log("Adding estimator...")
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2LPEstimator.address, txArgs)
 			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.UNISWAP_V2_LP, uniswapV2LPEstimator.address, txArgs)
+			}, signer)
 		}
 	}
 
@@ -437,6 +495,11 @@ async function main() {
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				console.log("Adding estimator...")
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address, txArgs)
+			}, signer)
+		} else if (factoryOwner == signer.address) {
+			console.log("Adding estimator...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address, txArgs)
 			}, signer)
 		}
 	}
@@ -551,11 +614,16 @@ async function main() {
 		}, signer)
 		add2Deployments('StrategyProxyFactory', factoryAddress)
 		add2Deployments('StrategyController', controllerAddress)
-
+		add2Deployments('StrategyControllerImplementation', controllerImplementation.address)
 		/*
 			NOTE: We don't want to transfer ownership of factory immediately.
 			We still need to register tokens
 		*/
+	}
+
+	if (!contracts['StrategyControllerImplementation']) {
+		const controllerImplementationAddress = await platformProxyAdmin.controllerImplementation()
+		add2Deployments('StrategyControllerImplementation', controllerImplementationAddress)
 	}
 
 	if (signer.address == tokenRegistryOwner) {
@@ -685,6 +753,7 @@ async function main() {
 	}
 	*/
 
+	let uniswapV3AdapterAddress: string
 	if (overwrite || !contracts['UniswapV3Adapter'] ) {
 		const uniswapV3Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapV3Adapter.deploy(
@@ -694,6 +763,7 @@ async function main() {
 				txArgs
 			)
 		}, signer)
+		uniswapV3AdapterAddress = uniswapV3Adapter.address
 
 		add2Deployments('UniswapV3Adapter', uniswapV3Adapter.address)
 
@@ -703,6 +773,8 @@ async function main() {
 				return whitelist.approve(uniswapV3Adapter.address, txArgs)
 			}, signer)
 		}
+	} else {
+		uniswapV3AdapterAddress = contracts['UniswapV3Adapter']
 	}
 
 	if (overwrite || !contracts['MetaStrategyAdapter'] ) {
@@ -822,6 +894,7 @@ async function main() {
 		}
 	}
 
+	let aaveV2AdapterAddress: string
 	if (overwrite || !contracts['AaveV2Adapter'] ) {
 		const aaveV2Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return AaveV2Adapter.deploy(
@@ -831,6 +904,7 @@ async function main() {
 				txArgs
 			)
 		}, signer)
+		aaveV2AdapterAddress = aaveV2Adapter.address
 
 		add2Deployments('AaveV2Adapter', aaveV2Adapter.address)
 		add2Deployments('AaveLendAdapter', aaveV2Adapter.address) //Alias
@@ -850,9 +924,12 @@ async function main() {
 				return whitelist.approve(aaveV2Adapter.address, txArgs)
 			}, signer)
 		}
+	} else {
+		aaveV2AdapterAddress = contracts['AaveV2Adapter']
 	}
 
-	if (overwrite || !contracts['AaveV2DebtAdapter'] ) {
+	let aaveV2DebtAdapterAddress: string
+	if (overwrite || !contracts['AaveV2DebtAdapter']) {
 		const aaveV2DebtAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return AaveV2DebtAdapter.deploy(
 				deployedContracts[network].aaveAddressProvider,
@@ -860,6 +937,7 @@ async function main() {
 				txArgs
 			)
 		}, signer)
+		aaveV2DebtAdapterAddress = aaveV2DebtAdapter.address
 
 		add2Deployments('AaveV2DebtAdapter', aaveV2DebtAdapter.address)
 		add2Deployments('AaveBorrowAdapter', aaveV2DebtAdapter.address) //Alias
@@ -870,6 +948,8 @@ async function main() {
 				return whitelist.approve(aaveV2DebtAdapter.address, txArgs)
 			}, signer)
 		}
+	} else {
+		aaveV2DebtAdapterAddress = contracts['AaveV2DebtAdapter']
 	}
 
 	if (overwrite || !contracts['CompoundAdapter'] ) {
@@ -924,15 +1004,15 @@ async function main() {
 		}
 	}
 
-	/*
 	if (overwrite || !contracts['Leverage2XAdapter'] ) {
 		const leverageAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return Leverage2XAdapter.deploy(
-				uniswapV2Adapter.address,
-				aaveV2Adapter.address,
-				aaveV2DebtAdapter.address,
-				deployedContracts[process.env.HARDHAT_NETWORK].usdc,
-				deployedContracts[process.env.HARDHAT_NETWORK].weth,
+				uniswapV3AdapterAddress,
+				aaveV2AdapterAddress,
+				aaveV2DebtAdapterAddress,
+				deployedContracts[network].aaveAddressProvider,
+				deployedContracts[network].usdc,
+				deployedContracts[network].weth,
 				txArgs
 			)
 		}, signer)
@@ -942,18 +1022,19 @@ async function main() {
 		if (owner != signer.address) {
 			const gasCostProviderAddress = await leverageAdapter.gasCostProvider()
 			const gasCostProvider = await GasCostProvider.attach(gasCostProviderAddress)
+			console.log("Transfering GasCostProvider...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return gasCostProvider.transferOwnership(owner, txArgs)
 			}, signer)
 		}
 
 		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(leverageAdapter.address, txArgs)
 			}, signer)
 		}
 	}
-	*/
 
 	if (owner != signer.address && signer.address == whitelistOwner) {
 		console.log("Transfering Whitelist...")
