@@ -3,9 +3,9 @@ import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
 import { ethers } from 'hardhat'
-import { Contract, /*BigNumber, Event*/ } from 'ethers'
+import { Contract, BigNumber, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-//import { /*prepareStrategy, StrategyItem,*/ InitialState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import {
 	deployPlatform,
 	deployUniswapV2,
@@ -18,11 +18,11 @@ import {
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
-const { constants, getSigners/*, getContractFactory*/ } = ethers
+const { constants, getSigners, getContractFactory } = ethers
 const { AddressZero, WeiPerEther/*, MaxUint256*/ } = constants
 
 const NUM_TOKENS = 3
-/*
+
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
@@ -32,7 +32,6 @@ const STRATEGY_STATE: InitialState = {
 	social: true,
 	set: false
 }
-*/
 
 describe('UniswapV2LPAdapter', function () {
 	let tokens: Contract[],
@@ -48,9 +47,9 @@ describe('UniswapV2LPAdapter', function () {
 			multicallRouter: Contract,
 			uniswapV2Adapter: Contract,
 			uniswapV2LPAdapter: Contract,
-			//strategy: Contract,
-			//wrapper: Contract,
-			//strategyItems: StrategyItem[],
+			strategy: Contract,
+			wrapper: Contract,
+			strategyItems: StrategyItem[],
 			accounts: SignerWithAddress[],
 			owner: SignerWithAddress
 
@@ -187,7 +186,7 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should deploy strategy', async function () {
-    /*
+    
 		const positions = [
 			{ token: tokenPair.address, percentage: BigNumber.from(500), adapters: [uniswapV2LPAdapter.address], path: [] },
 			{ token: weth.address, percentage: BigNumber.from(500), adapters: [], path: [] }
@@ -222,7 +221,7 @@ describe('UniswapV2LPAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    */
+    
 	})
 
 	it('Should fail to do a flash swap attack', async function () {

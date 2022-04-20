@@ -88,7 +88,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
 
             C = int256(rA.mul(r_wa).mul(amount).mul(uint256(1000))).div(
-              int256(997).mul(int256(r_a)).mul(int256(rA)-int256(rB))
+              int256(997).mul(int256(r_a)).mul(int256(rB)-int256(rA))
             ); 
         }
         int256 solution;
@@ -109,12 +109,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _getBForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a, uint256 r_wb, uint256 r_b) private pure returns(int256) {
-        
         // Stack too deep + SafeMath forces us to break down the arithmetic below.
-        int256 ret = int256(rB.mul(r_wb).div(r_b).add(rA.mul(r_wa).div(r_a)));
-        ret = ret.mul(1000).div(int256(997).mul(int256(rA)-int256(rB)));
-        ret = ret.sub(int256(amount));
-        return ret;
+        int256 numerator = int256(rA.mul(r_b).mul(r_wa).add(rB.mul(r_a).mul(r_wb))).mul(int256(1000));
+        int256 commonFactor = int256(997).mul(int256(r_a.mul(r_b)).mul(int256(rA)-int256(rB)));
+        numerator = numerator.sub(commonFactor.mul(int256(amount)));
+        return numerator / commonFactor;
     }
 
     function _buyToken(
