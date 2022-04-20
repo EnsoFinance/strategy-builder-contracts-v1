@@ -9,6 +9,8 @@ import "../../libraries/UniswapV2Library.sol";
 import "../../libraries/Math.sol";
 import "../BaseAdapter.sol";
 
+import "hardhat/console.sol";
+
 contract UniswapV2LPAdapter is BaseAdapter {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -36,18 +38,25 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address from,
         address to
     ) public override {
+      console.log("debug swap");
         require(tokenIn != tokenOut, "Tokens cannot match");
         if (tokenIn == weth) {
+
+          console.log("debug tokenIn==weth");
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
             IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
             if (pair.token0() == weth || pair.token1() == weth) {
                 _transferWethIntoWethPair(amount, pair);
             } else {
+              console.log("debug transferWEthIntoPair");
                 _transferWethIntoPair(amount, pair);
             }
+          console.log("debug tokenIn==weth 0");
             uint256 received = pair.mint(to);
+          console.log("debug tokenIn==weth 1");
             require(received >= expected, "Insufficient tokenOut amount");
+          console.log("debug tokenIn==weth 2");
         } else if (tokenOut == weth) {
             // Send liquidity to the token contract
             if (from != address(this)) {
@@ -66,6 +75,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         } else {
             revert("Token not supported");
         }
+        console.log("debug swap finished");
     }
 
     function _calculateWethAmounts(
@@ -76,8 +86,13 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 totalSupply,
         bool quote
     ) internal view returns (uint256, uint256) {
+      console.log("debug _calculateWethAmounts start");
         // Calculate the amount of weth needed to purchase underlying tokens
+
+      console.log("debug _calculateWethAmounts 0");
         uint256 amountIn0 = _getAmountIn(token0, pair, totalSupply, quote);
+
+      console.log("debug _calculateWethAmounts 1");
         uint256 amountIn1 = _getAmountIn(token1, pair, totalSupply, quote);
         uint256 wethDivisor = amountIn0.add(amountIn1);
         uint256 wethIn0 = amount.mul(amountIn0).div(wethDivisor);
@@ -91,13 +106,27 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 totalSupply,
         bool quote
     ) internal view returns (uint256) {
+      console.log("debug _getAmountIn");
         uint256 balance = IERC20(token).balanceOf(pair);
+
+      console.log("debug _getAmountIn 0");
         uint256 amountOut = DEFAULT_AMOUNT.mul(balance) / totalSupply;
         if (token == weth) return amountOut;
+        console.log(factory);
+        console.log(weth);
+        console.log(token);
         (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
+
+      console.log("debug _getAmountIn 1");
         if (quote) {
             return UniswapV2Library.quote(amountOut, tokenReserve, wethReserve);
         } else {
+
+      console.log("debug _getAmountIn 2");
+      console.log(amountOut);
+      console.log(wethReserve);
+      console.log(tokenReserve);
+      // DEBUGGING this next call fails because tokenReserve < amountOut
             return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
         }
     }
@@ -169,8 +198,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
     function _transferWethIntoPair(uint256 amount, IUniswapV2Pair pair) private {
         // assumes calling function checks one of the tokens is not weth
+        console.log("debug _transferWethIntoPair start");
         address token0 = pair.token0();
         address token1 = pair.token1();
+        console.log("debug _transferWethIntoPair 0");
         (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
                 address(pair),
                 token0,
@@ -180,11 +211,16 @@ contract UniswapV2LPAdapter is BaseAdapter {
                 false
             );
         // Swap weth for underlying tokens
+
+        console.log("debug _transferWethIntoPair 1");
         uint256 amountOut0 = _buyToken(wethIn0, token0);
         uint256 amountOut1 = _buyToken(wethIn1, token1);
         // Transfer underyling token to pair contract
+
+        console.log("debug _transferWethIntoPair 2");
         IERC20(token0).safeTransfer(address(pair), amountOut0);
         IERC20(token1).safeTransfer(address(pair), amountOut1);
+        console.log("debug _transferWethIntoPair 3");
     }
 
     function _calculateWethToSell(uint256 uAmount, address otherToken) private view returns(uint256) {
