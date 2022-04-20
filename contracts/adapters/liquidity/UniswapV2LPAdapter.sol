@@ -75,20 +75,21 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 amount
     ) internal view returns (uint256, uint256) {
         (uint256 rA, uint256 rB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+        if (rA==rB) {
+            rB += 1; // prevents div by zero error and makes approximation off negligibly
+        }
         int256 B;
         int256 C;
         { // stack too deep !!!
-            (tokenA, tokenB) = (rB >= rA) ? (tokenA, tokenB) : (tokenB, tokenA);
-
             (uint256 r_wa, uint256 r_a) = UniswapV2Library.getReserves(factory, weth, tokenA);
             (uint256 r_wb, uint256 r_b) = UniswapV2Library.getReserves(factory, weth, tokenB);
 
             // this next fn was needed for "stack too deep" shenanigans
             B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
 
-            C = int256(uint256(1000).mul(rA).mul(r_wa).mul(amount)).div(
-              int256(uint256(997).mul(r_a).mul(rA.add(rB)))
-            );
+            C = int256(rA.mul(r_wa).mul(amount).mul(uint256(1000))).div(
+              int256(997).mul(int256(r_a)).mul(int256(rA)-int256(rB))
+            ); 
         }
         int256 solution;
         { // stack too deep !!!
@@ -103,27 +104,16 @@ contract UniswapV2LPAdapter is BaseAdapter {
             }
         }
         uint256 uSolution = uint256(solution);
-        (uint256 wethInA, uint256 wethInB) = (rB >= rA) ? (uSolution, amount.sub(uSolution)) : (amount.sub(uSolution), uSolution);
+        (uint256 wethInA, uint256 wethInB) = (uSolution, amount.sub(uSolution));
         return (wethInA, wethInB);
     }
 
     function _getBForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a, uint256 r_wb, uint256 r_b) private pure returns(int256) {
-        /*
-           // Stack too deep + SafeMath forces us to break down the arithmetic below.
-           (
-              int256((rB.mul(r_wb).div(r_b).add(rA.mul(r_wa).div(r_a))).mul(uint256(1000)).div(uint256(997)))
-           )
-           .add(
-              int256(amount.mul(rB.sub(rA))) // this sub is why A,B needs sorting
-           ).div(int256(rA.add(rB)));
-          */
-        int256 ret = int256(rB.mul(r_wb).div(r_b));
-        ret = ret.add(int256(rA.mul(r_wa).div(r_a)));
-        ret = ret.mul(int256(1000)).div(int256(997));
-        ret = ret.add(
-              int256(amount.mul(rB-rA)) // this sub is why A,B needs sorting. Since they are sorted, "-" is unchecked.
-        );
-        ret = ret.div(int256(rA.add(rB)));
+        
+        // Stack too deep + SafeMath forces us to break down the arithmetic below.
+        int256 ret = int256(rB.mul(r_wb).div(r_b).add(rA.mul(r_wa).div(r_a)));
+        ret = ret.mul(1000).div(int256(997).mul(int256(rA)-int256(rB)));
+        ret = ret.sub(int256(amount));
         return ret;
     }
 
