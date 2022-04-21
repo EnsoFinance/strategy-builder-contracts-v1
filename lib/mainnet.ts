@@ -39,8 +39,10 @@ import CompoundAdapter from '../artifacts/contracts/adapters/lending/CompoundAda
 import CurveAdapter from '../artifacts/contracts/adapters/exchanges/CurveAdapter.sol/CurveAdapter.json'
 import CurveLPAdapter from '../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json'
 import CurveGaugeAdapter from '../artifacts/contracts/adapters/vaults/CurveGaugeAdapter.sol/CurveGaugeAdapter.json'
+import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json'
 import SynthetixAdapter from '../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json'
 import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json'
+import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
 const { AddressZero } = constants
 
 export class LiveEnvironment {
@@ -203,16 +205,12 @@ export function liveAdapters(signer: SignerWithAddress): LiveAdapters {
     const addrs = deployments.mainnet;
     const aaveV2 = new Contract(addrs.AaveV2Adapter, AaveV2Adapter.abi, signer)
     const aaveV2Debt = new Contract(addrs.AaveV2DebtAdapter, AaveV2DebtAdapter.abi, signer)
-    // TODO: this is not deployed live yet
-    // const balancer = new Contract(addrs.BalancerAdapter, BalancerAdapter.abi, signer)
-    const balancer = new Contract(AddressZero, [], signer.provider)
+    const balancer = new Contract(addrs.BalancerAdapter, BalancerAdapter.abi, signer)
     const compound = new Contract(addrs.CompoundAdapter, CompoundAdapter.abi, signer)
     const curve = new Contract(addrs.CurveAdapter, CurveAdapter.abi, signer)
     const curveLP = new Contract(addrs.CurveLPAdapter, CurveLPAdapter.abi, signer)
     const curveGauge = new Contract(addrs.CurveGaugeAdapter, CurveGaugeAdapter.abi, signer)
-    // TODO: this is not deployed live yet
-    //const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)
-    const leverage = new Contract(AddressZero, [], signer.provider)
+    const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)
     const synthetix = new Contract(addrs.SynthetixAdapter, SynthetixAdapter.abi, signer)
     const metastrategy = new Contract(addrs.MetaStrategyAdapter, MetaStrategyAdapter.abi, signer)
     const uniswapV2 = new Contract(addrs.UniswapV2Adapter, UniswapV2Adapter.abi, signer)
