@@ -131,6 +131,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
         }
         int256 solution;
         { // stack too deep !!!
+            /*
+
+                  eq(5)
+                  x = (B +/- sqrt(B^2 - 4C)) / 2 
+
+             **/
             int256 d = B.mul(B).sub(int256(4).mul(C));
             require(d >= 0, "_calculateWethAmounts: solution imaginary.");
             int256 center = -B;
@@ -142,8 +148,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             }
         }
         uint256 uSolution = uint256(solution);
-        (uint256 wethInA, uint256 wethInB) = (uSolution, amount.sub(uSolution));
-        return (wethInA, wethInB);
+        return (uSolution, amount.sub(uSolution));
     }
 
     function _getBForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a, uint256 r_wb, uint256 r_b) private pure returns(int256) {
