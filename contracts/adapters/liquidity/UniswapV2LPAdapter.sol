@@ -38,7 +38,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         if (tokenIn == weth) {
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-            IUniswapV2Pair pair = IUniswapV2Pair(tokenOut); // FIXME how is this tokens[1]??? in test?
+            IUniswapV2Pair pair = IUniswapV2Pair(tokenOut);
             if (pair.token0() == weth || pair.token1() == weth) {
                 _transferWethIntoWethPair(amount, pair);
             } else {
@@ -53,7 +53,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             } else {
                 IERC20(tokenIn).safeTransfer(tokenIn, amount);
             }
-            IUniswapV2Pair pair = IUniswapV2Pair(tokenIn); // FIXME!!! this looks suss
+            IUniswapV2Pair pair = IUniswapV2Pair(tokenIn);
             address token0 = pair.token0();
             address token1 = pair.token1();
             // Burn liquidity and get back underlying tokens
