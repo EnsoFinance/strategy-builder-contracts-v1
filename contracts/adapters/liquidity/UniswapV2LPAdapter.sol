@@ -144,9 +144,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
             int256 d = B.mul(B).sub(int256(4).mul(C));
             require(d >= 0, "_calculateWethAmounts: solution imaginary.");
             uint256 sqrt = Math.sqrt(uint256(d));
-            solution = (-B).add(int256(sqrt)).div(2);
+            solution = (-B).add(int256(sqrt)) >> 1; // div(2)
             if (!(0 < solution && solution < int256(amount))){
-                solution = (-B).sub(int256(sqrt)).div(2);
+                solution = (-B).sub(int256(sqrt)) >> 1; // div(2)
                 require(0 < solution && solution < int256(amount), "_calculateWethAmounts: solution out of range.");
             }
         }
@@ -293,11 +293,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
         int256 center = -B;
         uint256 sqrt = Math.sqrt(uint256(d));
 
-        int256 denominator = int256(2);
-        int256 solution = center.add(int256(sqrt)).div(denominator);
+        int256 solution = center.add(int256(sqrt)) >> 1; // div(2)
         if (0 < solution && solution < amount)
             return uint256(solution);
-        solution = center.sub(int256(sqrt)).div(denominator);
+        solution = center.sub(int256(sqrt)) >> 1; // div(2)
         require(0 < solution && solution < amount, "_calculateWethToSell: solution out of range.");
         return uint256(solution);
     }
