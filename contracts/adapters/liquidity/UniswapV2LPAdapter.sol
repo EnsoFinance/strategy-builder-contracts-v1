@@ -84,25 +84,29 @@ contract UniswapV2LPAdapter is BaseAdapter {
               in the non-weth tokenPair.
 
             Recall that aN = getAmountOut(x, r_wN, r_N) = 997*r_N*x / (1000*r_wN + 997*r_N*x)
+              so we can rewrite eq(1) to get
+
+                  eq(2)
+                  getAmountOut(x, r_wa, r_a) / rA == getAmountOut(A-x, r_wb, r_b) / rB
             
-            Substituting 997*r_N*x / (1000*r_wN + 997*r_N*x) for aN in eq(1)
+            Substituting 997*r_N*x / (1000*r_wN + 997*r_N*x) for getAmountOut(y, r_wN, r_N) in eq(2)
               reduces algebraically to a quadratic equation of the form 
             
-                  eq(2)
+                  eq(3)
                   x^2 + Bx + C = 0
 
               where 
 
-                  eq(3)
+                  eq(4)
                   B = 1000*(rA*r_b*r_wa + rB*r_a*r_wb)/(997*r_a*r_b*(rA-rB)) - A
         
-                  eq(4)
+                  eq(5)
                   C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
         
         
             We find the roots of this quadratic equation using the quadratic formula 
                   
-                  eq(5)
+                  eq(6)
                   x = (B +/- sqrt(B^2 - 4C)) / 2 
 
         **/
@@ -121,7 +125,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
 
             /*
-                  eq(4)
+                  eq(5)
                   C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
             **/
 
@@ -133,17 +137,16 @@ contract UniswapV2LPAdapter is BaseAdapter {
         { // stack too deep !!!
             /*
 
-                  eq(5)
+                  eq(6)
                   x = (B +/- sqrt(B^2 - 4C)) / 2 
 
              **/
             int256 d = B.mul(B).sub(int256(4).mul(C));
             require(d >= 0, "_calculateWethAmounts: solution imaginary.");
-            int256 center = -B;
             uint256 sqrt = Math.sqrt(uint256(d));
-            solution = center.add(int256(sqrt)).div(2);
+            solution = (-B).add(int256(sqrt)).div(2);
             if (!(0 < solution && solution < int256(amount))){
-                solution = center.sub(int256(sqrt)).div(2);
+                solution = (-B).sub(int256(sqrt)).div(2);
                 require(0 < solution && solution < int256(amount), "_calculateWethAmounts: solution out of range.");
             }
         }
@@ -155,7 +158,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         // Stack too deep + SafeMath forces us to break down the arithmetic below.
         /*
         
-                  eq(3)
+                  eq(4)
                   B = 1000*(rA*r_b*r_wa + rB*r_a*r_wb)/(997*r_a*r_b*(rA-rB)) - A
 
         **/
