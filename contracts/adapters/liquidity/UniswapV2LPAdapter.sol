@@ -72,6 +72,45 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address tokenB,
         uint256 amount
     ) internal view returns (uint256, uint256) {
+        /*
+            Given amount A, non-weth tokenPair with reserves (rA, rB)
+              and weth pairs with reserves (r_wa, r_a) and (r_wb, r_b) respectively,
+              we wish to find wethInA x and wethInB A-x to mint optimal liquidity, 
+              i.e. we want 
+                  
+                  eq(1)
+                  aA / rA == aB / rB
+                  
+              in the non-weth tokenPair.
+
+            Recall that aN = getAmountOut(x, r_wN, r_N) = 997*r_N*x / (1000*r_wN + 997*r_N*x)
+            
+            Substituting 997*r_N*x / (1000*r_wN + 997*r_N*x) for aN in eq(1)
+              reduces algebraically to a quadratic equation of the form 
+            
+                  eq(2)
+                  x^2 + Bx + C = 0
+
+              where 
+
+                  eq(3)
+                  B = 1000*(rA*r_b*r_wa + rB*r_a*r_wb)/(997*r_a*r_b*(rA-rB)) - A
+        
+            C = int256(rA.mul(r_wa).mul(amount).mul(uint256(1000))).div(
+              int256(997).mul(int256(r_a)).mul(int256(rB)-int256(rA))
+            ); 
+                  
+                  eq(4)
+                  C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
+        
+        
+            We find the roots of this quadratic equation using the quadratic formula 
+                  
+                  eq(5)
+                  x = (B +/- sqrt(B^2 - 4C)) / 2 
+
+        **/
+
         (uint256 rA, uint256 rB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
         if (rA==rB) {
             rB += 1; // prevents div by zero error and makes approximation off negligibly
@@ -111,7 +150,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         int256 numerator = int256(rA.mul(r_b).mul(r_wa).add(rB.mul(r_a).mul(r_wb))).mul(int256(1000));
         int256 commonFactor = int256(997).mul(int256(r_a.mul(r_b)).mul(int256(rA)-int256(rB)));
         numerator = numerator.sub(commonFactor.mul(int256(amount)));
-        return numerator / commonFactor;
+        return numerator.div(commonFactor);
     }
 
     function _buyToken(
