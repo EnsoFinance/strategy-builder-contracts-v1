@@ -20,7 +20,7 @@ var AaveV2DebtEstimator_json_1 = __importDefault(require("../artifacts/contracts
 var BasicEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json"));
 var DefaultEstimator = BasicEstimator_json_1.default;
 // import EnsoEstimator from '../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json'
-//import StakedEnsoEstimator from '../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json'
+// import StakedEnsoEstimator from '../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json'
 var CompoundEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json"));
 var CurveLPEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveLPEstimator.sol/CurveLPEstimator.json"));
 var CurveGaugeEstimator_json_1 = __importDefault(require("../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json"));
@@ -48,10 +48,10 @@ var CompoundAdapter_json_1 = __importDefault(require("../artifacts/contracts/ada
 var CurveAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/CurveAdapter.sol/CurveAdapter.json"));
 var CurveLPAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json"));
 var CurveGaugeAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/vaults/CurveGaugeAdapter.sol/CurveGaugeAdapter.json"));
-// import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json'
+var Leverage2XAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json"));
 var SynthetixAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json"));
 var YEarnV2Adapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json"));
-// import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
+var BalancerAdapter_json_1 = __importDefault(require("../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json"));
 var AddressZero = ethers_1.constants.AddressZero;
 var LiveEnvironment = /** @class */ (function () {
     function LiveEnvironment(signer, platform, adapters, routers, estimators) {
@@ -162,16 +162,12 @@ function liveAdapters(signer) {
     var addrs = deployments_json_1.default.mainnet;
     var aaveV2 = new ethers_1.Contract(addrs.AaveV2Adapter, AaveV2Adapter_json_1.default.abi, signer);
     var aaveV2Debt = new ethers_1.Contract(addrs.AaveV2DebtAdapter, AaveV2DebtAdapter_json_1.default.abi, signer);
-    // TODO: this is not deployed live yet
-    // const balancer = new Contract(addrs.BalancerAdapter, BalancerAdapter.abi, signer)
-    var balancer = new ethers_1.Contract(AddressZero, [], signer.provider);
+    var balancer = new ethers_1.Contract(addrs.BalancerAdapter, BalancerAdapter_json_1.default.abi, signer);
     var compound = new ethers_1.Contract(addrs.CompoundAdapter, CompoundAdapter_json_1.default.abi, signer);
     var curve = new ethers_1.Contract(addrs.CurveAdapter, CurveAdapter_json_1.default.abi, signer);
     var curveLP = new ethers_1.Contract(addrs.CurveLPAdapter, CurveLPAdapter_json_1.default.abi, signer);
     var curveGauge = new ethers_1.Contract(addrs.CurveGaugeAdapter, CurveGaugeAdapter_json_1.default.abi, signer);
-    // TODO: this is not deployed live yet
-    //const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)  
-    var leverage = new ethers_1.Contract(AddressZero, [], signer.provider);
+    var leverage = new ethers_1.Contract(addrs.Leverage2XAdapter, Leverage2XAdapter_json_1.default.abi, signer);
     var synthetix = new ethers_1.Contract(addrs.SynthetixAdapter, SynthetixAdapter_json_1.default.abi, signer);
     var metastrategy = new ethers_1.Contract(addrs.MetaStrategyAdapter, MetaStrategyAdapter_json_1.default.abi, signer);
     // TODO: this is not deployed live
