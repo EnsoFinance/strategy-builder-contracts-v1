@@ -25,8 +25,8 @@ const NUM_TOKENS = 3
 
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
-	rebalanceThreshold: BigNumber.from(10),
-	rebalanceSlippage: BigNumber.from(997),
+	rebalanceThreshold: BigNumber.from(80), // note this is much higher than standard 10
+	rebalanceSlippage: BigNumber.from(950), // note this is much broader than stander 997
 	restructureSlippage: BigNumber.from(995),
 	performanceFee: BigNumber.from(50),
 	social: true,
@@ -108,7 +108,7 @@ describe('UniswapV2LPAdapter', function () {
 		).to.be.revertedWith('Tokens cannot match')
 	})
 
-	it('Should fail to swap: tokens cannot match', async function () {
+	it('Should fail to swap: token not supported', async function () {
 		await expect(
 			uniswapV2LPAdapter.swap(
 				1,
@@ -262,6 +262,7 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should sell tokens, reducing pool value, requiring a rebalance of strategy', async function () {
+
 		// Approve the user to use the adapter
 		let value = await tokens[1].balanceOf(accounts[19].address)
 		await tokens[1].connect(accounts[19]).approve(uniswapV2Adapter.address, value)
@@ -281,13 +282,16 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should rebalance strategy', async function () {
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, loopRouter.address, '0x')
+    
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
+    
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect((await weth.balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 		expect((await tokens[1].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(loopRouter.address)).eq(0)).to.equal(true)
+    
 	})
 
 	it('Should fail to rebalance: price deviation', async function () {
