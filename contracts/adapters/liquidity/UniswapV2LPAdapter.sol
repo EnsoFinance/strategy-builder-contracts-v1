@@ -107,7 +107,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             We find the roots of this quadratic equation using the quadratic formula 
                   
                   eq(6)
-                  x = (B +/- sqrt(B^2 - 4C)) / 2 
+                  x = (-B +/- sqrt(B^2 - 4C)) / 2 
 
         **/
 
@@ -138,7 +138,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             /*
 
                   eq(6)
-                  x = (B +/- sqrt(B^2 - 4C)) / 2 
+                  x = (-B +/- sqrt(B^2 - 4C)) / 2 
 
              **/
             int256 d = B.mul(B).sub(int256(4).mul(C));
