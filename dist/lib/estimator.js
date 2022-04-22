@@ -772,7 +772,7 @@ var Estimator = /** @class */ (function () {
                     return [2 /*return*/, ethers_1.BigNumber.from(0)]; // Token not found
                 depositAmounts = (new Array(coinsInPool)).fill(ethers_1.BigNumber.from(0));
                 depositAmounts[tokenIndex] = amount;
-                return [2 /*return*/, (new ethers_1.Contract(pool, ICurveStableSwap_json_1.default.abi, this.signer))["calc_token_amount(uint256[" + coinsInPool + "],bool)"](depositAmounts, true)];
+                return [2 /*return*/, (new ethers_1.Contract(pool, ICurveStableSwap_json_1.default.abi, this.signer))["calc_token_amount(uint256[".concat(coinsInPool, "],bool)")](depositAmounts, true)];
             });
         });
     };
@@ -797,7 +797,7 @@ var Estimator = /** @class */ (function () {
                         return [4 /*yield*/, this.curveDepositZapRegistry.getIndexType(zap)];
                     case 2:
                         indexType = _a.sent();
-                        return [2 /*return*/, (new ethers_1.Contract(zap, ICurveDeposit_json_1.default.abi, this.signer))["calc_withdraw_one_coin(uint256," + (indexType.eq(0) ? 'int128' : 'uint256') + ")"](amount, tokenIndex)];
+                        return [2 /*return*/, (new ethers_1.Contract(zap, ICurveDeposit_json_1.default.abi, this.signer))["calc_withdraw_one_coin(uint256,".concat(indexType.eq(0) ? 'int128' : 'uint256', ")")](amount, tokenIndex)];
                 }
             });
         });

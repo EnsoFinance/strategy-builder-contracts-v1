@@ -27,6 +27,8 @@ import {
 		ESTIMATOR_CATEGORY,
 } from '../lib/constants'
 
+import StakingMock from '../dist/dist/StakingMock.sol/StakingMock.json'
+
 chai.use(solidity)
 
 let NUM_TOKENS = 3
@@ -76,7 +78,7 @@ describe('EnsoStakingAdapter', function () {
 
 		let defaultEstimator = new Contract(await tokenRegistry.getEstimator(weth.address), [], accounts[0]) // just to use its address in the "deploy" functions
 
-		const StakingMockFactory = await getContractFactory('StakingMock')
+    const StakingMockFactory = new ethers.ContractFactory(StakingMock.abi, StakingMock.bytecode, accounts[0]);
 		stakingMock = await StakingMockFactory.deploy(ensoToken.address)
 		await stakingMock.deployed()
 		sEnso = stakingMock

@@ -286,7 +286,6 @@ function deployUniswapV2(owner, tokens) {
     });
 }
 exports.deployUniswapV2 = deployUniswapV2;
-// deployUniswapV3: async (owner, tokens) => {
 function deployUniswapV3(owner, tokens) {
     return __awaiter(this, void 0, void 0, function () {
         var uniswapV3Factory, nftDesciptor, UniswapNFTDescriptor, uniswapNFTDescriptor, uniswapNFTManager, i, aNum, bNum, flipper;
@@ -330,7 +329,7 @@ function deployUniswapV3(owner, tokens) {
                     bNum = ethers.BigNumber.from(tokens[i].address);
                     flipper = aNum.lt(bNum);
                     //tokens[0] is used as the trading pair (WETH)
-                    return [4 /*yield*/, uniswapNFTManager.createAndInitializePoolIfNecessary(flipper ? tokens[0].address : tokens[i].address, flipper ? tokens[i].address : tokens[0].address, constants_1.UNI_V3_FEE, utils_1.encodePriceSqrt(1, 1))
+                    return [4 /*yield*/, uniswapNFTManager.createAndInitializePoolIfNecessary(flipper ? tokens[0].address : tokens[i].address, flipper ? tokens[i].address : tokens[0].address, constants_1.UNI_V3_FEE, (0, utils_1.encodePriceSqrt)(1, 1))
                         // Add liquidity
                     ];
                 case 10:
@@ -344,15 +343,15 @@ function deployUniswapV3(owner, tokens) {
                     return [4 /*yield*/, uniswapNFTManager.mint({
                             token0: flipper ? tokens[0].address : tokens[i].address,
                             token1: flipper ? tokens[i].address : tokens[0].address,
-                            tickLower: utils_1.getMinTick(60),
-                            tickUpper: utils_1.getMaxTick(60),
+                            tickLower: (0, utils_1.getMinTick)(60),
+                            tickUpper: (0, utils_1.getMaxTick)(60),
                             fee: constants_1.UNI_V3_FEE,
                             recipient: owner.address,
                             amount0Desired: WeiPerEther.mul(100),
                             amount1Desired: WeiPerEther.mul(100),
                             amount0Min: 0,
                             amount1Min: 0,
-                            deadline: utils_1.getDeadline(240),
+                            deadline: (0, utils_1.getDeadline)(240),
                         })];
                 case 12:
                     _a.sent();
@@ -377,7 +376,7 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
                     return [4 /*yield*/, strategyLibrary.deployed()];
                 case 2:
                     _a.sent();
-                    strategyLibraryLink = link_1.createLink(StrategyLibrary_json_1.default, strategyLibrary.address);
+                    strategyLibraryLink = (0, link_1.createLink)(StrategyLibrary_json_1.default, strategyLibrary.address);
                     return [4 /*yield*/, waffle.deployContract(owner, TokenRegistry_json_1.default, [])];
                 case 3:
                     tokenRegistry = _a.sent();
@@ -536,7 +535,7 @@ function deployPlatform(owner, uniswapOracleFactory, uniswapV3Factory, weth, sus
                     ];
                 case 50:
                     factoryAddress = _a.sent();
-                    return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(StrategyController_json_1.default, [strategyLibraryLink]), [factoryAddress])];
+                    return [4 /*yield*/, waffle.deployContract(owner, (0, link_1.linkBytecode)(StrategyController_json_1.default, [strategyLibraryLink]), [factoryAddress])];
                 case 51:
                     controllerImplementation = _a.sent();
                     return [4 /*yield*/, controllerImplementation.deployed()
@@ -909,7 +908,7 @@ function deployLoopRouter(owner, controller, library) {
         var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(LoopRouter_json_1.default, [link_1.createLink(StrategyLibrary_json_1.default, library.address)]), [controller.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, (0, link_1.linkBytecode)(LoopRouter_json_1.default, [(0, link_1.createLink)(StrategyLibrary_json_1.default, library.address)]), [controller.address])];
                 case 1:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
@@ -926,7 +925,7 @@ function deployFullRouter(owner, addressProvider, controller, library) {
         var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(FullRouter_json_1.default, [link_1.createLink(StrategyLibrary_json_1.default, library.address)]), [addressProvider.address, controller.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, (0, link_1.linkBytecode)(FullRouter_json_1.default, [(0, link_1.createLink)(StrategyLibrary_json_1.default, library.address)]), [addressProvider.address, controller.address])];
                 case 1:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
@@ -943,7 +942,7 @@ function deployBatchDepositRouter(owner, controller, library) {
         var router;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, waffle.deployContract(owner, link_1.linkBytecode(BatchDepositRouter_json_1.default, [link_1.createLink(StrategyLibrary_json_1.default, library.address)]), [controller.address])];
+                case 0: return [4 /*yield*/, waffle.deployContract(owner, (0, link_1.linkBytecode)(BatchDepositRouter_json_1.default, [(0, link_1.createLink)(StrategyLibrary_json_1.default, library.address)]), [controller.address])];
                 case 1:
                     router = _a.sent();
                     return [4 /*yield*/, router.deployed()];
