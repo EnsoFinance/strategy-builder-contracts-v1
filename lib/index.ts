@@ -33,7 +33,17 @@ import {
   linkBytecode
 } from './link'
 
+import {
+  deployLeverage2XAdapter
+} from './deploy'
+
+import {getLiveContracts, LiveEnvironment, LiveAdapters, LiveRouters} from './mainnet'
+
 export {
+  getLiveContracts,
+  LiveEnvironment, 
+  LiveAdapters, 
+  LiveRouters,
   EnsoBuilder,
   EnsoEnvironment,
   Estimator,
@@ -60,5 +70,6 @@ export {
   linkBytecode,
   TIMELOCK_CATEGORY,
   ITEM_CATEGORY,
-  ESTIMATOR_CATEGORY
+  ESTIMATOR_CATEGORY,
+  deployLeverage2XAdapter
 }

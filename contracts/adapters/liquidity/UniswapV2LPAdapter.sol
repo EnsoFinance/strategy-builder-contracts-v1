@@ -238,7 +238,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address token0 = pair.token0();
         address token1 = pair.token1();
         (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-                address(pair),
+                pair,
                 token0,
                 token1,
                 amount

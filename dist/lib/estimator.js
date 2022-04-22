@@ -42,6 +42,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Estimator = void 0;
 var ethers_1 = require("ethers");
 var ICToken_json_1 = __importDefault(require("../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json"));
+var IStrategy_json_1 = __importDefault(require("../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json"));
 var ISynth_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json"));
 var ISynthetix_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json"));
 var IExchanger_json_1 = __importDefault(require("../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json"));
@@ -73,7 +74,7 @@ var NULL_TRADE_DATA = {
     cache: '0x'
 };
 var Estimator = /** @class */ (function () {
-    function Estimator(signer, oracle, tokenRegistry, uniswapV3Registry, curveDepositZapRegistry, aaveV2AdapterAddress, compoundAdapterAddress, curveAdapterAddress, curveLPAdapterAddress, curveGaugeAdapterAddress, synthetixAdapterAddress, uniswapV2AdapterAddress, uniswapV3AdapterAddress, yearnV2AdapterAddress) {
+    function Estimator(signer, oracle, tokenRegistry, uniswapV3Registry, curveDepositZapRegistry, aaveV2AdapterAddress, compoundAdapterAddress, curveAdapterAddress, curveLPAdapterAddress, curveGaugeAdapterAddress, metaStrategyAdapterAddress, synthetixAdapterAddress, uniswapV2AdapterAddress, uniswapV3AdapterAddress, yearnV2AdapterAddress) {
         this.signer = signer;
         this.curveRegistry = new ethers_1.Contract(CURVE_REGISTRY, ICurveRegistry_json_1.default.abi, signer);
         this.synthetix = new ethers_1.Contract(SYNTHETIX, ISynthetix_json_1.default.abi, signer);
@@ -91,6 +92,7 @@ var Estimator = /** @class */ (function () {
         this.curveAdapterAddress = curveAdapterAddress;
         this.curveLPAdapterAddress = curveLPAdapterAddress;
         this.curveGaugeAdapterAddress = curveGaugeAdapterAddress;
+        this.metaStrategyAdapterAddress = metaStrategyAdapterAddress;
         this.synthetixAdapterAddress = synthetixAdapterAddress;
         this.uniswapV2AdapterAddress = uniswapV2AdapterAddress;
         this.uniswapV2LPAdapterAddress = AddressZero;
@@ -475,6 +477,8 @@ var Estimator = /** @class */ (function () {
                         return [2 /*return*/, this.estimateCurveLP(amount, tokenIn, tokenOut)];
                     case this.curveGaugeAdapterAddress.toLowerCase():
                         return [2 /*return*/, this.estimateCurveGauge(amount, tokenIn, tokenOut)];
+                    case this.metaStrategyAdapterAddress.toLowerCase():
+                        return [2 /*return*/, this.estimateMetaStrategy(amount, tokenIn, tokenOut)];
                     case this.synthetixAdapterAddress.toLowerCase():
                         return [2 /*return*/, this.estimateSynthetix(amount, tokenIn, tokenOut)];
                     case this.uniswapV2AdapterAddress.toLowerCase():
@@ -494,7 +498,7 @@ var Estimator = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Assumes correct tokenIn/tokenOut pairing
-                if (tokenIn === tokenOut)
+                if (tokenIn.toLowerCase() === tokenOut.toLowerCase())
                     return [2 /*return*/, ethers_1.BigNumber.from('0')];
                 return [2 /*return*/, amount];
             });
@@ -590,7 +594,7 @@ var Estimator = /** @class */ (function () {
                         for (i = 0; i < 8; i++) {
                             if (depositCoins[i] === AddressZero)
                                 break;
-                            if (depositCoins[i] === tokenIn) {
+                            if (depositCoins[i].toLowerCase() === tokenIn.toLowerCase()) {
                                 isDeposit = true;
                                 break;
                             }
@@ -605,7 +609,7 @@ var Estimator = /** @class */ (function () {
                         for (i = 0; i < 8; i++) {
                             if (withdrawCoins[i] === AddressZero)
                                 break;
-                            if (withdrawCoins[i] === tokenOut) {
+                            if (withdrawCoins[i].toLowerCase() === tokenOut.toLowerCase()) {
                                 isWithdraw = true;
                                 break;
                             }
@@ -615,11 +619,11 @@ var Estimator = /** @class */ (function () {
                         _f.label = 9;
                     case 9: return [3 /*break*/, 11];
                     case 10:
-                        if (tokenIn === TRICRYPTO2 || tokenOut === TRICRYPTO2) {
+                        if (tokenIn.toLowerCase() === TRICRYPTO2.toLowerCase() || tokenOut.toLowerCase() === TRICRYPTO2.toLowerCase()) {
                             coins = [USDT, WBTC, WETH];
-                            if (tokenIn === TRICRYPTO2)
+                            if (tokenIn.toLowerCase() === TRICRYPTO2.toLowerCase())
                                 return [2 /*return*/, this.curveWithdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins)];
-                            if (tokenOut === TRICRYPTO2)
+                            if (tokenOut.toLowerCase() === TRICRYPTO2.toLowerCase())
                                 return [2 /*return*/, this.curveDepositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins)];
                         }
                         _f.label = 11;
@@ -632,9 +636,29 @@ var Estimator = /** @class */ (function () {
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 // Assumes correct tokenIn/tokenOut pairing
-                if (tokenIn === tokenOut)
+                if (tokenIn.toLowerCase() === tokenOut.toLowerCase())
                     return [2 /*return*/, ethers_1.BigNumber.from('0')];
                 return [2 /*return*/, amount];
+            });
+        });
+    };
+    Estimator.prototype.estimateMetaStrategy = function (amount, tokenIn, tokenOut) {
+        return __awaiter(this, void 0, void 0, function () {
+            var strategy, strategy;
+            return __generator(this, function (_a) {
+                if (tokenIn.toLowerCase() === WETH.toLowerCase()) {
+                    strategy = new ethers_1.Contract(tokenOut, IStrategy_json_1.default.abi, this.signer);
+                    return [2 /*return*/, this.deposit(strategy, amount)];
+                }
+                else if (tokenOut.toLowerCase() === WETH.toLowerCase()) {
+                    strategy = new ethers_1.Contract(tokenIn, IStrategy_json_1.default.abi, this.signer);
+                    return [2 /*return*/, this.withdraw(strategy, amount)];
+                }
+                else {
+                    // Meta strategies always have weth as an input or output
+                    return [2 /*return*/, ethers_1.BigNumber.from('0')];
+                }
+                return [2 /*return*/];
             });
         });
     };
@@ -697,7 +721,7 @@ var Estimator = /** @class */ (function () {
                         return [4 /*yield*/, vault.token()];
                     case 1:
                         token = _c.sent();
-                        if (token !== tokenIn)
+                        if (token.toLowerCase() !== tokenIn.toLowerCase())
                             throw new Error("Not compatible");
                         return [4 /*yield*/, Promise.all([
                                 vault.decimals(),
@@ -716,7 +740,7 @@ var Estimator = /** @class */ (function () {
                         return [4 /*yield*/, vault.token()];
                     case 5:
                         token = _c.sent();
-                        if (token !== tokenOut)
+                        if (token.toLowerCase() !== tokenOut.toLowerCase())
                             throw new Error("Not compatible");
                         return [4 /*yield*/, Promise.all([
                                 vault.decimals(),
@@ -757,28 +781,21 @@ var Estimator = /** @class */ (function () {
     };
     Estimator.prototype.curveDepositPrice = function (amount, tokenIn, pool, coins) {
         return __awaiter(this, void 0, void 0, function () {
-            var coinsInPool, tokenIndex, i, depositAmounts;
+            var coinsInPool, tokenIndex, depositAmounts;
             return __generator(this, function (_a) {
-                tokenIndex = 8;
-                for (i = 0; i < 8; i++) {
-                    if (coins[i] === AddressZero) {
-                        coinsInPool = i;
-                        break;
-                    }
-                    if (coins[i] === tokenIn)
-                        tokenIndex = i;
-                }
-                if (tokenIndex === 8)
+                coinsInPool = coins.filter(function (coin) { return coin !== AddressZero; }).length;
+                tokenIndex = coins.findIndex(function (coin) { return coin.toLowerCase() === tokenIn.toLowerCase(); });
+                if (tokenIndex === -1)
                     return [2 /*return*/, ethers_1.BigNumber.from(0)]; // Token not found
                 depositAmounts = (new Array(coinsInPool)).fill(ethers_1.BigNumber.from(0));
                 depositAmounts[tokenIndex] = amount;
-                return [2 /*return*/, (new ethers_1.Contract(pool, ICurveStableSwap_json_1.default.abi, this.signer))["calc_token_amount(uint256[" + coinsInPool + "],bool)"](depositAmounts, true)];
+                return [2 /*return*/, (new ethers_1.Contract(pool, ICurveStableSwap_json_1.default.abi, this.signer))["calc_token_amount(uint256[".concat(coinsInPool, "],bool)")](depositAmounts, true)];
             });
         });
     };
     Estimator.prototype.curveWithdrawPrice = function (amount, tokenIn, tokenOut, pool, coins) {
         return __awaiter(this, void 0, void 0, function () {
-            var zap, tokenIndex, i, indexType;
+            var zap, tokenIndex, indexType;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.curveDepositZapRegistry.getZap(tokenIn)];
@@ -786,18 +803,13 @@ var Estimator = /** @class */ (function () {
                         zap = _a.sent();
                         if (zap === AddressZero)
                             zap = pool;
-                        for (i = 0; i < coins.length; i++) {
-                            if (coins[i] === AddressZero)
-                                return [2 /*return*/, ethers_1.BigNumber.from(0)]; // tokenOut is not in list
-                            if (coins[i] === tokenOut) {
-                                tokenIndex = i;
-                                break;
-                            }
-                        }
+                        tokenIndex = coins.findIndex(function (coin) { return coin.toLowerCase() === tokenOut.toLowerCase(); });
+                        if (tokenIndex === -1)
+                            return [2 /*return*/, ethers_1.BigNumber.from(0)]; // Token not found
                         return [4 /*yield*/, this.curveDepositZapRegistry.getIndexType(zap)];
                     case 2:
                         indexType = _a.sent();
-                        return [2 /*return*/, (new ethers_1.Contract(zap, ICurveDeposit_json_1.default.abi, this.signer))["calc_withdraw_one_coin(uint256," + (indexType.eq(0) ? 'int128' : 'uint256') + ")"](amount, tokenIndex)];
+                        return [2 /*return*/, (new ethers_1.Contract(zap, ICurveDeposit_json_1.default.abi, this.signer))["calc_withdraw_one_coin(uint256,".concat(indexType.eq(0) ? 'int128' : 'uint256', ")")](amount, tokenIndex)];
                 }
             });
         });

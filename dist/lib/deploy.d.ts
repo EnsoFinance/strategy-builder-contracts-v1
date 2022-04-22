@@ -48,7 +48,7 @@ export declare function deployCurveAdapter(owner: SignerWithAddress, curveAddres
 export declare function deployCurveLPAdapter(owner: SignerWithAddress, curveAddressProvider: Contract, curveDepositZapRegistry: Contract, weth: Contract): Promise<Contract>;
 export declare function deployCurveGaugeAdapter(owner: SignerWithAddress, curveAddressProvider: Contract, weth: Contract): Promise<Contract>;
 export declare function deploySynthetixAdapter(owner: SignerWithAddress, resolver: Contract, weth: Contract): Promise<Contract>;
-export declare function deployLeverage2XAdapter(owner: SignerWithAddress, defaultAdapter: Contract, aaveV2Adapter: Contract, aaveV2DebtAdapter: Contract, debtToken: Contract, weth: Contract): Promise<Contract>;
+export declare function deployLeverage2XAdapter(owner: SignerWithAddress, defaultAdapter: Contract, aaveV2Adapter: Contract, aaveV2DebtAdapter: Contract, addressProvider: Contract, debtToken: Contract, weth: Contract): Promise<Contract>;
 export declare function deployLoopRouter(owner: SignerWithAddress, controller: Contract, library: Contract): Promise<Contract>;
 export declare function deployFullRouter(owner: SignerWithAddress, addressProvider: Contract, controller: Contract, library: Contract): Promise<Contract>;
 export declare function deployBatchDepositRouter(owner: SignerWithAddress, controller: Contract, library: Contract): Promise<Contract>;

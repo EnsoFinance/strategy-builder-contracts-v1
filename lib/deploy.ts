@@ -70,10 +70,10 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 import NFTDescriptor from '@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json'
 import NonfungiblePositionManager from '@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json'
 import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, ORACLE_TIME_WINDOW, UNI_V3_FEE } from './constants'
-
 const { ethers, waffle } = hre
 const { constants, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
+
 
 export type Oracles = {
 	ensoOracle: Contract
@@ -93,7 +93,6 @@ export type Administration = {
 	whitelist: Contract,
 	platformProxyAdmin: Contract,
 }
-
 export class Platform {
 	strategyFactory: Contract
 	controller: Contract
@@ -555,6 +554,7 @@ export async function deployLeverage2XAdapter(
 	defaultAdapter: Contract,
 	aaveV2Adapter: Contract,
 	aaveV2DebtAdapter: Contract,
+	addressProvider: Contract,
 	debtToken: Contract,
 	weth: Contract
 ) {
@@ -562,6 +562,7 @@ export async function deployLeverage2XAdapter(
 			defaultAdapter.address,
 			aaveV2Adapter.address,
 			aaveV2DebtAdapter.address,
+			addressProvider.address,
 			debtToken.address,
 			weth.address
 	])

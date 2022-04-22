@@ -7,10 +7,10 @@ var dotenv_1 = __importDefault(require("dotenv"));
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("solidity-coverage");
-require("@typechain/hardhat");
 require("./tasks/accounts");
 require("./tasks/clean");
 require("./tasks/addOwnerFunds");
+require("./tasks/addContractsToDefenderAdmin");
 dotenv_1.default.config();
 var chainIds = {
     ganache: 1337,
@@ -75,6 +75,7 @@ function getNetworks() {
         networks.rinkeby = createTestnetConfig('rinkeby');
         networks.ropsten = createTestnetConfig('ropsten');
         networks.ensonet = createTestnetConfig('ensonet');
+        networks.mainnet = createTestnetConfig('mainnet');
     }
     return networks;
 }

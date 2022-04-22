@@ -315,6 +315,7 @@ export class EnsoBuilder {
 				this.adapters?.uniswap.contract || NULL_CONTRACT,
 				this.adapters?.aaveV2.contract || NULL_CONTRACT,
 				this.adapters?.aaveV2Debt.contract || NULL_CONTRACT,
+				new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
 				usdc,
 				weth
 			])
@@ -446,8 +447,8 @@ export class Adapter {
 			if (parameters.length == 2)
 				this.contract = await deployCurveGaugeAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.Leverage) {
-			if (parameters.length == 5)
-				this.contract = await deployLeverage2XAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])
+			if (parameters.length == 6)
+				this.contract = await deployLeverage2XAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5])
 		} else if (this.type === Adapters.Synthetix) {
 			if (parameters.length == 2)
 				this.contract = await deploySynthetixAdapter(signer, parameters[0], parameters[1])
