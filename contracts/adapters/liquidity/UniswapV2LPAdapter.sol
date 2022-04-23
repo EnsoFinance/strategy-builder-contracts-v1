@@ -67,7 +67,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _calculateWethAmounts(
-        address pair,
         address tokenA,
         address tokenB,
         uint256 amount
@@ -238,7 +237,6 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address token0 = pair.token0();
         address token1 = pair.token1();
         (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-                pair,
                 token0,
                 token1,
                 amount
