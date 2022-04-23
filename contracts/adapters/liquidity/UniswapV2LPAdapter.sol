@@ -153,13 +153,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
             uint256 sqrt = Math.sqrt(uint256(d));
             solution = (-B).add(int256(sqrt)) >> 1; // div(2)
             // scale down 
-            amount = amount.div(uPRECISION);
-            solution = solution.div(PRECISION);
             if (!(0 < solution && solution < int256(amount))){
                 solution = (-B).sub(int256(sqrt)) >> 1; // div(2)
-                solution = solution.div(PRECISION);
                 require(0 < solution && solution < int256(amount), "_calculateWethAmounts: solution out of range.");
             }
+            amount = amount.div(uPRECISION);
+            solution = solution.div(PRECISION);
         }
         uint256 uSolution = uint256(solution);
         return (uSolution, amount-uSolution);
