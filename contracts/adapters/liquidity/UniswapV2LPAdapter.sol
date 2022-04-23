@@ -162,7 +162,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
             }
         }
         uint256 uSolution = uint256(solution);
-        return (uSolution, amount.sub(uSolution));
+        return (uSolution, amount-uSolution);
     }
 
     function _getBForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a, uint256 r_wb, uint256 r_b) private pure returns(int256) {
@@ -261,7 +261,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         // Swap weth for underlying tokens
         uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
         // Transfer underyling token to pair contract
-        IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
+        IERC20(weth).safeTransfer(address(pair), amount-wethToSell); // amount>wethToSell checked in _calculateWethToSell
         IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
         /*
           At this point lp minting should be efficient, meaning that the difference of
@@ -327,13 +327,12 @@ contract UniswapV2LPAdapter is BaseAdapter {
         int256 d = B.mul(B).sub(int256(4).mul(C));
 
         require(d >= 0, "_calculateWethToSell: solution imaginary.");
-        int256 center = -B;
         uint256 sqrt = Math.sqrt(uint256(d));
 
-        int256 solution = center.add(int256(sqrt)) >> 1; // div(2)
+        int256 solution = (-B).add(int256(sqrt)) >> 1; // div(2)
         if (0 < solution && solution < amount)
             return uint256(solution);
-        solution = center.sub(int256(sqrt)) >> 1; // div(2)
+        solution = (-B).sub(int256(sqrt)) >> 1; // div(2)
         require(0 < solution && solution < amount, "_calculateWethToSell: solution out of range.");
         return uint256(solution);
     }
