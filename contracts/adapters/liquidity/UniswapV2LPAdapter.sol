@@ -179,13 +179,21 @@ contract UniswapV2LPAdapter is BaseAdapter {
         return numerator.div(commonFactor);
        */
 
-        // stagger mulp and divp to avoid overflow
+        /*
+           stagger mul and div to avoid overflow
+           note: that when working with up-scaled numbers A, B, D
+            where mulp(A,B) = A*B/PRECISION and divp(A,D) = A*PRECISION/D
+            when these three A,B,D are arranged as a "muldiv" A*B/D 
+            the precision functions would operate as (A*B/PRECISION)*PRECISION/D 
+            which is redundant. Thus when we see three up-scaled numbers
+            arranged as "muldiv" we just use vanilla A.mul(B).div(D)
+          **/
 
         // rA * r_wa / (r_a * (rA-rB))
-        int256 ret = int256(rA.mulp(r_wa).divp(r_a)).divp(int256(rA)-int256(rB));
+        int256 ret = int256(rA.mul(r_wa).div(r_a)).divp(int256(rA)-int256(rB));
         // + rB * r_wb / (r_b * (rA-rB))
         ret = ret.add(
-            int256(rB.mulp(r_wb).divp(r_b)).divp(int256(rA)-int256(rB))        
+            int256(rB.mul(r_wb).div(r_b)).divp(int256(rA)-int256(rB))        
         );
         // * (1000 / 997) 
         ret = ret.mul(1000).div(997);
@@ -199,10 +207,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
                   C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
             **/
 
-        // stagger mulp and divp to avoid overflow
+        // stagger mul and div to avoid overflow
 
         int256 ret = int256(uint256(1000).mul(amount).div(997));
-        ret = ret.mulp(int256(rA.divp(r_a).mulp(r_wa))).divp(int256(rB)-int256(rA));
+        ret = ret.mul(int256(rA.divp(r_a).mulp(r_wa))).div(int256(rB)-int256(rA));
         return ret;
     }
 
