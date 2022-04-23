@@ -137,13 +137,11 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
             // this next fn was needed for "stack too deep" shenanigans
             B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
-            B = B.div(PRECISION);
+            //B = B.div(PRECISION);
 
             C = _getCForCalculateWethAmounts(amount, rA, rB, r_wa, r_a);
-            C = C.div(PRECISION);
+            //C = C.div(PRECISION);
         }
-        // scale down 
-        amount = amount.div(uPRECISION);
         int256 solution;
         { // stack too deep !!!
             /*
@@ -152,12 +150,16 @@ contract UniswapV2LPAdapter is BaseAdapter {
                   x = (-B +/- sqrt(B^2 - 4C)) / 2 
 
              **/
-            int256 d = B.mul(B).sub(int256(4).mul(C));
+            int256 d = B.mul(B).sub(int256(4).mul(C).mul(PRECISION));
             require(d >= 0, "_calculateWethAmounts: solution imaginary.");
             uint256 sqrt = Math.sqrt(uint256(d));
             solution = (-B).add(int256(sqrt)) >> 1; // div(2)
+            // scale down 
+            amount = amount.div(uPRECISION);
+            solution = solution.div(PRECISION);
             if (!(0 < solution && solution < int256(amount))){
                 solution = (-B).sub(int256(sqrt)) >> 1; // div(2)
+                solution = solution.div(PRECISION);
                 require(0 < solution && solution < int256(amount), "_calculateWethAmounts: solution out of range.");
             }
         }
@@ -178,6 +180,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         numerator = numerator.sub(commonFactor.mul(int256(amount)));
         return numerator.div(commonFactor);
        */
+
+        // stagger mulp and divp to avoid overflow
+
         // rA * r_wa / (r_a * (rA-rB))
         int256 ret = int256(rA.mulp(r_wa).divp(r_a)).divp(int256(rA)-int256(rB));
         // + rB * r_wb / (r_b * (rA-rB))
@@ -195,6 +200,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
                   eq(5)
                   C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
             **/
+
+        // stagger mulp and divp to avoid overflow
+
         int256 ret = int256(uint256(1000).mul(amount).div(997));
         ret = ret.mulp(int256(rA.divp(r_a).mulp(r_wa))).divp(int256(rB)-int256(rA));
         return ret;
