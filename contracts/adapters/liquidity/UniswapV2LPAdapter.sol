@@ -169,17 +169,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         // Stack too deep + SafeMath forces us to break down the arithmetic below.
         /*
         
-                  eq(4)
-                  B = 1000*(rA*r_b*r_wa + rB*r_a*r_wb)/(997*r_a*r_b*(rA-rB)) - A
+           eq(4)
+           B = 1000*(rA*r_b*r_wa + rB*r_a*r_wb)/(997*r_a*r_b*(rA-rB)) - A
 
-        **/
-        /*int256 numerator = int256(rA.mul(r_b).mul(r_wa).add(rB.mul(r_a).mul(r_wb))).mul(int256(1000));
-        int256 commonFactor = int256(997).mul(int256(r_a.mul(r_b)).mul(int256(rA)-int256(rB)));
-        numerator = numerator.sub(commonFactor.mul(int256(amount)));
-        return numerator.div(commonFactor);
-       */
-
-        /*
            stagger mul and div to avoid overflow
            note: that when working with up-scaled numbers A, B, D
             where mulp(A,B) = A*B/PRECISION and divp(A,D) = A*PRECISION/D
@@ -202,10 +194,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _getCForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a) private pure returns(int256) {
-            /*
-                  eq(5)
-                  C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
-            **/
+        /*
+          eq(5)
+          C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
+        **/
 
         // stagger mul and div to avoid overflow
 
