@@ -8,13 +8,19 @@ import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
 import "../../libraries/Math.sol";
 import "../BaseAdapter.sol";
+import "./PreciseMath.sol";
 
 contract UniswapV2LPAdapter is BaseAdapter {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
+    using PreciseMath for uint256;
+    using PreciseMath for int256;
 
     address public immutable factory;
+
+    int256 private constant PRECISION = 10**8;
+    uint256 private constant uPRECISION = 10**8;
 
     constructor(address factory_, address weth_) public BaseAdapter(weth_) {
         factory = factory_;
@@ -111,6 +117,10 @@ contract UniswapV2LPAdapter is BaseAdapter {
         **/
 
         (uint256 rA, uint256 rB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+        // SCALE UP
+        amount = amount.mul(uPRECISION);
+        rA = rA.mul(uPRECISION);
+        rB = rB.mul(uPRECISION);
         if (rA==rB) {
             rB += 1; // prevents div by zero error and makes approximation off negligibly
         }
@@ -119,19 +129,21 @@ contract UniswapV2LPAdapter is BaseAdapter {
         { // stack too deep !!!
             (uint256 r_wa, uint256 r_a) = UniswapV2Library.getReserves(factory, weth, tokenA);
             (uint256 r_wb, uint256 r_b) = UniswapV2Library.getReserves(factory, weth, tokenB);
+            // scale up 
+            r_wa = r_wa.mul(uPRECISION);
+            r_a = r_a.mul(uPRECISION);
+            r_wb = r_wb.mul(uPRECISION);
+            r_b = r_b.mul(uPRECISION);
 
             // this next fn was needed for "stack too deep" shenanigans
             B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
+            B = B.div(PRECISION);
 
-            /*
-                  eq(5)
-                  C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
-            **/
-
-            C = int256(rA.mul(r_wa).mul(amount).mul(uint256(1000))).div(
-              int256(997).mul(int256(r_a)).mul(int256(rB)-int256(rA))
-            ); 
+            C = _getCForCalculateWethAmounts(amount, rA, rB, r_wa, r_a);
+            C = C.div(PRECISION);
         }
+        // scale down 
+        amount = amount.div(uPRECISION);
         int256 solution;
         { // stack too deep !!!
             /*
@@ -161,10 +173,31 @@ contract UniswapV2LPAdapter is BaseAdapter {
                   B = 1000*(rA*r_b*r_wa + rB*r_a*r_wb)/(997*r_a*r_b*(rA-rB)) - A
 
         **/
-        int256 numerator = int256(rA.mul(r_b).mul(r_wa).add(rB.mul(r_a).mul(r_wb))).mul(int256(1000));
+        /*int256 numerator = int256(rA.mul(r_b).mul(r_wa).add(rB.mul(r_a).mul(r_wb))).mul(int256(1000));
         int256 commonFactor = int256(997).mul(int256(r_a.mul(r_b)).mul(int256(rA)-int256(rB)));
         numerator = numerator.sub(commonFactor.mul(int256(amount)));
         return numerator.div(commonFactor);
+       */
+        // rA * r_wa / (r_a * (rA-rB))
+        int256 ret = int256(rA.mulp(r_wa).divp(r_a)).divp(int256(rA)-int256(rB));
+        // + rB * r_wb / (r_b * (rA-rB))
+        ret = ret.add(
+            int256(rB.mulp(r_wb).divp(r_b)).divp(int256(rA)-int256(rB))        
+        );
+        // * (1000 / 997) 
+        ret = ret.mul(1000).div(997);
+        ret = ret.sub(int256(amount));
+        return ret;
+    }
+
+    function _getCForCalculateWethAmounts(uint256 amount, uint256 rA, uint256 rB, uint256 r_wa, uint256 r_a) private pure returns(int256) {
+            /*
+                  eq(5)
+                  C = 1000*A*rA*r_wa / (997*r_a*(rB-rA)) 
+            **/
+        int256 ret = int256(uint256(1000).mul(amount).div(997));
+        ret = ret.mulp(int256(rA.divp(r_a).mulp(r_wa))).divp(int256(rB)-int256(rA));
+        return ret;
     }
 
     function _buyToken(
