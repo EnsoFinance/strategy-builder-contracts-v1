@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
 import "../../libraries/Math.sol";
+import "../../libraries/PreciseMath.sol";
 import "../BaseAdapter.sol";
-import "./PreciseMath.sol";
 
 contract UniswapV2LPAdapter is BaseAdapter {
     using SafeMath for uint256;
@@ -137,10 +137,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
             // this next fn was needed for "stack too deep" shenanigans
             B = _getBForCalculateWethAmounts(amount, rA, rB, r_wa, r_a, r_wb, r_b);
-            //B = B.div(PRECISION);
 
             C = _getCForCalculateWethAmounts(amount, rA, rB, r_wa, r_a);
-            //C = C.div(PRECISION);
         }
         int256 solution;
         { // stack too deep !!!
