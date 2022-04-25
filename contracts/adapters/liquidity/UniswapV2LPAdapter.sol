@@ -209,6 +209,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
         uint256 amountIn,
         address token
     ) internal returns (uint256) {
+        if (amountIn==0) return 0;
         // we assume token != weth
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, weth, token);
         uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);

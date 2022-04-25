@@ -77,9 +77,7 @@ describe('UniswapV2LPAdapter', function () {
 		// Add liquidity
 		await tokens[1].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100).mul(reserveScalar))
 		await tokens[2].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100).mul(reserveScalar))
-    console.log("debug before mint")
 		await tokenPair.connect(owner).mint(owner.address)
-    console.log("debug after mint")
 
 		const platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		strategyFactory = platform.strategyFactory
@@ -133,7 +131,6 @@ describe('UniswapV2LPAdapter', function () {
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther.mul(reserveScalar)
 		await weth.approve(uniswapV2LPAdapter.address, amount)
-    console.log("debug before swap js");
 		await expect(
 			uniswapV2LPAdapter.swap(
 				amount,
@@ -144,8 +141,6 @@ describe('UniswapV2LPAdapter', function () {
 				owner.address
 			)
 		).to.be.revertedWith('Insufficient tokenOut amount')
-
-    console.log("debug after swap js");
 	})
 
 	it('Should swap weth for LP', async function () {
@@ -211,7 +206,6 @@ describe('UniswapV2LPAdapter', function () {
 		await uniswapFactory.createPair(weth.address, usdc.address);
 		const pairAddress_w_usdc = await uniswapFactory.getPair(weth.address, usdc.address);
 		const pair_w_usdc = new Contract(pairAddress_w_usdc, JSON.stringify(UniswapV2Pair.abi), owner)
-    console.log(pair_w_usdc.address);
     
     // note the disproportionate transfer..
 		await weth.connect(owner).transfer(pairAddress_w_usdc, liquidityAmount.mul(bTenPow12));
@@ -239,6 +233,10 @@ describe('UniswapV2LPAdapter', function () {
 		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 	})
 
+  function disproportion(input : BigNumber) : BigNumber {
+    return input.mul(3).div(2) // any disproportion greater than 3/2 fails
+  }
+
   it('Should swap weth for LP, stressing disproportionate pair.', async function () {
     
 		const amount = WeiPerEther
@@ -246,9 +244,8 @@ describe('UniswapV2LPAdapter', function () {
 		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
 
     // simulating 
-    let disproportion = 2; // FIXME tune
 	  const tokenA = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
-	  const tokenB = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000).mul(disproportion)])
+	  const tokenB = await waffle.deployContract(owner, ERC20, [disproportion(WeiPerEther.mul(10000))])
 
 		await uniswapFactory.createPair(tokenA.address, tokenB.address);
 		const pairAddress = await uniswapFactory.getPair(tokenA.address, tokenB.address);
@@ -257,7 +254,7 @@ describe('UniswapV2LPAdapter', function () {
 		// Add liquidity
     let liquidityAmount = WeiPerEther.mul(100);
 		await tokenA.connect(owner).transfer(pairAddress, liquidityAmount)
-		await tokenB.connect(owner).transfer(pairAddress, liquidityAmount.mul(disproportion))
+		await tokenB.connect(owner).transfer(pairAddress, disproportion(liquidityAmount))
 		await pair.connect(owner).mint(owner.address)
     
     // also need weth/tokenA and weth/tokenB pairs
@@ -267,14 +264,13 @@ describe('UniswapV2LPAdapter', function () {
 		const pair_w_tokenB = new Contract(pairAddress_w_tokenB, JSON.stringify(UniswapV2Pair.abi), owner)
     // note the disproportionate transfer..
 		await weth.connect(owner).transfer(pairAddress_w_tokenB, liquidityAmount);
-		await tokenB.connect(owner).transfer(pairAddress_w_tokenB, liquidityAmount.mul(disproportion));
+		await tokenB.connect(owner).transfer(pairAddress_w_tokenB, disproportion(liquidityAmount))
 		await pair_w_tokenB.connect(owner).mint(owner.address);
    
     // tokenA
 		await uniswapFactory.createPair(weth.address, tokenA.address);
 		const pairAddress_w_tokenA = await uniswapFactory.getPair(weth.address, tokenA.address);
 		const pair_w_tokenA = new Contract(pairAddress_w_tokenA, JSON.stringify(UniswapV2Pair.abi), owner)
-    console.log(pair_w_tokenA.address);
     
     // note the disproportionate transfer..
 		await weth.connect(owner).transfer(pairAddress_w_tokenA, liquidityAmount);
@@ -283,13 +279,10 @@ describe('UniswapV2LPAdapter', function () {
 		await pair_w_tokenA.connect(owner).mint(owner.address);
 
 		const tokenPairAddress = await uniswapFactory.getPair(tokenA.address, tokenB.address)
-    console.log(tokenPairAddress);//debug
 		const stressTokenPair = new Contract(tokenPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
-    console.log(stressTokenPair.address);
-    console.log(uniswapV2LPAdapter.address);
-		//const lpBalanceBefore = await wethPair.balanceOf(accounts[1].address)
+		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		const lpBalanceBefore = await pair.balanceOf(accounts[1].address)
 
-    // FIXME failing here
 		await uniswapV2LPAdapter.connect(accounts[1]).swap(
           amount,
           0,
@@ -298,16 +291,14 @@ describe('UniswapV2LPAdapter', function () {
           accounts[1].address,
           accounts[1].address
         )
-
-    /*
+    
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
-		const lpBalanceAfter = await wethPair.balanceOf(accounts[1].address)
+		const lpBalanceAfter = await pair.balanceOf(accounts[1].address)
 		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
 		expect(lpBalanceBefore.lt(lpBalanceAfter)).to.equal(true)
 		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
-    */
 	})
 
 	it('Should swap LP for weth', async function () {
