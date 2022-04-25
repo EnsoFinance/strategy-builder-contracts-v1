@@ -127,7 +127,7 @@ export class Platform {
 export async function deployTokens(owner: SignerWithAddress, numTokens: number, value: BigNumber, mintAmountScalar: number = 1): Promise<Contract[]> {
 	const tokens: Contract[] = []
 	const mintAmount = WeiPerEther.mul(10000).mul(mintAmountScalar)
-  value = value.mul(mintAmountScalar)
+	value = value.mul(mintAmountScalar)
 	for (let i = 0; i < numTokens; i++) {
 		if (i === 0) {
 			const token = await waffle.deployContract(owner, WETH9)

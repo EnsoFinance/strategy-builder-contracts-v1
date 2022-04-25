@@ -53,7 +53,7 @@ describe('UniswapV2LPAdapter', function () {
 			strategyItems: StrategyItem[],
 			accounts: SignerWithAddress[],
 			owner: SignerWithAddress,
-      reserveScalar: number
+			reserveScalar: number
 
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
@@ -144,7 +144,7 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should swap weth for LP', async function () {
-    const wadScalar = 100
+		const wadScalar = 100
 		const amount = WeiPerEther.mul(reserveScalar).mul(wadScalar) // 20*100 = 2000 times limited by eth allowance ethersjs gives the signers
 		await weth.connect(accounts[1]).deposit({value: amount})
 		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
@@ -176,18 +176,18 @@ describe('UniswapV2LPAdapter', function () {
     // suggested usdc/usdt
 
     // simulating usdc and usdt
-	  const usdc = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
-	  const usdt = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+		const usdc = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+		const usdt = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
 
 		await uniswapFactory.createPair(usdc.address, usdt.address);
 		const pairAddress = await uniswapFactory.getPair(usdc.address, usdt.address);
 		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
 
 		// Add liquidity
-    let bTen = BigNumber.from(10);
-    let bTwelve = BigNumber.from(12);
-    let bTenPow12 = bTen.pow(bTwelve);
-    let liquidityAmount = WeiPerEther.mul(100).div(bTenPow12); // to simulate usdc/usdt having ONLY 6 decimals
+		let bTen = BigNumber.from(10);
+		let bTwelve = BigNumber.from(12);
+		let bTenPow12 = bTen.pow(bTwelve);
+		let liquidityAmount = WeiPerEther.mul(100).div(bTenPow12); // to simulate usdc/usdt having ONLY 6 decimals
 		await usdc.connect(owner).transfer(pairAddress, liquidityAmount)
 		await usdt.connect(owner).transfer(pairAddress, liquidityAmount)
 		await pair.connect(owner).mint(owner.address)
@@ -248,15 +248,15 @@ describe('UniswapV2LPAdapter', function () {
 		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
 
     // simulating 
-	  const tokenA = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
-	  const tokenB = await waffle.deployContract(owner, ERC20, [disproportion(WeiPerEther.mul(10000))])
+		const tokenA = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+		const tokenB = await waffle.deployContract(owner, ERC20, [disproportion(WeiPerEther.mul(10000))])
 
 		await uniswapFactory.createPair(tokenA.address, tokenB.address);
 		const pairAddress = await uniswapFactory.getPair(tokenA.address, tokenB.address);
 		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
 
 		// Add liquidity
-    let liquidityAmount = WeiPerEther.mul(100);
+		let liquidityAmount = WeiPerEther.mul(100);
 		await tokenA.connect(owner).transfer(pairAddress, liquidityAmount)
 		await tokenB.connect(owner).transfer(pairAddress, disproportion(liquidityAmount))
 		await pair.connect(owner).mint(owner.address)
