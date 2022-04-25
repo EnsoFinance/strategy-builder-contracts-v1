@@ -124,15 +124,17 @@ export class Platform {
 	}
 }
 
-export async function deployTokens(owner: SignerWithAddress, numTokens: number, value: BigNumber): Promise<Contract[]> {
+export async function deployTokens(owner: SignerWithAddress, numTokens: number, value: BigNumber, mintAmountScalar: number = 1): Promise<Contract[]> {
 	const tokens: Contract[] = []
+	const mintAmount = WeiPerEther.mul(10000).mul(mintAmountScalar)
+  value = value.mul(mintAmountScalar)
 	for (let i = 0; i < numTokens; i++) {
 		if (i === 0) {
 			const token = await waffle.deployContract(owner, WETH9)
 			await token.deposit({ value: value })
 			tokens.push(token)
 		} else {
-			const token = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+			const token = await waffle.deployContract(owner, ERC20, [mintAmount])
 			tokens.push(token)
 		}
 	}
@@ -181,10 +183,10 @@ export async function deployBalancerAdapter(owner: SignerWithAddress, balancerRe
 	return adapter
 }
 
-export async function deployUniswapV2(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract> {
+export async function deployUniswapV2(owner: SignerWithAddress, tokens: Contract[], liquidityAmountScalar: number = 1): Promise<Contract> {
 	const uniswapV2Factory = await waffle.deployContract(owner, UniswapV2Factory, [owner.address])
 	await uniswapV2Factory.deployed()
-	const liquidityAmount = WeiPerEther.mul(100)
+	const liquidityAmount = WeiPerEther.mul(100).mul(liquidityAmountScalar)
 	//console.log('Uniswap factory: ', uniswapV2Factory.address)
 	for (let i = 1; i < tokens.length; i++) {
 		//tokens[0] is used as the trading pair (WETH)
