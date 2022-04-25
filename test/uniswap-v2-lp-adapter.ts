@@ -237,6 +237,10 @@ describe('UniswapV2LPAdapter', function () {
     return input.mul(3).div(2) // any disproportion greater than 3/2 fails
   }
 
+  function wethToPennyCoinRatio(input : BigNumber) : BigNumber {
+    return input.div(4000) // say they are $1 apiece
+  }
+
   it('Should swap weth for LP, stressing disproportionate pair.', async function () {
     
 		const amount = WeiPerEther
@@ -264,7 +268,7 @@ describe('UniswapV2LPAdapter', function () {
 		const pair_w_tokenB = new Contract(pairAddress_w_tokenB, JSON.stringify(UniswapV2Pair.abi), owner)
     // note the disproportionate transfer..
 		await weth.connect(owner).transfer(pairAddress_w_tokenB, liquidityAmount);
-		await tokenB.connect(owner).transfer(pairAddress_w_tokenB, disproportion(liquidityAmount))
+		await tokenB.connect(owner).transfer(pairAddress_w_tokenB, disproportion(wethToPennyCoinRatio(liquidityAmount)))
 		await pair_w_tokenB.connect(owner).mint(owner.address);
    
     // tokenA
@@ -274,7 +278,7 @@ describe('UniswapV2LPAdapter', function () {
     
     // note the disproportionate transfer..
 		await weth.connect(owner).transfer(pairAddress_w_tokenA, liquidityAmount);
-		await tokenA.connect(owner).transfer(pairAddress_w_tokenA, liquidityAmount);
+		await tokenA.connect(owner).transfer(pairAddress_w_tokenA, wethToPennyCoinRatio(liquidityAmount));
     
 		await pair_w_tokenA.connect(owner).mint(owner.address);
 
