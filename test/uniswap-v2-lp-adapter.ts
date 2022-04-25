@@ -2,7 +2,7 @@ import { expect } from 'chai'
 import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
-import { ethers } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
@@ -17,6 +17,7 @@ import {
 } from '../lib/deploy'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
+import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { AddressZero, WeiPerEther, MaxUint256 } = constants
@@ -51,15 +52,21 @@ describe('UniswapV2LPAdapter', function () {
 			wrapper: Contract,
 			strategyItems: StrategyItem[],
 			accounts: SignerWithAddress[],
-			owner: SignerWithAddress
+			owner: SignerWithAddress,
+      reserveScalar: number
 
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
 		owner = accounts[15]
-		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS)))
+    reserveScalar = 20 
+    // push the limits of the uniswapV2LPAdapter by trying to force overflow
+    // by inflating the reserve balances. The bottleneck here is actually the
+    // hardhat testing environment in that reserveScalar much bigger than 20
+    // exceeds the amount the signers have to spend
+		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS)), reserveScalar)
 		weth = tokens[0]
-		uniswapFactory = await deployUniswapV2(owner, tokens)
+		uniswapFactory = await deployUniswapV2(owner, tokens, reserveScalar)
 		await uniswapFactory.createPair(tokens[1].address, tokens[2].address)
 
 		const wethPairAddress = await uniswapFactory.getPair(tokens[1].address, weth.address)
@@ -68,9 +75,11 @@ describe('UniswapV2LPAdapter', function () {
 		const tokenPairAddress = await uniswapFactory.getPair(tokens[1].address, tokens[2].address)
 		tokenPair = new Contract(tokenPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
 		// Add liquidity
-		await tokens[1].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100))
-		await tokens[2].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100))
+		await tokens[1].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100).mul(reserveScalar))
+		await tokens[2].connect(owner).transfer(tokenPairAddress, WeiPerEther.mul(100).mul(reserveScalar))
+    console.log("debug before mint")
 		await tokenPair.connect(owner).mint(owner.address)
+    console.log("debug after mint")
 
 		const platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		strategyFactory = platform.strategyFactory
@@ -122,8 +131,9 @@ describe('UniswapV2LPAdapter', function () {
 	})
 
 	it('Should fail to swap: less than expected', async function () {
-		const amount = WeiPerEther
+		const amount = WeiPerEther.mul(reserveScalar)
 		await weth.approve(uniswapV2LPAdapter.address, amount)
+    console.log("debug before swap js");
 		await expect(
 			uniswapV2LPAdapter.swap(
 				amount,
@@ -134,11 +144,13 @@ describe('UniswapV2LPAdapter', function () {
 				owner.address
 			)
 		).to.be.revertedWith('Insufficient tokenOut amount')
+
+    console.log("debug after swap js");
 	})
 
 	it('Should swap weth for LP', async function () {
-    
-		const amount = WeiPerEther
+    const wadScalar = 100
+		const amount = WeiPerEther.mul(reserveScalar).mul(wadScalar) // 20*100 = 2000 times limited by eth allowance ethersjs gives the signers
 		await weth.connect(accounts[1]).deposit({value: amount})
 		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
@@ -158,6 +170,144 @@ describe('UniswapV2LPAdapter', function () {
 		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+	})
+	
+  it('Should swap weth for LP, stressing tokens with low decimals.', async function () {
+    
+		const amount = WeiPerEther
+		await weth.connect(accounts[1]).deposit({value: amount})
+		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
+
+    // suggested usdc/usdt
+
+    // simulating usdc and usdt
+	  const usdc = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+	  const usdt = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+
+		await uniswapFactory.createPair(usdc.address, usdt.address);
+		const pairAddress = await uniswapFactory.getPair(usdc.address, usdt.address);
+		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+
+		// Add liquidity
+    let bTen = BigNumber.from(10);
+    let bTwelve = BigNumber.from(12);
+    let bTenPow12 = bTen.pow(bTwelve);
+    let liquidityAmount = WeiPerEther.mul(100).div(bTenPow12); // to simulate usdc/usdt having ONLY 6 decimals
+		await usdc.connect(owner).transfer(pairAddress, liquidityAmount)
+		await usdt.connect(owner).transfer(pairAddress, liquidityAmount)
+		await pair.connect(owner).mint(owner.address)
+    
+    // also need weth/usdc and weth/usdt pairs
+    // usdt
+		await uniswapFactory.createPair(weth.address, usdt.address);
+		const pairAddress_w_usdt = await uniswapFactory.getPair(weth.address, usdt.address);
+		const pair_w_usdt = new Contract(pairAddress_w_usdt, JSON.stringify(UniswapV2Pair.abi), owner)
+    // note the disproportionate transfer..
+		await weth.connect(owner).transfer(pairAddress_w_usdt, liquidityAmount.mul(bTenPow12));
+		await usdt.connect(owner).transfer(pairAddress_w_usdt, liquidityAmount);
+		await pair_w_usdt.connect(owner).mint(owner.address);
+   
+    // usdc
+		await uniswapFactory.createPair(weth.address, usdc.address);
+		const pairAddress_w_usdc = await uniswapFactory.getPair(weth.address, usdc.address);
+		const pair_w_usdc = new Contract(pairAddress_w_usdc, JSON.stringify(UniswapV2Pair.abi), owner)
+    console.log(pair_w_usdc.address);
+    
+    // note the disproportionate transfer..
+		await weth.connect(owner).transfer(pairAddress_w_usdc, liquidityAmount.mul(bTenPow12));
+		await usdc.connect(owner).transfer(pairAddress_w_usdc, liquidityAmount);
+    
+		await pair_w_usdc.connect(owner).mint(owner.address);
+
+		const tokenPairAddress = await uniswapFactory.getPair(usdc.address, usdt.address)
+		const stressTokenPair = new Contract(tokenPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		await uniswapV2LPAdapter.connect(accounts[1]).swap(
+          amount,
+          0,
+          weth.address,
+          stressTokenPair.address,
+          accounts[1].address,
+          accounts[1].address
+        )
+
+    
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
+		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+	})
+
+  it('Should swap weth for LP, stressing disproportionate pair.', async function () {
+    
+		const amount = WeiPerEther
+		await weth.connect(accounts[1]).deposit({value: amount})
+		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
+
+    // simulating 
+    let disproportion = 2; // FIXME tune
+	  const tokenA = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+	  const tokenB = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000).mul(disproportion)])
+
+		await uniswapFactory.createPair(tokenA.address, tokenB.address);
+		const pairAddress = await uniswapFactory.getPair(tokenA.address, tokenB.address);
+		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+
+		// Add liquidity
+    let liquidityAmount = WeiPerEther.mul(100);
+		await tokenA.connect(owner).transfer(pairAddress, liquidityAmount)
+		await tokenB.connect(owner).transfer(pairAddress, liquidityAmount.mul(disproportion))
+		await pair.connect(owner).mint(owner.address)
+    
+    // also need weth/tokenA and weth/tokenB pairs
+    // tokenB
+		await uniswapFactory.createPair(weth.address, tokenB.address);
+		const pairAddress_w_tokenB = await uniswapFactory.getPair(weth.address, tokenB.address);
+		const pair_w_tokenB = new Contract(pairAddress_w_tokenB, JSON.stringify(UniswapV2Pair.abi), owner)
+    // note the disproportionate transfer..
+		await weth.connect(owner).transfer(pairAddress_w_tokenB, liquidityAmount);
+		await tokenB.connect(owner).transfer(pairAddress_w_tokenB, liquidityAmount.mul(disproportion));
+		await pair_w_tokenB.connect(owner).mint(owner.address);
+   
+    // tokenA
+		await uniswapFactory.createPair(weth.address, tokenA.address);
+		const pairAddress_w_tokenA = await uniswapFactory.getPair(weth.address, tokenA.address);
+		const pair_w_tokenA = new Contract(pairAddress_w_tokenA, JSON.stringify(UniswapV2Pair.abi), owner)
+    console.log(pair_w_tokenA.address);
+    
+    // note the disproportionate transfer..
+		await weth.connect(owner).transfer(pairAddress_w_tokenA, liquidityAmount);
+		await tokenA.connect(owner).transfer(pairAddress_w_tokenA, liquidityAmount);
+    
+		await pair_w_tokenA.connect(owner).mint(owner.address);
+
+		const tokenPairAddress = await uniswapFactory.getPair(tokenA.address, tokenB.address)
+    console.log(tokenPairAddress);//debug
+		const stressTokenPair = new Contract(tokenPairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+    console.log(stressTokenPair.address);
+    console.log(uniswapV2LPAdapter.address);
+		//const lpBalanceBefore = await wethPair.balanceOf(accounts[1].address)
+
+    // FIXME failing here
+		await uniswapV2LPAdapter.connect(accounts[1]).swap(
+          amount,
+          0,
+          weth.address,
+          stressTokenPair.address,
+          accounts[1].address,
+          accounts[1].address
+        )
+
+    /*
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		const lpBalanceAfter = await wethPair.balanceOf(accounts[1].address)
+		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
+		expect(lpBalanceBefore.lt(lpBalanceAfter)).to.equal(true)
+		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+    */
 	})
 
 	it('Should swap LP for weth', async function () {
@@ -233,7 +383,7 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should purchase tokens, increasing pool value, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(10)
+		const value = WeiPerEther.mul(10).mul(reserveScalar)
 		await weth.connect(accounts[19]).deposit({value: value.mul(2)})
 
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
@@ -296,7 +446,7 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should fail to rebalance: price deviation', async function () {
 		// Approve the user to use the adapter
-		let value = WeiPerEther.mul(10)
+		let value = WeiPerEther.mul(10).mul(reserveScalar)
 		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -315,7 +465,7 @@ describe('UniswapV2LPAdapter', function () {
 
 	it('Should fail to rebalance: price deviation', async function () {
 		// Approve the user to use the adapter
-		let value = WeiPerEther.mul(10)
+		let value = WeiPerEther.mul(10).mul(reserveScalar)
 		await weth.connect(accounts[19]).deposit({value: value})
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
