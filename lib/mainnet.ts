@@ -55,7 +55,7 @@ export class LiveEnvironment {
 	platform: Platform
 	adapters: LiveAdapters
 	routers: LiveRouters
-    estimators: Estimators
+  estimators: Estimators
 
 	constructor(
 		signer: SignerWithAddress,
@@ -75,7 +75,7 @@ export class LiveEnvironment {
 
 export type LiveAdapters = {
 	aaveV2: Contract
-    aaveV2Debt: Contract
+  aaveV2Debt: Contract
 	balancer: Contract
 	compound: Contract
 	curve: Contract
