@@ -166,6 +166,49 @@ describe('UniswapV2LPAdapter', function () {
 		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
 	})
+
+
+  function wethToPennyCoinRatio(input : BigNumber) : BigNumber {
+    return input.div(4000) // say they are $1 apiece
+  }
+
+	it('Should swap weth for LP, stressing penny tokens.', async function () {
+		const wadScalar = 100
+		const amount = WeiPerEther.mul(reserveScalar).mul(wadScalar) // 20*100 = 2000 times limited by eth allowance ethersjs gives the signers
+		await weth.connect(accounts[1]).deposit({value: amount})
+		await weth.connect(accounts[1]).approve(uniswapV2LPAdapter.address, amount)
+		//const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+
+		const pennyToken = await waffle.deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
+
+		await uniswapFactory.createPair(weth.address, pennyToken.address);
+		const pairAddress = await uniswapFactory.getPair(weth.address, pennyToken.address);
+		const pennyWethPair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), owner)
+
+		// Add liquidity
+		let liquidityAmount = WeiPerEther.mul(100);
+		await weth.connect(owner).transfer(pairAddress, liquidityAmount);
+		await pennyToken.connect(owner).transfer(pairAddress, wethToPennyCoinRatio(liquidityAmount));
+
+		//const lpBalanceBefore = await pennyWethPair.balanceOf(accounts[1].address)
+		await uniswapV2LPAdapter.connect(accounts[1]).swap(
+			amount,
+			0,
+			weth.address,
+			pennyWethPair.address,
+			accounts[1].address,
+			accounts[1].address
+		)
+    /*
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		const lpBalanceAfter = await pennyWethPair.balanceOf(accounts[1].address)
+		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
+		expect(lpBalanceBefore.lt(lpBalanceAfter)).to.equal(true)
+		expect((await weth.balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+		expect((await tokens[1].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+		expect((await tokens[2].balanceOf(uniswapV2LPAdapter.address)).eq(0)).to.equal(true)
+    */
+	})
 	
   it('Should swap weth for LP, stressing tokens with low decimals.', async function () {
     
@@ -236,11 +279,7 @@ describe('UniswapV2LPAdapter', function () {
   function disproportion(input : BigNumber) : BigNumber {
     return input.mul(3).div(2) // any disproportion greater than 3/2 fails
   }
-
-  function wethToPennyCoinRatio(input : BigNumber) : BigNumber {
-    return input.div(4000) // say they are $1 apiece
-  }
-
+  
   it('Should swap weth for LP, stressing disproportionate pair.', async function () {
     
 		const amount = WeiPerEther
