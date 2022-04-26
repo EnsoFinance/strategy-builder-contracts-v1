@@ -716,6 +716,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     modifier usingTempEstimate() {
+        /*
+          To ensure that a stale "temp" estimate isn't leaked into other function calls 
+          by not being "delete"d in the same external call in which it is set, we 
+          associate to each external call a "session counter" so that it only deals with 
+          temp values corresponding to its own session.
+        **/
         _;
         _tempEstimate[0][address(0)][address(0)]++; // acts as counter
     }
