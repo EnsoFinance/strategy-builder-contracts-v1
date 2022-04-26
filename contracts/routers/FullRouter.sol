@@ -19,7 +19,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
-    mapping(address => mapping(address => int256)) private _tempEstimate;
+    mapping(int256 => mapping(address => mapping(address => int256))) private _tempEstimate;
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
@@ -30,6 +30,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         external
         override
         onlyController
+        usingTempEstimate
     {
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
@@ -50,6 +51,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         external
         override
         onlyController
+        usingTempEstimate
     {
         (uint256 percentage, uint256 total, int256[] memory estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
@@ -77,9 +79,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         // Sell loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimatedValue = estimates[i];
-            if (_tempEstimate[strategy][strategyItems[i]] > 0) {
-                estimatedValue = _tempEstimate[strategy][strategyItems[i]];
-                delete _tempEstimate[strategy][strategyItems[i]];
+            if (_getTempEstimate(strategy, strategyItems[i]) > 0) {
+                estimatedValue = _getTempEstimate(strategy, strategyItems[i]);
+                _removeTempEstimate(strategy, strategyItems[i]);
             }
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (estimatedValue > expectedValue) {
@@ -93,7 +95,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function rebalance(address strategy, bytes calldata data) external override onlyController {
+    function rebalance(address strategy, bytes calldata data) external override onlyController usingTempEstimate {
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
@@ -111,9 +113,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         for (uint256 i = 0; i < strategyItems.length; i++) {
             address strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
-            if (_tempEstimate[strategy][strategyItem] > 0) {
-                estimate = _tempEstimate[strategy][strategyItem];
-                delete _tempEstimate[strategy][strategyItem];
+            if (_getTempEstimate(strategy, strategyItem) > 0) {
+                estimate = _getTempEstimate(strategy, strategyItem);
+                _removeTempEstimate(strategy, strategyItem);
             }
             int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
             if (!_sellToken(
@@ -155,6 +157,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         external
         override
         onlyController
+        usingTempEstimate
     {
         (
           uint256 currentTotal,
@@ -201,9 +204,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             // Convert funds into Ether
             address strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
-            if (_tempEstimate[strategy][strategyItem] > 0) {
-                estimate = _tempEstimate[strategy][strategyItem];
-                delete _tempEstimate[strategy][strategyItem];
+            if (_getTempEstimate(strategy, strategyItem) > 0) {
+                estimate = _getTempEstimate(strategy, strategyItem);
+                _removeTempEstimate(strategy, strategyItem);
             }
             if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
                 //Sell all tokens that have 0 percentage
@@ -370,7 +373,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 // If this is a deposit we store the amount as our estimate to be used
                 // in the _getLeverageRemaining function. (since deposits don't rely on
                 // estimates from the oracle)
-                if (isDeposit) _tempEstimate[strategy][token] = amount;
+                if (isDeposit) _setTempEstimate(strategy, token, amount);
             }
             uint256 balance = IERC20(weth).balanceOf(from);
             _buyPath(
@@ -475,10 +478,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
                     } else {
                         leverageLiquidity[i] = leverageAmount;
-                        _tempEstimate[strategy][leverageItems[i]] = oracle.estimateItem(
+                        _setTempEstimate(strategy, leverageItems[i], oracle.estimateItem(
                           IERC20(leverageItems[i]).balanceOf(strategy),
                           leverageItems[i]
-                        );
+                        ));
                     }
                     leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
                 }
@@ -644,8 +647,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         if (isDeposit) {
             // Since deposits can't use the oracle's estimate of the collateral,
             // we rely on the estimated value stored in the _buyToken function
-            estimate = _tempEstimate[strategy][leverageItem];
-            delete _tempEstimate[strategy][leverageItem];
+            estimate = _getTempEstimate(strategy, leverageItem);
+            _removeTempEstimate(strategy, leverageItem);
         } else {
             //
             estimate = oracle.estimateItem(
@@ -656,7 +659,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         if (isLeveraging) {
             if (expected > estimate) return uint256(expected.sub(estimate));
         } else {
-            _tempEstimate[strategy][leverageItem] = estimate; // Store this value for _deleverage()
+            _setTempEstimate(strategy, leverageItem, estimate); // Store this value for _deleverage()
             if (estimate > expected) return uint256(estimate.sub(expected));
         }
         return 0;
@@ -696,7 +699,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 available
     ) internal returns (uint256) {
         uint256 leverageAmount = leverageLiquidity > available ? available : leverageLiquidity;
-        uint256 leverageEstimate = uint256(_tempEstimate[strategy][leverageItem]); //Set in _getLeverageRemaining
+        uint256 leverageEstimate = uint256(_getTempEstimate(strategy, leverageItem)); //Set in _getLeverageRemaining
         require(leverageEstimate > 0, "Insufficient collateral");
         _sellPath(
             IStrategy(strategy).getTradeData(leverageItem),
@@ -705,10 +708,31 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             strategy
         );
         // Update temp estimates with new value since tokens have been sold (it will be needed on later sell loops)
-        _tempEstimate[strategy][leverageItem] = oracle.estimateItem(
+        _setTempEstimate(strategy, leverageItem, oracle.estimateItem(
             IERC20(leverageItem).balanceOf(strategy),
             leverageItem
-        );
+        ));
         return leverageAmount;
     }
+
+    modifier usingTempEstimate() {
+        _;
+        _tempEstimate[0][address(0)][address(0)]++; // acts as counter
+    }
+
+    function _setTempEstimate(address strategy, address item, int256 value) private {
+        int256 counter = _tempEstimate[0][address(0)][address(0)]; 
+        _tempEstimate[counter][strategy][item] = value;
+    }
+
+    function _getTempEstimate(address strategy, address item) private view returns(int256) {
+        int256 counter = _tempEstimate[0][address(0)][address(0)]; 
+        return _tempEstimate[counter][strategy][item];
+    }
+
+    function _removeTempEstimate(address strategy, address item) private {
+        int256 counter = _tempEstimate[0][address(0)][address(0)]; 
+        delete _tempEstimate[counter][strategy][item];
+    }
+
 }
