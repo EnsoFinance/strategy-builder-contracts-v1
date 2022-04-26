@@ -722,8 +722,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           associate to each external call a "session counter" so that it only deals with 
           temp values corresponding to its own session.
         **/
-        _;
         _tempEstimate[0][address(0)][address(0)]++; // acts as counter
+        _;
     }
 
     function _setTempEstimate(address strategy, address item, int256 value) private {
