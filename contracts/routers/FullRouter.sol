@@ -730,9 +730,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           by not being "delete"d in the same external call in which it is set, we 
           associate to each external call a "session counter" so that it only deals with 
           temp values corresponding to its own session.
-          This should always be balanced unless a strategy is restructured so that the
-          strategy items and leverageItems are not matched properly.
-          We check this at the end of all external/public functions accessing this map
         **/
 
         int256 entered = _tempEstimate[bytes32(uint256(1))][strategy][address(1)];
