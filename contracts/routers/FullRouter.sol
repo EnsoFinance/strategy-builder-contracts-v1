@@ -19,7 +19,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
-    mapping(int256 => mapping(address => mapping(address => int256))) private _tempEstimate;
+    mapping(bytes32 => mapping(address => mapping(address => int256))) private _tempEstimate;
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
@@ -30,8 +30,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         external
         override
         onlyController
-        usingTempEstimate
     {
+        bool isTopLevel = _startTempEstimateSession(strategy);
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -45,14 +45,15 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           strategyItems,
           strategyDebt
         );
+        _endTempEstimateSession(strategy, isTopLevel);
     }
 
     function withdraw(address strategy, bytes calldata data)
         external
         override
         onlyController
-        usingTempEstimate
     {
+        bool isTopLevel = _startTempEstimateSession(strategy);
         (uint256 percentage, uint256 total, int256[] memory estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
 
@@ -60,22 +61,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         total = total.sub(expectedWeth);
 
         address[] memory strategyItems = IStrategy(strategy).items();
-        {
-            address[] memory strategyDebt = IStrategy(strategy).debt();
-            // Deleverage debt
-            for (uint256 i = 0; i < strategyDebt.length; i++) {
-                int256 estimatedValue = estimates[strategyItems.length + i];
-                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
-                if (estimatedValue < expectedValue) {
-                    _repayPath(
-                        IStrategy(strategy).getTradeData(strategyDebt[i]),
-                        uint256(-estimatedValue.sub(expectedValue)),
-                        total,
-                        strategy
-                    );
-                }
-            }
-        }
+        // Deleverage debt
+        _deleverageForWithdraw(strategy, strategyItems, estimates, total);
         // Sell loop
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimatedValue = estimates[i];
@@ -93,9 +80,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
+        _endTempEstimateSession(strategy, isTopLevel);
     }
 
-    function rebalance(address strategy, bytes calldata data) external override onlyController usingTempEstimate {
+    function rebalance(address strategy, bytes calldata data) external override onlyController {
+        bool isTopLevel = _startTempEstimateSession(strategy);
+        //_startTempEstimateSession(strategy);
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
@@ -151,14 +141,15 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimates[strategyItems.length + i]
             );
         }
+        _endTempEstimateSession(strategy, isTopLevel);
     }
 
     function restructure(address strategy, bytes calldata data)
         external
         override
         onlyController
-        usingTempEstimate
     {
+        bool isTopLevel = _startTempEstimateSession(strategy);
         (
           uint256 currentTotal,
           int256[] memory currentEstimates,
@@ -171,6 +162,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory newItems = IStrategy(strategy).items();
         address[] memory newDebt = IStrategy(strategy).debt();
         _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt);
+        _endTempEstimateSession(strategy, isTopLevel);
     }
 
     function _batchSell(
@@ -715,30 +707,66 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         return leverageAmount;
     }
 
-    modifier usingTempEstimate() {
+    function _deleverageForWithdraw(address strategy, address[] memory strategyItems, int256[] memory estimates, uint256 total) private {
+        address[] memory strategyDebt = IStrategy(strategy).debt();
+        // Deleverage debt
+        for (uint256 i = 0; i < strategyDebt.length; i++) {
+            int256 estimatedValue = estimates[strategyItems.length + i];
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
+            if (estimatedValue < expectedValue) {
+                _repayPath(
+                    IStrategy(strategy).getTradeData(strategyDebt[i]),
+                    uint256(-estimatedValue.sub(expectedValue)),
+                    total,
+                    strategy
+                );
+            }
+        }
+    }
+
+    function _startTempEstimateSession(address strategy) private returns(bool isTopLevel) {
         /*
           To ensure that a stale "temp" estimate isn't leaked into other function calls 
           by not being "delete"d in the same external call in which it is set, we 
           associate to each external call a "session counter" so that it only deals with 
           temp values corresponding to its own session.
+          This should always be balanced unless a strategy is restructured so that the
+          strategy items and leverageItems are not matched properly.
+          We check this at the end of all external/public functions accessing this map
         **/
-        _tempEstimate[0][address(0)][address(0)]++; // acts as counter
-        _;
+
+        int256 entered = _tempEstimate[bytes32(uint256(1))][strategy][address(1)];
+        if (entered==0) {
+            ++_tempEstimate[bytes32(uint256(0x1))][strategy][address(1)]; // entered -> 1
+            ++_tempEstimate[bytes32(0x0)][strategy][address(0)]; // ++counter
+            return true;
+        }
+        return false;
+    }
+
+    function _endTempEstimateSession(address strategy, bool isTopLevel) private {
+        if (!isTopLevel) return;
+        --_tempEstimate[bytes32(uint256(0x1))][strategy][address(1)]; // entered -> 0
+    }
+
+    function _getCurrentTempEstimateSession(address strategy) private view returns(bytes32) {
+        int256 counter = _tempEstimate[bytes32(0x0)][strategy][address(0)];
+        return keccak256(abi.encode(counter, strategy));
     }
 
     function _setTempEstimate(address strategy, address item, int256 value) private {
-        int256 counter = _tempEstimate[0][address(0)][address(0)]; 
-        _tempEstimate[counter][strategy][item] = value;
+        bytes32 session = _getCurrentTempEstimateSession(strategy);
+        _tempEstimate[session][strategy][item] = value;
     }
 
     function _getTempEstimate(address strategy, address item) private view returns(int256) {
-        int256 counter = _tempEstimate[0][address(0)][address(0)]; 
-        return _tempEstimate[counter][strategy][item];
+        bytes32 session = _getCurrentTempEstimateSession(strategy);
+        return _tempEstimate[session][strategy][item];
     }
 
     function _removeTempEstimate(address strategy, address item) private {
-        int256 counter = _tempEstimate[0][address(0)][address(0)]; 
-        delete _tempEstimate[counter][strategy][item];
+        bytes32 session = _getCurrentTempEstimateSession(strategy);
+        delete _tempEstimate[session][strategy][item];
     }
 
 }
