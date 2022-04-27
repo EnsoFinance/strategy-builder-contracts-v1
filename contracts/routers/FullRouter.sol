@@ -19,7 +19,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
-    mapping(bytes32 => mapping(address => mapping(address => int256))) private _tempEstimate;
+    mapping(int256 => mapping(address => mapping(address => int256))) private _tempEstimate;
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
@@ -732,10 +732,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           temp values corresponding to its own session.
         **/
 
-        int256 entered = _tempEstimate[bytes32(uint256(1))][strategy][address(1)];
+        int256 entered = _tempEstimate[int256(1)][strategy][address(1)];
         if (entered==0) {
-            ++_tempEstimate[bytes32(uint256(0x1))][strategy][address(1)]; // entered -> 1
-            ++_tempEstimate[bytes32(0x0)][strategy][address(0)]; // ++counter
+            ++_tempEstimate[1][strategy][address(1)]; // entered -> 1
+            ++_tempEstimate[0][strategy][address(0)]; // ++counter
             return true;
         }
         return false;
@@ -743,26 +743,25 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     function _endTempEstimateSession(address strategy, bool isTopLevel) private {
         if (!isTopLevel) return;
-        --_tempEstimate[bytes32(uint256(0x1))][strategy][address(1)]; // entered -> 0
+        --_tempEstimate[1][strategy][address(1)]; // entered -> 0
     }
 
-    function _getCurrentTempEstimateSession(address strategy) private view returns(bytes32) {
-        int256 counter = _tempEstimate[bytes32(0x0)][strategy][address(0)];
-        return keccak256(abi.encode(counter, strategy));
+    function _getCurrentTempEstimateSession(address strategy) private view returns(int256) {
+        return _tempEstimate[0][strategy][address(0)]; // counter
     }
 
     function _setTempEstimate(address strategy, address item, int256 value) private {
-        bytes32 session = _getCurrentTempEstimateSession(strategy);
+        int256 session = _getCurrentTempEstimateSession(strategy);
         _tempEstimate[session][strategy][item] = value;
     }
 
     function _getTempEstimate(address strategy, address item) private view returns(int256) {
-        bytes32 session = _getCurrentTempEstimateSession(strategy);
+        int256 session = _getCurrentTempEstimateSession(strategy);
         return _tempEstimate[session][strategy][item];
     }
 
     function _removeTempEstimate(address strategy, address item) private {
-        bytes32 session = _getCurrentTempEstimateSession(strategy);
+        int256 session = _getCurrentTempEstimateSession(strategy);
         delete _tempEstimate[session][strategy][item];
     }
 
