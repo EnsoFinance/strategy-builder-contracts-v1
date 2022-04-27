@@ -68,7 +68,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 estimatedValue = estimates[i];
             if (_getTempEstimate(strategy, strategyItems[i]) > 0) {
                 estimatedValue = _getTempEstimate(strategy, strategyItems[i]);
-                _removeTempEstimate(strategy, strategyItems[i]);
             }
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (estimatedValue > expectedValue) {
@@ -105,7 +104,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 estimate = estimates[i];
             if (_getTempEstimate(strategy, strategyItem) > 0) {
                 estimate = _getTempEstimate(strategy, strategyItem);
-                _removeTempEstimate(strategy, strategyItem);
             }
             int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
             if (!_sellToken(
@@ -198,7 +196,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 estimate = estimates[i];
             if (_getTempEstimate(strategy, strategyItem) > 0) {
                 estimate = _getTempEstimate(strategy, strategyItem);
-                _removeTempEstimate(strategy, strategyItem);
             }
             if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
                 //Sell all tokens that have 0 percentage
@@ -640,7 +637,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             // Since deposits can't use the oracle's estimate of the collateral,
             // we rely on the estimated value stored in the _buyToken function
             estimate = _getTempEstimate(strategy, leverageItem);
-            _removeTempEstimate(strategy, leverageItem);
         } else {
             //
             estimate = oracle.estimateItem(
@@ -761,7 +757,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function _removeTempEstimate(address strategy, address item) private {
+        // note: careful with removing because it may be needed later in a session
         int256 session = _getCurrentTempEstimateSession(strategy);
+
         delete _tempEstimate[session][strategy][item];
     }
 
