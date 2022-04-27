@@ -46,6 +46,7 @@ import EnsoStakingAdapter from '../artifacts/contracts/adapters/staking/EnsoStak
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
 import UniswapV3Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json'
+import KyberSwapAdapter from '../artifacts/contracts/adapters/exchanges/KyberSwapAdapter.sol/KyberSwapAdapter.json'
 import MetaStrategyAdapter from '../artifacts/contracts/adapters/strategy/MetaStrategyAdapter.sol/MetaStrategyAdapter.json'
 import AaveV2Adapter from '../artifacts/contracts/adapters/lending/AaveV2Adapter.sol/AaveV2Adapter.json'
 import AaveV2DebtAdapter from '../artifacts/contracts/adapters/borrow/AaveV2DebtAdapter.sol/AaveV2DebtAdapter.json'
@@ -566,6 +567,12 @@ export async function deployLeverage2XAdapter(
 			debtToken.address,
 			weth.address
 	])
+	await adapter.deployed()
+	return adapter
+}
+
+export async function deployKyberSwapAdapter(owner: SignerWithAddress, kyberFactory: Contract, kyberRouter: Contract, weth: Contract): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, KyberSwapAdapter, [kyberFactory.address, kyberRouter.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
