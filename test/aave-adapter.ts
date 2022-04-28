@@ -438,7 +438,7 @@ describe('AaveAdapter', function () {
   })
   */
 
-	it('Should deploy debt meta strategy, that is unbalanced.', async function () {
+	it('Should deploy debt meta strategy, that is balanced.', async function () {
 
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
