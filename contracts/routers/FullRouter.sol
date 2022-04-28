@@ -31,7 +31,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        bool isTopLevel = _startTempEstimateSession(strategy);
+        _startTempEstimateSession(strategy);
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -45,7 +45,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           strategyItems,
           strategyDebt
         );
-        _endTempEstimateSession(strategy, isTopLevel);
+        _endTempEstimateSession(strategy);
     }
 
     function withdraw(address strategy, bytes calldata data)
@@ -53,7 +53,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        bool isTopLevel = _startTempEstimateSession(strategy);
+        _startTempEstimateSession(strategy);
         (uint256 percentage, uint256 total, int256[] memory estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
 
@@ -68,6 +68,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 estimatedValue = estimates[i];
             if (_getTempEstimate(strategy, strategyItems[i]) > 0) {
                 estimatedValue = _getTempEstimate(strategy, strategyItems[i]);
+                _removeTempEstimate(strategy, strategyItems[i]);
             }
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (estimatedValue > expectedValue) {
@@ -79,11 +80,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
-        _endTempEstimateSession(strategy, isTopLevel);
+        _endTempEstimateSession(strategy);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
-        bool isTopLevel = _startTempEstimateSession(strategy);
+        _startTempEstimateSession(strategy);
         //_startTempEstimateSession(strategy);
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -104,6 +105,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 estimate = estimates[i];
             if (_getTempEstimate(strategy, strategyItem) > 0) {
                 estimate = _getTempEstimate(strategy, strategyItem);
+                _removeTempEstimate(strategy, strategyItem);
             }
             int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
             if (!_sellToken(
@@ -139,7 +141,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimates[strategyItems.length + i]
             );
         }
-        _endTempEstimateSession(strategy, isTopLevel);
+        _endTempEstimateSession(strategy);
     }
 
     function restructure(address strategy, bytes calldata data)
@@ -147,7 +149,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        bool isTopLevel = _startTempEstimateSession(strategy);
+        _startTempEstimateSession(strategy);
         (
           uint256 currentTotal,
           int256[] memory currentEstimates,
@@ -160,7 +162,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory newItems = IStrategy(strategy).items();
         address[] memory newDebt = IStrategy(strategy).debt();
         _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt);
-        _endTempEstimateSession(strategy, isTopLevel);
+        _endTempEstimateSession(strategy);
     }
 
     function _batchSell(
@@ -196,6 +198,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             int256 estimate = estimates[i];
             if (_getTempEstimate(strategy, strategyItem) > 0) {
                 estimate = _getTempEstimate(strategy, strategyItem);
+                _removeTempEstimate(strategy, strategyItem);
             }
             if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
                 //Sell all tokens that have 0 percentage
@@ -637,6 +640,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             // Since deposits can't use the oracle's estimate of the collateral,
             // we rely on the estimated value stored in the _buyToken function
             estimate = _getTempEstimate(strategy, leverageItem);
+            _removeTempEstimate(strategy, leverageItem);
         } else {
             //
             estimate = oracle.estimateItem(
@@ -720,7 +724,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _startTempEstimateSession(address strategy) private returns(bool isTopLevel) {
+    function _startTempEstimateSession(address strategy) private {
         /*
           To ensure that a stale "temp" estimate isn't leaked into other function calls 
           by not being "delete"d in the same external call in which it is set, we 
@@ -728,17 +732,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           temp values corresponding to its own session.
         **/
 
-        int256 entered = _tempEstimate[int256(1)][strategy][address(1)];
-        if (entered==0) {
-            ++_tempEstimate[1][strategy][address(1)]; // entered -> 1
-            ++_tempEstimate[0][strategy][address(0)]; // ++counter
-            return true;
-        }
-        return false;
+        ++_tempEstimate[0][strategy][address(0)]; // ++counter
     }
 
-    function _endTempEstimateSession(address strategy, bool isTopLevel) private {
-        if (!isTopLevel) return;
+    function _endTempEstimateSession(address strategy) private {
         --_tempEstimate[1][strategy][address(1)]; // entered -> 0
     }
 
@@ -757,9 +754,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function _removeTempEstimate(address strategy, address item) private {
-        // note: careful with removing because it may be needed later in a session
         int256 session = _getCurrentTempEstimateSession(strategy);
-
         delete _tempEstimate[session][strategy][item];
     }
 
