@@ -12,7 +12,7 @@ import {
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
-  deployMetaStrategyAdapter,
+	deployMetaStrategyAdapter,
 	deployPlatform,
 	deployLoopRouter,
 	deployFullRouter
@@ -45,7 +45,7 @@ describe('AaveAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		library: Contract,
-    whitelist: Contract,
+		whitelist: Contract,
 		uniswapAdapter: Contract,
 		aaveV2Adapter: Contract,
 		aaveV2DebtAdapter: Contract,
@@ -119,7 +119,7 @@ describe('AaveAdapter', function () {
 			}
 		]
 		
-    strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
@@ -129,7 +129,6 @@ describe('AaveAdapter', function () {
 			social: false,
 			set: false
 		}
-
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
@@ -143,7 +142,6 @@ describe('AaveAdapter', function () {
 				'0x',
 				{ value: WeiPerEther }
 			)
-    console.log("debug after")
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -440,15 +438,13 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deploy debt meta strategy, that is unbalanced.', async function () {
-
-
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		
 		const loopRouter = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(loopRouter.address)
 
-		let name = 'Test Strategy'
-		let symbol = 'TEST'
+		let name = 'Test Strategy2'
+		let symbol = 'TEST2'
 		let positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
 			{ token: usdc.address, percentage: BigNumber.from(500) },
