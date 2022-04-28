@@ -12,7 +12,9 @@ import {
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
+  deployMetaStrategyAdapter,
 	deployPlatform,
+	deployLoopRouter,
 	deployFullRouter
 } from '../lib/deploy'
 import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES } from '../lib/constants'
@@ -22,6 +24,16 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
+
+const STRATEGY_STATE: InitialState = {
+	timelock: BigNumber.from(60),
+	rebalanceThreshold: BigNumber.from(10),
+	rebalanceSlippage: BigNumber.from(997),
+	restructureSlippage: BigNumber.from(995),
+	performanceFee: BigNumber.from(0),
+	social: true,
+	set: false
+}
 
 describe('AaveAdapter', function () {
 	let	weth: Contract,
@@ -33,6 +45,7 @@ describe('AaveAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		library: Contract,
+    whitelist: Contract,
 		uniswapAdapter: Contract,
 		aaveV2Adapter: Contract,
 		aaveV2DebtAdapter: Contract,
@@ -54,7 +67,7 @@ describe('AaveAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
-		const whitelist = platform.administration.whitelist
+		whitelist = platform.administration.whitelist
 		const addressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
@@ -147,14 +160,14 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
+  })
 
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-	})
+  })
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
@@ -167,7 +180,7 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-	})
+  })
 
 	it('Should rebalance strategy', async function () {
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
@@ -175,7 +188,7 @@ describe('AaveAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
+  })
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
@@ -187,7 +200,7 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-	})
+  })
 
 	it('Should rebalance strategy', async function () {
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
@@ -195,12 +208,12 @@ describe('AaveAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
+  })
 
 	it('Should fail to withdrawAll: cannot withdraw debt', async function() {
 		const amount = BigNumber.from('10000000000000000')
 		await expect(strategy.connect(accounts[1]).withdrawAll(amount)).to.be.revertedWith('Cannot withdraw debt')
-	})
+  })
 
 	it('Should withdraw ETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -212,7 +225,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const ethBalanceAfter = await accounts[1].getBalance()
 		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
-	})
+  })
 
 	it('Should withdraw WETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -224,7 +237,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
-	})
+  })
 
 	it('Should restructure', async function () {
 		const positions = [
@@ -249,7 +262,7 @@ describe('AaveAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
-	})
+  })
 
 	it('Should finalize structure', async function () {
 		await controller
@@ -257,14 +270,14 @@ describe('AaveAdapter', function () {
 			.finalizeStructure(strategy.address, router.address, '0x')
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-	})
+  })
 
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-	})
+  })
 
 	it('Should deploy new strategy', async function () {
 		const name = 'New Strategy'
@@ -332,14 +345,14 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
+  })
 
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-	})
+  })
 
 	it('Should deploy another strategy', async function () {
 		const name = 'Another Strategy'
@@ -414,12 +427,111 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
+  })
 
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
+
+	it('Should deploy debt meta strategy, that is unbalanced.', async function () {
+
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		
+		const loopRouter = await deployLoopRouter(accounts[0], controller, library)
+		await whitelist.connect(accounts[0]).approve(loopRouter.address)
+
+		let name = 'Test Strategy'
+		let symbol = 'TEST'
+		let positions = [
+			{ token: weth.address, percentage: BigNumber.from(500) },
+			{ token: usdc.address, percentage: BigNumber.from(500) },
+		]
+		const basicStrategyItems = prepareStrategy(positions, uniswapAdapter.address)
+
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				accounts[1].address,
+				name,
+				symbol,
+				basicStrategyItems,
+				STRATEGY_STATE,
+				loopRouter.address,
+				'0x',
+				{ value: ethers.BigNumber.from('10000000000000000') }
+			)
+
+		let receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		let strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await getContractFactory('Strategy')
+		const basicStrategy = await Strategy.attach(strategyAddress)
+
+		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, loopRouter, weth)
+		await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
+
+		name = 'Debt Meta Strategy'
+		symbol = 'DMETA'
+		let positions2 = [
+			{ token: basicStrategy.address, 
+        percentage: BigNumber.from(400),
+        adapters: [metaStrategyAdapter.address], 
+        path: [] 
+      },
+      { token: tokens.aWETH,
+        percentage: BigNumber.from(1200),
+        adapters: [aaveV2Adapter.address],
+        path: [],
+        cache: ethers.utils.defaultAbiCoder.encode(
+          ['uint16'],
+          [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+        ),
+      },
+      { token: tokens.debtUSDC,
+        percentage: BigNumber.from(-600),
+        adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+        path: [tokens.usdc, weth.address], //ending in weth allows for a leverage feedback loop
+        cache: ethers.utils.defaultAbiCoder.encode(
+          ['address[]'],
+          [[tokens.aWETH]] //define what tokens you want to loop back on here
+        ),
+      },
+		]
+    
+		let metaStrategyItems = prepareStrategy(positions2, uniswapAdapter.address)
+		tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				accounts[1].address,
+				name,
+				symbol,
+				metaStrategyItems,
+				STRATEGY_STATE,
+				loopRouter.address,
+				'0x',
+				{ value: ethers.BigNumber.from('10000000000000000') }
+			)
+		receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+
+		expect(await controller.initialized(strategyAddress)).to.equal(true)
+
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		await metaWrapper.deployed()
+
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		expect(await metaWrapper.isBalanced()).to.equal(false)
+    
 	})
 })
