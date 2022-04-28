@@ -2,6 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
@@ -33,7 +34,8 @@ contract UniswapV2Adapter is BaseAdapter {
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
         {
-            address pair = UniswapV2Library.pairFor(factory, tokenIn, tokenOut);
+            address pair = IUniswapV2Factory(factory).getPair(tokenIn, tokenOut);
+            require(pair != address(0), "swap: pair does not exist.");
             uint256 beforeBalance = IERC20(tokenIn).balanceOf(pair);
             if (from != address(this)) {
                 IERC20(tokenIn).safeTransferFrom(from, pair, amount);
