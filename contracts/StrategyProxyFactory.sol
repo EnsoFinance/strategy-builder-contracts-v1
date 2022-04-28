@@ -248,12 +248,15 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function _createProxy(
         address manager, string memory name, string memory symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
+        bytes32 salt_ = salt(manager, name, symbol);
+        require(!_proxyExists[salt_], "_createProxy: proxy already exists.");
         TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy{salt: salt(manager, name, symbol)}(
+            new TransparentUpgradeableProxy{salt: salt_}(
                     _implementation,
                     admin,
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
+        _proxyExists[salt_] = true;
         _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy));
         // Instead we initialize it directly in the Strategy contract
         IStrategyManagement(address(proxy)).initialize(
