@@ -3,6 +3,7 @@ const { ethers } = require('hardhat')
 //const { displayBalances } = require('../sri/logging.ts')
 import {
 	deployUniswapV2,
+	deploySushiswap,
 	deployTokens,
 	deployPlatform,
 	deployUniswapV2Adapter,
@@ -14,18 +15,18 @@ import {
 	prepareDepositMulticall,
 	calculateAddress,
 	Position,
-	InitialState
+	InitialState,
 } from '../lib/encode'
-import { prepareFlashLoan }  from '../lib/cookbook'
+import { prepareFlashLoan } from '../lib/cookbook'
 import { Contract, BigNumber } from 'ethers'
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
 const NUM_TOKENS = 4
 
 describe('Flash Loan', function () {
-		let tokens: Contract[],
+	let tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -47,8 +48,13 @@ describe('Flash Loan', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		sushiFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		sushiFactory = await deploySushiswap(accounts[0], tokens)
+		const platform = await deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -69,7 +75,7 @@ describe('Flash Loan', function () {
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
 			{ token: tokens[2].address, percentage: BigNumber.from(300) },
 			{ token: tokens[3].address, percentage: BigNumber.from(200) },
-		] as Position[];
+		] as Position[]
 		const strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -78,14 +84,9 @@ describe('Flash Loan', function () {
 			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
-		const create2Address = await calculateAddress(
-			strategyFactory,
-			accounts[1].address,
-			name,
-			symbol
-		)
+		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(create2Address)
 
@@ -114,13 +115,13 @@ describe('Flash Loan', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 
-			const LibraryWrapper = await getContractFactory('LibraryWrapper', {
-				libraries: {
-					StrategyLibrary: library.address
-				}
-			})
-			wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
-			await wrapper.deployed()
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address,
+			},
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyConfig.strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
@@ -135,7 +136,7 @@ describe('Flash Loan', function () {
 
 	it('Should purchase a token, requiring a rebalance and create arbitrage opportunity', async function () {
 		const value = WeiPerEther.mul(50)
-		await weth.connect(accounts[2]).deposit({value: value})
+		await weth.connect(accounts[2]).deposit({ value: value })
 		await weth.connect(accounts[2]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[2])
@@ -151,13 +152,7 @@ describe('Flash Loan', function () {
 	it('Should rebalance strategy with multicall + flash loan', async function () {
 		const balanceBefore = await tokens[1].balanceOf(accounts[1].address)
 		// Multicall gets initial tokens from uniswap
-		const rebalanceCalls = await prepareRebalanceMulticall(
-			strategy,
-			multicallRouter,
-			uniswapAdapter,
-			oracle,
-			weth
-		)
+		const rebalanceCalls = await prepareRebalanceMulticall(strategy, multicallRouter, uniswapAdapter, oracle, weth)
 		const flashLoanCalls = await prepareFlashLoan(
 			strategy,
 			arbitrager,
