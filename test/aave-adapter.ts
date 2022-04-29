@@ -18,7 +18,7 @@ import {
 	deployFullRouter
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES } from '../lib/constants'
-import { displayBalances } from '../lib/logging'
+//import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -536,7 +536,7 @@ describe('AaveAdapter', function () {
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 

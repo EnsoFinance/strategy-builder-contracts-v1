@@ -34,7 +34,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        _startTempEstimateSession(strategy);
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -48,7 +47,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           strategyItems,
           strategyDebt
         );
-        _endTempEstimateSession(strategy);
     }
 
     function withdraw(address strategy, bytes calldata data)
@@ -83,7 +81,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
-        _endTempEstimateSession(strategy);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
@@ -144,7 +141,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimates[strategyItems.length + i]
             );
         }
-        _endTempEstimateSession(strategy);
     }
 
     function restructure(address strategy, bytes calldata data)
@@ -165,7 +161,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory newItems = IStrategy(strategy).items();
         address[] memory newDebt = IStrategy(strategy).debt();
         _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt);
-        _endTempEstimateSession(strategy);
     }
 
     function _batchSell(
@@ -738,10 +733,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         **/
 
         ++_tempEstimate[0][strategy][address(0)]; // ++counter
-    }
-
-    function _endTempEstimateSession(address strategy) private {
-        --_tempEstimate[1][strategy][address(1)]; // entered -> 0
     }
 
     function _getCurrentTempEstimateSession(address strategy) private view returns(int256) {
