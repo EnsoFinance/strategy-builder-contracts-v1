@@ -1,16 +1,8 @@
 import hre from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
-import {
-		encodePriceSqrt,
-		getDeadline,
-		getMinTick,
-		getMaxTick,
-} from './utils'
-import {
-	createLink,
-	linkBytecode
-} from './link'
+import { encodePriceSqrt, getDeadline, getMinTick, getMaxTick } from './utils'
+import { createLink, linkBytecode } from './link'
 
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
@@ -60,6 +52,8 @@ import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapte
 import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
 import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.json'
 import BalancerRegistry from '../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json'
+import SushiswapFactory from '../artifacts/contracts/test/SushiswapFactory.sol/UniswapV2Factory.json'
+import SushiswapPair from '../artifacts/contracts/test/SushiswapFactory.sol/UniswapV2Pair.json'
 import BPool from '../artifacts/@balancer-labs/core/contracts/BPool.sol/BPool.json'
 
 import EnsoToken from '@ensofinance/erc20/artifacts/contracts/Enso.sol/Enso.json'
@@ -74,7 +68,6 @@ import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, ORACLE_TIME_WINDO
 const { ethers, waffle } = hre
 const { constants, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
-
 
 export type Oracles = {
 	ensoOracle: Contract
@@ -91,8 +84,8 @@ export type Oracles = {
 }
 
 export type Administration = {
-	whitelist: Contract,
-	platformProxyAdmin: Contract,
+	whitelist: Contract
+	platformProxyAdmin: Contract
 }
 export class Platform {
 	strategyFactory: Contract
@@ -159,11 +152,7 @@ export async function deployBalancer(owner: SignerWithAddress, tokens: Contract[
 				throw new Error('deployBalancer() -> Failed to find pool arg in newBPool() event')
 			}
 			const poolAddress = receipt.events[0].args.pool
-			const pool = new Contract(
-		    poolAddress,
-		    BPool.abi,
-		    owner
-		  )
+			const pool = new Contract(poolAddress, BPool.abi, owner)
 			await tokens[0].approve(poolAddress, WeiPerEther.mul(100))
 			await tokens[i].approve(poolAddress, WeiPerEther.mul(100))
 			await pool.bind(tokens[0].address, WeiPerEther.mul(100), WeiPerEther.mul(5))
@@ -207,13 +196,17 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 	const nftDesciptor = await waffle.deployContract(owner, NFTDescriptor, [])
 	const UniswapNFTDescriptor = await getContractFactory('NonfungibleTokenPositionDescriptor', {
 		libraries: {
-			NFTDescriptor: nftDesciptor.address
-		}
+			NFTDescriptor: nftDesciptor.address,
+		},
 	})
 	const uniswapNFTDescriptor = await UniswapNFTDescriptor.connect(owner).deploy(tokens[0].address)
 	await uniswapNFTDescriptor.deployed()
 	//const uniswapNFTDescriptor = await waffle.deployContract(owner, NonfungibleTokenPositionDescriptor, [tokens[0].address])
-	const uniswapNFTManager = await waffle.deployContract(owner, NonfungiblePositionManager, [uniswapV3Factory.address, tokens[0].address, uniswapNFTDescriptor.address])
+	const uniswapNFTManager = await waffle.deployContract(owner, NonfungiblePositionManager, [
+		uniswapV3Factory.address,
+		tokens[0].address,
+		uniswapNFTDescriptor.address,
+	])
 
 	await tokens[0].connect(owner).approve(uniswapNFTManager.address, constants.MaxUint256)
 	for (let i = 1; i < tokens.length; i++) {
@@ -227,7 +220,7 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 			flipper ? tokens[i].address : tokens[0].address,
 			UNI_V3_FEE,
 			encodePriceSqrt(1, 1)
-	  )
+		)
 		// Add liquidity
 		await tokens[i].connect(owner).approve(uniswapNFTManager.address, constants.MaxUint256)
 
@@ -243,10 +236,26 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 			amount0Min: 0,
 			amount1Min: 0,
 			deadline: getDeadline(240),
-	  })
+		})
 	}
 
 	return [uniswapV3Factory, uniswapNFTManager]
+}
+
+export async function deploySushiswap(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract> {
+	const sushiswapFactory = await waffle.deployContract(owner, SushiswapFactory, [owner.address])
+	await sushiswapFactory.deployed()
+	for (let i = 1; i < tokens.length; i++) {
+		//tokens[0] is used as the trading pair (WETH)
+		await sushiswapFactory.createPair(tokens[0].address, tokens[i].address)
+		const pairAddress = await sushiswapFactory.getPair(tokens[0].address, tokens[i].address)
+		const pair = new Contract(pairAddress, JSON.stringify(SushiswapPair.abi), owner)
+		// Add liquidity
+		await tokens[0].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
+		await tokens[i].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
+		await pair.connect(owner).mint(owner.address)
+	}
+	return sushiswapFactory
 }
 
 export async function deployPlatform(
@@ -267,7 +276,11 @@ export async function deployPlatform(
 	await tokenRegistry.deployed()
 	const curveDepositZapRegistry = await waffle.deployContract(owner, CurveDepositZapRegistry, [])
 	await curveDepositZapRegistry.deployed()
-	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address])
+	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [
+		ORACLE_TIME_WINDOW,
+		uniswapV3Factory.address,
+		weth.address,
+	])
 	await uniswapV3Registry.deployed()
 	const chainlinkRegistry = await waffle.deployContract(owner, ChainlinkRegistry, [])
 	await chainlinkRegistry.deployed()
@@ -276,7 +289,10 @@ export async function deployPlatform(
 	if (uniswapOracleFactory.address == uniswapV3Factory.address) {
 		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
 	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapOracleFactory.address, weth.address])
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [
+			uniswapOracleFactory.address,
+			weth.address,
+		])
 	}
 	await uniswapOracle.deployed()
 
@@ -292,9 +308,16 @@ export async function deployPlatform(
 	await uniswapOracle.deployed()
 	*/
 
-	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [chainlinkRegistry.address, weth.address])
+	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [
+		chainlinkRegistry.address,
+		weth.address,
+	])
 	await chainlinkOracle.deployed()
-	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [tokenRegistry.address, weth.address, susd?.address || AddressZero])
+	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [
+		tokenRegistry.address,
+		weth.address,
+		susd?.address || AddressZero,
+	])
 	await ensoOracle.deployed()
 
 	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
@@ -321,12 +344,14 @@ export async function deployPlatform(
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
 
 	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
-	if (susd) await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
+	if (susd)
+		await tokenRegistry
+			.connect(owner)
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
 	await whitelist.deployed()
-
 
 	// Deploy Platfrom Admin and get controller and factory addresses
 	const platformProxyAdmin = await waffle.deployContract(owner, PlatformProxyAdmin, [])
@@ -351,11 +376,13 @@ export async function deployPlatform(
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
-		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
+		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
 	])
 	await strategyImplementation.deployed()
 
-	await platformProxyAdmin.connect(owner).initialize(
+	await platformProxyAdmin
+		.connect(owner)
+		.initialize(
 			controllerImplementation.address,
 			factoryImplementation.address,
 			strategyImplementation.address,
@@ -363,84 +390,120 @@ export async function deployPlatform(
 			tokenRegistry.address,
 			whitelist.address,
 			feePool || owner.address
-	)
+		)
 
 	// Factory
-	const factory = new Contract(
-		factoryAddress,
-		StrategyProxyFactory.abi,
-		owner
-	)
+	const factory = new Contract(factoryAddress, StrategyProxyFactory.abi, owner)
 
 	// Strategy Controller
-	const controller = new Contract(
-		controllerAddress,
-		StrategyController.abi,
-		owner
-	)
+	const controller = new Contract(controllerAddress, StrategyController.abi, owner)
 
-	await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
+	await tokenRegistry.connect(owner).transferOwnership(factoryAddress)
 
 	const oracles: Oracles = {
 		ensoOracle,
 		protocols: {
 			uniswapOracle,
-			chainlinkOracle
+			chainlinkOracle,
 		},
 		registries: {
 			tokenRegistry,
 			curveDepositZapRegistry,
 			uniswapV3Registry,
-			chainlinkRegistry
-		}
+			chainlinkRegistry,
+		},
 	}
 
 	const administration: Administration = {
 		whitelist,
-		platformProxyAdmin
+		platformProxyAdmin,
 	}
 
 	return new Platform(factory, controller, oracles, administration, strategyLibrary)
 }
 
-export async function deployEnsoToken(owner: SignerWithAddress, minter: SignerWithAddress, name: string, symbol: string, mintingAllowedAfter: number): Promise<Contract> {
+export async function deployEnsoToken(
+	owner: SignerWithAddress,
+	minter: SignerWithAddress,
+	name: string,
+	symbol: string,
+	mintingAllowedAfter: number
+): Promise<Contract> {
 	const ensoToken = await waffle.deployContract(owner, EnsoToken, [name, symbol, minter.address, mintingAllowedAfter])
 	await ensoToken.deployed()
 	return ensoToken
 }
 
-export async function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contract, defaultEstimator: Contract, strategyFactory: Contract): Promise<Contract> {
+export async function deployEnsoEstimator(
+	owner: SignerWithAddress,
+	sEnso: Contract,
+	defaultEstimator: Contract,
+	strategyFactory: Contract
+): Promise<Contract> {
 	const ensoEstimator = await waffle.deployContract(owner, EnsoEstimator, [sEnso.address, defaultEstimator.address])
 	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO, ensoEstimator.address)
 	return ensoEstimator
 }
 
-export async function deployStakedEnsoEstimator(owner: SignerWithAddress, strategyFactory: Contract): Promise<Contract> {
+export async function deployStakedEnsoEstimator(
+	owner: SignerWithAddress,
+	strategyFactory: Contract
+): Promise<Contract> {
 	const stakedEnsoEstimator = await waffle.deployContract(owner, StakedEnsoEstimator, [])
-	await strategyFactory.connect(owner).addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO_STAKED, stakedEnsoEstimator.address)
+	await strategyFactory
+		.connect(owner)
+		.addEstimatorToRegistry(ESTIMATOR_CATEGORY.ENSO_STAKED, stakedEnsoEstimator.address)
 	return stakedEnsoEstimator
 }
 
-export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
+export async function deployUniswapV2Adapter(
+	owner: SignerWithAddress,
+	uniswapV2Factory: Contract,
+	weth: Contract
+): Promise<Contract> {
 	const adapter = await waffle.deployContract(owner, UniswapV2Adapter, [uniswapV2Factory.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployEnsoStakingAdapter(owner: SignerWithAddress, staking: Contract, stakingToken: Contract, distributionToken: Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, EnsoStakingAdapter, [staking.address, stakingToken.address, distributionToken.address, weth.address])
+export async function deployEnsoStakingAdapter(
+	owner: SignerWithAddress,
+	staking: Contract,
+	stakingToken: Contract,
+	distributionToken: Contract,
+	weth: Contract
+): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, EnsoStakingAdapter, [
+		staking.address,
+		stakingToken.address,
+		distributionToken.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
+export async function deployUniswapV2LPAdapter(
+	owner: SignerWithAddress,
+	uniswapV2Factory: Contract,
+	weth: Contract
+): Promise<Contract> {
 	const adapter = await waffle.deployContract(owner, UniswapV2LPAdapter, [uniswapV2Factory.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapRouter: Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [uniswapRegistry.address, uniswapRouter.address, weth.address])
+export async function deployUniswapV3Adapter(
+	owner: SignerWithAddress,
+	uniswapRegistry: Contract,
+	uniswapRouter: Contract,
+	weth: Contract
+): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [
+		uniswapRegistry.address,
+		uniswapRouter.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -451,7 +514,11 @@ export async function deployMetaStrategyAdapter(
 	router: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, MetaStrategyAdapter, [controller.address, router.address, weth.address])
+	const adapter = await waffle.deployContract(owner, MetaStrategyAdapter, [
+		controller.address,
+		router.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -462,49 +529,35 @@ export async function deployAaveV2Adapter(
 	strategyController: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [addressProvider.address, strategyController.address, weth.address])
+	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [
+		addressProvider.address,
+		strategyController.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployAaveV2DebtAdapter(
-	owner: SignerWithAddress,
-	addressProvider: Contract,
-	weth: Contract
-) {
+export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressProvider: Contract, weth: Contract) {
 	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [addressProvider.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployCompoundAdapter(
-	owner: SignerWithAddress,
-	comptroller: Contract,
-	weth: Contract
-) {
+export async function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract) {
 	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployYEarnAdapter(
-	owner: SignerWithAddress,
-	weth: Contract
-) {
+export async function deployYEarnAdapter(owner: SignerWithAddress, weth: Contract) {
 	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployCurveAdapter(
-	owner: SignerWithAddress,
-	curveAddressProvider: Contract,
-	weth: Contract
-) {
-	const adapter = await waffle.deployContract(owner, CurveAdapter, [
-			curveAddressProvider.address,
-			weth.address
-	])
+export async function deployCurveAdapter(owner: SignerWithAddress, curveAddressProvider: Contract, weth: Contract) {
+	const adapter = await waffle.deployContract(owner, CurveAdapter, [curveAddressProvider.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
@@ -516,9 +569,9 @@ export async function deployCurveLPAdapter(
 	weth: Contract
 ) {
 	const adapter = await waffle.deployContract(owner, CurveLPAdapter, [
-			curveAddressProvider.address,
-			curveDepositZapRegistry.address,
-			weth.address
+		curveAddressProvider.address,
+		curveDepositZapRegistry.address,
+		weth.address,
 	])
 	await adapter.deployed()
 	return adapter
@@ -529,23 +582,13 @@ export async function deployCurveGaugeAdapter(
 	curveAddressProvider: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [
-			curveAddressProvider.address,
-			weth.address
-	])
+	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [curveAddressProvider.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deploySynthetixAdapter(
-	owner: SignerWithAddress,
-	resolver: Contract,
-	weth: Contract
-) {
-	const adapter = await waffle.deployContract(owner, SynthetixAdapter, [
-			resolver.address,
-			weth.address
-	])
+export async function deploySynthetixAdapter(owner: SignerWithAddress, resolver: Contract, weth: Contract) {
+	const adapter = await waffle.deployContract(owner, SynthetixAdapter, [resolver.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
@@ -560,28 +603,33 @@ export async function deployLeverage2XAdapter(
 	weth: Contract
 ) {
 	const adapter = await waffle.deployContract(owner, Leverage2XAdapter, [
-			defaultAdapter.address,
-			aaveV2Adapter.address,
-			aaveV2DebtAdapter.address,
-			addressProvider.address,
-			debtToken.address,
-			weth.address
+		defaultAdapter.address,
+		aaveV2Adapter.address,
+		aaveV2DebtAdapter.address,
+		addressProvider.address,
+		debtToken.address,
+		weth.address,
 	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployKyberSwapAdapter(owner: SignerWithAddress, kyberFactory: Contract, kyberRouter: Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, KyberSwapAdapter, [kyberFactory.address, kyberRouter.address, weth.address])
+export async function deployKyberSwapAdapter(
+	owner: SignerWithAddress,
+	kyberFactory: Contract,
+	kyberRouter: Contract,
+	weth: Contract
+): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, KyberSwapAdapter, [
+		kyberFactory.address,
+		kyberRouter.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployLoopRouter(
-	owner: SignerWithAddress,
-	controller: Contract,
-	library: Contract,
-) {
+export async function deployLoopRouter(owner: SignerWithAddress, controller: Contract, library: Contract) {
 	const router = await waffle.deployContract(
 		owner,
 		linkBytecode(LoopRouter, [createLink(StrategyLibrary, library.address)]),
@@ -608,11 +656,7 @@ export async function deployFullRouter(
 	return router
 }
 
-export async function deployBatchDepositRouter(
-	owner: SignerWithAddress,
-	controller: Contract,
-	library: Contract
-) {
+export async function deployBatchDepositRouter(owner: SignerWithAddress, controller: Contract, library: Contract) {
 	const router = await waffle.deployContract(
 		owner,
 		linkBytecode(BatchDepositRouter, [createLink(StrategyLibrary, library.address)]),
@@ -623,10 +667,7 @@ export async function deployBatchDepositRouter(
 	return router
 }
 
-export async function deployMulticallRouter(
-	owner: SignerWithAddress,
-	controller: Contract
-) {
+export async function deployMulticallRouter(owner: SignerWithAddress, controller: Contract) {
 	const router = await waffle.deployContract(owner, MulticallRouter, [controller.address])
 	await router.deployed()
 
