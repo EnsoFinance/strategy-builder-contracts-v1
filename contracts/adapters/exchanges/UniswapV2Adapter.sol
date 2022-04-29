@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
 import "../BaseAdapter.sol";
+import "hardhat/console.sol";
 
 contract UniswapV2Adapter is BaseAdapter {
     using SafeMath for uint256;
@@ -45,8 +46,14 @@ contract UniswapV2Adapter is BaseAdapter {
             uint256 afterBalance = IERC20(tokenIn).balanceOf(pair);
             amount = afterBalance.sub(beforeBalance); //In case of transfer fees reducing amount
         }
-        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, tokenIn, tokenOut);
+        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(
+            factory,
+            tokenIn,
+            tokenOut
+        );
+        console.log("reserveIn: %s reserveOut: %s", reserveIn, reserveOut);
         uint256 received = UniswapV2Library.getAmountOut(amount, reserveIn, reserveOut);
+        console.log("received: %s", received);
         {
             // Swap and check amount received (after possible transfer fees)
             uint256 beforeBalance = IERC20(tokenOut).balanceOf(to);
@@ -65,8 +72,9 @@ contract UniswapV2Adapter is BaseAdapter {
         address to
     ) internal {
         (address token0, ) = UniswapV2Library.sortTokens(tokenA, tokenB);
-        (uint256 amount0Out, uint256 amount1Out) =
-            tokenA == token0 ? (tokenAOut, tokenBOut) : (tokenBOut, tokenAOut);
+        (uint256 amount0Out, uint256 amount1Out) = tokenA == token0
+            ? (tokenAOut, tokenBOut)
+            : (tokenBOut, tokenAOut);
         IUniswapV2Pair(UniswapV2Library.pairFor(factory, tokenA, tokenB)).swap(
             amount0Out,
             amount1Out,

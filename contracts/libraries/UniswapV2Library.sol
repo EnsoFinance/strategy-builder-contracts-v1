@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 library UniswapV2Library {
     using SafeMath for uint256;
@@ -46,9 +47,12 @@ library UniswapV2Library {
         address tokenB
     ) internal view returns (uint256 reserveA, uint256 reserveB) {
         (address token0, ) = sortTokens(tokenA, tokenB);
-        (uint256 reserve0, uint256 reserve1, ) =
-            IUniswapV2Pair(pairFor(factory, tokenA, tokenB)).getReserves();
+        address pair = pairFor(factory, tokenA, tokenB);
+        console.log("getReserves: pair: %s", pair);
+        (uint256 reserve0, uint256 reserve1, ) = IUniswapV2Pair(pair).getReserves();
+        console.log("getReserves: reserve0: %s reserve1: %s", reserve0, reserve1);
         (reserveA, reserveB) = tokenA == token0 ? (reserve0, reserve1) : (reserve1, reserve0);
+        console.log("getReserves: reserveA: %s reserveB: %s", reserveA, reserveB);
     }
 
     // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
