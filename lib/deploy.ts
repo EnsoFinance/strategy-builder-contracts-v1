@@ -249,7 +249,6 @@ export async function deploySushiswap(owner: SignerWithAddress, tokens: Contract
 		//tokens[0] is used as the trading pair (WETH)
 		await sushiswapFactory.createPair(tokens[0].address, tokens[i].address)
 		const pairAddress = await sushiswapFactory.getPair(tokens[0].address, tokens[i].address)
-		console.log('Pair address: ', pairAddress)
 		const pair = new Contract(pairAddress, JSON.stringify(SushiswapPair.abi), owner)
 		// Add liquidity
 		await tokens[0].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
