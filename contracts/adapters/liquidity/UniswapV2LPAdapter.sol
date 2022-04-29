@@ -2,6 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../libraries/SafeERC20.sol";
@@ -16,9 +17,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
     uint256 private constant DEFAULT_AMOUNT = 10**18;
     uint256 private constant MINIMUM_LIQUIDITY = 10**3;
-    address public immutable factory;
+    IUniswapV2Factory public immutable factory;
 
-    constructor(address factory_, address weth_) public BaseAdapter(weth_) {
+    constructor(IUniswapV2Factory factory_, address weth_) public BaseAdapter(weth_) {
         factory = factory_;
     }
 
@@ -60,8 +61,8 @@ contract UniswapV2LPAdapter is BaseAdapter {
             address token1 = pair.token1();
             // Burn liquidity and get back underlying tokens
             (uint256 amount0, uint256 amount1) = pair.burn(address(this));
-            uint256 wethAmount0 = _sellToken(amount0, token0, to);
-            uint256 wethAmount1 = _sellToken(amount1, token1, to);
+            uint256 wethAmount0 = _sellToken(address(pair), amount0, token0, to);
+            uint256 wethAmount1 = _sellToken(address(pair), amount1, token1, to);
             require(wethAmount0.add(wethAmount1) >= expected, "Insufficient tokenOut amount");
         } else {
             revert("Token not supported");
@@ -77,8 +78,18 @@ contract UniswapV2LPAdapter is BaseAdapter {
     ) internal view returns (uint256, uint256) {
         // Calculate the amount of weth needed to purchase underlying tokens
         (uint112 token0Reserve, uint112 token1Reserve, ) = pair.getReserves();
-        uint256 amountIn0 = _getAmountIn(token0, uint256(token0Reserve), totalSupply);
-        uint256 amountIn1 = _getAmountIn(token1, uint256(token1Reserve), totalSupply);
+        uint256 amountIn0 = _getAmountIn(
+            address(pair),
+            token0,
+            uint256(token0Reserve),
+            totalSupply
+        );
+        uint256 amountIn1 = _getAmountIn(
+            address(pair),
+            token1,
+            uint256(token1Reserve),
+            totalSupply
+        );
         uint256 wethDivisor = amountIn0.add(amountIn1);
         uint256 wethIn0 = amount.mul(amountIn0).div(wethDivisor);
         uint256 wethIn1 = amount.sub(wethIn0);
@@ -86,37 +97,46 @@ contract UniswapV2LPAdapter is BaseAdapter {
     }
 
     function _getAmountIn(
+        address pair,
         address token,
         uint256 reserve,
         uint256 totalSupply
     ) internal view returns (uint256) {
         uint256 amountOut = DEFAULT_AMOUNT.mul(reserve) / totalSupply;
-        (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReserves(factory, weth, token);
+        (uint256 wethReserve, uint256 tokenReserve) = UniswapV2Library.getReservesForPair(
+            pair,
+            weth,
+            token
+        );
         return UniswapV2Library.getAmountIn(amountOut, wethReserve, tokenReserve);
     }
 
     function _buyToken(
+        address pair,
         uint256 amountIn,
         address token
     ) internal returns (uint256) {
         // we assume token != weth
-        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, weth, token);
+        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReservesForPair(
+            pair,
+            weth,
+            token
+        );
         uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
         (address token0, ) = UniswapV2Library.sortTokens(weth, token);
-        (uint256 amount0Out, uint256 amount1Out) =
-            token == token0 ? (amountOut, uint256(0)) : (uint256(0), amountOut);
-        address pair = UniswapV2Library.pairFor(factory, weth, token);
-        IERC20(weth).safeTransfer(pair, amountIn);
-        IUniswapV2Pair(pair).swap(
-            amount0Out,
-            amount1Out,
-            address(this),
-            new bytes(0)
-        );
+        (uint256 amount0Out, uint256 amount1Out) = token == token0
+            ? (amountOut, uint256(0))
+            : (uint256(0), amountOut);
+
+        address wethPair = factory.getPair(weth, token);
+
+        IERC20(weth).safeTransfer(wethPair, amountIn);
+        IUniswapV2Pair(wethPair).swap(amount0Out, amount1Out, address(this), new bytes(0));
         return amountOut;
     }
 
     function _sellToken(
+        address pair,
         uint256 amountIn,
         address token,
         address to
@@ -125,19 +145,21 @@ contract UniswapV2LPAdapter is BaseAdapter {
             IERC20(token).transfer(to, amountIn);
             return amountIn;
         }
-        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReserves(factory, token, weth);
+        (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReservesForPair(
+            pair,
+            token,
+            weth
+        );
         uint256 amountOut = UniswapV2Library.getAmountOut(amountIn, reserveIn, reserveOut);
         (address token0, ) = UniswapV2Library.sortTokens(weth, token);
-        (uint256 amount0Out, uint256 amount1Out) =
-            token == token0 ? (uint256(0), amountOut) : (amountOut, uint256(0));
-        address pair = UniswapV2Library.pairFor(factory, weth, token);
+        (uint256 amount0Out, uint256 amount1Out) = token == token0
+            ? (uint256(0), amountOut)
+            : (amountOut, uint256(0));
+
+        address wethPair = factory.getPair(weth, token);
+
         IERC20(token).safeTransfer(pair, amountIn);
-        IUniswapV2Pair(pair).swap(
-            amount0Out,
-            amount1Out,
-            to,
-            new bytes(0)
-        );
+        IUniswapV2Pair(wethPair).swap(amount0Out, amount1Out, to, new bytes(0));
         return amountOut;
     }
 
@@ -146,9 +168,9 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address token0 = pair.token0();
         address token1 = pair.token1();
         address otherToken = (token0 == weth) ? token1 : token0;
-        uint256 wethToSell = _calculateWethToSell(amount, otherToken);
+        uint256 wethToSell = _calculateWethToSell(address(pair), amount, otherToken);
         // Swap weth for underlying tokens
-        uint256 otherTokenBought = _buyToken(wethToSell, otherToken);
+        uint256 otherTokenBought = _buyToken(address(pair), wethToSell, otherToken);
         // Transfer underyling token to pair contract
         IERC20(weth).safeTransfer(address(pair), amount.sub(wethToSell));
         IERC20(otherToken).safeTransfer(address(pair), otherTokenBought);
@@ -165,22 +187,26 @@ contract UniswapV2LPAdapter is BaseAdapter {
         address token0 = pair.token0();
         address token1 = pair.token1();
         (uint256 wethIn0, uint256 wethIn1) = _calculateWethAmounts(
-                pair,
-                token0,
-                token1,
-                amount,
-                pair.totalSupply()
-            );
+            pair,
+            token0,
+            token1,
+            amount,
+            pair.totalSupply()
+        );
         // Swap weth for underlying tokens
-        uint256 amountOut0 = _buyToken(wethIn0, token0);
-        uint256 amountOut1 = _buyToken(wethIn1, token1);
+        uint256 amountOut0 = _buyToken(address(pair), wethIn0, token0);
+        uint256 amountOut1 = _buyToken(address(pair), wethIn1, token1);
         // Transfer underyling token to pair contract
         IERC20(token0).safeTransfer(address(pair), amountOut0);
         IERC20(token1).safeTransfer(address(pair), amountOut1);
     }
 
-    function _calculateWethToSell(uint256 uAmount, address otherToken) private view returns(uint256) {
-        (uint256 uReserveWeth,) = UniswapV2Library.getReserves(factory, weth, otherToken);
+    function _calculateWethToSell(
+        address pair,
+        uint256 uAmount,
+        address otherToken
+    ) private view returns (uint256) {
+        (uint256 uReserveWeth, ) = UniswapV2Library.getReservesForPair(pair, weth, otherToken);
         int256 amount = int256(uAmount);
         int256 reserveWeth = int256(uReserveWeth);
 
@@ -223,8 +249,7 @@ contract UniswapV2LPAdapter is BaseAdapter {
 
         int256 denominator = int256(2);
         int256 solution = center.add(int256(sqrt)).div(denominator);
-        if (0 < solution && solution < amount)
-            return uint256(solution);
+        if (0 < solution && solution < amount) return uint256(solution);
         solution = center.sub(int256(sqrt)).div(denominator);
         require(0 < solution && solution < amount, "_calculateWethToSell: solution out of range.");
         return uint256(solution);

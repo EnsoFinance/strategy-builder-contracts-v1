@@ -22,7 +22,11 @@ contract UniswapNaiveOracle is ProtocolOracle {
         if (amount == 0) return 0;
         address pair = IUniswapV2Factory(factory).getPair(input, weth);
         require(pair != address(0), "consult: pair does not exist.");
-        (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, input, weth);
+        (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReservesForPair(
+            pair,
+            input,
+            weth
+        );
         return UniswapV2Library.quote(amount, reserveA, reserveB);
     }
 }
