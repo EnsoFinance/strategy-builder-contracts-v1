@@ -15,14 +15,11 @@ import AaveV2Estimator from '../artifacts/contracts/oracles/estimators/AaveV2Est
 import AaveV2DebtEstimator from '../artifacts/contracts/oracles/estimators/AaveV2DebtEstimator.sol/AaveV2DebtEstimator.json'
 import BasicEstimator from '../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json'
 const DefaultEstimator = BasicEstimator
-// import EnsoEstimator from '../artifacts/contracts/oracles/estimators/EnsoEstimator.sol/EnsoEstimator.json'
-//import StakedEnsoEstimator from '../artifacts/contracts/oracles/estimators/StakedEnsoEstimator.sol/StakedEnsoEstimator.json'
 import CompoundEstimator from '../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json'
 import CurveLPEstimator from '../artifacts/contracts/oracles/estimators/CurveLPEstimator.sol/CurveLPEstimator.json'
 import CurveGaugeEstimator from '../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json'
 import EmergencyEstimator from '../artifacts/contracts/oracles/estimators/EmergencyEstimator.sol/EmergencyEstimator.json'
 import StrategyEstimator from '../artifacts/contracts/oracles/estimators/StrategyEstimator.sol/StrategyEstimator.json'
-import UniswapV2LPEstimator from '../artifacts/contracts/oracles/estimators/UniswapV2LPEstimator.sol/UniswapV2LPEstimator.json'
 import YEarnV2Estimator from '../artifacts/contracts/oracles/estimators/YEarnV2Estimator.sol/YEarnV2Estimator.json'
 import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
 import CurveDepositZapRegistry from '../artifacts/contracts/oracles/registries/CurveDepositZapRegistry.sol/CurveDepositZapRegistry.json'
@@ -33,9 +30,7 @@ import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter
 import FullRouter from '../artifacts/contracts/routers/FullRouter.sol/FullRouter.json'
 import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRouter.sol/BatchDepositRouter.json'
 import MulticallRouter from '../artifacts/contracts/routers/MulticallRouter.sol/MulticallRouter.json'
-// import EnsoStakingAdapter from '../artifacts/contracts/adapters/staking/EnsoStakingAdapter.sol/EnsoStakingAdapter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
-// import UniswapV2LPAdapter from '../artifacts/contracts/adapters/liquidity/UniswapV2LPAdapter.sol/UniswapV2LPAdapter.json'
 import UniswapV3Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json'
 import MetaStrategyAdapter from '../artifacts/contracts/adapters/strategy/MetaStrategyAdapter.sol/MetaStrategyAdapter.json'
 import AaveV2Adapter from '../artifacts/contracts/adapters/lending/AaveV2Adapter.sol/AaveV2Adapter.json'
@@ -44,10 +39,8 @@ import CompoundAdapter from '../artifacts/contracts/adapters/lending/CompoundAda
 import CurveAdapter from '../artifacts/contracts/adapters/exchanges/CurveAdapter.sol/CurveAdapter.json'
 import CurveLPAdapter from '../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json'
 import CurveGaugeAdapter from '../artifacts/contracts/adapters/vaults/CurveGaugeAdapter.sol/CurveGaugeAdapter.json'
-// import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json'
 import SynthetixAdapter from '../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json'
 import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json'
-// import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
 const { AddressZero } = constants
 
 export class LiveEnvironment {
@@ -84,7 +77,6 @@ export type LiveAdapters = {
 	leverage: Contract
 	synthetix: Contract
 	metastrategy: Contract
-	uniswapV2LP: Contract
 	uniswapV2: Contract
 	uniswapV3: Contract
 	yearnV2: Contract
@@ -101,7 +93,6 @@ export enum AdapterTypes {
 	Leverage = 'leverage',
 	MetaStrategy = 'metastrategy',
 	Synthetix = 'synthetix',
-	UniswapV2LP = 'uniswapv2lp',
 	UniswapV2 = 'uniswapv2',
 	UniswapV3 = 'uniswapv3',
 	YEarnV2 = 'yearnv2'
@@ -131,7 +122,6 @@ export type Estimators = {
     compound: Contract
     curveLP: Contract
     curveGauge: Contract
-    uniswapV2LP: Contract
     yearnV2: Contract
 }
 
@@ -140,14 +130,13 @@ export function liveEstimators(signer: SignerWithAddress) {
     const addrs = deployments.mainnet;
     const defaultEstimator = new Contract(addrs.DefaultEstimator, DefaultEstimator.abi, signer)
     const chainlink = new Contract(addrs.ChainlinkOracle, DefaultEstimator.abi, signer)
-    const strategy = new Contract(addrs.StrategyEstimator, StrategyEstimator.abi, signer) 
+    const strategy = new Contract(addrs.StrategyEstimator, StrategyEstimator.abi, signer)
     const emergency = new Contract(addrs.EmergencyEstimator, EmergencyEstimator.abi, signer)
     const aaveV2 = new Contract(addrs.AaveV2Estimator, AaveV2Estimator.abi, signer)
 	const aaveV2Debt = new Contract(addrs.AaveV2DebtEstimator, AaveV2DebtEstimator.abi, signer)
     const compound = new Contract(addrs.CompoundEstimator, CompoundEstimator.abi, signer)
 	const curveLP = new Contract(addrs.CurveLPEstimator, CurveLPEstimator.abi, signer)
 	const curveGauge = new Contract(addrs.CurveGaugeEstimator, CurveGaugeEstimator.abi, signer)
-	const uniswapV2LP = new Contract(addrs.UniswapV2LPEstimator, UniswapV2LPEstimator.abi, signer)
 	const yearnV2 = new Contract(addrs.YEarnV2Estimator, YEarnV2Estimator.abi, signer)
     const estimators: Estimators = {
        defaultEstimator,
@@ -159,7 +148,6 @@ export function liveEstimators(signer: SignerWithAddress) {
        compound,
        curveLP,
        curveGauge,
-       uniswapV2LP,
        yearnV2
 
     }
@@ -223,13 +211,10 @@ export function liveAdapters(signer: SignerWithAddress): LiveAdapters {
     const curveLP = new Contract(addrs.CurveLPAdapter, CurveLPAdapter.abi, signer)
     const curveGauge = new Contract(addrs.CurveGaugeAdapter, CurveGaugeAdapter.abi, signer)
     // TODO: this is not deployed live yet
-    //const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)  
+    //const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)
     const leverage = new Contract(AddressZero, [], signer.provider)
     const synthetix = new Contract(addrs.SynthetixAdapter, SynthetixAdapter.abi, signer)
     const metastrategy = new Contract(addrs.MetaStrategyAdapter, MetaStrategyAdapter.abi, signer)
-    // TODO: this is not deployed live
-    // const uniswapV2LP = new Contract(addrs.UniswapV2LP, UniswapV2LPAdapter.abi, signer)
-    const uniswapV2LP = new Contract(AddressZero, [], signer.provider)
     const uniswapV2 = new Contract(addrs.UniswapV2Adapter, UniswapV2Adapter.abi, signer)
     const uniswapV3 = new Contract(addrs.UniswapV3Adapter, UniswapV3Adapter.abi, signer)
     const yearnV2 = new Contract(addrs.YEarnV2Adapter, YEarnV2Adapter.abi, signer)
@@ -244,7 +229,6 @@ export function liveAdapters(signer: SignerWithAddress): LiveAdapters {
         leverage,
         synthetix,
         metastrategy,
-        uniswapV2LP,
         uniswapV2,
         uniswapV3,
         yearnV2
@@ -282,5 +266,3 @@ export function getLiveContracts(signer: SignerWithAddress): LiveEnvironment {
     }
     return liveContracts
 }
-
-

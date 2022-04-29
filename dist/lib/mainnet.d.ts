@@ -20,7 +20,6 @@ export declare type LiveAdapters = {
     leverage: Contract;
     synthetix: Contract;
     metastrategy: Contract;
-    uniswapV2LP: Contract;
     uniswapV2: Contract;
     uniswapV3: Contract;
     yearnV2: Contract;
@@ -36,7 +35,6 @@ export declare enum AdapterTypes {
     Leverage = "leverage",
     MetaStrategy = "metastrategy",
     Synthetix = "synthetix",
-    UniswapV2LP = "uniswapv2lp",
     UniswapV2 = "uniswapv2",
     UniswapV3 = "uniswapv3",
     YEarnV2 = "yearnv2"
@@ -63,7 +61,6 @@ export declare type Estimators = {
     compound: Contract;
     curveLP: Contract;
     curveGauge: Contract;
-    uniswapV2LP: Contract;
     yearnV2: Contract;
 };
 export declare function liveEstimators(signer: SignerWithAddress): Estimators;

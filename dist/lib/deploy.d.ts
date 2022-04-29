@@ -32,12 +32,7 @@ export declare function deployBalancerAdapter(owner: SignerWithAddress, balancer
 export declare function deployUniswapV2(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract>;
 export declare function deployUniswapV3(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract[]>;
 export declare function deployPlatform(owner: SignerWithAddress, uniswapOracleFactory: Contract, uniswapV3Factory: Contract, weth: Contract, susd?: Contract, feePool?: string): Promise<Platform>;
-export declare function deployEnsoToken(owner: SignerWithAddress, minter: SignerWithAddress, name: string, symbol: string, mintingAllowedAfter: number): Promise<Contract>;
-export declare function deployEnsoEstimator(owner: SignerWithAddress, sEnso: Contract, defaultEstimator: Contract, strategyFactory: Contract): Promise<Contract>;
-export declare function deployStakedEnsoEstimator(owner: SignerWithAddress, strategyFactory: Contract): Promise<Contract>;
 export declare function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract>;
-export declare function deployEnsoStakingAdapter(owner: SignerWithAddress, staking: Contract, stakingToken: Contract, distributionToken: Contract, weth: Contract): Promise<Contract>;
-export declare function deployUniswapV2LPAdapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract>;
 export declare function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapRouter: Contract, weth: Contract): Promise<Contract>;
 export declare function deployMetaStrategyAdapter(owner: SignerWithAddress, controller: Contract, router: Contract, weth: Contract): Promise<Contract>;
 export declare function deployAaveV2Adapter(owner: SignerWithAddress, addressProvider: Contract, strategyController: Contract, weth: Contract): Promise<Contract>;

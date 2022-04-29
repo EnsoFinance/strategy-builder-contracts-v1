@@ -6,6 +6,8 @@ export declare const MAINNET_ADDRESSES: {
     UNISWAP_V2_FACTORY: string;
     UNISWAP_V3_FACTORY: string;
     UNISWAP_V3_ROUTER: string;
+    KYBER_FACTORY: string;
+    KYBER_ROUTER: string;
     BALANCER_REGISTRY: string;
     BALANCER_FACTORY: string;
     AAVE_ADDRESS_PROVIDER: string;

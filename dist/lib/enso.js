@@ -378,6 +378,7 @@ var EnsoBuilder = /** @class */ (function () {
                                 ((_z = this.adapters) === null || _z === void 0 ? void 0 : _z.uniswap.contract) || NULL_CONTRACT,
                                 ((_0 = this.adapters) === null || _0 === void 0 ? void 0 : _0.aaveV2.contract) || NULL_CONTRACT,
                                 ((_1 = this.adapters) === null || _1 === void 0 ? void 0 : _1.aaveV2Debt.contract) || NULL_CONTRACT,
+                                new ethers_1.Contract(constants_1.MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
                                 usdc,
                                 weth
                             ])];
