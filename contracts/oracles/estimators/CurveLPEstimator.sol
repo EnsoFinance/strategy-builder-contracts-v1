@@ -65,6 +65,12 @@ contract CurveLPEstimator is IEstimator {
                     address[8] memory coins = registry.get_coins(pool);
                     for (uint256 i = 0; i < coinsInPool; i++) {
                         address underlyingToken = coins[i];
+                        uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
+                        if (decimals < 18) {
+                          virtualBalance = virtualBalance.div(10**(18-decimals));
+                        } else if (decimals > 18) {
+                          virtualBalance = virtualBalance.mul(10**(decimals-18));
+                        }
                         try IOracle(msg.sender).estimateItem(virtualBalance, underlyingToken) returns (int256 value) {
                             if (value > 0) {
                               return value;

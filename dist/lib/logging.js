@@ -56,14 +56,14 @@ function displayBalances(wrapper, tokens, weth) {
                     balanceETH = _a.apply(void 0, [(_d.sent()).toString()]);
                     percentETH = balanceETH.times(100).div(total);
                     console.log('\nETH Balance: ', balanceETH.toString());
-                    console.log('ETH Percent: ', percentETH.toFixed(2) + "%");
+                    console.log('ETH Percent: ', "".concat(percentETH.toFixed(2), "%"));
                     _b = BigNumber;
                     return [4 /*yield*/, wrapper.getTokenValue(weth.address)];
                 case 3:
                     balanceWETH = _b.apply(void 0, [(_d.sent()).toString()]);
                     percentWETH = balanceWETH.times(100).div(total);
                     console.log('\nWETH Balance: ', balanceWETH.toString());
-                    console.log('WETH Percent: ', percentWETH.toFixed(4) + "%");
+                    console.log('WETH Percent: ', "".concat(percentWETH.toFixed(4), "%"));
                     i = 0;
                     _d.label = 4;
                 case 4:
@@ -73,9 +73,9 @@ function displayBalances(wrapper, tokens, weth) {
                 case 5:
                     balance = _c.apply(void 0, [(_d.sent()).toString()]);
                     percent = balance.times(100).div(total);
-                    console.log("\nTOK" + i + ": ", tokens[i]);
-                    console.log("TOK" + i + " Balance: ", balance.toString());
-                    console.log("TOK" + i + " Percent: ", percent.toFixed(4) + "%");
+                    console.log("\nTOK".concat(i, ": "), tokens[i]);
+                    console.log("TOK".concat(i, " Balance: "), balance.toString());
+                    console.log("TOK".concat(i, " Percent: "), "".concat(percent.toFixed(4), "%"));
                     _d.label = 6;
                 case 6:
                     i++;

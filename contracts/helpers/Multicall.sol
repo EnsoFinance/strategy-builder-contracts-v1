@@ -2,10 +2,8 @@
 pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
-import "./RevertDebug.sol";
-
 /// @title Multicall - Aggregate internal calls + show revert message
-contract Multicall is RevertDebug {
+contract Multicall {
     struct Call {
         address target;
         bytes callData;
@@ -21,7 +19,12 @@ contract Multicall is RevertDebug {
             (bool success, bytes memory ret) =
                 internalTx.target.call(internalTx.callData);
             if (!success) {
-                revert(_getPrefixedRevertMsg(ret));
+                assembly {
+                    let ptr := mload(0x40)
+                    let size := returndatasize()
+                    returndatacopy(ptr, 0, size)
+                    revert(ptr, size)
+                }
             }
             returnData[i] = ret;
         }

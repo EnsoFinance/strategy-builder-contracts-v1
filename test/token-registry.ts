@@ -169,7 +169,7 @@ describe('TokenRegistry', function () {
 
 	it('Should change estimator categories on a batch of tokens', async function () {
 		const itemCategories = [ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC]
-		const estimatorCategories = [ESTIMATOR_CATEGORY.UNISWAP_V2_LP, ESTIMATOR_CATEGORY.CURVE_GAUGE]
+		const estimatorCategories = [ESTIMATOR_CATEGORY.COMPOUND, ESTIMATOR_CATEGORY.CURVE_GAUGE]
 		const tokens = [this.tokens.aWETH, this.tokens.cUSDC]
 		await this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
 		const results = await Promise.all([
@@ -178,7 +178,7 @@ describe('TokenRegistry', function () {
 			this.tokenRegistry.itemCategories(this.tokens.aWETH),
 			this.tokenRegistry.itemCategories(this.tokens.cUSDC)
 		])
-		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.UNISWAP_V2_LP)
+		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.CURVE_GAUGE)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
 		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)

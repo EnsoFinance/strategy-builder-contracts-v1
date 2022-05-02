@@ -2,6 +2,7 @@ import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
 
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
+import IStrategy from '../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
 import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json'
@@ -59,6 +60,7 @@ export class Estimator {
   curveAdapterAddress: string
   curveLPAdapterAddress: string
   curveGaugeAdapterAddress: string
+  metaStrategyAdapterAddress: string
   synthetixAdapterAddress: string
   uniswapV2AdapterAddress: string
   uniswapV2LPAdapterAddress: string
@@ -77,6 +79,7 @@ export class Estimator {
     curveAdapterAddress: string,
     curveLPAdapterAddress: string,
     curveGaugeAdapterAddress: string,
+    metaStrategyAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
     uniswapV3AdapterAddress: string,
@@ -102,6 +105,7 @@ export class Estimator {
     this.curveAdapterAddress = curveAdapterAddress
     this.curveLPAdapterAddress = curveLPAdapterAddress
     this.curveGaugeAdapterAddress = curveGaugeAdapterAddress
+    this.metaStrategyAdapterAddress = metaStrategyAdapterAddress
     this.synthetixAdapterAddress = synthetixAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV2LPAdapterAddress = AddressZero
@@ -407,6 +411,8 @@ export class Estimator {
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
       case this.curveGaugeAdapterAddress.toLowerCase():
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
+      case this.metaStrategyAdapterAddress.toLowerCase():
+        return this.estimateMetaStrategy(amount, tokenIn, tokenOut)
       case this.synthetixAdapterAddress.toLowerCase():
         return this.estimateSynthetix(amount, tokenIn, tokenOut)
       case this.uniswapV2AdapterAddress.toLowerCase():
@@ -422,7 +428,7 @@ export class Estimator {
 
   async estimateAaveV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Assumes correct tokenIn/tokenOut pairing
-      if (tokenIn === tokenOut) return BigNumber.from('0')
+      if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return BigNumber.from('0')
       return amount
   }
 
@@ -472,7 +478,7 @@ export class Estimator {
           const depositCoins = await this.curveRegistry.get_coins(poolOut);
           for (let i = 0; i < 8; i++) {
               if (depositCoins[i] === AddressZero) break;
-              if (depositCoins[i] === tokenIn) {
+              if (depositCoins[i].toLowerCase() === tokenIn.toLowerCase()) {
                   isDeposit = true;
                   break;
               }
@@ -484,26 +490,41 @@ export class Estimator {
               const withdrawCoins = await this.curveRegistry.get_coins(poolIn);
               for (let i = 0; i < 8; i++) {
                   if (withdrawCoins[i] === AddressZero) break;
-                  if (withdrawCoins[i] === tokenOut) {
+                  if (withdrawCoins[i].toLowerCase() === tokenOut.toLowerCase()) {
                       isWithdraw = true;
                       break;
                   }
               }
               if (isWithdraw) return this.curveWithdrawPrice(amount, tokenIn, tokenOut, poolIn, withdrawCoins);
           }
-      } else if (tokenIn === TRICRYPTO2 || tokenOut === TRICRYPTO2) {
+      } else if (tokenIn.toLowerCase() === TRICRYPTO2.toLowerCase() || tokenOut.toLowerCase() === TRICRYPTO2.toLowerCase()) {
           // tricrypto2 not in registry
           const coins = [USDT, WBTC, WETH]
-          if (tokenIn === TRICRYPTO2) return this.curveWithdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
-          if (tokenOut === TRICRYPTO2) return this.curveDepositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins);
+          if (tokenIn.toLowerCase() === TRICRYPTO2.toLowerCase()) return this.curveWithdrawPrice(amount, tokenIn, tokenOut, TRICRYPTO2_POOL, coins);
+          if (tokenOut.toLowerCase() === TRICRYPTO2.toLowerCase()) return this.curveDepositPrice(amount, tokenIn, TRICRYPTO2_POOL, coins);
       }
       return BigNumber.from(0);
   }
 
   async estimateCurveGauge(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Assumes correct tokenIn/tokenOut pairing
-      if (tokenIn === tokenOut) return BigNumber.from('0')
+      if (tokenIn.toLowerCase() === tokenOut.toLowerCase()) return BigNumber.from('0')
       return amount
+  }
+
+  async estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string) {
+      if (tokenIn.toLowerCase() === WETH.toLowerCase()) {
+        // Deposit
+        const strategy = new Contract(tokenOut, IStrategy.abi, this.signer)
+        return this.deposit(strategy, amount)
+      } else if (tokenOut.toLowerCase() === WETH.toLowerCase()) {
+        // Withdraw
+        const strategy = new Contract(tokenIn, IStrategy.abi, this.signer)
+        return this.withdraw(strategy, amount)
+      } else {
+        // Meta strategies always have weth as an input or output
+        return BigNumber.from('0')
+      }
   }
 
   async estimateSynthetix(amount: BigNumber, tokenIn: string, tokenOut: string) {
@@ -537,11 +558,10 @@ export class Estimator {
   async estimateYearnV2(amount: BigNumber, tokenIn: string, tokenOut: string) {
       // Adapter's spot price is fine since there are no fees/slippage for liquidity providers
       // return (new Contract(this.yearnV2AdapterAddress, IBaseAdapter.abi, this.signer)).spotPrice(amount, tokenIn, tokenOut)
-
       try {
           const vault = new Contract(tokenOut, IYEarnV2Vault.abi, this.signer)
           const token = await vault.token();
-          if (token !== tokenIn) throw new Error("Not compatible");
+          if (token.toLowerCase() !== tokenIn.toLowerCase()) throw new Error("Not compatible");
           const [ decimals, pricePerShare ] = await Promise.all([
             vault.decimals(),
             vault.pricePerShare()
@@ -552,7 +572,7 @@ export class Estimator {
           try {
               const vault = new Contract(tokenIn, IYEarnV2Vault.abi, this.signer)
               const token = await vault.token();
-              if (token !== tokenOut) throw new Error("Not compatible");
+              if (token.toLowerCase() !== tokenOut.toLowerCase()) throw new Error("Not compatible");
               const [ decimals, pricePerShare ] = await Promise.all([
                 vault.decimals(),
                 vault.pricePerShare()
@@ -583,16 +603,9 @@ export class Estimator {
     pool: string,
     coins: string[]
   ) {
-    let coinsInPool;
-    let tokenIndex = 8; // Outside of possible index range. If index not found function will return 0
-    for (let i = 0; i < 8; i++) {
-      if (coins[i] === AddressZero) {
-          coinsInPool = i;
-          break;
-      }
-      if (coins[i] === tokenIn) tokenIndex = i;
-    }
-    if (tokenIndex === 8) return BigNumber.from(0); // Token not found
+    const coinsInPool = coins.filter(coin => coin !== AddressZero).length
+    const tokenIndex = coins.findIndex(coin => coin.toLowerCase() === tokenIn.toLowerCase())
+    if (tokenIndex === -1) return BigNumber.from(0); // Token not found
 
     const depositAmounts = (new Array(coinsInPool)).fill(BigNumber.from(0))
     depositAmounts[tokenIndex] = amount
@@ -614,14 +627,9 @@ export class Estimator {
     let zap = await this.curveDepositZapRegistry.getZap(tokenIn);
     if (zap === AddressZero) zap = pool;
 
-    let tokenIndex;
-    for (let i = 0; i < coins.length; i++) {
-      if (coins[i] === AddressZero) return BigNumber.from(0); // tokenOut is not in list
-      if (coins[i] === tokenOut) {
-          tokenIndex = i;
-          break;
-      }
-    }
+    const tokenIndex = coins.findIndex(coin => coin.toLowerCase() === tokenOut.toLowerCase())
+    if (tokenIndex === -1) return BigNumber.from(0); // Token not found
+
     const indexType = await this.curveDepositZapRegistry.getIndexType(zap);
     return (new Contract(
       zap,

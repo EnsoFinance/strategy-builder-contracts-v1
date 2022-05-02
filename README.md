@@ -11,17 +11,12 @@ git clone git@github.com:EnsoFinance/v1-core.git
 
 Truffle/Hardhat
 ```bash
-yarn install @enso/contracts
+yarn install @ensofinance/v1-core
 ```
 
 Forge
 ```bash
 forge install EnsoFinance/v1-core
-```
-
-Dapptools
-```bash
-dapp install EnsoFinance/v1-core
 ```
 
 ## Compile

@@ -21,7 +21,6 @@ contract UniswapV3Oracle is ProtocolOracle {
     function consult(uint256 amount, address input) public view override returns (uint256) {
         if (input == weth || amount == 0) return amount;
         IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(input);
-        require(poolData.pool != address(0), "Token not initialized");
         return _traversePairs(amount, input, poolData.pair, poolData.pool, registry.timeWindow());
     }
 
@@ -36,7 +35,6 @@ contract UniswapV3Oracle is ProtocolOracle {
         uint256 value = OracleLibrary.getQuoteAtTick(tick, uint128(amount), token, pair);
         if (pair != weth) {
             IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(pair);
-            require(poolData.pool != address(0), "Pair not initialized");
             value = _traversePairs(value, pair, poolData.pair, poolData.pool, timeWindow);
         }
         return value;

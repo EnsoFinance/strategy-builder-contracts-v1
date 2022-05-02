@@ -5,10 +5,10 @@ import dotenv from 'dotenv'
 import '@nomiclabs/hardhat-waffle'
 import '@nomiclabs/hardhat-ethers'
 import 'solidity-coverage'
-import '@typechain/hardhat'
 import './tasks/accounts'
 import './tasks/clean'
 import './tasks/addOwnerFunds'
+import './tasks/addContractsToDefenderAdmin'
 
 dotenv.config()
 
@@ -76,6 +76,7 @@ function getNetworks(): NetworksUserConfig {
 		networks.rinkeby = createTestnetConfig('rinkeby')
 		networks.ropsten = createTestnetConfig('ropsten')
 		networks.ensonet = createTestnetConfig('ensonet')
+		networks.mainnet = createTestnetConfig('mainnet')
 	}
 	return networks
 }
