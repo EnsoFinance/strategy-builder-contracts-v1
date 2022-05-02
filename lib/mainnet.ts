@@ -1,5 +1,5 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { Contract, constants } from 'ethers'
+import { Contract } from 'ethers'
 import { Platform, Administration, Oracles } from './deploy'
 import deployments from '../deployments.json'
 
@@ -43,14 +43,13 @@ import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2X
 import SynthetixAdapter from '../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json'
 import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json'
 import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
-const { AddressZero } = constants
 
 export class LiveEnvironment {
 	signer: SignerWithAddress
 	platform: Platform
 	adapters: LiveAdapters
 	routers: LiveRouters
-    estimators: Estimators
+  estimators: Estimators
 
 	constructor(
 		signer: SignerWithAddress,
@@ -70,7 +69,7 @@ export class LiveEnvironment {
 
 export type LiveAdapters = {
 	aaveV2: Contract
-    aaveV2Debt: Contract
+  aaveV2Debt: Contract
 	balancer: Contract
 	compound: Contract
 	curve: Contract

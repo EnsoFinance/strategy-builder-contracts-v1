@@ -141,6 +141,13 @@ describe('Experimental Strategy', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	it('Should deposit', async function () {
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
+
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(10)
