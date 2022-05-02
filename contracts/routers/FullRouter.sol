@@ -11,11 +11,14 @@ import "../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../libraries/StrategyLibrary.sol";
 import "./StrategyRouter.sol";
 
+struct LeverageItem {
+  address token;
+  uint16 percentage;
+}
+
 contract FullRouter is StrategyTypes, StrategyRouter {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
-
-    uint256 internal constant LTV_DIVISOR = 10000;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
@@ -31,7 +34,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        _startTempEstimateSession(strategy);
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -45,7 +47,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           strategyItems,
           strategyDebt
         );
-        _endTempEstimateSession(strategy);
     }
 
     function withdraw(address strategy, bytes calldata data)
@@ -80,7 +81,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
-        _endTempEstimateSession(strategy);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
@@ -141,7 +141,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimates[strategyItems.length + i]
             );
         }
-        _endTempEstimateSession(strategy);
     }
 
     function restructure(address strategy, bytes calldata data)
@@ -162,7 +161,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory newItems = IStrategy(strategy).items();
         address[] memory newDebt = IStrategy(strategy).debt();
         _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt);
-        _endTempEstimateSession(strategy);
     }
 
     function _batchSell(
@@ -362,10 +360,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 //Apply multiplier
                 uint16 multiplier = abi.decode(tradeData.cache, (uint16));
                 amount = amount.mul(int256(multiplier)).div(int256(DIVISOR));
-                // If this is a deposit we store the amount as our estimate to be used
-                // in the _getLeverageRemaining function. (since deposits don't rely on
-                // estimates from the oracle)
-                if (isDeposit) _setTempEstimate(strategy, token, amount);
             }
             uint256 balance = IERC20(weth).balanceOf(from);
             _buyPath(
@@ -446,7 +440,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         require(data.adapters.length == data.path.length, "Incorrect trade data");
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         IOracle oracle = controller.oracle();
-        address[] memory leverageItems;
+        LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
 
         if (data.path[data.path.length-1] != weth) {
@@ -454,25 +448,26 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
-            leverageItems = abi.decode(data.cache, (address[]));
+            leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
             if (amount == 0) {
                 // Special case where debt doesn't need to change but the relative amounts of leverage tokens do. We must first deleverage our debt
                 for (uint256 i = 0; i < leverageItems.length; i++) {
-                    leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i], total, false, false);
+                    leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false);
                     amount = amount.add(leverageLiquidity[i]);
                 }
             } else {
                 uint256 leverageAmount = amount; // amount is denominated in weth here
                 for (uint256 i = 0; i < leverageItems.length; i++) {
+                    address token = leverageItems[i].token;
                     if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
-                        uint256 liquidity = _getLeverageRemaining(oracle, strategy, leverageItems[i], total, false, false);
+                        uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false);
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
                     } else {
                         leverageLiquidity[i] = leverageAmount;
-                        _setTempEstimate(strategy, leverageItems[i], oracle.estimateItem(
-                          IERC20(leverageItems[i]).balanceOf(strategy),
-                          leverageItems[i]
+                        _setTempEstimate(strategy, token, oracle.estimateItem(
+                          IERC20(token).balanceOf(strategy),
+                          token
                         ));
                     }
                     leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
@@ -489,7 +484,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 for (uint256 i = 0; i < leverageItems.length; i++) {
                     if (leverageLiquidity[i] > 0 && availableBorrowsETH > 0) {
                         // Only deleverage token when there is a disparity between the expected value and the estimated value
-                        uint256 leverageAmount = _deleverage(oracle, strategy, leverageItems[i], leverageLiquidity[i], availableBorrowsETH);
+                        uint256 leverageAmount = _deleverage(oracle, strategy, leverageItems[i].token, leverageLiquidity[i], availableBorrowsETH);
                         leverageLiquidity[i] = leverageLiquidity[i].sub(leverageAmount);
                         availableBorrowsETH = availableBorrowsETH.sub(leverageAmount);
                         if (leverageLiquidity[i] > 0) isLiquidityRemaining = true; // Liquidity still remaining
@@ -551,16 +546,21 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         // since final token can differ from the debt token defined in the strategy
         require(data.adapters.length == data.path.length, "Incorrect trade data");
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
-        address[] memory leverageItems;
+        LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
 
         if (data.path[data.path.length-1] == weth && data.cache.length > 0) {
-            leverageItems = abi.decode(data.cache, (address[]));
+            leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
-
-            IOracle oracle = controller.oracle();
-            for (uint256 i = 0; i < leverageItems.length; i++) {
-                leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i], total, true, isDeposit);
+            if (isDeposit) {
+              for (uint256 i = 0; i < leverageItems.length; i++) {
+                  leverageLiquidity[i] = _getLeveragePercentage(strategy, leverageItems[i].token, leverageItems[i].percentage, total);
+              }
+            } else {
+              IOracle oracle = controller.oracle();
+              for (uint256 i = 0; i < leverageItems.length; i++) {
+                  leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, true);
+              }
             }
         }
 
@@ -608,7 +608,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     // Since we're inside a while loop, the last item will be when `amount` == 0
                     bool lastItem = amount == 0 && i == leverageItems.length - 1;
                     if (leverageLiquidity[i] > 0 || lastItem) {
-                        uint256 leverageAmount = _leverage(strategy, leverageItems[i], leverageLiquidity[i], lastItem);
+                        uint256 leverageAmount = _leverage(strategy, leverageItems[i].token, leverageLiquidity[i], lastItem);
                         if (leverageAmount > leverageLiquidity[i]) {
                             // Sometimes we may pay more than needed such as when we reach the lastItem
                             // and we use the remaining weth (rather than leave it in this contract) so
@@ -626,28 +626,28 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
+    function _getLeveragePercentage(
+      address strategy,
+      address leverageItem,
+      uint256 leveragePercentage,
+      uint256 total
+    ) internal returns (uint256) {
+      int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
+      return uint256(expected).mul(leveragePercentage).div(DIVISOR);
+    }
+
     function _getLeverageRemaining(
         IOracle oracle,
         address strategy,
         address leverageItem,
         uint256 total,
-        bool isLeveraging,
-        bool isDeposit
+        bool isLeveraging
     ) internal returns (uint256) {
         int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
-        int256 estimate;
-        if (isDeposit) {
-            // Since deposits can't use the oracle's estimate of the collateral,
-            // we rely on the estimated value stored in the _buyToken function
-            estimate = _getTempEstimate(strategy, leverageItem);
-            _removeTempEstimate(strategy, leverageItem);
-        } else {
-            //
-            estimate = oracle.estimateItem(
-                IERC20(leverageItem).balanceOf(strategy),
-                leverageItem
-            );
-        }
+        int256 estimate = oracle.estimateItem(
+            IERC20(leverageItem).balanceOf(strategy),
+            leverageItem
+        );
         if (isLeveraging) {
             if (expected > estimate) return uint256(expected.sub(estimate));
         } else {
@@ -726,17 +726,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     function _startTempEstimateSession(address strategy) private {
         /*
-          To ensure that a stale "temp" estimate isn't leaked into other function calls 
-          by not being "delete"d in the same external call in which it is set, we 
-          associate to each external call a "session counter" so that it only deals with 
+          To ensure that a stale "temp" estimate isn't leaked into other function calls
+          by not being "delete"d in the same external call in which it is set, we
+          associate to each external call a "session counter" so that it only deals with
           temp values corresponding to its own session.
         **/
 
         ++_tempEstimate[0][strategy][address(0)]; // ++counter
-    }
-
-    function _endTempEstimateSession(address strategy) private {
-        --_tempEstimate[1][strategy][address(1)]; // entered -> 0
     }
 
     function _getCurrentTempEstimateSession(address strategy) private view returns(int256) {
