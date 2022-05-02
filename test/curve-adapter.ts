@@ -18,6 +18,7 @@ import {
 	deployLoopRouter
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES } from '../lib/constants'
+//import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -210,14 +211,14 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const name = 'Curve ETHBTC Strategy'
 		const symbol = 'ETHBTC'
 		const positions = [
-			{ token: dai.address, percentage: BigNumber.from(200) },
+			{ token: dai.address, percentage: BigNumber.from(400) },
 			{ token: tokens.crvREN,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address],
 				path: [tokens.wbtc]
 			},
 			{ token: tokens.crvSETH,
-				percentage: BigNumber.from(400),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address],
 				path: [tokens.sETH]
 			},
@@ -225,7 +226,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
-			rebalanceThreshold: BigNumber.from(10),
+			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(980), // Needs to tolerate more slippage
 			performanceFee: BigNumber.from(0),
@@ -320,7 +321,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
-			rebalanceThreshold: BigNumber.from(10),
+			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(995),
 			performanceFee: BigNumber.from(0),
