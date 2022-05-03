@@ -17,8 +17,8 @@ export class Tokens {
 	crv: string
 	knc: string
 	yfi: string
-  oldAXS: string
-  newAXS: string
+	oldAXS: string
+	newAXS: string
 	// Ren
 	renBTC: string
 	// Synth
