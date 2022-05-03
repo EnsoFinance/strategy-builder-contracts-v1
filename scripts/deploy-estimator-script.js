@@ -5,6 +5,7 @@
 // Runtime Environment's members available in the global scope.
 const hre = require('hardhat')
 const { waitForDeployment, waitForTransaction } = require('./common')
+const { ESTIMATOR_CATEGORY } = require('../lib/constants')
 const deployments = require('../deployments.json')
 const external = {
   mainnet: {
@@ -38,14 +39,8 @@ if (process.env.HARDHAT_NETWORK) {
   }
 }
 
-//const ADAPTER_NAME = 'CurveLPAdapter'
-//const params = [externalContracts.curveAddressProvider, deployedContracts.CurveDepositZapRegistry, externalContracts.weth]
-
-//const ADAPTER_NAME = 'UniswapV3Adapter'
-//const params = [deployedContracts.UniswapV3Registry, externalContracts.uniswapV3Router, externalContracts.weth]
-
-const ADAPTER_NAME = 'AaveV2Adapter'
-const params = [externalContracts.aaveAddressProvider, deployedContracts.StrategyController, externalContracts.weth]
+const ESTIMATOR_NAME = 'CurveLPEstimator'
+const CATEGORY = ESTIMATOR_CATEGORY.CURVE_LP
 
 async function main() {
   // Hardhat always runs the compile task when running scripts with its command
@@ -58,39 +53,24 @@ async function main() {
 	const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address; //smart contract upgrades multisig
 	console.log("Owner: ", owner)
 
-  const Adapter = await hre.ethers.getContractFactory(ADAPTER_NAME)
-  const adapter = await waitForDeployment(async (txArgs) => {
-    return Adapter.deploy(...params, txArgs)
+  const Estimator = await hre.ethers.getContractFactory(ESTIMATOR_NAME)
+  const estimator = await waitForDeployment(async (txArgs) => {
+    return Estimator.deploy(txArgs)
   }, signer)
 
-  if (owner != signer.address) {
-    try {
-      const gasCostProviderAddress = await adapter.gasCostProvider()
-      if (gasCostProviderAddress && gasCostProviderAddress !== hre.ethers.constants.AddressZero) {
-        const GasCostProvider = await hre.ethers.getContractFactory('GasCostProvider')
-        const gasCostProvider = GasCostProvider.attach(gasCostProviderAddress)
-        await waitForTransaction(async (txArgs) => {
-          return gasCostProvider.transferOwnership(owner, txArgs)
-        }, signer)
-      }
-    } catch (e) {
-      console.log(e)
-    }
-  }
+  const Factory = await hre.ethers.getContractFactory('StrategyProxyFactory')
+  const factory = await Factory.attach(deployedContracts['StrategyProxyFactory'])
 
-  const Whitelist = await hre.ethers.getContractFactory('Whitelist')
-  const whitelist = await Whitelist.attach(deployedContracts['Whitelist'])
-
-  const whitelistOwner = await whitelist.owner()
+  const factoryOwner = await factory.owner()
 
   let ownerAccount
-  if (whitelistOwner != signer.address) {
+  if (factoryOwner != signer.address) {
     if (network == 'localhost') {
       await hre.network.provider.request({
         method: 'hardhat_impersonateAccount',
-        params: [whitelistOwner],
+        params: [factoryOwner],
       });
-      ownerAccount = await hre.ethers.getSigner(whitelistOwner);
+      ownerAccount = await hre.ethers.getSigner(factoryOwner);
     }
     // TODO: If mainnet, attempt to trigger a transaction on multisig
   } else {
@@ -98,13 +78,13 @@ async function main() {
   }
 
   if (ownerAccount) {
-    console.log("Whitelist owner: ", ownerAccount.address)
+    console.log("Factory owner: ", ownerAccount.address)
     await waitForTransaction(async (txArgs) => {
-      return whitelist.connect(ownerAccount).approve(adapter.address, txArgs)
+      return factory.connect(ownerAccount).addEstimatorToRegistry(CATEGORY, estimator.address, txArgs)
     }, signer)
   }
 
-  console.log(`${ADAPTER_NAME}: `, adapter.address)
+  console.log(`${ESTIMATOR_NAME}: `, estimator.address)
 }
 
 // We recommend this pattern to be able to use async/await everywhere
