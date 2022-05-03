@@ -17,6 +17,7 @@ export class Tokens {
 	crv: string
 	knc: string
 	yfi: string
+	cream: string
 	// Ren
 	renBTC: string
 	// Synth
@@ -90,6 +91,7 @@ export class Tokens {
 		this.crv = '0xd533a949740bb3306d119cc777fa900ba034cd52'
 		this.knc = '0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202'
 		this.yfi = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e'
+		this.cream = '0x2ba592F78dB6436527729929AAf6c908497cB200'
 		// Ren
 		this.renBTC = '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'
 		// Synthetix
@@ -154,6 +156,7 @@ export class Tokens {
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.knc),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.cream),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sEUR),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sLINK),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sETH),
@@ -220,6 +223,7 @@ export class Tokens {
 			await chainlinkRegistry.connect(owner).addOracle(this.sBTC, this.weth, '0xdeb288f737066589598e9214e782fa5a8ed689e8', false);
 			await chainlinkRegistry.connect(owner).addOracle(this.sDOT, this.sUSD, '0x1c07afb8e2b827c5a4739c6d59ae3a5035f28734', false);
 			await chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', false);
+			await chainlinkRegistry.connect(owner).addOracle(this.cream, this.weth, '0x82597cfe6af8baad7c0d441aa82cbc3b51759607', false);
 		}
 		if (curveDepositZapRegistry) {
 			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851', 0);

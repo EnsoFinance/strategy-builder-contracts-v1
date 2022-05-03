@@ -5,40 +5,48 @@ chai.use(solidity)
 import { ethers } from 'hardhat'
 import { Contract } from '@ethersproject/contracts'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { deploySushiswap, deployTokens, deployUniswapV2Adapter } from '../lib/deploy'
+import { deployUniswapV2Adapter } from '../lib/deploy'
+import { Tokens } from '../lib/tokens'
+import { MAINNET_ADDRESSES } from '../lib/constants'
+import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
+import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+
 const { constants, getSigners } = ethers
 const { WeiPerEther, MaxUint256 } = constants
 
-const NUM_TOKENS = 2
-
 describe('SushiSwapThroughUniswapV2Adapter', function () {
-	let tokens: Contract[], accounts: SignerWithAddress[], sushiswapFactory: Contract, adapter: Contract
+	let accounts: SignerWithAddress[],
+			tokens: Tokens,
+			weth: Contract,
+			cream: Contract,
+			adapter: Contract
 
-	before('Setup SushiSwap, Factory, MulticallRouter', async function () {
+	before('Setup SushiSwap, Factory', async function () {
 		accounts = await getSigners()
-		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
-		sushiswapFactory = await deploySushiswap(accounts[0], tokens)
-		adapter = await deployUniswapV2Adapter(accounts[0], sushiswapFactory, tokens[0])
-		tokens.forEach(async (token) => {
-			await token.approve(adapter.address, constants.MaxUint256)
-		})
+		tokens = new Tokens()
+		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
+		cream = new Contract(tokens.cream, ERC20.abi, accounts[0])
+
+		const sushiswapFactory = new Contract(MAINNET_ADDRESSES.SUSHI_FACTORY, [], accounts[0])
+		adapter = await deployUniswapV2Adapter(accounts[0], sushiswapFactory, weth)
 	})
 
 	it('Should fail to swap: tokens cannot match', async function () {
 		await expect(
-			adapter.swap(1, 0, tokens[0].address, tokens[0].address, accounts[0].address, accounts[0].address)
+			adapter.swap(1, 0, weth.address, weth.address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
 	})
 
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
-		await tokens[1].approve(adapter.address, amount)
+		await weth.deposit({value: amount})
+		await weth.approve(adapter.address, amount)
 		await expect(
 			adapter.swap(
 				amount,
 				MaxUint256,
-				tokens[1].address,
-				tokens[0].address,
+				weth.address,
+				cream.address,
 				accounts[0].address,
 				accounts[0].address
 			)
@@ -47,13 +55,14 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 
 	it('Should swap token for token', async function () {
 		const amount = WeiPerEther
-		await tokens[1].approve(adapter.address, amount)
-		const token0BalanceBefore = await tokens[0].balanceOf(accounts[0].address)
-		const token1BalanceBefore = await tokens[1].balanceOf(accounts[0].address)
-		await adapter.swap(amount, 0, tokens[1].address, tokens[0].address, accounts[0].address, accounts[0].address)
-		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
-		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
-		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
-		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
+		// ETH was already deposited for WETH earlier, no need to deposit more
+		await weth.approve(adapter.address, amount)
+		const wethBalanceBefore = await weth.balanceOf(accounts[0].address)
+		const creamBalanceBefore = await cream.balanceOf(accounts[0].address)
+		await adapter.swap(amount, 0, weth.address, cream.address, accounts[0].address, accounts[0].address)
+		const wethBalanceAfter = await weth.balanceOf(accounts[0].address)
+		const creamBalanceAfter = await cream.balanceOf(accounts[0].address)
+		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
+		expect(creamBalanceBefore.lt(creamBalanceAfter)).to.equal(true)
 	})
 })
