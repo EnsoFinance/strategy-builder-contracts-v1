@@ -17,6 +17,8 @@ export class Tokens {
 	crv: string
 	knc: string
 	yfi: string
+	oldAXS: string
+	newAXS: string
 	// Ren
 	renBTC: string
 	// Synth
@@ -90,6 +92,8 @@ export class Tokens {
 		this.crv = '0xd533a949740bb3306d119cc777fa900ba034cd52'
 		this.knc = '0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202'
 		this.yfi = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e'
+		this.oldAXS = '0xF5D669627376EBd411E34b98F19C868c8ABA5ADA' 
+		this.newAXS = '0xBB0E17EF65F82Ab018d8EDd776e8DD940327B28b'
 		// Ren
 		this.renBTC = '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'
 		// Synthetix
