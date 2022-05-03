@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 
 import "../helpers/StrategyTypes.sol";
 
-contract OtherStrategyTokenStorage is StrategyTypes {
+contract OtherStrategyTokenStorageBad is StrategyTypes {
     bytes32 public DOMAIN_SEPARATOR;
 
     mapping(address => mapping(address => uint256)) internal _allowances;
@@ -37,5 +37,5 @@ contract OtherStrategyTokenStorage is StrategyTypes {
     // New storage slots
     mapping(uint256 => int256) internal _someMapping0;
     // Gap for future storage changes
-    uint256[49] private __gap;
+    uint256[50] private __gap;
 }
