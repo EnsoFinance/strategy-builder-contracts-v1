@@ -520,6 +520,8 @@ export class Estimator {
       } else if (tokenOut.toLowerCase() === WETH.toLowerCase()) {
         // Withdraw
         const strategy = new Contract(tokenIn, IStrategy.abi, this.signer)
+
+        amount = amount.sub(amount.mul(2).div(DIVISOR))
         return this.withdraw(strategy, amount)
       } else {
         // Meta strategies always have weth as an input or output
