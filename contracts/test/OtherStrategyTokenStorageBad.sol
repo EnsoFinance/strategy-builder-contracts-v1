@@ -36,6 +36,7 @@ contract OtherStrategyTokenStorageBad is StrategyTypes {
     mapping(address => TradeData) internal _tradeData;
     // New storage slots
     mapping(uint256 => int256) internal _someMapping0;
+    mapping(uint256 => int256) internal _someMapping1;
     // Gap for future storage changes
-    uint256[50] private __gap;
+    uint256[49] private __gap; // __gap isn't updated for _someMapping1  !!
 }
