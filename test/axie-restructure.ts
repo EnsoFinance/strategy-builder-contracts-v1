@@ -1,4 +1,5 @@
 import chai from 'chai'
+const { expect } = chai
 import hre from 'hardhat'
 import { ethers, waffle } from 'hardhat'
 
@@ -24,10 +25,15 @@ import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import Whitelist from '../artifacts/contracts/Whitelist.sol/Whitelist.json'
 import MulticallRouter from '../artifacts/contracts/routers/MulticallRouter.sol/MulticallRouter.json'
+import LoopRouter from '../artifacts/contracts/routers/LoopRouter.sol/LoopRouter.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import ChainlinkRegistry from '../artifacts/contracts/oracles/registries/ChainlinkRegistry.sol/ChainlinkRegistry.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+
+//import { deployUniswapV3Adapter } from '../lib/deploy'
+//import UniswapV3Registry from '../artifacts/contracts/oracles/registries/UniswapV3Registry.sol/UniswapV3Registry.json'
+
 
 chai.use(solidity)
 
@@ -40,12 +46,15 @@ describe('Axie Strategy Restructure', function () {
         controller: Contract,
         oracle: Contract,
         library: Contract,
+        loopRouter: Contract,
+        //debugUniV3Adapter: Contract,
         strategyAddress: string,
         strategyManager: SignerWithAddress,
         strategy: Contract,
         strategyItems: StrategyItem[],
         wrapper: Contract,
-        tokens: Tokens
+        tokens: Tokens,
+        rebalanceThreshold: BigNumber
 
     before('Setup Uniswap + Factory', async function () {
         accounts = await getSigners()
@@ -66,6 +75,7 @@ describe('Axie Strategy Restructure', function () {
         controller = new Contract(controllerAddress, StrategyController.abi, accounts[0]) 
         library = await waffle.deployContract(accounts[0], StrategyLibrary, [])
 
+        loopRouter = new Contract('0x1777344772BD4FC4b814A788b4858C6B93fD03f2', LoopRouter.abi, accounts[0])
         multicallRouter = new Contract('0x1AbE8C0B6AB2971729e81568f56959e9d07b344d', MulticallRouter.abi, accounts[0])
         const whitelistAddress = '0x5dDB76a626d9EB03Be47f9F9B1f459E675eF8068'
         const whitelist = new Contract(whitelistAddress, Whitelist.abi, accounts[0])
@@ -74,6 +84,7 @@ describe('Axie Strategy Restructure', function () {
             method: "hardhat_impersonateAccount",
             params: [whitelistOwnerAddress],
         })
+        //const whitelistOwner = await ethers.getSigner(whitelistOwnerAddress)
 
         const LibraryWrapper = await getContractFactory('LibraryWrapper', {
             libraries: {
@@ -106,17 +117,34 @@ describe('Axie Strategy Restructure', function () {
         const chainlinkRegistryOwner = await ethers.getSigner(chainlinkRegistryOwnerAddress)
 
         await chainlinkRegistry.connect(chainlinkRegistryOwner).addOracle(newAXS.address, weth.address, '0x8b4fc5b68cd50eac1dd33f695901624a4a1a0a8b', false)
+
+       /* const uniV3Reg = new Contract("0x89682DCa697cbDA6D81940D733805F1fC0157133", UniswapV3Registry.abi, accounts[0])
+        const uniV3RegOwnerAddress = await uniV3Reg.owner()
+        await hre.network.provider.request({
+            method: "hardhat_impersonateAccount",
+            params: [uniV3RegOwnerAddress],
+        })
+        const uniV3RegOwner = await ethers.getSigner(uniV3RegOwnerAddress)
+        await uniV3Reg.connect(uniV3RegOwner).addPool()
+      */
+
+        //debugUniV3Adapter = await deployUniswapV3Adapter(accounts[0], uniV3Reg, loopRouter, weth)
+        //await whitelist.connect(whitelistOwner).approve(debugUniV3Adapter.address)
+        
     })
 
     it('Should restructure', async function () {
+
+        rebalanceThreshold = await strategy.rebalanceThreshold()
         await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, BigNumber.from(500))
         await controller.connect(strategyManager).finalizeValue(strategy.address)
+        
 
         const oldItems = await strategy.items()
         const newPositions = [ // DUMMY to induce type 
             { token: oldAXS.address,
               percentage: BigNumber.from(1000),
-              adapters: [],
+              adapters: ['', ''],
               path: [],
             }
         ]
@@ -126,15 +154,22 @@ describe('Axie Strategy Restructure', function () {
             let tradeData = await strategy.getTradeData(itemAddress)
             let percentage = await strategy.getPercentage(itemAddress)
             if (itemAddress.toLowerCase() === oldAXS.address.toLowerCase()) {
-                itemAddress = newAXS.address 
+                newPositions.push({
+                    token: newAXS.address,
+                    percentage: percentage,
+                    adapters: [tradeData.adapters[0]],
+                    path: [],
+                })
+
+            } else {
+                newPositions.push({
+                    token: itemAddress,
+                    percentage: percentage,
+                    adapters: tradeData.adapters,
+                    path: tradeData.path,
+                })
             }
-            
-            newPositions.push({
-                token: itemAddress,
-                percentage: percentage,
-                adapters: tradeData.adapters,
-                path: tradeData.path,
-            })
+
         }
         const oldSynths = await strategy.synths()
         const oldDebt = await strategy.debt()
@@ -179,7 +214,16 @@ describe('Axie Strategy Restructure', function () {
         .connect(strategyManager)
         .finalizeStructure(strategy.address, multicallRouter.address, data)
 
-        await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, BigNumber.from(0))
+      
+        await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, rebalanceThreshold)
         await controller.connect(strategyManager).finalizeValue(strategy.address)
+    })
+
+    it('Should rebalance strategy', async function () {
+        const tx = await controller.connect(strategyManager).rebalance(strategy.address, loopRouter.address, '0x')
+        const receipt = await tx.wait()
+        console.log('Gas Used: ', receipt.gasUsed.toString())
+		    //await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		    expect(await wrapper.isBalanced()).to.equal(true)
     })
 })
