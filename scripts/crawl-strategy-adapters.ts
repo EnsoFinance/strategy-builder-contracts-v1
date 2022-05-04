@@ -10,9 +10,15 @@ const deployments: {[key: string]: {[key: string]: string}} = deploymentsJSON
 let contracts: {[key: string]: string} = {}
 if (deployments['mainnet']) contracts = deployments['mainnet']
 
-const deprecated: string[] = Object.keys(contracts).filter((contractKey: string) => contractKey.includes('_DEPRECATED'))
-console.log('Deprecated: ', deprecated)
-const deprecatedAddresses = deprecated.map((contractKey: string) => contracts[contractKey])
+const addressMapping: {[key: string]: string} = {}
+const deprecated: string[] = Object.keys(contracts).filter(
+  (contractKey: string) => contractKey.includes('_DEPRECATED')
+)
+
+deprecated.map((deprecatedKey: string) => {
+  const contractKey = deprecatedKey.replace("_DEPRECATED", "")
+  addressMapping[contracts[deprecatedKey]] = contracts[contractKey]
+})
 
 async function crawlStrategies(factory: Contract, signer: SignerWithAddress) {
     const filter = factory.filters.NewStrategy()
@@ -25,12 +31,31 @@ async function crawlStrategies(factory: Contract, signer: SignerWithAddress) {
     for (let i = 0; i < strategies.length; i++) {
       const items = await strategies[i].items()
       for (let j = 0; j < items.length; j++) {
-         const tradeData = await strategies[i].getTradeData(items[j])
-         const intersection = tradeData.adapters.filter((adapter: string) => deprecatedAddresses.includes(adapter))
-         if (intersection.length > 0) {
-           console.log("Update strategy: ", strategies[i].address)
-           console.log("Intersection: ", intersection)
-         }
+        const tradeData = await strategies[i].getTradeData(items[j])
+        const intersection = tradeData.adapters.filter((adapter: string) => addressMapping[adapter] !== undefined)
+        if (intersection.length > 0) {
+          console.log("\nUpdate strategy: ", strategies[i].address)
+          console.log("Strategy Manager", await strategies[i].manager())
+          const adapters = tradeData.adapters.map((adapter: string) => {
+            const newAdapter = addressMapping[adapter]
+            if (newAdapter) {
+              return newAdapter
+            } else {
+              return adapter
+            }
+          })
+          console.log('Old adapters: ', tradeData.adapters)
+          console.log('New adapters: ', adapters)
+          const encoding = strategies[i].interface.encodeFunctionData('updateTradeData', [
+            items[j],
+            {
+             adapters: adapters,
+             path: tradeData.path,
+             cache: tradeData.cache
+            }
+          ])
+          console.log("\nEncoding: ", encoding)
+        }
       }
     }
 }
