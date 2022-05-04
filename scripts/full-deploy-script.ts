@@ -30,6 +30,9 @@ type Addresses = {
 	uniswapV2Factory: string;
 	uniswapV3Factory: string;
 	uniswapV3Router: string;
+	kyberFactory: string;
+	kyberRouter: string;
+	sushiFactory: string;
 	aaveAddressProvider: string;
 	curveAddressProvider: string;
 	synthetixAddressProvider: string;
@@ -46,6 +49,9 @@ const deployedContracts: {[key: string]: Addresses} = {
 		uniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
 		uniswapV3Factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
 		uniswapV3Router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+		kyberFactory: '0x833e4083B7ae46CeA85695c4f7ed25CDAd8886dE',
+		kyberRouter: '0x1c87257f5e8609940bc751a07bb085bb7f8cdbe6',
+		sushiFactory: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
 		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
@@ -60,6 +66,9 @@ const deployedContracts: {[key: string]: Addresses} = {
 		uniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
 		uniswapV3Factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
 		uniswapV3Router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+		kyberFactory: '0x833e4083B7ae46CeA85695c4f7ed25CDAd8886dE',
+		kyberRouter: '0x1c87257f5e8609940bc751a07bb085bb7f8cdbe6',
+		sushiFactory: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac',
 		aaveAddressProvider: '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
 		curveAddressProvider: '0x0000000022D53366457F9d5E68Ec105046FC4383',
 		synthetixAddressProvider: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
@@ -74,6 +83,9 @@ const deployedContracts: {[key: string]: Addresses} = {
 		uniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
 		uniswapV3Factory: '0x1F98431c8aD98523631AE4a59f267346ea31F984',
 		uniswapV3Router: '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+		kyberFactory: '',
+		kyberRouter: '',
+		sushiFactory: '',
 		aaveAddressProvider: '0x88757f2f99175387aB4C6a4b3067c77A695b0349',
 		curveAddressProvider: '',
 		synthetixAddressProvider: '0x84f87E3636Aa9cC1080c07E6C61aDfDCc23c0db6',
@@ -145,7 +157,7 @@ async function main() {
 	const CurveGaugeEstimator = await hre.ethers.getContractFactory('CurveGaugeEstimator')
 	const EmergencyEstimator = await hre.ethers.getContractFactory('EmergencyEstimator')
 	const StrategyEstimator = await hre.ethers.getContractFactory('StrategyEstimator')
-	const UniswapV2LPEstimator = await hre.ethers.getContractFactory('UniswapV2LPEstimator')
+	//const UniswapV2LPEstimator = await hre.ethers.getContractFactory('UniswapV2LPEstimator')
 	const YEarnV2Estimator = await hre.ethers.getContractFactory('YEarnV2Estimator')
 	const Whitelist = await hre.ethers.getContractFactory('Whitelist')
 	const PlatformProxyAdmin = await hre.ethers.getContractFactory('PlatformProxyAdmin')
@@ -168,6 +180,7 @@ async function main() {
 	const CompoundAdapter = await hre.ethers.getContractFactory('CompoundAdapter')
 	const YEarnV2Adapter = await hre.ethers.getContractFactory('YEarnV2Adapter')
 	const Leverage2XAdapter = await hre.ethers.getContractFactory('Leverage2XAdapter')
+	const KyberSwapAdapter = await hre.ethers.getContractFactory('KyberSwapAdapter')
 
 	let tokenRegistry: Contract
 	if (overwrite || !contracts['TokenRegistry'] ) {
@@ -463,6 +476,7 @@ async function main() {
 		}
 	}
 
+	/*
 	if (overwrite || !contracts['UniswapV2LPEstimator'] ) {
 		const uniswapV2LPEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapV2LPEstimator.deploy(txArgs)
@@ -483,6 +497,7 @@ async function main() {
 			}, signer)
 		}
 	}
+	*/
 
 	if (overwrite || !contracts['YEarnV2Estimator'] ) {
 		const yearnV2Estimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
@@ -1003,7 +1018,7 @@ async function main() {
 			}, signer)
 		}
 	}
-
+	
 	if (overwrite || !contracts['Leverage2XAdapter'] ) {
 		const leverageAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return Leverage2XAdapter.deploy(
@@ -1032,6 +1047,45 @@ async function main() {
 			console.log("Whitelisting...")
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(leverageAdapter.address, txArgs)
+			}, signer)
+		}
+	}
+
+	if (overwrite || !contracts['SushiSwapAdapter'] ) {
+		const sushiSwapAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
+			return UniswapV2Adapter.deploy(
+				deployedContracts[network].sushiFactory,
+				deployedContracts[network].weth,
+				txArgs
+			)
+		}, signer)
+
+		add2Deployments('SushiSwapAdapter', sushiSwapAdapter.address)
+
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(sushiSwapAdapter.address, txArgs)
+			}, signer)
+		}
+	}
+
+	if (overwrite || !contracts['KyberSwapAdapter'] ) {
+		const kyberSwapAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
+			return KyberSwapAdapter.deploy(
+				deployedContracts[network].kyberFactory,
+				deployedContracts[network].kyberRouter,
+				deployedContracts[network].weth,
+				txArgs
+			)
+		}, signer)
+
+		add2Deployments('KyberSwapAdapter', kyberSwapAdapter.address)
+
+		if (signer.address === whitelistOwner) {
+			console.log("Whitelisting...")
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(kyberSwapAdapter.address, txArgs)
 			}, signer)
 		}
 	}
