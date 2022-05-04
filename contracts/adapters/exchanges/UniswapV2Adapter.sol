@@ -36,21 +36,21 @@ contract UniswapV2Adapter is BaseAdapter {
 
         address pair = IUniswapV2Factory(factory).getPair(tokenIn, tokenOut);
         require(pair != address(0), "swap: pair does not exist.");
-        uint256 beforeBalance = IERC20(tokenIn).balanceOf(pair);
-        if (from != address(this)) {
-            IERC20(tokenIn).safeTransferFrom(from, pair, amount);
-        } else {
-            IERC20(tokenIn).safeTransfer(pair, amount);
+        {
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(pair);
+            if (from != address(this)) {
+                IERC20(tokenIn).safeTransferFrom(from, pair, amount);
+            } else {
+                IERC20(tokenIn).safeTransfer(pair, amount);
+            }
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(pair);
+            amount = afterBalance.sub(beforeBalance); //In case of transfer fees reducing amount
         }
-        uint256 afterBalance = IERC20(tokenIn).balanceOf(pair);
-        amount = afterBalance.sub(beforeBalance); //In case of transfer fees reducing amount
-
         (uint256 reserveIn, uint256 reserveOut) = UniswapV2Library.getReservesForPair(
             pair,
             tokenIn,
             tokenOut
         );
-
         uint256 received = UniswapV2Library.getAmountOut(amount, reserveIn, reserveOut);
         {
             // Swap and check amount received (after possible transfer fees)
