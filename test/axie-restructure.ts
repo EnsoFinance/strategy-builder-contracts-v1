@@ -136,7 +136,9 @@ describe('Axie Strategy Restructure', function () {
     it('Should restructure', async function () {
 
         rebalanceThreshold = await strategy.rebalanceThreshold()
+        // tx_0
         await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, BigNumber.from(500))
+        // tx_1
         await controller.connect(strategyManager).finalizeValue(strategy.address)
         
 
@@ -177,6 +179,7 @@ describe('Axie Strategy Restructure', function () {
             throw Error("we assume synths and debt are 0")
         }
         strategyItems = prepareStrategy(newPositions, '0xEc36e1e39551ea72a8453C42512b3647fD930db9')// address of UniswapV3Adapter
+        // tx_2
         await controller.connect(strategyManager).restructure(strategy.address, strategyItems)
     })
 
@@ -210,16 +213,20 @@ describe('Axie Strategy Restructure', function () {
         )
         const data = await multicallRouter.encodeCalls(calls)
 
+        // tx_3
         await controller
         .connect(strategyManager)
         .finalizeStructure(strategy.address, multicallRouter.address, data)
 
       
+        // tx_4
         await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, rebalanceThreshold)
+        // tx_5
         await controller.connect(strategyManager).finalizeValue(strategy.address)
     })
 
     it('Should rebalance strategy', async function () {
+        // tx_6
         const tx = await controller.connect(strategyManager).rebalance(strategy.address, loopRouter.address, '0x')
         const receipt = await tx.wait()
         console.log('Gas Used: ', receipt.gasUsed.toString())
