@@ -31,10 +31,6 @@ import ChainlinkRegistry from '../artifacts/contracts/oracles/registries/Chainli
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
-//import { deployUniswapV3Adapter } from '../lib/deploy'
-//import UniswapV3Registry from '../artifacts/contracts/oracles/registries/UniswapV3Registry.sol/UniswapV3Registry.json'
-
-
 chai.use(solidity)
 
 describe('Axie Strategy Restructure', function () {
@@ -117,20 +113,6 @@ describe('Axie Strategy Restructure', function () {
         const chainlinkRegistryOwner = await ethers.getSigner(chainlinkRegistryOwnerAddress)
 
         await chainlinkRegistry.connect(chainlinkRegistryOwner).addOracle(newAXS.address, weth.address, '0x8b4fc5b68cd50eac1dd33f695901624a4a1a0a8b', false)
-
-       /* const uniV3Reg = new Contract("0x89682DCa697cbDA6D81940D733805F1fC0157133", UniswapV3Registry.abi, accounts[0])
-        const uniV3RegOwnerAddress = await uniV3Reg.owner()
-        await hre.network.provider.request({
-            method: "hardhat_impersonateAccount",
-            params: [uniV3RegOwnerAddress],
-        })
-        const uniV3RegOwner = await ethers.getSigner(uniV3RegOwnerAddress)
-        await uniV3Reg.connect(uniV3RegOwner).addPool()
-      */
-
-        //debugUniV3Adapter = await deployUniswapV3Adapter(accounts[0], uniV3Reg, loopRouter, weth)
-        //await whitelist.connect(whitelistOwner).approve(debugUniV3Adapter.address)
-        
     })
 
     it('Should restructure', async function () {
