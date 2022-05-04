@@ -101,7 +101,11 @@ describe('Axie Strategy Restructure', function () {
             params: [strategyProxyFactoryOwnerAddress],
         })
         const strategyProxyFactoryOwner = await ethers.getSigner(strategyProxyFactoryOwnerAddress)
+        // TX_0
         await strategyProxyFactory.connect(strategyProxyFactoryOwner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, newAXS.address)
+        let encoded_TX_0 = strategyProxyFactory.interface.encodeFunctionData('addItemToRegistry', [ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, newAXS.address])
+        console.log("encoded_TX_0")
+        console.log(encoded_TX_0)
 
         // update chainlink registry
         const chainlinkRegistry = new Contract('0x5FBa08541A3Ae1aC019eB7D1343902D37EF7FBc9', ChainlinkRegistry.abi, accounts[0])
@@ -112,7 +116,11 @@ describe('Axie Strategy Restructure', function () {
         })
         const chainlinkRegistryOwner = await ethers.getSigner(chainlinkRegistryOwnerAddress)
 
+        // TX_1
         await chainlinkRegistry.connect(chainlinkRegistryOwner).addOracle(newAXS.address, weth.address, '0x8b4fc5b68cd50eac1dd33f695901624a4a1a0a8b', false)
+        let encoded_TX_1 = chainlinkRegistry.interface.encodeFunctionData('addOracle', [newAXS.address, weth.address, '0x8b4fc5b68cd50eac1dd33f695901624a4a1a0a8b', false])
+        console.log("encoded_TX_1")
+        console.log(encoded_TX_1)
     })
 
     it('Should restructure', async function () {
@@ -120,9 +128,15 @@ describe('Axie Strategy Restructure', function () {
         rebalanceThreshold = await strategy.rebalanceThreshold()
         // tx_0
         await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, BigNumber.from(500))
+        let tx_0 = controller.interface.encodeFunctionData('updateValue', [strategy.address, TIMELOCK_CATEGORY.THRESHOLD, BigNumber.from(500)])
+        console.log("tx_0")
+        console.log(tx_0)
         // tx_1
         await controller.connect(strategyManager).finalizeValue(strategy.address)
-        
+        let tx_1 = controller.interface.encodeFunctionData('finalizeValue', [strategy.address]) 
+        console.log("tx_1")
+        console.log(tx_1)
+
 
         const oldItems = await strategy.items()
         const newPositions = [ // DUMMY to induce type 
@@ -163,6 +177,9 @@ describe('Axie Strategy Restructure', function () {
         strategyItems = prepareStrategy(newPositions, '0xEc36e1e39551ea72a8453C42512b3647fD930db9')// address of UniswapV3Adapter
         // tx_2
         await controller.connect(strategyManager).restructure(strategy.address, strategyItems)
+        let tx_2 = controller.interface.encodeFunctionData('restructure', [strategy.address, strategyItems])
+        console.log("tx_2")
+        console.log(tx_2)
     })
 
     it('Should finalize structure', async function () {
@@ -199,17 +216,32 @@ describe('Axie Strategy Restructure', function () {
         await controller
         .connect(strategyManager)
         .finalizeStructure(strategy.address, multicallRouter.address, data)
+        let tx_3 = controller.interface.encodeFunctionData('finalizeStructure', [
+            strategy.address, multicallRouter.address, data
+        ])
+        console.log("tx_3")
+        console.log(tx_3)
 
       
         // tx_4
         await controller.connect(strategyManager).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, rebalanceThreshold)
+        let tx_4 = controller.interface.encodeFunctionData('updateValue', [strategy.address, TIMELOCK_CATEGORY.THRESHOLD, rebalanceThreshold])
+        console.log("tx_4")
+        console.log(tx_4)
+
         // tx_5
         await controller.connect(strategyManager).finalizeValue(strategy.address)
+        let tx_5 = controller.interface.encodeFunctionData('finalizeValue', [strategy.address])
+        console.log("tx_5")
+        console.log(tx_5)
     })
 
     it('Should rebalance strategy', async function () {
         // tx_6
         const tx = await controller.connect(strategyManager).rebalance(strategy.address, loopRouter.address, '0x')
+        let tx_6 = controller.interface.encodeFunctionData('rebalance', [strategy.address, loopRouter.address, '0x'])
+        console.log("tx_6")
+        console.log(tx_6)
         const receipt = await tx.wait()
         console.log('Gas Used: ', receipt.gasUsed.toString())
 		    //await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
