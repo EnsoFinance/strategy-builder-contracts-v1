@@ -178,7 +178,7 @@ describe('KyberSwapAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
 		const ethBalanceBefore = await accounts[1].getBalance()
-		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '990', '0x')
+		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '985', '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
