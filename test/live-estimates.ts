@@ -1,7 +1,4 @@
-//import chai from 'chai'
-//const { expect } = chai
 import { ethers } from 'hardhat'
-//import { solidity } from 'ethereum-waffle'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Estimator } from '../lib/estimator'
@@ -9,9 +6,7 @@ import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { AddressZero, WeiPerEther } = constants
-
-//chai.use(solidity)
+const { WeiPerEther } = constants
 
 describe('Live Estimates', function () {
 	let	accounts: SignerWithAddress[],
@@ -20,19 +15,7 @@ describe('Live Estimates', function () {
 		controller: Contract,
 		oracle: Contract,
 		eDPI: Contract,
-		eYETI: Contract,
-		aaveV2AdapterAddress: string,
-		compoundAdapterAddress: string,
-		curveAdapterAddress: string,
-		curveLPAdapterAddress: string,
-		curveGaugeAdapterAddress: string,
-		kyberSwapAdapterAddress: string,
-		metaStrategyAdapterAddress: string,
-		sushiSwapAdapterAddress: string,
-		synthetixAdapterAddress: string,
-		uniswapV2AdapterAddress: string,
-		uniswapV3AdapterAddress: string,
-		yearnV2AdapterAddress: string
+		eYETI: Contract
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -48,18 +31,20 @@ describe('Live Estimates', function () {
 			curveDepositZapRegistry
 		} = enso.platform.oracles.registries
 
-		aaveV2AdapterAddress = enso.adapters.aaveV2.address || AddressZero
-		compoundAdapterAddress = enso.adapters.compound.address || AddressZero
-		curveAdapterAddress = enso.adapters.curve.address || AddressZero
-		curveLPAdapterAddress = enso.adapters.curveLP.address || AddressZero
-		curveGaugeAdapterAddress = enso.adapters.curveGauge.address || AddressZero
-		kyberSwapAdapterAddress = enso.adapters.kyberSwap.address || AddressZero
-		metaStrategyAdapterAddress = enso.adapters.metastrategy.address || AddressZero
-		sushiSwapAdapterAddress = enso.adapters.sushiSwap.address || AddressZero
-		synthetixAdapterAddress = enso.adapters.synthetix.address || AddressZero
-		uniswapV2AdapterAddress = enso.adapters.uniswapV2.address || AddressZero
-		uniswapV3AdapterAddress = enso.adapters.uniswapV3.address || AddressZero
-		yearnV2AdapterAddress = enso.adapters.yearnV2.address || AddressZero
+		const {
+			aaveV2,
+			compound,
+			curve,
+			curveLP,
+			curveGauge,
+			kyberSwap,
+			metastrategy,
+			sushiSwap,
+			synthetix,
+			uniswapV2,
+			uniswapV3,
+			yearnV2
+		} = enso.adapters
 
 		estimator = new Estimator(
 			accounts[0],
@@ -67,18 +52,18 @@ describe('Live Estimates', function () {
 			tokenRegistry,
 			uniswapV3Registry,
 			curveDepositZapRegistry,
-			aaveV2AdapterAddress,
-			compoundAdapterAddress,
-			curveAdapterAddress,
-			curveLPAdapterAddress,
-			curveGaugeAdapterAddress,
-			kyberSwapAdapterAddress,
-			metaStrategyAdapterAddress,
-			sushiSwapAdapterAddress,
-			synthetixAdapterAddress,
-			uniswapV2AdapterAddress,
-			uniswapV3AdapterAddress,
-			yearnV2AdapterAddress
+			aaveV2.address,
+			compound.address,
+			curve.address,
+			curveLP.address,
+			curveGauge.address,
+			kyberSwap.address,
+			metastrategy.address,
+			sushiSwap.address,
+			synthetix.address,
+			uniswapV2.address,
+			uniswapV3.address,
+			yearnV2.address
 		)
 
 		const Strategy = await getContractFactory('Strategy')
