@@ -39,19 +39,37 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         total = total.sub(expectedWeth);
 
         // Sell loop
+        uint256 i = 0;
         address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        while (expectedWeth > 0 && i < strategyItems.length) {
             int256 estimatedValue = estimates[i];
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
-            if (estimatedValue > expectedValue) {
+            uint256 diff = 0;
+            {
+                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
+                    total,
+                    strategy,
+                    strategyItems[i]
+                );
+                if (estimatedValue > expectedValue) {
+                    diff = uint256(estimatedValue.sub(expectedValue));
+                    if (diff > expectedWeth) {
+                        diff = expectedWeth;
+                        expectedWeth = 0;
+                    } else {
+                        expectedWeth = expectedWeth.sub(diff);
+                    }
+                }
+            }
+            if (diff > 0) {
                 TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[i]);
                 _sellPath(
                     tradeData,
-                    _estimateSellAmount(strategy, strategyItems[i], uint256(estimatedValue.sub(expectedValue)), uint256(estimatedValue)),
+                    _estimateSellAmount(strategy, strategyItems[i], diff, uint256(estimatedValue)),
                     strategyItems[i],
                     strategy
                 );
             }
+            i++;
         }
     }
 
@@ -66,10 +84,10 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                     strategy,
                     strategyItems[i],
                     estimates[i],
-                    expected 
+                    expected
                 )
             ) buy[i] = expected;
-            // semantic overloading to cache `expected` since it will be used in next loop. 
+            // semantic overloading to cache `expected` since it will be used in next loop.
         }
         // Buy loop
         for (uint256 i = 0; i < strategyItems.length; i++) {

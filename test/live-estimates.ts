@@ -1,16 +1,24 @@
-import { ethers } from 'hardhat'
+import { ethers, network } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Estimator } from '../lib/estimator'
+import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
+import { deployLoopRouter } from '../lib/deploy'
+import { DIVISOR } from '../lib/constants'
+import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
 
+const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
+
 describe('Live Estimates', function () {
 	let	accounts: SignerWithAddress[],
 		estimator: Estimator,
+		tokens: Tokens,
+		weth: Contract,
 		router: Contract,
 		controller: Contract,
 		oracle: Contract,
@@ -20,11 +28,12 @@ describe('Live Estimates', function () {
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
+		tokens = new Tokens()
+    weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 
 		const enso = getLiveContracts(accounts[0])
 		controller = enso.platform.controller
 		oracle = enso.platform.oracles.ensoOracle
-		router = enso.routers.loop
 
 		const {
 			tokenRegistry,
@@ -71,6 +80,17 @@ describe('Live Estimates', function () {
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
+
+		// Impersonate owner
+		await network.provider.request({
+			method: 'hardhat_impersonateAccount',
+			params: [ownerAddress],
+		});
+		const owner = await ethers.getSigner(ownerAddress);
+		// Deploy new router
+		router = await deployLoopRouter(accounts[0], controller, enso.platform.library)
+		// Whitelist
+		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 	})
 
 	it('Should estimate deposit eDPI', async function() {
@@ -81,6 +101,22 @@ describe('Live Estimates', function () {
 		await controller.connect(accounts[1]).deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [ totalAfter ] = await oracle.estimateStrategy(eDPI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+	})
+
+	it('Should estimate withdraw eDPI', async function() {
+		await increaseTime(1)
+		const [ totalBefore, ] = await oracle.estimateStrategy(eDPI.address)
+		const withdrawAmount = await eDPI.balanceOf(accounts[1].address)
+		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+		const totalSupply = await eDPI.totalSupply()
+		const wethBefore = await weth.balanceOf(accounts[1].address)
+		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+    console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+		const estimatedWithdrawValue = await estimator.withdraw(eDPI, withdrawAmountAfterFee)
+		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		await controller.connect(accounts[1]).withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
+		const wethAfter = await weth.balanceOf(accounts[1].address)
+    console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
 	})
 
 	it('Should estimate deposit eYETI', async function() {
