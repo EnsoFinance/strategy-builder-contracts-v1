@@ -284,7 +284,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         Timelock storage lock = _timelocks[address(strategy)];
         require(
             !strategyState.social ||
-                block.timestamp > lock.timestamp.add(uint256(strategyState.timelock)),
+                block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
             "Timelock active"
         );
         require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
@@ -343,7 +343,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
         require(
             !strategyState.social ||
-                block.timestamp > lock.timestamp.add(uint256(strategyState.timelock)),
+                block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
             "Timelock active"
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
@@ -423,24 +423,32 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
         ITokenRegistry registry = oracle().tokenRegistry();
 
+        bool supportsSynths;
+        bool supportsDebt;
+
         int256 total = 0;
         for (uint256 i = 0; i < newItems.length; i++) {
             address item = newItems[i].item;
             require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
             int256 percentage = newItems[i].percentage;
-            if (registry.itemCategories(item) == uint256(ItemCategory.DEBT)) {
+            uint256 itemCategory = registry.itemCategories(item);
+            if (itemCategory == uint256(ItemCategory.DEBT)) {
+              supportsDebt = true;
               require(percentage <= 0, "Debt cannot be positive");
               require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
             } else {
+              if (itemCategory == uint256(ItemCategory.SYNTH))
+                  supportsSynths = true;
               require(percentage >= 0, "Token cannot be negative");
               require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
             }
-            uint256 category = registry.estimatorCategories(item);
-            require(category != uint256(EstimatorCategory.BLOCKED), "Token blocked");
-            if (category == uint256(EstimatorCategory.STRATEGY))
+            uint256 estimatorCategory = registry.estimatorCategories(item);
+            require(estimatorCategory != uint256(EstimatorCategory.BLOCKED), "Token blocked");
+            if (estimatorCategory == uint256(EstimatorCategory.STRATEGY))
                 _checkCyclicDependency(strategy, IStrategy(item), registry);
             total = total.add(percentage);
         }
+        require(!(supportsSynths && supportsDebt), "No synths and debt");
         require(total == int256(DIVISOR), "Total percentage wrong");
         return true;
     }
