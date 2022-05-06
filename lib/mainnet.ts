@@ -4,7 +4,6 @@ import { Platform, Administration, Oracles } from './deploy'
 import deployments from '../deployments.json'
 
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
-// import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
@@ -14,7 +13,6 @@ import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkO
 import AaveV2Estimator from '../artifacts/contracts/oracles/estimators/AaveV2Estimator.sol/AaveV2Estimator.json'
 import AaveV2DebtEstimator from '../artifacts/contracts/oracles/estimators/AaveV2DebtEstimator.sol/AaveV2DebtEstimator.json'
 import BasicEstimator from '../artifacts/contracts/oracles/estimators/BasicEstimator.sol/BasicEstimator.json'
-const DefaultEstimator = BasicEstimator
 import CompoundEstimator from '../artifacts/contracts/oracles/estimators/CompoundEstimator.sol/CompoundEstimator.json'
 import CurveLPEstimator from '../artifacts/contracts/oracles/estimators/CurveLPEstimator.sol/CurveLPEstimator.json'
 import CurveGaugeEstimator from '../artifacts/contracts/oracles/estimators/CurveGaugeEstimator.sol/CurveGaugeEstimator.json'
@@ -39,6 +37,7 @@ import CompoundAdapter from '../artifacts/contracts/adapters/lending/CompoundAda
 import CurveAdapter from '../artifacts/contracts/adapters/exchanges/CurveAdapter.sol/CurveAdapter.json'
 import CurveLPAdapter from '../artifacts/contracts/adapters/liquidity/CurveLPAdapter.sol/CurveLPAdapter.json'
 import CurveGaugeAdapter from '../artifacts/contracts/adapters/vaults/CurveGaugeAdapter.sol/CurveGaugeAdapter.json'
+import KyberSwapAdapter from '../artifacts/contracts/adapters/exchanges/KyberSwapAdapter.sol/KyberSwapAdapter.json'
 import Leverage2XAdapter from '../artifacts/contracts/adapters/borrow/Leverage2XAdapter.sol/Leverage2XAdapter.json'
 import SynthetixAdapter from '../artifacts/contracts/adapters/exchanges/SynthetixAdapter.sol/SynthetixAdapter.json'
 import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapter.sol/YEarnV2Adapter.json'
@@ -49,7 +48,7 @@ export class LiveEnvironment {
 	platform: Platform
 	adapters: LiveAdapters
 	routers: LiveRouters
-  estimators: Estimators
+	estimators: Estimators
 
 	constructor(
 		signer: SignerWithAddress,
@@ -62,7 +61,7 @@ export class LiveEnvironment {
 		this.platform = platform
 		this.adapters = adapters
 		this.routers = routers
-        this.estimators = estimators
+		this.estimators = estimators
 	}
 }
 
@@ -75,9 +74,11 @@ export type LiveAdapters = {
 	curve: Contract
 	curveLP: Contract
 	curveGauge: Contract
+	kyberSwap: Contract
 	leverage: Contract
-	synthetix: Contract
 	metastrategy: Contract
+	sushiSwap: Contract
+	synthetix: Contract
 	uniswapV2: Contract
 	uniswapV3: Contract
 	yearnV2: Contract
@@ -107,38 +108,38 @@ export enum RouterTypes {
 }
 
 export type LiveRouters = {
-    multicall: Contract
-    loop: Contract
-    full: Contract
-    batch: Contract
+	multicall: Contract
+	loop: Contract
+	full: Contract
+	batch: Contract
 }
 
 export type Estimators = {
-    defaultEstimator: Contract
-    chainlink: Contract
-    strategy: Contract
-    emergency: Contract
-    aaveV2: Contract
-    aaveV2Debt: Contract
-    compound: Contract
-    curveLP: Contract
-    curveGauge: Contract
-    yearnV2: Contract
+	defaultEstimator: Contract
+	chainlink: Contract
+	strategy: Contract
+	emergency: Contract
+	aaveV2: Contract
+	aaveV2Debt: Contract
+	compound: Contract
+	curveLP: Contract
+	curveGauge: Contract
+	yearnV2: Contract
 }
 
 export function liveEstimators(signer: SignerWithAddress) {
     if (!deployments.mainnet) throw Error("Deployment addresses not found")
-    const addrs = deployments.mainnet;
-    const defaultEstimator = new Contract(addrs.DefaultEstimator, DefaultEstimator.abi, signer)
-    const chainlink = new Contract(addrs.ChainlinkOracle, DefaultEstimator.abi, signer)
-    const strategy = new Contract(addrs.StrategyEstimator, StrategyEstimator.abi, signer)
-    const emergency = new Contract(addrs.EmergencyEstimator, EmergencyEstimator.abi, signer)
-    const aaveV2 = new Contract(addrs.AaveV2Estimator, AaveV2Estimator.abi, signer)
-	const aaveV2Debt = new Contract(addrs.AaveV2DebtEstimator, AaveV2DebtEstimator.abi, signer)
-    const compound = new Contract(addrs.CompoundEstimator, CompoundEstimator.abi, signer)
-	const curveLP = new Contract(addrs.CurveLPEstimator, CurveLPEstimator.abi, signer)
-	const curveGauge = new Contract(addrs.CurveGaugeEstimator, CurveGaugeEstimator.abi, signer)
-	const yearnV2 = new Contract(addrs.YEarnV2Estimator, YEarnV2Estimator.abi, signer)
+		const addrs = deployments.mainnet;
+		const defaultEstimator = new Contract(addrs.DefaultEstimator, BasicEstimator.abi, signer)
+		const chainlink = new Contract(addrs.ChainlinkEstimator, BasicEstimator.abi, signer)
+		const strategy = new Contract(addrs.StrategyEstimator, StrategyEstimator.abi, signer)
+		const emergency = new Contract(addrs.EmergencyEstimator, EmergencyEstimator.abi, signer)
+		const aaveV2 = new Contract(addrs.AaveV2Estimator, AaveV2Estimator.abi, signer)
+		const aaveV2Debt = new Contract(addrs.AaveV2DebtEstimator, AaveV2DebtEstimator.abi, signer)
+		const compound = new Contract(addrs.CompoundEstimator, CompoundEstimator.abi, signer)
+		const curveLP = new Contract(addrs.CurveLPEstimator, CurveLPEstimator.abi, signer)
+		const curveGauge = new Contract(addrs.CurveGaugeEstimator, CurveGaugeEstimator.abi, signer)
+		const yearnV2 = new Contract(addrs.YEarnV2Estimator, YEarnV2Estimator.abi, signer)
     const estimators: Estimators = {
        defaultEstimator,
        chainlink,
@@ -150,7 +151,6 @@ export function liveEstimators(signer: SignerWithAddress) {
        curveLP,
        curveGauge,
        yearnV2
-
     }
     return estimators
 }
@@ -158,24 +158,23 @@ export function liveEstimators(signer: SignerWithAddress) {
 
 
 export function livePlatform(signer: SignerWithAddress): Platform {
-    if (!deployments.mainnet) throw Error("Deployment addresses not found")
-    const addrs = deployments.mainnet;
-    const strategyLibrary =  new Contract(addrs.StrategyLibrary, StrategyLibrary.abi, signer)
-    const tokenRegistry = new Contract(addrs.TokenRegistry, TokenRegistry.abi, signer)
-    const curveDepositZapRegistry = new Contract(addrs.CurveDepositZapRegistry, CurveDepositZapRegistry.abi, signer)
-    const uniswapV3Registry = new Contract(addrs.UniswapV3Registry, UniswapV3Registry.abi, signer)
-    const chainlinkRegistry = new Contract(addrs.ChainlinkRegistry, ChainlinkRegistry.abi, signer)
-    const uniswapOracle = new Contract(addrs.UniswapOracle, UniswapV3Oracle.abi, signer)
-    const chainlinkOracle = new Contract(addrs.ChainlinkOracle, ChainlinkOracle.abi, signer)
-    const ensoOracle = new Contract(addrs.EnsoOracle, EnsoOracle.abi, signer)
+	if (!deployments.mainnet) throw Error("Deployment addresses not found")
+	const addrs = deployments.mainnet;
+	const strategyLibrary =  new Contract(addrs.StrategyLibrary, StrategyLibrary.abi, signer)
+	const tokenRegistry = new Contract(addrs.TokenRegistry, TokenRegistry.abi, signer)
+	const curveDepositZapRegistry = new Contract(addrs.CurveDepositZapRegistry, CurveDepositZapRegistry.abi, signer)
+	const uniswapV3Registry = new Contract(addrs.UniswapV3Registry, UniswapV3Registry.abi, signer)
+	const chainlinkRegistry = new Contract(addrs.ChainlinkRegistry, ChainlinkRegistry.abi, signer)
+	const uniswapOracle = new Contract(addrs.UniswapOracle, UniswapV3Oracle.abi, signer)
+	const chainlinkOracle = new Contract(addrs.ChainlinkOracle, ChainlinkOracle.abi, signer)
+	const ensoOracle = new Contract(addrs.EnsoOracle, EnsoOracle.abi, signer)
 
-    const whitelist = new Contract(addrs.Whitelist, Whitelist.abi, signer)
+	const whitelist = new Contract(addrs.Whitelist, Whitelist.abi, signer)
 	const platformProxyAdmin = new Contract(addrs.PlatformProxyAdmin, PlatformProxyAdmin.abi, signer)
-    const controller = new Contract(addrs.StrategyController, StrategyController.abi, signer)
-    const factory = new Contract(addrs.StrategyProxyFactory, StrategyProxyFactory.abi, signer)
-    // const strategy = new Contract(addrs.Strategy, Strategy.abi, signer)
+	const controller = new Contract(addrs.StrategyController, StrategyController.abi, signer)
+	const factory = new Contract(addrs.StrategyProxyFactory, StrategyProxyFactory.abi, signer)
 
-    // Oracles
+	// Oracles
 	const oracles: Oracles = {
 		ensoOracle,
 		protocols: {
@@ -190,76 +189,79 @@ export function livePlatform(signer: SignerWithAddress): Platform {
 		}
 	}
 
-    // Admin
+	// Admin
 	const administration: Administration = {
 		whitelist,
 		platformProxyAdmin
 	}
 
 	return new Platform(factory, controller, oracles, administration, strategyLibrary)
-
 }
 
 export function liveAdapters(signer: SignerWithAddress): LiveAdapters {
-    const addrs = deployments.mainnet;
-    const aaveV2 = new Contract(addrs.AaveV2Adapter, AaveV2Adapter.abi, signer)
-    const aaveV2Debt = new Contract(addrs.AaveV2DebtAdapter, AaveV2DebtAdapter.abi, signer)
-    const balancer = new Contract(addrs.BalancerAdapter, BalancerAdapter.abi, signer)
-    const compound = new Contract(addrs.CompoundAdapter, CompoundAdapter.abi, signer)
-    const curve = new Contract(addrs.CurveAdapter, CurveAdapter.abi, signer)
-    const curveLP = new Contract(addrs.CurveLPAdapter, CurveLPAdapter.abi, signer)
-    const curveGauge = new Contract(addrs.CurveGaugeAdapter, CurveGaugeAdapter.abi, signer)
-    const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)
-    const synthetix = new Contract(addrs.SynthetixAdapter, SynthetixAdapter.abi, signer)
-    const metastrategy = new Contract(addrs.MetaStrategyAdapter, MetaStrategyAdapter.abi, signer)
-    const uniswapV2 = new Contract(addrs.UniswapV2Adapter, UniswapV2Adapter.abi, signer)
-    const uniswapV3 = new Contract(addrs.UniswapV3Adapter, UniswapV3Adapter.abi, signer)
-    const yearnV2 = new Contract(addrs.YEarnV2Adapter, YEarnV2Adapter.abi, signer)
-    const liveAdapters: LiveAdapters = {
-        aaveV2,
-        aaveV2Debt,
-        balancer,
-        compound,
-        curve,
-        curveLP,
-        curveGauge,
-        leverage,
-        synthetix,
-        metastrategy,
-        uniswapV2,
-        uniswapV3,
-        yearnV2
-    }
-    return liveAdapters
+	const addrs = deployments.mainnet;
+	const aaveV2 = new Contract(addrs.AaveV2Adapter, AaveV2Adapter.abi, signer)
+	const aaveV2Debt = new Contract(addrs.AaveV2DebtAdapter, AaveV2DebtAdapter.abi, signer)
+	const balancer = new Contract(addrs.BalancerAdapter, BalancerAdapter.abi, signer)
+	const compound = new Contract(addrs.CompoundAdapter, CompoundAdapter.abi, signer)
+	const curve = new Contract(addrs.CurveAdapter, CurveAdapter.abi, signer)
+	const curveLP = new Contract(addrs.CurveLPAdapter, CurveLPAdapter.abi, signer)
+	const curveGauge = new Contract(addrs.CurveGaugeAdapter, CurveGaugeAdapter.abi, signer)
+	const kyberSwap = new Contract(addrs.KyberSwapAdapter, KyberSwapAdapter.abi, signer)
+	const leverage = new Contract(addrs.Leverage2XAdapter, Leverage2XAdapter.abi, signer)
+	const metastrategy = new Contract(addrs.MetaStrategyAdapter, MetaStrategyAdapter.abi, signer)
+	const sushiSwap = new Contract(addrs.SushiSwapAdapter, UniswapV2Adapter.abi, signer)
+	const synthetix = new Contract(addrs.SynthetixAdapter, SynthetixAdapter.abi, signer)
+	const uniswapV2 = new Contract(addrs.UniswapV2Adapter, UniswapV2Adapter.abi, signer)
+	const uniswapV3 = new Contract(addrs.UniswapV3Adapter, UniswapV3Adapter.abi, signer)
+	const yearnV2 = new Contract(addrs.YEarnV2Adapter, YEarnV2Adapter.abi, signer)
+	const liveAdapters: LiveAdapters = {
+		aaveV2,
+		aaveV2Debt,
+		balancer,
+		compound,
+		curve,
+		curveLP,
+		curveGauge,
+		kyberSwap,
+		leverage,
+		metastrategy,
+		sushiSwap,
+		synthetix,
+		uniswapV2,
+		uniswapV3,
+		yearnV2
+	}
+	return liveAdapters
 }
 
 export function liveRouters(signer: SignerWithAddress): LiveRouters {
-    if (!deployments.mainnet) throw Error("Deployment addresses not found")
-    const addrs = deployments.mainnet;
-    const multicall = new Contract(addrs.MulticallRouter, MulticallRouter.abi, signer)
-    const loop = new Contract(addrs.LoopRouter, LoopRouter.abi, signer)
-    const full = new Contract(addrs.FullRouter, FullRouter.abi, signer)
-    const batch = new Contract(addrs.BatchDepositRouter, BatchDepositRouter.abi, signer)
-    const routers: LiveRouters = {
-        multicall,
-        loop,
-        full,
-        batch
-    }
-    return routers
+	if (!deployments.mainnet) throw Error("Deployment addresses not found")
+	const addrs = deployments.mainnet;
+	const multicall = new Contract(addrs.MulticallRouter, MulticallRouter.abi, signer)
+	const loop = new Contract(addrs.LoopRouter, LoopRouter.abi, signer)
+	const full = new Contract(addrs.FullRouter, FullRouter.abi, signer)
+	const batch = new Contract(addrs.BatchDepositRouter, BatchDepositRouter.abi, signer)
+	const routers: LiveRouters = {
+		multicall,
+		loop,
+		full,
+		batch
+	}
+	return routers
 }
 
 export function getLiveContracts(signer: SignerWithAddress): LiveEnvironment {
-    const platform = livePlatform(signer);
-    const adapters = liveAdapters(signer);
-    const routers = liveRouters(signer);
-    const estimators = liveEstimators(signer);
-    const liveContracts: LiveEnvironment = {
-        signer,
-        platform,
-        adapters,
-        routers,
-        estimators
-    }
-    return liveContracts
+	const platform = livePlatform(signer);
+	const adapters = liveAdapters(signer);
+	const routers = liveRouters(signer);
+	const estimators = liveEstimators(signer);
+	const liveContracts: LiveEnvironment = {
+		signer,
+		platform,
+		adapters,
+		routers,
+		estimators
+	}
+	return liveContracts
 }

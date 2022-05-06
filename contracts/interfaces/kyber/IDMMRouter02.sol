@@ -53,4 +53,16 @@ interface IDMMRouter02 {
         address to,
         uint256 deadline
     ) external;
+
+    function getAmountsOut(
+        uint256 amountIn,
+        address[] calldata poolsPath,
+        IERC20[] calldata path
+    ) external view returns (uint256[] memory amounts);
+
+    function getAmountsIn(
+        uint256 amountOut,
+        address[] calldata poolsPath,
+        IERC20[] calldata path
+    ) external view returns (uint256[] memory amounts);
 }

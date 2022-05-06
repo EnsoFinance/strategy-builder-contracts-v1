@@ -96,7 +96,9 @@ describe('Estimator', function() {
       curveAdapterAddress,
       curveLPAdapterAddress,
       curveGaugeAdapterAddress,
+      AddressZero,
       metaStrategyAdapterAddress,
+      AddressZero,
       synthetixAdapterAddress,
       uniswapV2AdapterAddress,
       uniswapV3AdapterAddress,
@@ -311,7 +313,7 @@ describe('Estimator', function() {
     const estimatedWithdrawValue = await estimator.withdraw(metaStrategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     let slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
-    if (slippage.gt(999)) slippage = BigNumber.from(999) 
+    if (slippage.gt(999)) slippage = BigNumber.from(999)
     await enso.platform.controller.connect(accounts[1]).withdrawWETH(metaStrategy.address, routerAddress, withdrawAmount, slippage, '0x')
     const wethAfter = await weth.balanceOf(accounts[1].address)
     console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
