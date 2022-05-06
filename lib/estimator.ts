@@ -222,31 +222,50 @@ export class Estimator {
       ])
       const [ totalBefore, estimates ] = strategyEstimate
       const expectedWeth = totalBefore.mul(amount).div(totalSupply)
-      const totalAfter = totalBefore.sub(expectedWeth)
+      const expectedTotal = totalBefore.sub(expectedWeth)
 
-      const amounts: BigNumber[] = await Promise.all(items.map(async (item: string, index: number) => {
+      const amounts = await Promise.all(items.map(async (item: string, index: number) => {
         const [ percentage, data ] = await Promise.all([
           strategy.getPercentage(item),
           strategy.getTradeData(item)
         ])
         const estimatedValue = estimates[index];
-        const expectedValue = percentage.eq('0') ? BigNumber.from('0') : totalAfter.mul(percentage).div(DIVISOR)
+        const expectedValue = percentage.eq('0') ? BigNumber.from('0') : expectedTotal.mul(percentage).div(DIVISOR)
         if (estimatedValue.gt(expectedValue)) {
-            return this.estimateSellPath(
+            const diff = estimatedValue.sub(expectedValue)
+            const wethAmount = await this.estimateSellPath(
                 data,
-                await this.estimateSellAmount(strategy.address, item, estimatedValue.sub(expectedValue), estimatedValue),
+                await this.estimateSellAmount(strategy.address, item, diff, estimatedValue),
                 item
             );
+            return {
+              estimate: estimatedValue.sub(diff).add(wethAmount),
+              wethAmount: wethAmount
+            }
         }
-        return BigNumber.from('0')
+        return {estimate: estimates[index], wethAmount: BigNumber.from('0')}
       }))
-      const percentage = await strategy.getPercentage(WETH);
-      if (percentage.gt('0')) {
-        const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
-        const expectedValue = totalAfter.mul(percentage).div(DIVISOR)
-        if (expectedValue.lt(wethBalance)) amounts.push(wethBalance.sub(expectedValue));
+      const estimateAmounts = amounts.map(amount => amount.estimate)
+      const wethAmounts = amounts.map(amount => amount.wethAmount)
+      const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
+      estimateAmounts.push(wethBalance)
+      wethAmounts.push(wethBalance)
+      const totalAfter = estimateAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
+      const totalWeth = wethAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
+
+      let wethAfterSlippage
+      if (totalBefore.gt(totalAfter)) {
+        const slippageAmount = totalBefore.sub(totalAfter)
+        if (slippageAmount.gt(expectedWeth)) return BigNumber.from(0)
+        wethAfterSlippage = expectedWeth.sub(slippageAmount)
+      } else {
+        wethAfterSlippage = expectedWeth
       }
-      return amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
+      if (wethAfterSlippage.gt(totalWeth)) {
+        return totalWeth
+      } else {
+        return wethAfterSlippage
+      }
   }
 
   async estimateBatchBuy(
@@ -474,8 +493,13 @@ export class Estimator {
   async estimateCurve(amount: BigNumber, tokenIn: string, tokenOut: string) {
       const pool = await this.curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
       if (pool !== AddressZero) {
-          const [ indexIn, indexOut, ] = await this.curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
-          return (new Contract(pool, ICurveStableSwap.abi, this.signer)).get_dy(indexIn, indexOut, amount);
+          const [ indexIn, indexOut, isUnderlying ] = await this.curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
+          const curveStableSwap = new Contract(pool, ICurveStableSwap.abi, this.signer)
+          if (isUnderlying) {
+            return curveStableSwap.get_dy_underlying(indexIn, indexOut, amount);
+          } else {
+            return curveStableSwap.get_dy(indexIn, indexOut, amount);
+          }
       } else {
         return BigNumber.from('0')
       }

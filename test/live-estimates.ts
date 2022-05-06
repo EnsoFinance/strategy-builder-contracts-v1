@@ -15,7 +15,8 @@ describe('Live Estimates', function () {
 		controller: Contract,
 		oracle: Contract,
 		eDPI: Contract,
-		eYETI: Contract
+		eYETI: Contract,
+		eYLA: Contract
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -69,6 +70,7 @@ describe('Live Estimates', function () {
 		const Strategy = await getContractFactory('Strategy')
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
+		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 	})
 
 	it('Should estimate deposit eDPI', async function() {
@@ -89,6 +91,17 @@ describe('Live Estimates', function () {
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [ totalAfter ] = await oracle.estimateStrategy(eYETI.address)
+		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+	})
+
+	it('Should estimate deposit eYLA', async function() {
+		await increaseTime(1)
+		const [ totalBefore, ] = await oracle.estimateStrategy(eYLA.address)
+		const depositAmount = WeiPerEther
+		const estimatedDepositValue = await estimator.deposit(eYLA, depositAmount)
+		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+		await controller.connect(accounts[1]).deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
+		const [ totalAfter ] = await oracle.estimateStrategy(eYLA.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 })
