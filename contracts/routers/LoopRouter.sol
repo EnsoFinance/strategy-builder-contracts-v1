@@ -38,17 +38,19 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         uint256 expectedWeth = total.mul(percentage).div(10**18);
         total = total.sub(expectedWeth);
 
+        address[] memory strategyItems = IStrategy(strategy).items();
+
         // Sell loop
         uint256 i = 0;
-        address[] memory strategyItems = IStrategy(strategy).items();
         while (expectedWeth > 0 && i < strategyItems.length) {
+            address strategyItem = strategyItems[i];
             int256 estimatedValue = estimates[i];
             uint256 diff = 0;
             {
                 int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
                     total,
                     strategy,
-                    strategyItems[i]
+                    strategyItem
                 );
                 if (estimatedValue > expectedValue) {
                     diff = uint256(estimatedValue.sub(expectedValue));
@@ -61,11 +63,10 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 }
             }
             if (diff > 0) {
-                TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[i]);
                 _sellPath(
-                    tradeData,
-                    _estimateSellAmount(strategy, strategyItems[i], diff, uint256(estimatedValue)),
-                    strategyItems[i],
+                    IStrategy(strategy).getTradeData(strategyItem),
+                    _estimateSellAmount(strategy, strategyItem, diff, uint256(estimatedValue)),
+                    strategyItem,
                     strategy
                 );
             }

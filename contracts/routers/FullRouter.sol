@@ -62,24 +62,45 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         total = total.sub(expectedWeth);
 
         address[] memory strategyItems = IStrategy(strategy).items();
+
         // Deleverage debt
         _deleverageForWithdraw(strategy, strategyItems, estimates, total);
+
         // Sell loop
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        uint256 i = 0;
+        while (expectedWeth > 0 && i < strategyItems.length) {
+            address strategyItem = strategyItems[i];
             int256 estimatedValue = estimates[i];
-            if (_getTempEstimate(strategy, strategyItems[i]) > 0) {
-                estimatedValue = _getTempEstimate(strategy, strategyItems[i]);
-                _removeTempEstimate(strategy, strategyItems[i]);
+            if (_getTempEstimate(strategy, strategyItem) > 0) {
+                estimatedValue = _getTempEstimate(strategy, strategyItem);
+                _removeTempEstimate(strategy, strategyItem);
             }
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
-            if (estimatedValue > expectedValue) {
+            uint256 diff = 0;
+            {
+                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
+                    total,
+                    strategy,
+                    strategyItem
+                );
+                if (estimatedValue > expectedValue) {
+                    diff = uint256(estimatedValue.sub(expectedValue));
+                    if (diff > expectedWeth) {
+                        diff = expectedWeth;
+                        expectedWeth = 0;
+                    } else {
+                        expectedWeth = expectedWeth.sub(diff);
+                    }
+                }
+            }
+            if (diff > 0) {
                 _sellPath(
-                    IStrategy(strategy).getTradeData(strategyItems[i]),
-                    _estimateSellAmount(strategy, strategyItems[i], uint256(estimatedValue.sub(expectedValue)), uint256(estimatedValue)),
-                    strategyItems[i],
+                    IStrategy(strategy).getTradeData(strategyItem),
+                    _estimateSellAmount(strategy, strategyItem, diff, uint256(estimatedValue)),
+                    strategyItem,
                     strategy
                 );
             }
+            i++;
         }
     }
 
