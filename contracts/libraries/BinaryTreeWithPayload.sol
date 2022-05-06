@@ -19,6 +19,12 @@ library BinaryTreeWithPayload {
         return tree;
     }
 
+    function newNode() internal returns(Tree memory) {
+        Tree memory tree;
+        tree.neighbors = new Tree[](3);
+        return tree;
+    }
+
     function newNode(Tree memory parent, uint256 value, bytes memory payload) internal returns(Tree memory) {
         Tree memory tree;
         tree.exists = true;
@@ -30,6 +36,12 @@ library BinaryTreeWithPayload {
     }
 
     function add(Tree memory tree, uint256 value, bytes memory payload) internal {
+        if (!tree.exists) {
+            tree.exists = true;
+            tree.value = value;
+            tree.payload = payload;
+            return;
+	}
         uint256 idx = 1; // left
         if (tree.value < value) idx = 2; // right
         if (tree.neighbors[idx].exists) {

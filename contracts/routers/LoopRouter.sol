@@ -3,9 +3,11 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "../libraries/StrategyLibrary.sol";
+import "../libraries/BinaryTreeWithPayload.sol";
 import "./StrategyRouter.sol";
 
 contract LoopRouter is StrategyTypes, StrategyRouter {
+    using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
     constructor(address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {}
 
@@ -34,43 +36,48 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
     {
         (uint256 percentage, uint256 total, int256[] memory estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
+        total = total.sub(total.mul(percentage).div(10**18)); // total-expectedWeth
 
-        uint256 expectedWeth = total.mul(percentage).div(10**18);
-        total = total.sub(expectedWeth);
+        (uint256[] memory diffs, uint256[] memory indices) = _getSortedDiffs(strategy, estimates, total);
 
-        // Sell loop
-        uint256 i = 0;
         address[] memory strategyItems = IStrategy(strategy).items();
-        while (expectedWeth > 0 && i < strategyItems.length) {
-            int256 estimatedValue = estimates[i];
-            uint256 diff = 0;
-            {
-                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
-                    total,
-                    strategy,
-                    strategyItems[i]
-                );
-                if (estimatedValue > expectedValue) {
-                    diff = uint256(estimatedValue.sub(expectedValue));
-                    if (diff > expectedWeth) {
-                        diff = expectedWeth;
-                        expectedWeth = 0;
-                    } else {
-                        expectedWeth = expectedWeth.sub(diff);
-                    }
-                }
-            }
-            if (diff > 0) {
-                TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[i]);
-                _sellPath(
-                    tradeData,
-                    _estimateSellAmount(strategy, strategyItems[i], diff, uint256(estimatedValue)),
-                    strategyItems[i],
-                    strategy
-                );
-            }
-            i++;
+        // Sell loop
+        uint256 idx;
+        for (int256 i=int256(indices.length-1); i>=0; i--) { // descend to start w max index first
+            idx = indices[uint256(i)]; 
+
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[idx]);
+            _sellPath(
+                tradeData,
+                _estimateSellAmount(strategy, strategyItems[idx], diffs[uint256(i)], uint256(estimates[idx])),
+                strategyItems[idx],
+                strategy
+            );
         }
+    }
+
+    function _getSortedDiffs(address strategy, int256[] memory estimates, uint256 total) private returns(uint256[] memory diffs, uint256[] memory indices) {
+        address[] memory strategyItems = IStrategy(strategy).items();
+        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+        uint256 diff;
+        int256 estimatedValue;
+        uint256 numberAdded;
+        for (uint256 i; i<strategyItems.length; i++) {
+            estimatedValue = estimates[i];
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
+                total,
+                strategy,
+                strategyItems[i]
+            );
+            if (estimatedValue > expectedValue) {
+                diff = uint256(estimatedValue-expectedValue);
+                tree.add(diff, abi.encode(i));
+                numberAdded++;
+            }
+        }
+        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        indices = new uint256[](numberAdded);
+        tree.readInto(diffs, indices);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
