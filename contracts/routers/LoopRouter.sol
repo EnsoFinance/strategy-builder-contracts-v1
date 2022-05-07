@@ -6,6 +6,12 @@ import "../libraries/StrategyLibrary.sol";
 import "../libraries/BinaryTreeWithPayload.sol";
 import "./StrategyRouter.sol";
 
+struct Trade {
+  address strategyItem;
+  int256 estimate;
+  uint256 diff;
+}
+
 contract LoopRouter is StrategyTypes, StrategyRouter {
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
@@ -34,50 +40,29 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        (uint256 percentage, uint256 total, int256[] memory estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
-        total = total.sub(total.mul(percentage).div(10**18)); // total-expectedWeth
+        (Trade[] memory sortedTrades, uint256 expectedWeth) = _getSortedTrades(strategy, data);
 
-        (uint256[] memory diffs, uint256[] memory indices) = _getSortedDiffs(strategy, estimates, total);
-
-        address[] memory strategyItems = IStrategy(strategy).items();
-        // Sell loop
-        uint256 idx;
-        for (int256 i=int256(indices.length-1); i>=0; i--) { // descend to start w max index first
-            idx = indices[uint256(i)];
-
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[idx]);
-            _sellPath(
-                tradeData,
-                _estimateSellAmount(strategy, strategyItems[idx], diffs[uint256(i)], uint256(estimates[idx])),
-                strategyItems[idx],
-                strategy
-            );
-        }
-    }
-
-    function _getSortedDiffs(address strategy, int256[] memory estimates, uint256 total) private returns(uint256[] memory diffs, uint256[] memory indices) {
-        address[] memory strategyItems = IStrategy(strategy).items();
-        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
-        uint256 diff;
-        int256 estimatedValue;
-        uint256 numberAdded;
-        for (uint256 i; i<strategyItems.length; i++) {
-            estimatedValue = estimates[i];
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
-                total,
-                strategy,
-                strategyItems[i]
-            );
-            if (estimatedValue > expectedValue) {
-                diff = uint256(estimatedValue-expectedValue);
-                tree.add(diff, abi.encode(i));
-                numberAdded++;
+        // Only sell enough to cover the expected weth
+        uint256 i = 0;
+        while (expectedWeth > 0 && i < sortedTrades.length) {
+            uint256 diff = sortedTrades[i].diff;
+            if (diff > expectedWeth) {
+                diff = expectedWeth;
+                expectedWeth = 0;
+            } else {
+                expectedWeth = expectedWeth - diff; // Underflow already checked against
             }
+            if (diff > 0) {
+                address strategyItem = sortedTrades[i].strategyItem;
+                _sellPath(
+                    IStrategy(strategy).getTradeData(strategyItem),
+                    _estimateSellAmount(strategy, strategyItem, diff, uint256(sortedTrades[i].estimate)),
+                    strategyItem,
+                    strategy
+                );
+            }
+            i++;
         }
-        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
-        indices = new uint256[](numberAdded);
-        tree.readInto(diffs, indices);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
@@ -205,9 +190,8 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 IStrategy(strategy).rebalanceThreshold()
             );
         if (estimatedValue > expectedValue.add(rebalanceRange)) {
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
             _sellPath(
-                tradeData,
+                IStrategy(strategy).getTradeData(token),
                 _estimateSellAmount(strategy, token, uint256(estimatedValue.sub(expectedValue)), uint256(estimatedValue)),
                 token,
                 strategy
@@ -247,5 +231,58 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 from
             );
         }
+    }
+
+    function _getSortedTrades(
+        address strategy,
+        bytes memory data
+    ) private returns(
+        Trade[] memory sortedTrades,
+        uint256 expectedWeth
+    ) {
+        int256[] memory estimates;
+        uint256 total;
+        {
+            uint256 percentage;
+            (percentage, total, estimates) =
+                abi.decode(data, (uint256, uint256, int256[]));
+
+            expectedWeth = total.mul(percentage).div(10**18);
+            total = total.sub(expectedWeth);
+        }
+        address[] memory strategyItems = IStrategy(strategy).items();
+        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+
+        uint256 numberAdded;
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            address strategyItem = strategyItems[i];
+            int256 estimatedValue = estimates[i];
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
+                total,
+                strategy,
+                strategyItem
+            );
+            if (estimatedValue > expectedValue) {
+                uint256 diff = uint256(estimatedValue - expectedValue);
+                tree.add(diff, abi.encode(strategyItem, estimatedValue));
+                numberAdded++;
+            }
+        }
+
+        sortedTrades = new Trade[](numberAdded);
+        _readIntoTrades(tree, sortedTrades, 0);
+    }
+
+    function _readIntoTrades(BinaryTreeWithPayload.Tree memory tree, Trade[] memory trades, uint256 idx) private {
+        if (tree.neighbors[1].exists) _readIntoTrades(tree.neighbors[1], trades, idx); // left
+        // center
+        (address strategyItem, int256 estimate) = abi.decode(tree.payload, (address, int256));
+        trades[idx] = Trade(
+            strategyItem,
+            estimate,
+            tree.value
+        );
+        idx++;
+        if (tree.neighbors[2].exists) _readIntoTrades(tree.neighbors[2], trades, idx); // right
     }
 }
