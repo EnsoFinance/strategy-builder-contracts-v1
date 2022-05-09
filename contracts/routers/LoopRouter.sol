@@ -34,10 +34,8 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        (uint256[] memory diffs, uint256[] memory indices, uint256 expectedWeth) = _getSortedDiffs(strategy, data);
+        (uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) = _getSortedDiffs(strategy, data);
         address[] memory strategyItems = IStrategy(strategy).items();
-        (,, int256[] memory estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
         // Sell loop
         uint256 idx;
         uint256 diff;
@@ -63,10 +61,9 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _getSortedDiffs(address strategy, bytes calldata data) private returns(uint256[] memory diffs, uint256[] memory indices, uint256 expectedWeth) {
+    function _getSortedDiffs(address strategy, bytes calldata data) private returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) {
 
         uint256 total;
-        int256[] memory estimates;
         {
             uint256 percentage;
             (percentage, total, estimates) =
@@ -95,7 +92,6 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
         indices = new uint256[](numberAdded);
         tree.readInto(diffs, indices);
-        return (diffs, indices, expectedWeth);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
