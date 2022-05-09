@@ -31,7 +31,7 @@ library BinaryTreeWithPayload {
             tree.value = value;
             tree.payload = payload;
             return;
-	      }
+        }
         uint256 idx = 0;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
