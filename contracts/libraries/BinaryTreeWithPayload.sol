@@ -5,7 +5,7 @@ library BinaryTreeWithPayload {
 
     struct Tree {
         bool exists;
-        uint256 value; // sort by value
+        uint256 value; // sort by value in descending order max -> min
         bytes payload; // optional arbitrary payload
         Tree[] neighbors; // 0-left, 1-right
     }
@@ -33,7 +33,7 @@ library BinaryTreeWithPayload {
             return;
 	}
         uint256 idx = 0;
-        if (tree.value < value) idx = 1;
+        if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
             add(tree.neighbors[idx], value, payload);
         } else {

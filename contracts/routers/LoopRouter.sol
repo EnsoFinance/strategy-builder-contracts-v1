@@ -40,10 +40,10 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         uint256 idx;
         uint256 diff;
         if (indices.length < 1) return;
-        int256 i=int256(indices.length-1); // descend from max to lesser values
-        while (expectedWeth>0 && i>=0) {
-            idx = indices[uint256(i)]; 
-            diff = diffs[uint256(i)];
+        uint256 i;
+        while (expectedWeth>0 && i<indices.length) {
+            idx = indices[i]; 
+            diff = diffs[i];
             if (diff > expectedWeth) {
                 diff = expectedWeth;
                 expectedWeth = 0; 
@@ -57,7 +57,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 strategyItems[idx],
                 strategy
             );
-            --i;
+            ++i;
         }
     }
 
