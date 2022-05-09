@@ -32,8 +32,8 @@ library BinaryTreeWithPayload {
             tree.payload = payload;
             return;
 	}
-        uint256 idx = 0; // left
-        if (tree.value < value) idx = 1; // right
+        uint256 idx = 0;
+        if (tree.value < value) idx = 1;
         if (tree.neighbors[idx].exists) {
             add(tree.neighbors[idx], value, payload);
         } else {
@@ -46,9 +46,8 @@ library BinaryTreeWithPayload {
         // center
         uint256 idx = arrayA[arrayA.length-1];
         arrayA[idx] = tree.value;
-        (uint256 decoded) = abi.decode(tree.payload, (uint256));
-        arrayB[idx] = decoded;
-        idx++;
+        arrayB[idx] = abi.decode(tree.payload, (uint256));
+        ++idx;
         arrayA[arrayA.length-1] = idx;
         if (tree.neighbors[1].exists) readInto(tree.neighbors[1], arrayA, arrayB); // right
     }
