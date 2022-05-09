@@ -5,9 +5,9 @@ library BinaryTreeWithPayload {
 
     struct Tree {
         bool exists;
-        uint256 value;
-        bytes payload;
-        Tree[] neighbors; // 0-parent, 1-left, 2-right
+        uint256 value; // sort by value
+        bytes payload; // optional arbitrary payload
+        Tree[] neighbors; // 0-parent, 0-left, 1-right
     }
 
     function newNode(uint256 value, bytes memory payload) internal returns(Tree memory) {
