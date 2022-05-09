@@ -6,6 +6,8 @@ import "../libraries/StrategyLibrary.sol";
 import "../libraries/BinaryTreeWithPayload.sol";
 import "./StrategyRouter.sol";
 
+import "hardhat/console.sol";
+
 contract LoopRouter is StrategyTypes, StrategyRouter {
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
@@ -39,7 +41,6 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         // Sell loop
         uint256 idx;
         uint256 diff;
-        if (indices.length < 1) return;
         uint256 i;
         while (expectedWeth>0 && i<indices.length) {
             idx = indices[i]; 
@@ -51,6 +52,8 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
             TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[idx]);
+            console.log(strategyItems[idx]);
+            console.log(uint256(diff));
             _sellPath(
                 tradeData,
                 _estimateSellAmount(strategy, strategyItems[idx], diff, uint256(estimates[idx])),
