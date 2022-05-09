@@ -60,7 +60,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _getSortedDiffs(address strategy, bytes calldata data) private returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) {
+    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) {
         uint256 total;
         {
             uint256 percentage;

@@ -10,13 +10,13 @@ library BinaryTreeWithPayload {
         Tree[] neighbors; // 0-left, 1-right
     }
 
-    function newNode() internal returns(Tree memory) {
+    function newNode() internal pure returns(Tree memory) {
         Tree memory tree;
         tree.neighbors = new Tree[](2);
         return tree;
     }
 
-    function newNode(uint256 value, bytes memory payload) internal returns(Tree memory) {
+    function newNode(uint256 value, bytes memory payload) internal pure returns(Tree memory) {
         Tree memory tree;
         tree.exists = true;
         tree.value = value;
@@ -25,7 +25,7 @@ library BinaryTreeWithPayload {
         return tree;
     }
 
-    function add(Tree memory tree, uint256 value, bytes memory payload) internal {
+    function add(Tree memory tree, uint256 value, bytes memory payload) internal pure {
         if (!tree.exists) {
             tree.exists = true;
             tree.value = value;
@@ -41,7 +41,7 @@ library BinaryTreeWithPayload {
         }
     }
 
-    function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) internal {
+    function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) internal pure { 
         if (tree.neighbors[0].exists) readInto(tree.neighbors[0], arrayA, arrayB); // left
         // center
         uint256 idx = arrayA[arrayA.length-1];
