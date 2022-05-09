@@ -60,38 +60,6 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) {
-        uint256 total;
-        {
-            uint256 percentage;
-            (percentage, total, estimates) =
-                abi.decode(data, (uint256, uint256, int256[]));
-            expectedWeth = total.mul(percentage).div(10**18);
-            total = total.sub(expectedWeth);
-        }
-        address[] memory strategyItems = IStrategy(strategy).items();
-        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
-        int256 expectedValue;
-        uint256 numberAdded;
-        
-        for (uint256 i; i<strategyItems.length; ++i) {
-            expectedValue = StrategyLibrary.getExpectedTokenValue(
-                total,
-                strategy,
-                strategyItems[i]
-            );
-            int256 estimatedValue = estimates[i];
-            if (estimatedValue > expectedValue) {
-                // condition check above means adding diff that isn't overflowed
-                tree.add(uint256(estimatedValue-expectedValue), abi.encode(i));
-                ++numberAdded;
-            }
-        }
-        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
-        indices = new uint256[](numberAdded);
-        tree.readInto(diffs, indices);
-    }
-
     function rebalance(address strategy, bytes calldata data) external override onlyController {
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -260,4 +228,37 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             );
         }
     }
+
+    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) {
+        uint256 total;
+        {
+            uint256 percentage;
+            (percentage, total, estimates) =
+                abi.decode(data, (uint256, uint256, int256[]));
+            expectedWeth = total.mul(percentage).div(10**18);
+            total = total.sub(expectedWeth);
+        }
+        address[] memory strategyItems = IStrategy(strategy).items();
+        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+        int256 expectedValue;
+        uint256 numberAdded;
+        
+        for (uint256 i; i<strategyItems.length; ++i) {
+            expectedValue = StrategyLibrary.getExpectedTokenValue(
+                total,
+                strategy,
+                strategyItems[i]
+            );
+            int256 estimatedValue = estimates[i];
+            if (estimatedValue > expectedValue) {
+                // condition check above means adding diff that isn't overflowed
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(i));
+                ++numberAdded;
+            }
+        }
+        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        indices = new uint256[](numberAdded);
+        tree.readInto(diffs, indices);
+    }
+
 }
