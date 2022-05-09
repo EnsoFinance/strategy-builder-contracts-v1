@@ -7,7 +7,7 @@ library BinaryTreeWithPayload {
         bool exists;
         uint256 value; // sort by value
         bytes payload; // optional arbitrary payload
-        Tree[] neighbors; // 0-parent, 0-left, 1-right
+        Tree[] neighbors; // 0-parent, 1-left, 2-right
     }
 
     function newNode(uint256 value, bytes memory payload) internal returns(Tree memory) {
