@@ -47,8 +47,7 @@ library BinaryTreeWithPayload {
         uint256 idx = arrayA[arrayA.length-1];
         arrayA[idx] = tree.value;
         arrayB[idx] = abi.decode(tree.payload, (uint256));
-        ++idx;
-        arrayA[arrayA.length-1] = idx;
+        arrayA[arrayA.length-1] = ++idx;
         if (tree.neighbors[1].exists) readInto(tree.neighbors[1], arrayA, arrayB); // right
     }
 }
