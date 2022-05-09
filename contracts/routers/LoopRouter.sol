@@ -41,7 +41,8 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         // Sell loop
         uint256 idx;
         uint256 diff;
-        int256 i=int256(indices.length); // descend from max to lesser values
+        if (indices.length < 1) return;
+        int256 i=int256(indices.length-1); // descend from max to lesser values
         while (expectedWeth>0 && i>=0) {
             idx = indices[uint256(i)]; 
             diff = diffs[uint256(i)];
