@@ -34,13 +34,13 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        (uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth, address[] memory strategyItems) = _getSortedDiffs(strategy, data);
+        (uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) = _getSortedDiffs(strategy, data);
         // Sell loop
-        uint256 idx;
         uint256 diff;
+        address strategyItem;
+        int256 estimate;
         uint256 i;
-        while (expectedWeth > 0 && i < indices.length) {
-            idx = indices[i]; 
+        while (expectedWeth > 0 && i < payloads.length) {
             diff = diffs[i];
             if (diff > expectedWeth) {
                 diff = expectedWeth;
@@ -48,11 +48,12 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             } else {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[idx]);
+            (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
             _sellPath(
                 tradeData,
-                _estimateSellAmount(strategy, strategyItems[idx], diff, uint256(estimates[idx])),
-                strategyItems[idx],
+                _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+                strategyItem,
                 strategy
             );
             ++i;
@@ -262,8 +263,9 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth, address[] memory strategyItems) {
+    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) {
         uint256 total;
+        int256[] memory estimates;
         {
             uint256 percentage;
             (percentage, total, estimates) =
@@ -271,7 +273,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             expectedWeth = total.mul(percentage).div(10**18);
             total = total.sub(expectedWeth);
         }
-        strategyItems = IStrategy(strategy).items();
+        address[] memory strategyItems = IStrategy(strategy).items();
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
         int256 expectedValue;
         uint256 numberAdded;
@@ -285,13 +287,13 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             int256 estimatedValue = estimates[i];
             if (estimatedValue > expectedValue) {
                 // condition check above means adding diff that isn't overflowed
-                tree.add(uint256(estimatedValue-expectedValue), abi.encode(i));
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i]));
                 ++numberAdded;
             }
         }
         diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
-        indices = new uint256[](numberAdded);
-        tree.readInto(diffs, indices);
+        payloads = new bytes[](numberAdded);
+        tree.readInto(diffs, payloads);
     }
 
 }
