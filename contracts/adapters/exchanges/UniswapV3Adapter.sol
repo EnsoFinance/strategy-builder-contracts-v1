@@ -3,6 +3,7 @@ pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
+import "@uniswap/v3-periphery/contracts/lens/Quoter.sol";
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 import "../../interfaces/uniswap/ISwapRouter.sol";
@@ -13,10 +14,13 @@ contract UniswapV3Adapter is BaseAdapter {
 
     IUniswapV3Registry public immutable registry;
     ISwapRouter public immutable router;
+    address private immutable _uniswapV3Quoter;
+
 
     constructor(address registry_, address router_, address weth_) BaseAdapter(weth_) {
         registry = IUniswapV3Registry(registry_);
         router = ISwapRouter(router_);
+        _uniswapV3Quoter = 0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6;
     }
 
     /*
@@ -57,6 +61,27 @@ contract UniswapV3Adapter is BaseAdapter {
         address tokenIn,
         address tokenOut
     ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
+        require(tokenIn != tokenOut, "Tokens cannot match");
+        uint24 fee = registry.getFee(tokenIn, tokenOut);
+        require(fee > 0, "Pair fee not registered");
+        //return _uniswapV3Quoter.quoteExactInputSingle(tokenIn, tokenOut, fee, amount, 0);
+        bytes memory data = abi.encodeWithSelector(
+            bytes4(keccak256("quoteExactInputSingle(address,address,uint24,uint256,uint160)")),
+            tokenIn,
+            tokenOut,
+            fee,
+            amount,
+            0
+        );
+        (bool success, bytes memory res) = _uniswapV3Quoter.staticcall(data);
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
+        return abi.decode(res, (uint256));
     }
 }

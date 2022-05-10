@@ -14,7 +14,7 @@ const { WeiPerEther } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
-const runAll = true 
+const runAll = false 
 
 describe('Live Estimates', function () {
 	let	accounts: SignerWithAddress[],
