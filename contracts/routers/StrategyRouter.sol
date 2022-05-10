@@ -40,7 +40,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
 
     function withdraw(address strategy, bytes calldata data) external virtual override;
 
-    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(uint256[] memory balances, uint256 updatedStrategyWethBalance) {
+    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(int256[] memory balances, uint256 updatedStrategyWethBalance) {
         revert("estimateWithdraw: not supported.");
     }
 
@@ -85,45 +85,87 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         }
     }
 
+    function _estimateSwap(
+        address adapter,
+        uint256 amount,
+        uint256 expected,
+        address tokenIn,
+        address tokenOut,
+        address from,
+        address to
+    ) internal view returns(uint256 value) {
+        // FIXME TODO 
+    }
+
     function _sellPath(
         TradeData memory data,
         uint256 amount,
         address token,
         address strategy
     ) internal {
-        if (amount > 0) {
-            for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
-                uint256 _amount;
-                address _tokenIn;
-                address _tokenOut;
-                address _from;
-                address _to;
-                if (uint256(i) == data.adapters.length-1) {
-                    _tokenIn = token;
-                    _amount = amount;
-                    _from = strategy;
-                } else {
-                    _tokenIn = data.path[uint256(i)];
-                    _from = address(this);
-                    _amount = IERC20(_tokenIn).balanceOf(_from);
-                }
-                if (uint256(i) == 0) {
-                    _tokenOut = weth;
-                    _to = strategy;
-                } else {
-                    _tokenOut = data.path[uint256(i-1)];
-                    _to = address(this);
-                }
-                _delegateSwap(
-                    data.adapters[uint256(i)],
-                    _amount,
-                    1,
-                    _tokenIn,
-                    _tokenOut,
-                    _from,
-                    _to
-                );
-            }
+        if (amount == 0) return;
+        uint256 _amount;
+        address _tokenIn;
+        address _tokenOut;
+        address _from;
+        address _to;
+        for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
+            (_amount, _tokenIn, _tokenOut, _from, _to) = _prepareSale(data, amount, token, strategy, uint256(i));
+            _delegateSwap(
+                data.adapters[uint256(i)],
+                _amount,
+                1,
+                _tokenIn,
+                _tokenOut,
+                _from,
+                _to
+            );
+        }
+    }
+
+    // simulates `_sellPath`
+    function _estimateSellPath(
+        TradeData memory data,
+        uint256 amount,
+        address token,
+        address strategy
+    ) internal view returns(uint256 wethAmount) {
+        if (amount == 0) return 0;
+        uint256 _amount;
+        address _tokenIn;
+        address _tokenOut;
+        address _from;
+        address _to;
+        for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
+            (_amount, _tokenIn, _tokenOut, _from, _to) = _prepareSale(data, amount, token, strategy, uint256(i));
+            wethAmount = wethAmount.add(_estimateSwap(
+                data.adapters[uint256(i)],
+                _amount,
+                1,
+                _tokenIn,
+                _tokenOut,
+                _from,
+                _to
+            ));
+        }
+    }
+
+    function _prepareSale(TradeData memory data, uint256 amount, address token, address strategy, uint256 i) private view returns(uint256 _amount, address _tokenIn, address _tokenOut, address _from, address _to) {
+        if (i == data.adapters.length-1) {
+            _tokenIn = token;
+            _amount = amount;
+            _from = strategy;
+        } else {
+            _tokenIn = data.path[i];
+            _from = address(this);
+            _amount = IERC20(_tokenIn).balanceOf(_from);
+        }
+        if (i == 0) {
+            _tokenOut = weth;
+            _to = strategy;
+        } else {
+            _tokenOut = data.path[i-1];
+            _to = address(this);
         }
     }
 
@@ -135,7 +177,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address from
     ) internal {
         if (amount > 0) {
-            for (uint256 i = 0; i < data.adapters.length; i++) {
+            for (uint256 i = 0; i < data.adapters.length; ++i) {
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut;

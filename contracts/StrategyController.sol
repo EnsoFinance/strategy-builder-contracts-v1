@@ -163,10 +163,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external view {
+    ) external view returns(uint256 wethAmount) {
         _isInitialized(address(strategy));
         //_setStrategyLock(strategy);
-        (address weth, uint256 wethAmount) = _estimateWithdraw(strategy, router, amount, slippage, data);
+        (, wethAmount) = _estimateWithdraw(strategy, router, amount, slippage, data);
         //IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
         //_removeStrategyLock(strategy);
     }
@@ -600,9 +600,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) private view returns(uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, bytes memory data_) {
         _checkDivisor(slippage);
-        IOracle o = oracle();
         int256[] memory estimatesBefore;
-        (totalBefore, estimatesBefore) = o.estimateStrategy(strategy);
+        (totalBefore, estimatesBefore) = oracle().estimateStrategy(strategy);
         balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
         uint256 totalSupply = strategy.totalSupply();
         // Deduct fee and burn strategy tokens
@@ -727,7 +726,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         Action action,
         bytes memory data
     ) internal view returns(uint256 totalAfter, uint256 updatedStrategyWethBalance, int256[] memory estimatesAfter) {
-        uint256[] memory balances;
+        int256[] memory balances;
         //_approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(-1)); // debug different
         if (action == Action.WITHDRAW) {
             (balances, updatedStrategyWethBalance) = router.estimateWithdraw(address(strategy), data);

@@ -14,6 +14,8 @@ const { WeiPerEther } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
+const runAll = true 
+
 describe('Live Estimates', function () {
 	let	accounts: SignerWithAddress[],
 		estimator: Estimator,
@@ -96,18 +98,20 @@ describe('Live Estimates', function () {
 	})
 
 	it('Should estimate deposit eDPI', async function() {
-		const [ totalBefore, ] = await oracle.estimateStrategy(eDPI.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eDPI.address)
 		const depositAmount = WeiPerEther
 		const estimatedDepositValue = await estimator.deposit(eDPI, depositAmount)
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [ totalAfter ] = await oracle.estimateStrategy(eDPI.address)
+		const [ totalAfter ] = await oracle['estimateStrategy(address)'](eDPI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 
 	it('Should estimate withdraw eDPI', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eDPI.address)
+    console.log("debug before")
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eDPI.address)
+    console.log("debug after")
 		const withdrawAmount = await eDPI.balanceOf(accounts[1].address)
 		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
 		const totalSupply = await eDPI.totalSupply()
@@ -123,20 +127,22 @@ describe('Live Estimates', function () {
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
 	})
 
+  if (runAll) {
+
 	it('Should estimate deposit eYETI', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eYETI.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eYETI.address)
 		const depositAmount = WeiPerEther
 		const estimatedDepositValue = await estimator.deposit(eYETI, depositAmount)
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [ totalAfter ] = await oracle.estimateStrategy(eYETI.address)
+		const [ totalAfter ] = await oracle['estimateStrategy(address)'](eYETI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 
 	it('Should estimate withdraw eYETI', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eYETI.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eYETI.address)
 		const withdrawAmount = await eYETI.balanceOf(accounts[1].address)
 		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
 		const totalSupply = await eYETI.totalSupply()
@@ -154,18 +160,18 @@ describe('Live Estimates', function () {
 
 	it('Should estimate deposit eYLA', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eYLA.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eYLA.address)
 		const depositAmount = WeiPerEther
 		const estimatedDepositValue = await estimator.deposit(eYLA, depositAmount)
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [ totalAfter ] = await oracle.estimateStrategy(eYLA.address)
+		const [ totalAfter ] = await oracle['estimateStrategy(address)'](eYLA.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 
 	it('Should estimate withdraw eYLA', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eYLA.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eYLA.address)
 		const withdrawAmount = await eYLA.balanceOf(accounts[1].address)
 		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
 		const totalSupply = await eYLA.totalSupply()
@@ -183,18 +189,18 @@ describe('Live Estimates', function () {
 
 	it('Should estimate deposit eNFTP', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eNFTP.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eNFTP.address)
 		const depositAmount = WeiPerEther
 		const estimatedDepositValue = await estimator.deposit(eNFTP, depositAmount)
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eNFTP.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [ totalAfter ] = await oracle.estimateStrategy(eNFTP.address)
+		const [ totalAfter ] = await oracle['estimateStrategy(address)'](eNFTP.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 
 	it('Should estimate withdraw eNFTP', async function() {
 		await increaseTime(1)
-		const [ totalBefore, ] = await oracle.estimateStrategy(eNFTP.address)
+		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eNFTP.address)
 		const withdrawAmount = await eNFTP.balanceOf(accounts[1].address)
 		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
 		const totalSupply = await eNFTP.totalSupply()
@@ -209,4 +215,5 @@ describe('Live Estimates', function () {
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
 	})
+  }
 })

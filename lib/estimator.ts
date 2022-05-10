@@ -218,7 +218,7 @@ export class Estimator {
       const [ items, totalSupply, strategyEstimate ] = await Promise.all([
         strategy.items(),
         strategy.totalSupply(),
-        this.oracle.estimateStrategy(strategy.address)
+        this.oracle['estimateStrategy(address)'](strategy.address)
       ])
       const [ totalBefore, estimates ] = strategyEstimate
       const expectedWeth = totalBefore.mul(amount).div(totalSupply)

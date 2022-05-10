@@ -60,8 +60,38 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function estimateWithdraw(address strategy, bytes calldata data) external view override returns(uint256[] memory balances, uint256 updatedStrategyWethBalance) {
-        // TODO
+    // simulates `withdraw`
+    function estimateWithdraw(address strategy, bytes calldata data) external view override returns(int256[] memory, uint256) {
+        (uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) = _getSortedDiffs(strategy, data);
+        address[] memory strategyItems = IStrategy(strategy).items();
+        
+        uint256 updatedStrategyWethBalance = IERC20(weth).balanceOf(address(strategy)); // debug different
+
+        // Sell loop
+        uint256 idx;
+        uint256 diff;
+        uint256 i;
+        while (expectedWeth>0 && i<indices.length) {
+            idx = indices[i]; 
+            diff = diffs[i];
+            if (diff > expectedWeth) {
+                diff = expectedWeth;
+                expectedWeth = 0; 
+            } else {
+                expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
+            }
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[idx]);
+            uint256 wethAmount;/* = _estimateSellPath(
+                tradeData,
+                _estimateSellAmount(strategy, strategyItems[idx], diff, uint256(estimates[idx])),
+                strategyItems[idx],
+                strategy
+            );*/
+            estimates[idx] = estimates[idx].sub(int256(diff)).add(int256(wethAmount));
+            updatedStrategyWethBalance = updatedStrategyWethBalance.add(wethAmount);
+            ++i;
+        }
+        return (estimates, updatedStrategyWethBalance);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {

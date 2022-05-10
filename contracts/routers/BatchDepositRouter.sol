@@ -43,7 +43,7 @@ contract BatchDepositRouter is StrategyRouter {
       revert("Withdraw not supported");
     }
 
-    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(uint256[] memory balances, uint256 updatedStrategyWethBalance) {
+    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(int256[] memory balances, uint256 updatedStrategyWethBalance) {
         revert("estimateWithdraw: not supported.");
     }
 
