@@ -60,6 +60,10 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
+    function estimateWithdraw(address strategy, bytes calldata data) external view override returns(uint256[] memory balances, uint256 updatedStrategyWethBalance) {
+        // TODO
+    }
+
     function rebalance(address strategy, bytes calldata data) external override onlyController {
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();

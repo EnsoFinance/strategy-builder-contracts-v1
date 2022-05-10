@@ -71,6 +71,23 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return (uint256(total), estimates);
     }
 
+    // used for StrategyController._estimateWithdraw
+    function estimateStrategy(IStrategy strategy, uint256[] memory balances, uint256 strategyWethBalance) public view override returns(uint256, int256[] memory) {
+        address[] memory strategyItems = strategy.items();
+        int256 total = int256(strategyWethBalance); //WETH is never part of items array but always included in total value
+        int256[] memory estimates = new int256[](strategyItems.length + 1); // +1 for virtual item
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            int256 estimate = estimateItem(
+                balances[i],
+                strategyItems[i]
+            );
+            total = total.add(estimate);
+            estimates[i] = estimate;
+        }
+        require(total >= 0, "Negative total");
+        return (uint256(total), estimates);
+    }
+
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(balance, token);
     }

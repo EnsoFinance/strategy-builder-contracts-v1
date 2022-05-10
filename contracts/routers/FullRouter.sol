@@ -104,6 +104,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
+    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(uint256[] memory balances, uint256 updatedStrategyWethBalance) {
+        revert("estimateWithdraw: not supported.");
+    }
+
     function rebalance(address strategy, bytes calldata data) external override onlyController {
         _startTempEstimateSession(strategy);
         //_startTempEstimateSession(strategy);

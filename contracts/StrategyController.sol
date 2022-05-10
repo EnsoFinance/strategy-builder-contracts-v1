@@ -157,6 +157,20 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
+    function estimateWithdrawWETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) external view {
+        _isInitialized(address(strategy));
+        //_setStrategyLock(strategy);
+        (address weth, uint256 wethAmount) = _estimateWithdraw(strategy, router, amount, slippage, data);
+        //IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
+        //_removeStrategyLock(strategy);
+    }
+
     /**
      * @notice Rebalance the strategy to match the current structure
      * @param router The address of the router that will be doing the handling the trading logic
@@ -529,53 +543,101 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
         require(amount > 0, "0 amount");
-        _checkDivisor(slippage);
         strategy.settleSynths();
         strategy.issueStreamingFee();
-        IOracle o = oracle();
-        (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
-        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
-        {
-            uint256 totalSupply = strategy.totalSupply();
-            // Deduct fee and burn strategy tokens
-            amount = strategy.burn(msg.sender, amount);
-            wethAmount = totalBefore.mul(amount).div(totalSupply);
-            // Setup data
-            if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
-                uint256 percentage = amount.mul(10**18).div(totalSupply);
-                data = abi.encode(percentage, totalBefore, estimatesBefore);
-            }
-        }
+        amount = strategy.burn(msg.sender, amount); // debug different
+
+        uint256 totalBefore;
+        uint256 balanceBefore;
+        (totalBefore, balanceBefore, wethAmount, data) = _withdrawPreprocessing(strategy, router, amount, slippage, data);
+
         // Withdraw
         _useRouter(strategy, router, Action.WITHDRAW, strategy.items(), strategy.debt(), data);
         // Check value and balance
-        (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
-        {
-            // Calculate weth amount
-            weth = _weth;
-            uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
-            uint256 wethAfterSlippage;
-            if (totalBefore > totalAfter) {
-              uint256 slippageAmount = totalBefore.sub(totalAfter);
-              if (slippageAmount > wethAmount) revert("Too much slippage");
-              wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
-            } else {
-              // Value has increased, no slippage to subtract
-              wethAfterSlippage = wethAmount;
-            }
-            if (wethAfterSlippage > wethBalance) {
-                // If strategy's weth balance is less than weth owed, use balance as weth owed
-                _checkSlippage(wethBalance, wethAmount, slippage);
-                wethAmount = wethBalance;
-            } else {
-                _checkSlippage(wethAfterSlippage, wethAmount, slippage);
-                wethAmount = wethAfterSlippage;
-            }
-        }
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        (uint256 totalAfter, int256[] memory estimatesAfter) = oracle().estimateStrategy(strategy);
+        weth = _weth;
+        uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
+
+        wethAmount = _withdrawPostprocessing(strategy, totalBefore, balanceBefore, wethAmount, totalAfter, wethBalance, slippage, estimatesAfter);
         // Approve weth amount
         strategy.approveToken(weth, address(this), wethAmount);
+        
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
+    }
+
+    function _estimateWithdraw(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) internal view returns (address weth, uint256 wethAmount) {
+        require(amount > 0, "0 amount");
+        //strategy.settleSynths(); // debug different
+        //strategy.issueStreamingFee(); // debug different
+        amount = strategy.estimateBurn(msg.sender, amount); // debug different
+        uint256 totalBefore;
+        uint256 balanceBefore;
+        (totalBefore, balanceBefore, wethAmount, data) = _withdrawPreprocessing(strategy, router, amount, slippage, data);
+        
+        // Withdraw
+        //_useRouter // debug different 
+        // Check value and balance
+
+        // calls oracle after estimates the router 
+        (uint256 totalAfter, uint256 wethBalance, int256[] memory estimatesAfter) = _estimateUseRouter(strategy, router, Action.WITHDRAW, data);
+
+        wethAmount = _withdrawPostprocessing(strategy, totalBefore, balanceBefore, wethAmount, totalAfter, wethBalance, slippage, estimatesAfter);
+        //strategy.approveToken(weth, address(this), wethAmount); // debug different
+        //emit Withdraw(address(strategy), msg.sender, wethAmount, amount); // debug different
+    }
+
+    function _withdrawPreprocessing(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) private view returns(uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, bytes memory data_) {
+        _checkDivisor(slippage);
+        IOracle o = oracle();
+        int256[] memory estimatesBefore;
+        (totalBefore, estimatesBefore) = o.estimateStrategy(strategy);
+        balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
+        uint256 totalSupply = strategy.totalSupply();
+        // Deduct fee and burn strategy tokens
+        wethAmount = totalBefore.mul(amount).div(totalSupply);
+        // Setup data
+        if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
+            uint256 percentage = amount.mul(10**18).div(totalSupply);
+            data = abi.encode(percentage, totalBefore, estimatesBefore);
+        }
+        return (totalBefore, balanceBefore, wethAmount, data);
+    }
+
+    function _withdrawPostprocessing(IStrategy strategy, uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, uint256 totalAfter, uint256 wethBalance, uint256 slippage, int256[] memory estimatesAfter) private view returns(uint256) { 
+        // Calculate weth amount
+        //weth = _weth;
+        //uint256 wethBalance = IERC20(weth).balanceOf(address(strategy)); // FIXME make appear in _withdraw version debug
+        uint256 wethAfterSlippage;
+        if (totalBefore > totalAfter) {
+          uint256 slippageAmount = totalBefore.sub(totalAfter);
+          if (slippageAmount > wethAmount) revert("Too much slippage");
+          wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
+        } else {
+          // Value has increased, no slippage to subtract
+          wethAfterSlippage = wethAmount;
+        }
+        if (wethAfterSlippage > wethBalance) {
+            // If strategy's weth balance is less than weth owed, use balance as weth owed
+            _checkSlippage(wethBalance, wethAmount, slippage);
+            wethAmount = wethBalance;
+        } else {
+            _checkSlippage(wethAfterSlippage, wethAmount, slippage);
+            wethAmount = wethAfterSlippage;
+        }
+        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        return wethAmount;
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
@@ -657,6 +719,26 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             router.restructure(address(strategy), data);
         }
         _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(0));
+    }
+
+    function _estimateUseRouter(
+        IStrategy strategy,
+        IStrategyRouter router,
+        Action action,
+        bytes memory data
+    ) internal view returns(uint256 totalAfter, uint256 updatedStrategyWethBalance, int256[] memory estimatesAfter) {
+        uint256[] memory balances;
+        //_approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(-1)); // debug different
+        if (action == Action.WITHDRAW) {
+            (balances, updatedStrategyWethBalance) = router.estimateWithdraw(address(strategy), data);
+        } else if (action == Action.REBALANCE) {
+            //router.rebalance(address(strategy), data);
+        } else if (action == Action.RESTRUCTURE) {
+            //router.restructure(address(strategy), data);
+        }
+        //_approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(0)); // debug different
+        (totalAfter, estimatesAfter) = oracle().estimateStrategy(strategy, balances, updatedStrategyWethBalance); // debug different
+        return (totalAfter, updatedStrategyWethBalance, estimatesAfter);
     }
 
     /**

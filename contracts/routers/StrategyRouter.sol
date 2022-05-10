@@ -40,6 +40,10 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
 
     function withdraw(address strategy, bytes calldata data) external virtual override;
 
+    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(uint256[] memory balances, uint256 updatedStrategyWethBalance) {
+        revert("estimateWithdraw: not supported.");
+    }
+
     function rebalance(address strategy, bytes calldata data) external virtual override;
 
     function restructure(address strategy, bytes calldata data) external virtual override;

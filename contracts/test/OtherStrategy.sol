@@ -307,6 +307,8 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _deductFeeAndBurn(account, amount);
     }
 
+    function estimateBurn(address account, uint256 amount) external view override returns (uint256){}
+
     /**
      * @notice Swap tokens directly from this contract using a delegate call to an adapter. Only callable by controller
      * @param adapter The address of the adapter that this function does a delegate call to. It must support the IBaseAdapter interface and be whitelisted
