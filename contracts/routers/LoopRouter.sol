@@ -39,7 +39,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         uint256 idx;
         uint256 diff;
         uint256 i;
-        while (expectedWeth>0 && i<indices.length) {
+        while (expectedWeth > 0 && i < indices.length) {
             idx = indices[i]; 
             diff = diffs[i];
             if (diff > expectedWeth) {
