@@ -34,8 +34,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        (uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) = _getSortedDiffs(strategy, data);
-        address[] memory strategyItems = IStrategy(strategy).items();
+        (uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth, address[] memory strategyItems) = _getSortedDiffs(strategy, data);
         // Sell loop
         uint256 idx;
         uint256 diff;
@@ -263,7 +262,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) {
+    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth, address[] memory strategyItems) {
         uint256 total;
         {
             uint256 percentage;
@@ -272,7 +271,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             expectedWeth = total.mul(percentage).div(10**18);
             total = total.sub(expectedWeth);
         }
-        address[] memory strategyItems = IStrategy(strategy).items();
+        strategyItems = IStrategy(strategy).items();
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
         int256 expectedValue;
         uint256 numberAdded;
