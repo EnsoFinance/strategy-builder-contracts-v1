@@ -13,8 +13,9 @@ import {
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
 	deployMetaStrategyAdapter,
+	deploySynthetixAdapter,
+	deployCurveAdapter,
 	deployPlatform,
-	deployLoopRouter,
 	deployFullRouter
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES } from '../lib/constants'
@@ -37,6 +38,7 @@ const STRATEGY_STATE: InitialState = {
 
 describe('AaveAdapter', function () {
 	let	weth: Contract,
+		susd: Contract,
 		usdc: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -49,6 +51,8 @@ describe('AaveAdapter', function () {
 		uniswapAdapter: Contract,
 		aaveV2Adapter: Contract,
 		aaveV2DebtAdapter: Contract,
+		synthetixAdapter: Contract,
+		curveAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
@@ -60,32 +64,40 @@ describe('AaveAdapter', function () {
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
+		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
+
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, susd)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 		whitelist = platform.administration.whitelist
-		const addressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
+		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
+		const synthetixAddressProvider = new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], accounts[0]);
+		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 
-		await tokens.registerTokens(accounts[0], strategyFactory)
+		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
+		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 		collateralToken = tokens.aWETH
 		collateralToken2 = tokens.aCRV
 
-		router = await deployFullRouter(accounts[0], addressProvider, controller, library)
+		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], addressProvider, controller, weth)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
-		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], addressProvider, weth)
+		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], aaveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
+		synthetixAdapter = await deploySynthetixAdapter(accounts[0], synthetixAddressProvider, weth)
+		await whitelist.connect(accounts[0]).approve(synthetixAdapter.address)
+		curveAdapter = await deployCurveAdapter(accounts[0], curveAddressProvider, weth)
+		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 	})
 
 	it('Should deploy strategy', async function () {
-
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 
@@ -550,9 +562,6 @@ describe('AaveAdapter', function () {
 	it('Should deploy debt meta strategy', async function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 
-		const loopRouter = await deployLoopRouter(accounts[0], controller, library)
-		await whitelist.connect(accounts[0]).approve(loopRouter.address)
-
 		let name = 'Basic Strategy'
 		let symbol = 'BASIC'
 		let positions = [
@@ -569,7 +578,7 @@ describe('AaveAdapter', function () {
 				symbol,
 				basicStrategyItems,
 				STRATEGY_STATE,
-				loopRouter.address,
+				router.address,
 				'0x',
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
@@ -581,7 +590,7 @@ describe('AaveAdapter', function () {
 		const Strategy = await getContractFactory('Strategy')
 		const basicStrategy = await Strategy.attach(strategyAddress)
 
-		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, loopRouter, weth)
+		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, router, weth)
 		await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
 
 		name = 'Debt Meta Strategy'
@@ -642,4 +651,63 @@ describe('AaveAdapter', function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 	})
+
+	it('Should fail to deploy synth + debt strategy', async function () {
+		const name = 'SynthDebt Strategy'
+		const symbol = 'SD'
+
+		const positions = [
+			{
+				token: tokens.sUSD,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapAdapter.address, curveAdapter.address],
+				path: [tokens.usdc],
+				cache: '0x',
+			},
+			{
+				token: tokens.sAAVE,
+				percentage: BigNumber.from(500),
+				adapters: [synthetixAdapter.address],
+				path: [],
+				cache: '0x',
+			},
+			{
+				token: tokens.aWETH,
+				percentage: BigNumber.from(1000),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					["uint16"],
+					[500], // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-500),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: tokens.aWETH, percentage: 500 }]] //define what tokens you want to loop back on here),
+				)
+			}
+		]
+
+		const failItems = prepareStrategy(positions, uniswapAdapter.address)
+
+		await expect(strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				accounts[1].address,
+				name,
+				symbol,
+				failItems,
+				STRATEGY_STATE,
+				router.address,
+				'0x',
+				{ value: WeiPerEther }
+			)
+		).to.be.revertedWith('No synths and debt')
+	})
+
 })
