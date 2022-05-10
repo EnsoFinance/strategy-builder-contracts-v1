@@ -49,30 +49,41 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
             (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
-            _sellPath(
-                tradeData,
-                _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
-                strategyItem,
-                strategy
-            );
+            _sellPath(strategy, strategyItem, diff, estimate);
             ++i;
         }
     }
 
+    function _sellPath(address strategy, address strategyItem, uint256 diff, int256 estimate) private {
+        TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
+        _sellPath(
+          tradeData,
+          _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+          strategyItem,
+          strategy
+        ); 
+    }
+
+    function _estimateSellPath(address strategy, address strategyItem, uint256 diff, int256 estimate) private view returns(uint256) {
+        TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
+        return _estimateSellPath(
+                   tradeData,
+                   _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+                   strategyItem, 
+                   strategy
+               );
+    }
+
     // simulates `withdraw`
     function estimateWithdraw(address strategy, bytes calldata data) external view override returns(int256[] memory, uint256) {
-        (uint256[] memory diffs, uint256[] memory indices, int256[] memory estimates, uint256 expectedWeth) = _getSortedDiffs(strategy, data);
-        address[] memory strategyItems = IStrategy(strategy).items();
-        
-        uint256 updatedStrategyWethBalance = IERC20(weth).balanceOf(address(strategy)); // debug different
-
+        (uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) = _getSortedDiffs(strategy, data);
         // Sell loop
-        uint256 idx;
         uint256 diff;
+        address strategyItem;
+        int256 estimate;
         uint256 i;
-        while (expectedWeth>0 && i<indices.length) {
-            idx = indices[i]; 
+        uint256 idx;
+        while (expectedWeth > 0 && i < payloads.length) {
             diff = diffs[i];
             if (diff > expectedWeth) {
                 diff = expectedWeth;
@@ -80,18 +91,12 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             } else {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItems[idx]);
-            uint256 wethAmount;/* = _estimateSellPath(
-                tradeData,
-                _estimateSellAmount(strategy, strategyItems[idx], diff, uint256(estimates[idx])),
-                strategyItems[idx],
-                strategy
-            );*/
-            estimates[idx] = estimates[idx].sub(int256(diff)).add(int256(wethAmount));
-            updatedStrategyWethBalance = updatedStrategyWethBalance.add(wethAmount);
+            (strategyItem, estimate, idx) = abi.decode(payloads[i], (address, int256, uint256));
+            uint256 wethAmount = _estimateSellPath(strategy, strategyItem, diff, estimate);
+            //estimates[idx] = estimates[idx].sub(int256(diff)).add(int256(wethAmount));
+            //updatedStrategyWethBalance = updatedStrategyWethBalance.add(wethAmount);
             ++i;
         }
-        return (estimates, updatedStrategyWethBalance);
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
@@ -287,7 +292,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             int256 estimatedValue = estimates[i];
             if (estimatedValue > expectedValue) {
                 // condition check above means adding diff that isn't overflowed
-                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i]));
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i], i)); // "i" is for estimate/simulation
                 ++numberAdded;
             }
         }
