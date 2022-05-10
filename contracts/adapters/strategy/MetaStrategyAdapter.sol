@@ -58,4 +58,12 @@ contract MetaStrategyAdapter is BaseAdapter {
         if (to != address(this))
           IERC20(tokenOut).safeTransfer(to, received);
     }
+
+    function estimateSwap(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) public view override returns(uint256) {
+        revert("estimateSwap: not yet supported.");
+    }
 }

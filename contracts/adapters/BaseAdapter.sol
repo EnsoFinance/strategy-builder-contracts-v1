@@ -18,4 +18,10 @@ abstract contract BaseAdapter is IBaseAdapter {
         address from,
         address to
     ) public virtual override;
+
+    function estimateSwap(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) public view virtual override returns(uint256);
 }

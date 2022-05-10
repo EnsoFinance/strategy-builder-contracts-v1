@@ -10,4 +10,10 @@ interface IBaseAdapter {
         address from,
         address to
     ) external;
+
+    function estimateSwap(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) external view returns(uint256);
 }

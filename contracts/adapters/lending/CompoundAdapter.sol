@@ -51,6 +51,25 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
             IERC20(tokenOut).safeTransfer(to, received);
     }
 
+    function estimateSwap(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) public view override returns(uint256) {
+        require(tokenIn != tokenOut, "Tokens cannot match");
+        if (_checkCToken(tokenOut)) {
+            ICToken cToken = ICToken(tokenOut);
+            address underlyingToken = cToken.underlying();
+            require(underlyingToken == tokenIn, "Incompatible");
+            return amount.mul(10**18).div(cToken.exchangeRateStored());
+        } else {
+            ICToken cToken = ICToken(tokenIn);
+            address underlyingToken = cToken.underlying();
+            require(underlyingToken == tokenOut, "Incompatible");
+            return amount.mul(cToken.exchangeRateStored()).div(10**18);
+        }
+    }
+
     // Intended to be called via delegateCall
     function claim(address token) external override {
         address[] memory tokens = new address[](1);

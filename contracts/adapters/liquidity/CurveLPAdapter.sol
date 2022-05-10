@@ -90,6 +90,14 @@ contract CurveLPAdapter is BaseAdapter {
             IERC20(tokenOut).safeTransfer(to, received);
     }
 
+    function estimateSwap(
+        uint256 amount,
+        address tokenIn,
+        address tokenOut
+    ) public view override returns(uint256) {
+        revert("estimateSwap: not yet supported.");
+    }
+
     function _deposit(
         uint256 amount,
         address tokenIn,
