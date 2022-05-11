@@ -3,9 +3,11 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "../libraries/StrategyLibrary.sol";
+import "../libraries/BinaryTreeWithPayload.sol";
 import "./StrategyRouter.sol";
 
 contract LoopRouter is StrategyTypes, StrategyRouter {
+    using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
     constructor(address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {}
 
@@ -32,45 +34,29 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        (uint256 percentage, uint256 total, int256[] memory estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
-
-        uint256 expectedWeth = total.mul(percentage).div(10**18);
-        total = total.sub(expectedWeth);
-
-        address[] memory strategyItems = IStrategy(strategy).items();
-
+        (uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) = _getSortedDiffs(strategy, data);
         // Sell loop
-        uint256 i = 0;
-        while (expectedWeth > 0 && i < strategyItems.length) {
-            address strategyItem = strategyItems[i];
-            int256 estimatedValue = estimates[i];
-            uint256 diff = 0;
-            {
-                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
-                    total,
-                    strategy,
-                    strategyItem
-                );
-                if (estimatedValue > expectedValue) {
-                    diff = uint256(estimatedValue.sub(expectedValue));
-                    if (diff > expectedWeth) {
-                        diff = expectedWeth;
-                        expectedWeth = 0;
-                    } else {
-                        expectedWeth = expectedWeth.sub(diff);
-                    }
-                }
+        uint256 diff;
+        address strategyItem;
+        int256 estimate;
+        uint256 i;
+        while (expectedWeth > 0 && i < payloads.length) {
+            diff = diffs[i];
+            if (diff > expectedWeth) {
+                diff = expectedWeth;
+                expectedWeth = 0; 
+            } else {
+                expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
-            if (diff > 0) {
-                _sellPath(
-                    IStrategy(strategy).getTradeData(strategyItem),
-                    _estimateSellAmount(strategy, strategyItem, diff, uint256(estimatedValue)),
-                    strategyItem,
-                    strategy
-                );
-            }
-            i++;
+            (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
+            _sellPath(
+                tradeData,
+                _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+                strategyItem,
+                strategy
+            );
+            ++i;
         }
     }
 
@@ -79,7 +65,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems = IStrategy(strategy).items();
         int256[] memory buy = new int256[](strategyItems.length);
         // Sell loop
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i = 0; i < strategyItems.length; ++i) {
             int expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (!_sellToken(
                     strategy,
@@ -91,7 +77,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             // semantic overloading to cache `expected` since it will be used in next loop.
         }
         // Buy loop
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i = 0; i < strategyItems.length; ++i) {
             if (buy[i] != 0) {
                 _buyToken(
                     strategy,
@@ -127,7 +113,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         address[] memory strategyItems
     ) internal {
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i = 0; i < strategyItems.length; ++i) {
             // Convert funds into Ether
             address strategyItem = strategyItems[i];
             if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
@@ -157,7 +143,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         address[] memory strategyItems
     ) internal {
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i = 0; i < strategyItems.length; ++i) {
             address strategyItem = strategyItems[i];
             _buyToken(
                 strategy,
@@ -242,4 +228,38 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             );
         }
     }
+
+    function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) {
+        uint256 total;
+        int256[] memory estimates;
+        {
+            uint256 percentage;
+            (percentage, total, estimates) =
+                abi.decode(data, (uint256, uint256, int256[]));
+            expectedWeth = total.mul(percentage).div(10**18);
+            total = total.sub(expectedWeth);
+        }
+        address[] memory strategyItems = IStrategy(strategy).items();
+        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+        int256 expectedValue;
+        uint256 numberAdded;
+        
+        for (uint256 i; i < strategyItems.length; ++i) {
+            expectedValue = StrategyLibrary.getExpectedTokenValue(
+                total,
+                strategy,
+                strategyItems[i]
+            );
+            int256 estimatedValue = estimates[i];
+            if (estimatedValue > expectedValue) {
+                // condition check above means adding diff that isn't overflowed
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i]));
+                ++numberAdded;
+            }
+        }
+        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        payloads = new bytes[](numberAdded);
+        tree.readInto(diffs, payloads);
+    }
+
 }
