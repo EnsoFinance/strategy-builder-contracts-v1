@@ -9,6 +9,12 @@ import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
 interface IStrategyController is StrategyTypes {
+    enum Action {
+        WITHDRAW,
+        REBALANCE,
+        RESTRUCTURE
+    }
+
     function setupStrategy(
         address manager_,
         address strategy_,
@@ -40,6 +46,25 @@ interface IStrategyController is StrategyTypes {
         uint256 slippage,
         bytes memory data
     ) external;
+
+    function withdrawPreprocessing(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) external view returns(uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, bytes memory data_);
+
+    function withdrawPostprocessing(
+      IStrategy strategy, 
+      uint256 totalBefore, 
+      uint256 balanceBefore, 
+      uint256 wethAmount, 
+      uint256 totalAfter, 
+      uint256 wethBalance, 
+      uint256 slippage, 
+      int256[] memory estimatesAfter
+    ) external view returns(uint256);
 
     function rebalance(
         IStrategy strategy,
