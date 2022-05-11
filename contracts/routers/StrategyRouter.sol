@@ -95,19 +95,6 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address to
     ) internal view returns(uint256 value) {
         require(controller.whitelist().approved(adapter), "Not approved");
-        bytes memory swapData =
-            abi.encodeWithSelector(
-                bytes4(
-                    keccak256("estimateSwap(uint256,uint256,address,address,address,address)")
-                ),
-                amount,
-                expected,
-                tokenIn,
-                tokenOut,
-                from,
-                to
-            );
-        uint256 txGas = gasleft();
         return IBaseAdapter(adapter).estimateSwap(amount, tokenIn, tokenOut);
     }
 
