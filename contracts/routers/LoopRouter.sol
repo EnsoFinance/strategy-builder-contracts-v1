@@ -244,7 +244,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256 expectedValue;
         uint256 numberAdded;
         
-        for (uint256 i; i<strategyItems.length; ++i) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             expectedValue = StrategyLibrary.getExpectedTokenValue(
                 total,
                 strategy,
