@@ -64,7 +64,6 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
             }
             return abi.decode(reason, (string)); // this should be the valueAdded to be decoded
         }
-
     }
 
     // do not call unless you are me!!!
