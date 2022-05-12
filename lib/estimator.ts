@@ -3,7 +3,7 @@ import { StrategyItem, TradeData } from './encode'
 
 import StrategyControllerLens from '../artifacts/contracts/StrategyControllerLens.sol/StrategyControllerLens.json'
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
-import IStrategy from '../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json'
+//import IStrategy from '../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
 import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json'
@@ -219,7 +219,7 @@ export class Estimator {
       )
   }
 
-  async withdraw2(
+  async withdraw(
       account: string,
       strategy: Contract,
       router: string,
@@ -230,7 +230,7 @@ export class Estimator {
     return await this.controllerLens.callStatic.estimateWithdrawWETH(account, strategy.address, router, amount, slippage, data)
   }
 
-  async withdraw(
+  /*async withdraw(
       strategy: Contract,
       amount: BigNumber
   ) {
@@ -297,7 +297,7 @@ export class Estimator {
       } else {
         return wethAfterSlippage
       }
-  }
+  }*/
 
   async estimateBatchBuy(
       items: string[],
@@ -486,9 +486,9 @@ export class Estimator {
       case this.kyberSwapAdapterAddress.toLowerCase(): { console.log("debug 7")
         return this.estimateKyberSwap(amount, tokenIn, tokenOut)
       }
-      case this.metaStrategyAdapterAddress.toLowerCase(): { console.log("debug 8")
-        return this.estimateMetaStrategy(amount, tokenIn, tokenOut)
-      }
+      /*case this.metaStrategyAdapterAddress.toLowerCase(): { console.log("debug 8")
+        return this.estimateMetaStrategy(amount, tokenIn, tokenOut) // FIXME update after `withdraw` update
+      }*/
       case this.sushiSwapAdapterAddress.toLowerCase(): { console.log("debug 9")
         return this.estimateSushiSwap(amount, tokenIn, tokenOut)
       }
@@ -606,7 +606,8 @@ export class Estimator {
     return (await this.kyberRouter.getAmountsOut(amount, [pool], [tokenIn, tokenOut]))[1]
   }
 
-  async estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string) {
+  // FIXME update to align with new `withdraw`
+  /*async estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string) {
       if (tokenIn.toLowerCase() === WETH.toLowerCase()) {
         // Deposit
         const strategy = new Contract(tokenOut, IStrategy.abi, this.signer)
@@ -620,7 +621,7 @@ export class Estimator {
         // Meta strategies always have weth as an input or output
         return BigNumber.from('0')
       }
-  }
+  }*/
 
   async estimateSushiSwap(amount: BigNumber, tokenIn: string, tokenOut: string) {
     return (await this.sushiRouter.getAmountsOut(amount, [tokenIn, tokenOut]))[1]

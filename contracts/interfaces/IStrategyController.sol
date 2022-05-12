@@ -23,7 +23,7 @@ interface IStrategyController is StrategyTypes {
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external payable;
+    ) external payable returns(uint256 valueAdded);
 
     function withdrawETH(
         IStrategy strategy,

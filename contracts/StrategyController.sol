@@ -102,7 +102,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external payable override {
+    ) external payable override returns(uint256 valueAdded) {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
@@ -110,7 +110,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
-        _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
+        valueAdded = _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
         _removeStrategyLock(strategy);
     }
 
@@ -489,7 +489,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 totalBefore,
         uint256 balanceBefore,
         bytes memory data
-    ) internal {
+    ) internal returns(uint256 valueAdded) {
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
@@ -514,7 +514,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
         require(totalAfter > totalBefore, "Lost value");
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
-        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
+        valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
         uint256 totalSupply = strategy.totalSupply();
         uint256 relativeTokens =
