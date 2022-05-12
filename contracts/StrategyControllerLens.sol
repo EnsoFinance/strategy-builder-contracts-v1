@@ -31,6 +31,10 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
         _balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     }
 
+    // needed to withdraw weth
+    fallback() external payable {}
+    receive() external payable {}
+
     function controller() external view returns(IStrategyController) {
         return _controller;
     }
@@ -165,19 +169,6 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
         address router,
         bytes memory data
         ) = abi.decode(userData, (Operation, uint256, address, string, string, StrategyTypes.StrategyItem[], StrategyTypes.InitialState, address, bytes));
-        /*(bool success,) = _weth.call(abi.encodeWithSelector(
-            bytes4(keccak256("approve(address,uint256)")),
-            router,
-            amount
-        ));
-        if (!success) {
-            assembly {
-                let ptr := mload(0x40)
-                let size := returndatasize()
-                returndatacopy(ptr, 0, size)
-                revert(ptr, size)
-            }
-        }*/
         // weth unwrap
         IWETH(_weth).withdraw(msgValue);
         (,uint256 value) = _factory.createStrategy{value: msgValue}(manager, name, symbol, strategyItems, strategyState, router, data);

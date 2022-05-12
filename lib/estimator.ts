@@ -1,5 +1,5 @@
 import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
-import { StrategyItem, TradeData } from './encode'
+import { StrategyItem, TradeData, InitialState } from './encode'
 
 import StrategyControllerLens from '../artifacts/contracts/StrategyControllerLens.sol/StrategyControllerLens.json'
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
@@ -16,7 +16,7 @@ import IYEarnV2Vault from '../artifacts/contracts/interfaces/yearn/IYEarnV2Vault
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES } from './constants'
+import { DIVISOR, /*ITEM_CATEGORY,*/ MAINNET_ADDRESSES } from './constants'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils
@@ -37,11 +37,12 @@ const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
 const WETH = MAINNET_ADDRESSES.WETH
 const SUSD = MAINNET_ADDRESSES.SUSD
 const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
-const NULL_TRADE_DATA: TradeData = {
+/*const NULL_TRADE_DATA: TradeData = {
   adapters: [],
   path: [],
   cache: '0x'
 }
+*/
 
 interface ItemDictionary {
   [id: string]: StrategyItem
@@ -137,6 +138,19 @@ export class Estimator {
   }
 
   async create(
+      amount: BigNumber,
+      manager: string,
+      name: string,
+      symbol_: string,
+      strategyItems: StrategyItem[],
+      strategyState: InitialState,
+      router: string,
+      data: string
+  ) {
+    return await this.controllerLens.callStatic.estimateCreateStrategy(amount, manager, name, symbol_, strategyItems, strategyState, router, data)
+  }
+/*
+  async create(
       strategyItems: StrategyItem[],
       rebalanceThreshold: BigNumber,
       amount: BigNumber
@@ -188,6 +202,7 @@ export class Estimator {
         new Array(items.length + 1).fill(BigNumber.from('0'))
       )
   }
+  */
 
   async deposit(
       strategy: Contract,

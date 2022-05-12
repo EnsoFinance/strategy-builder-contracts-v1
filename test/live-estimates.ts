@@ -144,7 +144,7 @@ describe('Live Estimates', function () {
 		//const strategyController = await StrategyController.deploy(enso.platform.strategyFactory.address)
     //
     const StrategyControllerLens = await getContractFactory("StrategyControllerLens")
-    controllerLens = await StrategyControllerLens.deploy(controller.address, weth.address)
+    controllerLens = await StrategyControllerLens.deploy(controller.address, weth.address, enso.platform.strategyFactory.address)
     await controllerLens.deployed()
 
     estimator.controllerLens = controllerLens
