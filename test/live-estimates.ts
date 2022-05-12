@@ -199,7 +199,7 @@ describe('Live Estimates', function () {
 		const withdrawAmount = await eDPI.balanceOf(accounts[1].address)
 		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
 		const totalSupply = await eDPI.totalSupply()
-	//	const wethBefore = await weth.balanceOf(accounts[1].address)
+		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
 
@@ -207,17 +207,18 @@ describe('Live Estimates', function () {
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     
     console.log("debug before")
-    const estimatedWithdrawValue2 = await controllerLens.connect(accounts[1]).callStatic.estimateWithdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
+    const estimatedWithdrawValue2 = await controllerLens.connect(accounts[1]).callStatic.estimateWithdrawWETH(accounts[1].address, eDPI.address, router.address, withdrawAmount, 0, '0x')
+    //const estimatedWithdrawValue2 = await controller.connect(accounts[1]).callStatic.withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
     console.log("debug after")
     console.log('Estimated withdraw value2: ', estimatedWithdrawValue2.toString())
     
-  /*
+  
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
 		const receipt = await tx.wait()
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-    */
+    
 	})
 
   if (runAll) {

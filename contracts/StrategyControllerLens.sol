@@ -33,15 +33,16 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
         revert(toString(wethAmount));  // always reverts!!
     }
 
-    // reverts every time! only call with callStatic unless you want to pay for gas
+    // the try reverts every time! only call with callStatic unless you want to pay for gas
     function estimateWithdrawWETH(
+        address account,
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
         uint256 slippage,
         bytes memory data
     ) external returns(string memory) {
-        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data, msg.sender) {
+        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data, account) {
         
         } catch (bytes memory reason) {
             if (reason.length != 100) { // length of abi encoded uint256
