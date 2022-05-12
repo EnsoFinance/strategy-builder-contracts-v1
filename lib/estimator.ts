@@ -1,6 +1,7 @@
 import { BigNumber, Contract, Signer, constants, utils } from 'ethers'
 import { StrategyItem, TradeData } from './encode'
 
+import StrategyControllerLens from '../artifacts/contracts/StrategyControllerLens.sol/StrategyControllerLens.json'
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
 import IStrategy from '../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
@@ -26,6 +27,9 @@ const CURVE_REGISTRY = '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5'
 const SUSHI_ROUTER = '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F'
 const UNISWAP_V2_ROUTER = '0xf164fC0Ec4E93095b804a4795bBe1e041497b92a'
 const UNISWAP_V3_QUOTER = '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
+
+const STRATEGY_CONTROLLER_LENS = '' // TODO
+
 const TRICRYPTO2 = '0xc4AD29ba4B3c580e6D59105FFf484999997675Ff'
 const TRICRYPTO2_POOL = '0xD51a44d3FaE010294C616388b506AcdA1bfAAE46'
 const USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
@@ -58,6 +62,8 @@ export class Estimator {
   uniswapV2Router: Contract
   uniswapV3Quoter: Contract
   uniswapV3Registry: Contract
+
+  controllerLens: Contract
 
   aaveV2AdapterAddress: string
   aaveV2DebtAdapterAddress: string
@@ -105,6 +111,8 @@ export class Estimator {
     this.synthetixExchanger = new Contract(SYNTHETIX_EXCHANGER, IExchanger.abi, signer)
     this.uniswapV2Router = new Contract(UNISWAP_V2_ROUTER, UniswapV2Router.abi, signer)
     this.uniswapV3Quoter = new Contract(UNISWAP_V3_QUOTER, UniswapV3Quoter.abi, signer)
+
+    this.controllerLens = new Contract(STRATEGY_CONTROLLER_LENS, StrategyControllerLens.abi, signer)
 
     this.oracle = oracle
     this.tokenRegistry = tokenRegistry
@@ -209,6 +217,17 @@ export class Estimator {
         amount,
         new Array(items.length + 1).fill(BigNumber.from('0'))
       )
+  }
+
+  async withdraw2(
+      account: string,
+      strategy: Contract,
+      router: string,
+      amount: BigNumber,
+      slippage: 0,
+      data: string
+  ) : Promise<string> {
+    return await this.controllerLens.callStatic.estimateWithdrawWETH(account, strategy.address, router, amount, slippage, data)
   }
 
   async withdraw(

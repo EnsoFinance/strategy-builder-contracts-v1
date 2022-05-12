@@ -147,6 +147,8 @@ describe('Live Estimates', function () {
     controllerLens = await StrategyControllerLens.deploy(controller.address)
     await controllerLens.deployed()
 
+    estimator.controllerLens = controllerLens
+
     const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
     await strategyLibrary.deployed()
     const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
@@ -206,10 +208,7 @@ describe('Live Estimates', function () {
 		const estimatedWithdrawValue = await estimator.withdraw(eDPI, withdrawAmountAfterFee)
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     
-    console.log("debug before")
-    const estimatedWithdrawValue2 = await controllerLens.connect(accounts[1]).callStatic.estimateWithdrawWETH(accounts[1].address, eDPI.address, router.address, withdrawAmount, 0, '0x')
-    //const estimatedWithdrawValue2 = await controller.connect(accounts[1]).callStatic.withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
-    console.log("debug after")
+		const estimatedWithdrawValue2 = await estimator.withdraw2(accounts[1].address, eDPI, router.address, withdrawAmount, 0, '0x')
     console.log('Estimated withdraw value2: ', estimatedWithdrawValue2.toString())
     
   
