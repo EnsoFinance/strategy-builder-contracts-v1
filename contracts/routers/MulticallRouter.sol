@@ -39,10 +39,6 @@ contract MulticallRouter is StrategyRouter, Multicall {
         aggregate(callStructs);
     }
 
-    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(bytes[][] memory allSwapDatas) {
-        revert("estimateWithdraw: not supported.");
-    }
-
     /**
      * @notice Executes provided calldata to achieve a rebalance for the Strategy
      */

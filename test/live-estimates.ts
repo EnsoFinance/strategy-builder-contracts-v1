@@ -20,7 +20,7 @@ import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.so
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
-const runAll = false 
+const runAll = true 
 
 describe('Live Estimates', function () {
 	let	accounts: SignerWithAddress[],
@@ -245,9 +245,7 @@ describe('Live Estimates', function () {
 		const estimatedWithdrawValue = await estimator.withdraw(eYETI, withdrawAmountAfterFee)
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
 
-    console.log("debug before")
-    const estimatedWithdrawValue2 = await controllerLens.connect(accounts[1]).estimateWithdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
-    console.log("debug after")
+		const estimatedWithdrawValue2 = await estimator.withdraw2(accounts[1].address, eYETI, router.address, withdrawAmount, 0, '0x')
     console.log('Estimated withdraw value2: ', estimatedWithdrawValue2.toString())
 
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
@@ -280,9 +278,7 @@ describe('Live Estimates', function () {
 		const estimatedWithdrawValue = await estimator.withdraw(eYLA, withdrawAmountAfterFee)
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
 
-    console.log("debug before")
-    const estimatedWithdrawValue2 = await controllerLens.connect(accounts[1]).estimateWithdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
-    console.log("debug after")
+		const estimatedWithdrawValue2 = await estimator.withdraw2(accounts[1].address, eYLA, router.address, withdrawAmount, 0, '0x')
     console.log('Estimated withdraw value2: ', estimatedWithdrawValue2.toString())
 
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
@@ -315,9 +311,7 @@ describe('Live Estimates', function () {
 		const estimatedWithdrawValue = await estimator.withdraw(eNFTP, withdrawAmountAfterFee)
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
 
-    console.log("debug before")
-    const estimatedWithdrawValue2 = await controllerLens.connect(accounts[1]).estimateWithdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')
-    console.log("debug after")
+ 		const estimatedWithdrawValue2 = await estimator.withdraw2(accounts[1].address, eNFTP, router.address, withdrawAmount, 0, '0x')
     console.log('Estimated withdraw value2: ', estimatedWithdrawValue2.toString())
 
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')

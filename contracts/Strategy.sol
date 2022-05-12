@@ -307,12 +307,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _deductFeeAndBurn(account, amount);
     }
 
-    function estimateBurn(address account, uint256 amount) external view override returns (uint256){
-        if (account == _pool) return amount;
-        uint256 fee = amount.mul(WITHDRAWAL_FEE).div(10**18);
-        return amount.sub(fee);
-    }
-
     /**
      * @notice Swap tokens directly from this contract using a delegate call to an adapter. Only callable by controller
      * @param adapter The address of the adapter that this function does a delegate call to. It must support the IBaseAdapter interface and be whitelisted

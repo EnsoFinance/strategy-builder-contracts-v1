@@ -43,8 +43,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function burn(address account, uint256 amount) external returns (uint256);
 
-    function estimateBurn(address account, uint256 amount) external view returns (uint256);
-
     function delegateSwap(
         address adapter,
         uint256 amount,

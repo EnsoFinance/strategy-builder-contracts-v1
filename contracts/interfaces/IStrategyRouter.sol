@@ -15,8 +15,6 @@ interface IStrategyRouter {
 
     function withdraw(address strategy, bytes calldata) external;
 
-    function estimateWithdraw(address strategy, bytes calldata) external view returns(bytes[][] memory allSwapDatas);
-
     function controller() external view returns (IStrategyController);
 
     function category() external view returns (RouterCategory);

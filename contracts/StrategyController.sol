@@ -22,6 +22,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
+    enum Action {
+        WITHDRAW,
+        REBALANCE,
+        RESTRUCTURE
+    }
+    
     uint256 private constant DIVISOR = 1000;
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
