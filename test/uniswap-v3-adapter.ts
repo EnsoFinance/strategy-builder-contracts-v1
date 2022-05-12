@@ -127,7 +127,7 @@ describe('UniswapV3Adapter', function() {
 				StrategyLibrary: library.address
 			}
 		})
-		const controllerImplementation = await StrategyController.connect(owner).deploy(factoryAddress)
+		const controllerImplementation = await StrategyController.connect(owner).deploy(factoryAddress, AddressZero)
 		await controllerImplementation.deployed()
 
 		const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')

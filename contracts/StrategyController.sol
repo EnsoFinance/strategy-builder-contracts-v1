@@ -548,9 +548,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             if (msg.sender == controllerLens) {
                address msgSender;
                (msgSender, data) = abi.decode(data, (address, bytes)); 
-               amount = strategy.burn(msgSender, amount); // debug different
+               amount = strategy.burn(msgSender, amount);
             } else {
-               amount = strategy.burn(msg.sender, amount); // debug different
+               amount = strategy.burn(msg.sender, amount);
             }
             wethAmount = totalBefore.mul(amount).div(totalSupply);
             // Setup data
