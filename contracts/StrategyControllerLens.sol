@@ -45,7 +45,7 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
                 reason := add(reason, 0x04)
             }
             return abi.decode(reason, (string)); // this should be the valueAdded to be decoded
-        } 
+        }
     }
 
     enum Operation {
@@ -93,6 +93,19 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
          uint256 slippage, 
          bytes memory data
         ) = abi.decode(userData, (Operation, address, address, uint256, uint256, bytes));
+        (bool success,) = _weth.call(abi.encodeWithSelector(
+            bytes4(keccak256("approve(address,uint256)")),
+            router,
+            amount
+        ));
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
         uint256 valueAdded = _controller.deposit(IStrategy(strategy), IStrategyRouter(router), amount, slippage, data);
         revert(toString(valueAdded));  // always reverts!!
     }
