@@ -191,6 +191,16 @@ export class Estimator {
 
   async deposit(
       strategy: Contract,
+      router: string,
+      amount: BigNumber,
+      slippage: 0,
+      data: string
+  ) {
+		return this.controllerLens.callStatic.estimateDeposit(strategy.address, router, amount, slippage, data)
+  }
+
+  /*async deposit(
+      strategy: Contract,
       amount: BigNumber
   ) {
       const [ items, synths, rebalanceThreshold ] = await Promise.all([
@@ -217,7 +227,7 @@ export class Estimator {
         amount,
         new Array(items.length + 1).fill(BigNumber.from('0'))
       )
-  }
+  }*/
 
   async withdraw(
       account: string,
@@ -687,7 +697,7 @@ export class Estimator {
       }
   }
 
-  private async getStrategyItem(strategy: Contract, item: string) {
+  /*private async getStrategyItem(strategy: Contract, item: string) {
     const [ percentage, data ] = await Promise.all([
       strategy.getPercentage(item),
       strategy.getTradeData(item)
@@ -697,7 +707,7 @@ export class Estimator {
       percentage: percentage,
       data: data
     }
-  }
+  }*/
 
   private async curveDepositPrice(
     amount: BigNumber,
