@@ -1,5 +1,5 @@
 import { ethers, waffle, network } from 'hardhat'
-import { Contract } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
@@ -212,7 +212,7 @@ describe('Live Estimates', function () {
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     */
     
-		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eDPI, router.address, withdrawAmount, 0, '0x')
+		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eDPI, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     
   
@@ -247,7 +247,7 @@ describe('Live Estimates', function () {
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
 
-		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eYETI, router.address, withdrawAmount, 0, '0x')
+		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eYETI, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
 
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
@@ -278,7 +278,7 @@ describe('Live Estimates', function () {
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
 
-		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eYLA, router.address, withdrawAmount, 0, '0x')
+		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eYLA, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
 
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
@@ -309,7 +309,7 @@ describe('Live Estimates', function () {
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
 
- 		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eNFTP, router.address, withdrawAmount, 0, '0x')
+ 		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eNFTP, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
 
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')

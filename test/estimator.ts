@@ -1,4 +1,5 @@
 import hre from 'hardhat'
+import { waffle } from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -6,9 +7,13 @@ import { EnsoBuilder, EnsoEnvironment } from '../lib/enso'
 import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, InitialState } from '../lib/encode'
-//import { increaseTime } from '../lib/utils'
-//import {  DIVISOR } from '../lib/constants'
+import { increaseTime } from '../lib/utils'
+import { createLink, linkBytecode } from '../lib/link'
+import { DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+
+import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 
 const { constants, getSigners, getContractFactory } = hre.ethers
 const { AddressZero } = constants
@@ -22,8 +27,6 @@ const strategyState: InitialState = {
   social: true,
   set: false
 }
-
-const runAll = false
 
 describe('Estimator', function() {
   let accounts: SignerWithAddress[],
@@ -74,7 +77,6 @@ describe('Estimator', function() {
     tokens = new Tokens()
 		await tokens.registerTokens(owner, enso.platform.strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
     weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
-    weth=weth//debug
 
     routerAddress = enso.routers[0]?.contract?.address || AddressZero
     aaveV2AdapterAddress = enso.adapters?.aaveV2?.contract?.address || AddressZero
@@ -114,6 +116,16 @@ describe('Estimator', function() {
     const controllerLens = await StrategyControllerLens.deploy(enso.platform.controller.address, weth.address, enso.platform.strategyFactory.address)
     await controllerLens.deployed()
     estimator.controllerLens = controllerLens
+    const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+    const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
+    const controllerImplementation = await waffle.deployContract(
+      accounts[0],
+      linkBytecode(StrategyController, [strategyLibraryLink]),
+      [enso.platform.strategyFactory.address, controllerLens.address]
+    )
+    await controllerImplementation.deployed()
+		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
+		await platformProxyAdmin.connect(owner).upgrade(enso.platform.controller.address, controllerImplementation.address)
   })
 
   it('Should deploy synth strategy', async function() {
@@ -143,7 +155,7 @@ describe('Estimator', function() {
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
 
     const depositAmount = BigNumber.from('10000000000000000')
-    const estimatedDepositValue = await estimator.create(depositAmount, accounts[1].address, name, symbol, strategyItems, strategyState, routerAddress, '0x')//strategyItems, strategyState.rebalanceThreshold, depositAmount)
+    const estimatedDepositValue = await estimator.create(depositAmount, accounts[1].address, name, symbol, strategyItems, strategyState, routerAddress, '0x')
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 
 		const tx = await enso.platform.strategyFactory
@@ -169,18 +181,16 @@ describe('Estimator', function() {
     console.log('Actual deposit value: ', total.toString())
   })
 
-  if (runAll) {
-
-  /*it('Should estimate deposit', async function() {
+  it('Should estimate deposit', async function() {
     await increaseTime(600)
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
     const depositAmount = BigNumber.from('10000000000000000')
-    const estimatedDepositValue = await estimator.deposit(strategy, depositAmount)
+		const estimatedDepositValue = await estimator.deposit(strategy, routerAddress, depositAmount, 0, '0x')
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
     await enso.platform.controller.connect(accounts[1]).deposit(strategy.address, routerAddress, 0, 0, '0x', { value: depositAmount })
     const [ totalAfter ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
     console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-  })*/
+  })
 
   it('Should deploy lending strategy', async function() {
     const name = 'Lending Strategy'
@@ -249,7 +259,7 @@ describe('Estimator', function() {
     console.log('Actual deposit value: ', total.toString())
   })
 
-  /*it('Should estimate withdraw', async function() {
+  it('Should estimate withdraw', async function() {
     const withdrawAmount = (await strategy.balanceOf(accounts[1].address)).div(2)
     const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
     const totalSupply = await strategy.totalSupply()
@@ -257,13 +267,14 @@ describe('Estimator', function() {
     const wethBefore = await weth.balanceOf(accounts[1].address)
     const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
     console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-    const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
+    const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, strategy, routerAddress, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-    const slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
+    const slippage = BigNumber.from(estimatedWithdrawValue).mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
     await enso.platform.controller.connect(accounts[1]).withdrawWETH(strategy.address, routerAddress, withdrawAmount, slippage, '0x')
+    
     const wethAfter = await weth.balanceOf(accounts[1].address)
     console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-  })*/
+  })
 
   it('Should deploy meta strategy', async function() {
     const name = 'Meta Strategy'
@@ -327,9 +338,10 @@ describe('Estimator', function() {
 
     const [ total ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
     console.log('Actual deposit value: ', total.toString())
+    
   })
-
-  /*it('Should estimate withdraw', async function() {
+  
+  it('Should estimate withdraw', async function() {
     const withdrawAmount = (await metaStrategy.balanceOf(accounts[1].address)).div(2)
     const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
     const totalSupply = await metaStrategy.totalSupply()
@@ -337,13 +349,12 @@ describe('Estimator', function() {
     const wethBefore = await weth.balanceOf(accounts[1].address)
     const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
     console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-    const estimatedWithdrawValue = await estimator.withdraw(metaStrategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
+		const estimatedWithdrawValue = BigNumber.from(parseInt(await estimator.withdraw(accounts[1].address, metaStrategy, routerAddress, withdrawAmount, BigNumber.from(0), '0x')))
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     let slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
     if (slippage.gt(999)) slippage = BigNumber.from(999)
     await enso.platform.controller.connect(accounts[1]).withdrawWETH(metaStrategy.address, routerAddress, withdrawAmount, slippage, '0x')
     const wethAfter = await weth.balanceOf(accounts[1].address)
     console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-  })*/
-}
+  })
 })

@@ -249,7 +249,7 @@ export class Estimator {
       strategy: Contract,
       router: string,
       amount: BigNumber,
-      slippage: 0,
+      slippage: BigNumber,
       data: string
   ) : Promise<string> {
     return await this.controllerLens.callStatic.estimateWithdrawWETH(account, strategy.address, router, amount, slippage, data)
