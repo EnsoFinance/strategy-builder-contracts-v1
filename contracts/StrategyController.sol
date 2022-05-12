@@ -72,7 +72,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external payable override returns(uint256 value) {
         IStrategy strategy = IStrategy(strategy_);
         _setStrategyLock(strategy);
-        require(msg.sender == factory);// debug, "Not factory");
+        require(msg.sender == factory, "Not factory");
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
@@ -180,7 +180,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyManager(strategy);
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(!balancedBefore);// debug, "Balanced");
+        require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
@@ -775,7 +775,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _notSet(address strategy) private view {
-        require(!_strategyStates[strategy].set); // debug, "Strategy cannot change");
+        require(!_strategyStates[strategy].set, "Strategy cannot change");
     }
 
     /**
