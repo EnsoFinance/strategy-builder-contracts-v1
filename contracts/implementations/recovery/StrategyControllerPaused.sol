@@ -45,7 +45,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         InitialState memory state_,
         address router_,
         bytes memory data_
-    ) external payable override {
+    ) external payable override returns(uint256) {
         (manager_, strategy_, state_, router_, data_); // shh compiler
         revert("StrategyControllerPaused.");
     }

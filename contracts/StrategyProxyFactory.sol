@@ -116,8 +116,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         InitialState memory strategyState,
         address router,
         bytes memory data
-    ) external payable override returns (address){
-        address strategy = _createProxy(manager, name, symbol, strategyItems);
+    ) external payable override returns (address strategy, uint256 value){
+        strategy = _createProxy(manager, name, symbol, strategyItems);
         emit NewStrategy(
             strategy,
             manager,
@@ -125,14 +125,13 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
             symbol,
             strategyItems
         );
-        _setupStrategy(
-           manager,
-           strategy,
-           strategyState,
-           router,
-           data
-        );
-        return strategy;
+        value = _setupStrategy(
+                   manager,
+                   strategy,
+                   strategyState,
+                   router,
+                   data
+                );
     }
 
     function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
@@ -275,15 +274,15 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         InitialState memory strategyState,
         address router,
         bytes memory data
-    ) internal {
+    ) internal returns(uint256 value) {
         IStrategyController strategyController = IStrategyController(controller);
-        strategyController.setupStrategy{value: msg.value}(
-            manager,
-            strategy,
-            strategyState,
-            router,
-            data
-        );
+        return strategyController.setupStrategy{value: msg.value}(
+                    manager,
+                    strategy,
+                    strategyState,
+                    router,
+                    data
+                );
     }
 
     function _addItemToRegistry(

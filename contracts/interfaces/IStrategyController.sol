@@ -15,7 +15,7 @@ interface IStrategyController is StrategyTypes {
         InitialState memory state_,
         address router_,
         bytes memory data_
-    ) external payable;
+    ) external payable returns(uint256 value);
 
     function deposit(
         IStrategy strategy,

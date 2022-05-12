@@ -69,23 +69,23 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         InitialState memory state_,
         address router_,
         bytes memory data_
-    ) external payable override {
+    ) external payable override returns(uint256 value) {
         IStrategy strategy = IStrategy(strategy_);
         _setStrategyLock(strategy);
-        require(msg.sender == factory, "Not factory");
+        require(msg.sender == factory);// debug, "Not factory");
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
-            _deposit(
-                strategy,
-                IStrategyRouter(router_),
-                manager_,
-                0,
-                state_.restructureSlippage,
-                0,
-                uint256(-1),
-                data_
-            );
+            value = _deposit(
+                        strategy,
+                        IStrategyRouter(router_),
+                        manager_,
+                        0,
+                        state_.restructureSlippage,
+                        0,
+                        uint256(-1),
+                        data_
+                    );
         _removeStrategyLock(strategy);
     }
 
@@ -180,7 +180,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyManager(strategy);
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(!balancedBefore, "Balanced");
+        require(!balancedBefore);// debug, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
@@ -775,7 +775,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _notSet(address strategy) private view {
-        require(!_strategyStates[strategy].set, "Strategy cannot change");
+        require(!_strategyStates[strategy].set); // debug, "Strategy cannot change");
     }
 
     /**

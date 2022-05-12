@@ -13,7 +13,7 @@ interface IStrategyProxyFactory is StrategyTypes{
         InitialState memory strategyInit,
         address router,
         bytes memory data
-    ) external payable returns (address);
+    ) external payable returns (address, uint256);
 
     function updateProxyVersion(address proxy) external;
 
