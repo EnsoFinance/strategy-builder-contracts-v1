@@ -257,7 +257,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             int256 estimatedValue = estimates[i];
             if (estimatedValue > expectedValue) {
                 // condition check above means adding diff that isn't overflowed
-                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i], i)); // "i" is for estimate/simulation
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i]));
                 ++numberAdded;
             }
         }
