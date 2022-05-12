@@ -74,14 +74,6 @@ contract Leverage2XAdapter is BaseAdapter {
         _delegateSwap(aaveV2Adapter, IERC20(tokenIn).balanceOf(address(this)), expected, tokenIn, tokenOut, address(this), to);
     }
 
-    function estimateSwap(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
-    }
-
     function _delegateSwap(
         address adapter,
         uint256 amount,

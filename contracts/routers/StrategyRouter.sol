@@ -10,6 +10,8 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IBaseAdapter.sol";
 import "../helpers/StrategyTypes.sol";
 
+import "hardhat/console.sol";
+
 abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -40,7 +42,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
 
     function withdraw(address strategy, bytes calldata data) external virtual override;
 
-    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(int256[] memory balances, uint256 updatedStrategyWethBalance) {
+    function estimateWithdraw(address strategy, bytes calldata data) external view virtual override returns(bytes[][] memory swapDatas) {
         revert("estimateWithdraw: not supported.");
     }
 
@@ -85,7 +87,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         }
     }
 
-    function _estimateSwap(
+    /*function _estimateSwap( // TODO delete
         address adapter,
         uint256 amount,
         uint256 expected,
@@ -96,7 +98,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     ) internal view returns(uint256 value) {
         require(controller.whitelist().approved(adapter), "Not approved");
         return IBaseAdapter(adapter).estimateSwap(amount, tokenIn, tokenOut);
-    }
+    }*/
 
     function _sellPath(
         TradeData memory data,
@@ -130,24 +132,27 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         uint256 amount,
         address token,
         address strategy
-    ) internal view returns(uint256 wethAmount) {
-        if (amount == 0) return 0;
+    ) internal view returns(bytes[] memory swapDatas) {
+        if (amount == 0) return swapDatas;
         uint256 _amount;
         address _tokenIn;
         address _tokenOut;
         address _from;
         address _to;
+        swapDatas = new bytes[](data.adapters.length);
         for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
             (_amount, _tokenIn, _tokenOut, _from, _to) = _prepareSale(data, amount, token, strategy, uint256(i));
-            wethAmount = wethAmount.add(_estimateSwap(
+            console.log("debug _estimateSellPath");
+            console.log(data.adapters[uint256(i)]);
+            console.log(amount);
+            console.log(_tokenIn);
+            console.log(_tokenOut);
+            swapDatas[uint256(i)] = abi.encode(
                 data.adapters[uint256(i)],
                 _amount,
-                1,
                 _tokenIn,
-                _tokenOut,
-                _from,
-                _to
-            ));
+                _tokenOut
+            );
         }
     }
 

@@ -6,6 +6,8 @@ import "../libraries/StrategyLibrary.sol";
 import "../libraries/BinaryTreeWithPayload.sol";
 import "./StrategyRouter.sol";
 
+import "hardhat/console.sol";
+
 contract LoopRouter is StrategyTypes, StrategyRouter {
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
@@ -64,8 +66,9 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         ); 
     }
 
-    function _estimateSellPath(address strategy, address strategyItem, uint256 diff, int256 estimate) private view returns(uint256) {
+    function _estimateSellPath(address strategy, address strategyItem, uint256 diff, int256 estimate) private view returns(bytes[] memory swapDatas) {
         TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
+        //console.log("debug _estimateSellPath");
         return _estimateSellPath(
                    tradeData,
                    _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
@@ -75,14 +78,17 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
     }
 
     // simulates `withdraw`
-    function estimateWithdraw(address strategy, bytes calldata data) external view override returns(int256[] memory, uint256) {
+    function estimateWithdraw(address strategy, bytes calldata data) external view override returns(bytes[][] memory allSwapDatas) {
+      console.log("debug estimateWithdraw");
         (uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) = _getSortedDiffs(strategy, data);
+      console.log("debug estimateWithdraw 0");
         // Sell loop
         uint256 diff;
         address strategyItem;
         int256 estimate;
         uint256 i;
         uint256 idx;
+        allSwapDatas = new bytes[][](payloads.length);
         while (expectedWeth > 0 && i < payloads.length) {
             diff = diffs[i];
             if (diff > expectedWeth) {
@@ -92,8 +98,8 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
             (strategyItem, estimate, idx) = abi.decode(payloads[i], (address, int256, uint256));
-            uint256 wethAmount = _estimateSellPath(strategy, strategyItem, diff, estimate);
-            //estimates[idx] = estimates[idx].sub(int256(diff)).add(int256(wethAmount));
+            allSwapDatas[idx] = _estimateSellPath(strategy, strategyItem, diff, estimate);
+            //estimates[idx] = estimates[idx].sub(int256(diff)).add(int256(wethAmount)); // TODO elsewhere
             //updatedStrategyWethBalance = updatedStrategyWethBalance.add(wethAmount);
             ++i;
         }

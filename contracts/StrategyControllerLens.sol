@@ -1,10 +1,11 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity 0.6.12;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
+import "./helpers/StringUtils.sol";
 import "./interfaces/IStrategyController.sol";
 
-contract StrategyControllerLens { // TODO make upgradeable
+contract StrategyControllerLens is StringUtils { // TODO make upgradeable
 
     IStrategyController immutable private _controller; 
     
@@ -17,61 +18,42 @@ contract StrategyControllerLens { // TODO make upgradeable
         return _controller;
     }
 
+    // do not call unless you are me!!!
+    function _estimateWithdrawWETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data,
+        address msgSender
+    ) external returns(uint256) {
+        require(msg.sender == address(this), "estimateWithdrawETH: only callable by self.");
+        data = abi.encode(msgSender, data);
+        uint256 wethAmount = _controller.withdrawWETH(strategy, router, amount, slippage, data);
+        revert(toString(wethAmount));  // always reverts!!
+    }
+
+    // reverts every time! only call with callStatic unless you want to pay for gas
     function estimateWithdrawWETH(
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external view returns(uint256 wethAmount) {
-        _controller.initialized(address(strategy));
-        return _estimateWithdraw(strategy, router, amount, slippage, data);
-    }
-    
-    function _estimateWithdraw(
-        IStrategy strategy,
-        IStrategyRouter router,
-        uint256 amount,
-        uint256 slippage,
-        bytes memory data
-    ) internal view returns (uint256 wethAmount) {
-        require(amount > 0, "0 amount");
-        //strategy.settleSynths(); // debug different
-        //strategy.issueStreamingFee(); // debug different
-        amount = strategy.estimateBurn(msg.sender, amount); // debug different
-        uint256 totalBefore;
-        uint256 balanceBefore;
-        (totalBefore, balanceBefore, wethAmount, data) = _controller.withdrawPreprocessing(strategy, router, amount, slippage, data);
+    ) external returns(string memory) {
+        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data, msg.sender) {
         
-        // Withdraw
-        //_useRouter // debug different 
-        // Check value and balance
-
-        // simulates _useRouter but returns estimated balances 
-        (uint256 totalAfter, uint256 wethBalance, int256[] memory estimatesAfter) = _estimateUseRouter(strategy, router, IStrategyController.Action.WITHDRAW, data);
-
-        wethAmount = _controller.withdrawPostprocessing(strategy, totalBefore, balanceBefore, wethAmount, totalAfter, wethBalance, slippage, estimatesAfter);
-        //strategy.approveToken(weth, address(this), wethAmount); // debug different
-        //emit Withdraw(address(strategy), msg.sender, wethAmount, amount); // debug different
-    }
-
-    function _estimateUseRouter(
-        IStrategy strategy,
-        IStrategyRouter router,
-        IStrategyController.Action action,
-        bytes memory data
-    ) internal view returns(uint256 totalAfter, uint256 updatedStrategyWethBalance, int256[] memory estimatesAfter) {
-        int256[] memory balances;
-        //_approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(-1)); // debug different
-        if (action == IStrategyController.Action.WITHDRAW) {
-            (balances, updatedStrategyWethBalance) = router.estimateWithdraw(address(strategy), data);
-        } else if (action == IStrategyController.Action.REBALANCE) {
-            //router.rebalance(address(strategy), data);
-        } else if (action == IStrategyController.Action.RESTRUCTURE) {
-            //router.restructure(address(strategy), data);
-        }
-        //_approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(0)); // debug different
-        (totalAfter, estimatesAfter) = _controller.oracle().estimateStrategy(strategy, balances, updatedStrategyWethBalance); // debug different
-        return (totalAfter, updatedStrategyWethBalance, estimatesAfter);
+        } catch (bytes memory reason) {
+            if (reason.length != 100) { // length of abi encoded uint256
+                assembly {
+                    reason := add(reason, 0x04)
+                }
+                revert(abi.decode(reason, (string)));
+            }
+            assembly {
+                reason := add(reason, 0x04)
+            }
+            return abi.decode(reason, (string)); // this should be the wethAmount to be decoded
+        } 
     }
 }

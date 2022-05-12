@@ -26,6 +26,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     address public immutable factory;
+    address public immutable controllerLens;
 
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
@@ -36,8 +37,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event StrategySet(address indexed strategy);
 
     // Initialize constructor to disable implementation
-    constructor(address factory_) public initializer {
+    constructor(address factory_, address controllerLens_) public initializer {
         factory = factory_;
+        controllerLens = controllerLens_;
     }
 
     /**
@@ -64,7 +66,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external payable override {
         IStrategy strategy = IStrategy(strategy_);
         _setStrategyLock(strategy);
-        require(msg.sender == factory, "Not factory");
+        require(msg.sender == factory, ''/*"Not factory"*/); // debug
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
@@ -143,11 +145,16 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external override {
+    ) external override returns(uint256 wethAmount) {
+        address msgSender = msg.sender;
+        if (msg.sender == controllerLens) {
+           msgSender = abi.decode(data, (address)); 
+        }
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
-        IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
+        address weth;
+        (weth, wethAmount) = _withdraw(strategy, router, amount, slippage, data);
+        IERC20(weth).safeTransferFrom(address(strategy), msgSender, wethAmount);
         _removeStrategyLock(strategy);
     }
 
@@ -167,14 +174,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyManager(strategy);
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(!balancedBefore, "Balanced");
+        require(!balancedBefore, ''/*"Balanced"*/); // debug
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
         _useRouter(strategy, router, Action.REBALANCE, strategy.items(), strategy.debt(), data);
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(balancedAfter, "Not balanced");
+        require(balancedAfter, ''/*"Not balanced"*/); // debug
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
@@ -246,9 +253,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             lock.timestamp == 0 ||
                 block.timestamp >
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
-            "Timelock active"
+            ''/*"Timelock active"*/ // debug
         );
-        require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
+        require(verifyStructure(address(strategy), strategyItems), ''/*"Invalid structure"*/); // debug
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems);
@@ -279,9 +286,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(
             !strategyState.social ||
                 block.timestamp > lock.timestamp.add(uint256(strategyState.timelock)),
-            "Timelock active"
+            ''/*"Timelock active"*/ // debug
         );
-        require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
+        require(lock.category == TimelockCategory.RESTRUCTURE, ''/*"Wrong category"*/); // debug
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
         require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
@@ -525,7 +532,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(amount > 0, "0 amount");
         strategy.settleSynths();
         strategy.issueStreamingFee();
-        amount = strategy.burn(msg.sender, amount); // debug different
+        if (msg.sender == controllerLens) {
+           address msgSender;
+           (msgSender, data) = abi.decode(data, (address, bytes)); 
+           amount = strategy.burn(msgSender, amount); // debug different
+        } else {
+           amount = strategy.burn(msg.sender, amount); // debug different
+        }
 
         uint256 totalBefore;
         uint256 balanceBefore;
@@ -541,7 +554,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         wethAmount = withdrawPostprocessing(strategy, totalBefore, balanceBefore, wethAmount, totalAfter, wethBalance, slippage, estimatesAfter);
         // Approve weth amount
         strategy.approveToken(weth, address(this), wethAmount);
-        
+        // note that when called by the controllerLens, this is never emitted
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
@@ -551,7 +564,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) public view override returns(uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, bytes memory data_) {
+    ) private view returns(uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, bytes memory data_) {
         _checkDivisor(slippage);
         int256[] memory estimatesBefore;
         (totalBefore, estimatesBefore) = oracle().estimateStrategy(strategy);
@@ -567,7 +580,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         return (totalBefore, balanceBefore, wethAmount, data);
     }
 
-    function withdrawPostprocessing(IStrategy strategy, uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, uint256 totalAfter, uint256 wethBalance, uint256 slippage, int256[] memory estimatesAfter) public view override returns(uint256) { 
+    function withdrawPostprocessing(IStrategy strategy, uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, uint256 totalAfter, uint256 wethBalance, uint256 slippage, int256[] memory estimatesAfter) private view returns(uint256) { 
         // Calculate weth amount
         //weth = _weth;
         //uint256 wethBalance = IERC20(weth).balanceOf(address(strategy)); // FIXME make appear in _withdraw version debug

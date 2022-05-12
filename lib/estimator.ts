@@ -626,6 +626,8 @@ export class Estimator {
 
   async estimateUniswapV3(amount: BigNumber, tokenIn: string, tokenOut: string) {
     const fee = await this.uniswapV3Registry.getFee(tokenIn, tokenOut)
+    // debug
+    //console.log({tokenIn, tokenOut, fee, amount});
     return this.uniswapV3Quoter.callStatic.quoteExactInputSingle(
       tokenIn,
       tokenOut,

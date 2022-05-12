@@ -45,8 +45,9 @@ interface IStrategyController is StrategyTypes {
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external;
+    ) external returns(uint256);
 
+    /*
     function withdrawPreprocessing(
         IStrategy strategy,
         IStrategyRouter router,
@@ -65,6 +66,7 @@ interface IStrategyController is StrategyTypes {
       uint256 slippage, 
       int256[] memory estimatesAfter
     ) external view returns(uint256);
+    */
 
     function rebalance(
         IStrategy strategy,

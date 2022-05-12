@@ -69,14 +69,6 @@ contract BalancerAdapter is BaseAdapter {
         _batchSwapExactIn(swaps, IERC20(tokenIn), IERC20(tokenOut), from, to, amount, expected);
     }
 
-    function estimateSwap(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
-    }
-
     function _batchSwapExactIn(
         Swap[] memory swaps,
         IERC20 tokenIn,

@@ -59,12 +59,4 @@ contract KyberSwapAdapter is BaseAdapter {
             block.timestamp
         );
     }
-
-    function estimateSwap(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
-    }
 }

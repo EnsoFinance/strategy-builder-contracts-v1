@@ -99,12 +99,12 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) external override {
+    ) external override returns(uint256) {
         (strategy, router, amount, slippage, data); // shh compiler
         revert("StrategyControllerPaused.");
     }
-    
-    function withdrawPreprocessing(
+
+    /*function withdrawPreprocessing(
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
@@ -116,7 +116,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
 
     function withdrawPostprocessing(IStrategy strategy, uint256 totalBefore, uint256 balanceBefore, uint256 wethAmount, uint256 totalAfter, uint256 wethBalance, uint256 slippage, int256[] memory estimatesAfter) public view override returns(uint256) { 
         revert("StrategyControllerPaused.");
-    }
+    }*/
 
     /**
      * @notice Rebalance the strategy to match the current structure

@@ -54,14 +54,6 @@ contract AaveV2Adapter is BaseAdapter {
         }
     }
 
-    function estimateSwap(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
-    }
-
     function _checkAToken(address token) internal view returns (bool) {
         bytes32 selector = keccak256("UNDERLYING_ASSET_ADDRESS()");
         uint256 gasCost = gasCostProvider.gasCost();

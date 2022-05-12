@@ -62,14 +62,6 @@ contract UniswapV2Adapter is BaseAdapter {
         require(received >= expected, "Insufficient tokenOut amount");
     }
 
-    function estimateSwap(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
-    }
-
     function _pairSwap(
         address pair,
         uint256 tokenAOut,

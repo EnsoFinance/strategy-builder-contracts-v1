@@ -46,14 +46,6 @@ contract FailAdapter is BaseAdapter, IRewardsAdapter {
         if (controller.sellFail() && tokenOut == weth) revert("Fail");
     }
 
-    function estimateSwap(
-        uint256 amount,
-        address tokenIn,
-        address tokenOut
-    ) public view override returns(uint256) {
-        revert("estimateSwap: not yet supported.");
-    }
-
     function claim(address token) public override {
         (token);
         revert();
