@@ -3,7 +3,6 @@ import { StrategyItem, TradeData, InitialState } from './encode'
 
 import StrategyControllerLens from '../artifacts/contracts/StrategyControllerLens.sol/StrategyControllerLens.json'
 import ICToken from '../artifacts/contracts/interfaces/compound/ICToken.sol/ICToken.json'
-//import IStrategy from '../artifacts/contracts/interfaces/IStrategy.sol/IStrategy.json'
 import ISynth from '../artifacts/contracts/interfaces/synthetix/ISynth.sol/ISynth.json'
 import ISynthetix from '../artifacts/contracts/interfaces/synthetix/ISynthetix.sol/ISynthetix.json'
 import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.sol/IExchanger.json'
@@ -16,7 +15,7 @@ import IYEarnV2Vault from '../artifacts/contracts/interfaces/yearn/IYEarnV2Vault
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-import { DIVISOR, /*ITEM_CATEGORY,*/ MAINNET_ADDRESSES } from './constants'
+import { DIVISOR, MAINNET_ADDRESSES } from './constants'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils
@@ -37,12 +36,6 @@ const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
 const WETH = MAINNET_ADDRESSES.WETH
 const SUSD = MAINNET_ADDRESSES.SUSD
 const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
-/*const NULL_TRADE_DATA: TradeData = {
-  adapters: [],
-  path: [],
-  cache: '0x'
-}
-*/
 
 interface ItemDictionary {
   [id: string]: StrategyItem
@@ -149,60 +142,6 @@ export class Estimator {
   ) {
     return await this.controllerLens.callStatic.estimateCreateStrategy(amount, manager, name, symbol_, strategyItems, strategyState, router, data)
   }
-/*
-  async create(
-      strategyItems: StrategyItem[],
-      rebalanceThreshold: BigNumber,
-      amount: BigNumber
-  ) {
-      let virtPercentage = BigNumber.from('0')
-      const itemsData: ItemDictionary = {}
-      const items: string[] = []
-      const synths: string[] = []
-
-      const categories: BigNumber[] = await Promise.all(strategyItems.map(async (strategyItem: StrategyItem) => {
-          return this.tokenRegistry.itemCategories(strategyItem.item)
-      }))
-      // Sort by category
-      for (let i = 0; i < strategyItems.length; i++) {
-        if (categories[i].eq(ITEM_CATEGORY.BASIC)) {
-          items.push(strategyItems[i].item)
-        }
-        if (categories[i].eq(ITEM_CATEGORY.SYNTH)) {
-          synths.push(strategyItems[i].item)
-          virtPercentage = virtPercentage.add(strategyItems[i].percentage)
-        }
-        itemsData[strategyItems[i].item] = strategyItems[i]
-      }
-      if (synths.length > 0) {
-          // Synths found, check for sUSD and add it to virtual percentage
-          if (itemsData[SUSD]) virtPercentage = virtPercentage.add(itemsData[SUSD].percentage)
-          itemsData[VIRTUAL_ITEM] = {
-            item: VIRTUAL_ITEM,
-            percentage: virtPercentage,
-            data: NULL_TRADE_DATA
-          }
-      } else {
-          // No synths, check for sUSD and add it to basic tokens
-          if (itemsData[SUSD]) items.push(SUSD)
-      }
-      // If weth isn't set, add null data
-      if (!itemsData[WETH]) itemsData[WETH] = {
-        item: WETH,
-        percentage: BigNumber.from('0'),
-        data: NULL_TRADE_DATA
-      }
-
-      return this.estimateBatchBuy(
-        items,
-        synths,
-        itemsData,
-        rebalanceThreshold,
-        amount,
-        new Array(items.length + 1).fill(BigNumber.from('0'))
-      )
-  }
-  */
 
   async deposit(
       strategy: Contract,
@@ -214,36 +153,6 @@ export class Estimator {
 		return this.controllerLens.callStatic.estimateDeposit(strategy.address, router, amount, slippage, data)
   }
 
-  /*async deposit(
-      strategy: Contract,
-      amount: BigNumber
-  ) {
-      const [ items, synths, rebalanceThreshold ] = await Promise.all([
-        strategy.items(),
-        strategy.synths(),
-        strategy.rebalanceThreshold()
-      ])
-      const itemsData: ItemDictionary = {}
-      await Promise.all(items.map(async (item: string) => {
-        itemsData[item] = await this.getStrategyItem(strategy, item)
-      }))
-      await Promise.all(synths.map(async (item: string) => {
-        itemsData[item] = await this.getStrategyItem(strategy, item)
-      }))
-      itemsData[WETH] = await this.getStrategyItem(strategy, WETH);
-      itemsData[SUSD] = await this.getStrategyItem(strategy, SUSD);
-      itemsData[VIRTUAL_ITEM] = await this.getStrategyItem(strategy, VIRTUAL_ITEM);
-
-      return this.estimateBatchBuy(
-        items,
-        synths,
-        itemsData,
-        rebalanceThreshold,
-        amount,
-        new Array(items.length + 1).fill(BigNumber.from('0'))
-      )
-  }*/
-
   async withdraw(
       account: string,
       strategy: Contract,
@@ -254,75 +163,6 @@ export class Estimator {
   ) : Promise<string> {
     return await this.controllerLens.callStatic.estimateWithdrawWETH(account, strategy.address, router, amount, slippage, data)
   }
-
-  /*async withdraw(
-      strategy: Contract,
-      amount: BigNumber
-  ) {
-      const [ items, totalSupply, strategyEstimate ] = await Promise.all([
-        strategy.items(),
-        strategy.totalSupply(),
-        this.oracle['estimateStrategy(address)'](strategy.address)
-      ])
-      const [ totalBefore, estimates ] = strategyEstimate
-      const expectedWeth = totalBefore.mul(amount).div(totalSupply)
-      const expectedTotal = totalBefore.sub(expectedWeth)
-
-      const wethAmounts: BigNumber[] = []
-      const estimateAmounts = [...estimates]
-
-      let i = 0;
-      let wethRemaining = expectedWeth
-      while (wethRemaining.gt(0) && i < items.length) {
-          const item = items[i]
-          const [ percentage, data ] = await Promise.all([
-            strategy.getPercentage(item),
-            strategy.getTradeData(item)
-          ])
-          const estimatedValue = estimates[i];
-          const expectedValue = percentage.eq('0') ? BigNumber.from('0') : expectedTotal.mul(percentage).div(DIVISOR)
-          if (estimatedValue.gt(expectedValue)) {
-              let diff = estimatedValue.sub(expectedValue)
-              if (diff.gt(wethRemaining)) {
-                  diff = wethRemaining
-                  wethRemaining = BigNumber.from(0)
-              } else {
-                  wethRemaining = wethRemaining.sub(diff)
-              }
-              if (diff.gt(0)) {
-                  const wethAmount = await this.estimateSellPath(
-                      data,
-                      await this.estimateSellAmount(strategy.address, item, diff, estimatedValue),
-                      item
-                  );
-                  estimateAmounts[i] = estimatedValue.sub(diff).add(wethAmount)
-                  wethAmounts.push(wethAmount)
-              }
-          }
-          i++
-      }
-
-      const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
-      wethAmounts.push(wethBalance)
-      estimateAmounts.push(wethBalance)
-
-      const totalAfter = estimateAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
-      const totalWeth = wethAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
-
-      let wethAfterSlippage
-      if (totalBefore.gt(totalAfter)) {
-        const slippageAmount = totalBefore.sub(totalAfter)
-        if (slippageAmount.gt(expectedWeth)) return BigNumber.from(0)
-        wethAfterSlippage = expectedWeth.sub(slippageAmount)
-      } else {
-        wethAfterSlippage = expectedWeth
-      }
-      if (wethAfterSlippage.gt(totalWeth)) {
-        return totalWeth
-      } else {
-        return wethAfterSlippage
-      }
-  }*/
 
   async estimateBatchBuy(
       items: string[],
@@ -480,6 +320,7 @@ export class Estimator {
       }
   }
 
+  // TODO implement estimateSwap by using the new lens strategy with the adapters
   async estimateSwap(
     adapter: string,
     amount: BigNumber,
@@ -711,18 +552,6 @@ export class Estimator {
           }
       }
   }
-
-  /*private async getStrategyItem(strategy: Contract, item: string) {
-    const [ percentage, data ] = await Promise.all([
-      strategy.getPercentage(item),
-      strategy.getTradeData(item)
-    ])
-    return {
-      item: item,
-      percentage: percentage,
-      data: data
-    }
-  }*/
 
   private async curveDepositPrice(
     amount: BigNumber,
