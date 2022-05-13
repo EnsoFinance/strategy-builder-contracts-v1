@@ -109,22 +109,7 @@ describe('Live Estimates', function () {
         // update controller and other contracts of this changeset
         const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
 
-        const singletonFactoryAddress = '0xce0042B868300000d44A59004Da54A005ffdcf9f'
-        const singletonFactory = new Contract(
-          singletonFactoryAddress, 
-          // abi
-          [{"inputs":[{"internalType":"bytes","name":"_initCode","type":"bytes"},{"internalType":"bytes32","name":"_salt","type":"bytes32"}],"name":"deploy","outputs":[{"internalType":"address payable","name":"createdContract","type":"address"}],"stateMutability":"nonpayable","type":"function"}], 
-          accounts[0]
-        )
         const StrategyControllerLensProxy = await getContractFactory("StrategyControllerLensProxy")
-
-        const salt = ethers.utils.solidityKeccak256(["string"], ["ensoFinance/v1-core:StrategyControllerLensProxy"])
-        const initCode = StrategyControllerLensProxy.getDeployTransaction(platformProxyAdmin.address, platformProxyAdmin.address, '0x').data
-
-        await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')
-
-        await singletonFactory.connect(accounts[0]).deploy(initCode, salt)
-
         const strategyControllerLensProxy = await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')
         await strategyControllerLensProxy.deployed()
         const strategyControllerLensProxyAddress = strategyControllerLensProxy.address
