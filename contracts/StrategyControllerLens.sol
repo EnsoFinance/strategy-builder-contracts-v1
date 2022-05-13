@@ -172,7 +172,6 @@ contract StrategyControllerLens is StringUtils, Initializable {
         // this always reverts -> receiveFlashLoan -> _createStrategy
     }
 
-
     function _createStrategy(bytes memory userData) private {
         (, 
         uint256 msgValue,
@@ -221,7 +220,6 @@ contract StrategyControllerLens is StringUtils, Initializable {
         }
         // this always reverts -> receiveFlashLoan -> _makeDeposit
     }
-
 
     function _makeDeposit(bytes memory userData) private {
         (, 
