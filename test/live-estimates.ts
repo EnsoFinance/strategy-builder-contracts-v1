@@ -29,7 +29,6 @@ describe('Live Estimates', function () {
 		weth: Contract,
 		router: Contract,
 		controller: Contract,
-    controllerLens: Contract,
 		oracle: Contract,
 		eDPI: Contract,
 		eYETI: Contract,
@@ -142,12 +141,55 @@ describe('Live Estimates', function () {
 		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
 
 		//const strategyController = await StrategyController.deploy(enso.platform.strategyFactory.address)
-    //
-    const StrategyControllerLens = await getContractFactory("StrategyControllerLens")
-    controllerLens = await StrategyControllerLens.deploy(controller.address, weth.address, enso.platform.strategyFactory.address)
-    await controllerLens.deployed()
+    
+    console.log("debug -1")
+    const singletonFactoryAddress = '0xce0042B868300000d44A59004Da54A005ffdcf9f'
+    const singletonFactory = new Contract(singletonFactoryAddress, [{"inputs":[{"internalType":"bytes","name":"_initCode","type":"bytes"},{"internalType":"bytes32","name":"_salt","type":"bytes32"}],"name":"deploy","outputs":[{"internalType":"address payable","name":"createdContract","type":"address"}],"stateMutability":"nonpayable","type":"function"}], accounts[0])
 
-    estimator.controllerLens = controllerLens
+    console.log("debug 0")
+    const StrategyControllerLensProxy = await getContractFactory("StrategyControllerLensProxy")
+
+    console.log("debug 1")
+    const salt = ethers.utils.solidityKeccak256(["string"], ["ensoFinance/v1-core:StrategyControllerLensProxy"])//ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ensoFinance/v1-core:StrategyControllerLensProxy"))
+    const initCode = StrategyControllerLensProxy.getDeployTransaction(platformProxyAdmin.address, platformProxyAdmin.address, '0x').data
+    
+
+      // DEBUG vv
+    await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')
+
+    await singletonFactory.connect(accounts[0]).deploy(initCode, salt)
+
+    //const strategyControllerLensProxyAddress
+    const strategyControllerLensProxy = await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')//ethers.utils.getCreate2Address(singletonFactoryAddress, salt, ethers.utils.solidityKeccak256(["bytes"], [initCode]))
+    await strategyControllerLensProxy.deployed()
+
+    const strategyControllerLensProxyAddress = strategyControllerLensProxy.address
+    console.log(strategyControllerLensProxyAddress)
+
+    console.log("debug 2")
+    const StrategyControllerLensImplementation = await getContractFactory("StrategyControllerLens")
+    const controllerLensImplementation = await StrategyControllerLensImplementation.deploy(controller.address, weth.address, enso.platform.strategyFactory.address)
+    await controllerLensImplementation.deployed()
+
+    console.log("debug 3")
+    await controllerLensImplementation.deployed()
+
+    console.log("debug 4")
+    console.log(controllerLensImplementation.address)
+
+    console.log("debug 4.5")
+    // debugging delete vv
+    //await (new Contract(strategyControllerLensProxyAddress, StrategyControllerLensProxy.interface, accounts[0])).test()
+    //console.log(await tx.wait())
+
+    console.log("debug 4.75")
+
+    await platformProxyAdmin.connect(owner).upgrade(strategyControllerLensProxyAddress, controllerLensImplementation.address)
+
+    console.log("debug 5")
+
+    //estimator.controllerLens = controllerLensImplementation 
+    estimator.controllerLens = new Contract(strategyControllerLensProxyAddress, (await getContractFactory("StrategyControllerLens")).interface, accounts[0]) 
 
     const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
     await strategyLibrary.deployed()
@@ -155,7 +197,7 @@ describe('Live Estimates', function () {
     const controllerImplementation = await waffle.deployContract(
       accounts[0],
       linkBytecode(StrategyController, [strategyLibraryLink]),
-      [enso.platform.strategyFactory.address, controllerLens.address]
+      [enso.platform.strategyFactory.address, estimator.controllerLens.address]
     )
     await controllerImplementation.deployed()
 		//const controllerProxy = await platformProxyAdmin.controller()
