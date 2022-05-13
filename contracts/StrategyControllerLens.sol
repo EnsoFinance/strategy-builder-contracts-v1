@@ -86,6 +86,57 @@ contract StrategyControllerLens is StringUtils, Initializable {
         }
     }
 
+    // the try reverts every time! only call with callStatic unless you want to pay for gas
+    function estimateDeposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) external returns(string memory valueAdded) {
+        try this._estimateDeposit(strategy, router, amount, slippage, data) {
+        
+        } catch (bytes memory reason) {
+            if (reason.length != 100) { // length of abi encoded uint256
+                assembly {
+                    reason := add(reason, 0x04)
+                }
+                revert(abi.decode(reason, (string)));
+            }
+            assembly {
+                reason := add(reason, 0x04)
+            }
+            return abi.decode(reason, (string)); // this should be the valueAdded to be decoded
+        }
+    }
+
+    // the try reverts every time! only call with callStatic unless you want to pay for gas
+    function estimateWithdrawWETH(
+        address account,
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) external returns(string memory) {
+        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data, account) {
+        
+        } catch (bytes memory reason) {
+            if (reason.length != 100) { // length of abi encoded uint256
+                assembly {
+                    reason := add(reason, 0x04)
+                }
+                revert(abi.decode(reason, (string)));
+            }
+            assembly {
+                reason := add(reason, 0x04)
+            }
+            return abi.decode(reason, (string)); // this should be the wethAmount to be decoded
+        } 
+    }
+
+    // callable only by self START
+
     // do not call unless you are me!!!
     function _estimateCreateStrategy(
         uint256 msgValue,
@@ -121,28 +172,22 @@ contract StrategyControllerLens is StringUtils, Initializable {
         // this always reverts -> receiveFlashLoan -> _createStrategy
     }
 
-    // the try reverts every time! only call with callStatic unless you want to pay for gas
-    function estimateDeposit(
-        IStrategy strategy,
-        IStrategyRouter router,
-        uint256 amount,
-        uint256 slippage,
+
+    function _createStrategy(bytes memory userData) private {
+        (, 
+        uint256 msgValue,
+        address manager,
+        string memory name,
+        string memory symbol,
+        StrategyTypes.StrategyItem[] memory strategyItems,
+        StrategyTypes.InitialState memory strategyState,
+        address router,
         bytes memory data
-    ) external returns(string memory valueAdded) {
-        try this._estimateDeposit(strategy, router, amount, slippage, data) {
-        
-        } catch (bytes memory reason) {
-            if (reason.length != 100) { // length of abi encoded uint256
-                assembly {
-                    reason := add(reason, 0x04)
-                }
-                revert(abi.decode(reason, (string)));
-            }
-            assembly {
-                reason := add(reason, 0x04)
-            }
-            return abi.decode(reason, (string)); // this should be the valueAdded to be decoded
-        }
+        ) = abi.decode(userData, (Operation, uint256, address, string, string, StrategyTypes.StrategyItem[], StrategyTypes.InitialState, address, bytes));
+        // weth unwrap
+        IWETH(_weth).withdraw(msgValue);
+        (,uint256 value) = _factory.createStrategy{value: msgValue}(manager, name, symbol, strategyItems, strategyState, router, data);
+        revert(toString(value));  // always reverts!!
     }
 
     // do not call unless you are me!!!
@@ -177,22 +222,6 @@ contract StrategyControllerLens is StringUtils, Initializable {
         // this always reverts -> receiveFlashLoan -> _makeDeposit
     }
 
-    function _createStrategy(bytes memory userData) private {
-        (, 
-        uint256 msgValue,
-        address manager,
-        string memory name,
-        string memory symbol,
-        StrategyTypes.StrategyItem[] memory strategyItems,
-        StrategyTypes.InitialState memory strategyState,
-        address router,
-        bytes memory data
-        ) = abi.decode(userData, (Operation, uint256, address, string, string, StrategyTypes.StrategyItem[], StrategyTypes.InitialState, address, bytes));
-        // weth unwrap
-        IWETH(_weth).withdraw(msgValue);
-        (,uint256 value) = _factory.createStrategy{value: msgValue}(manager, name, symbol, strategyItems, strategyState, router, data);
-        revert(toString(value));  // always reverts!!
-    }
 
     function _makeDeposit(bytes memory userData) private {
         (, 
@@ -219,6 +248,23 @@ contract StrategyControllerLens is StringUtils, Initializable {
         revert(toString(valueAdded));  // always reverts!!
     }
 
+    // do not call unless you are me!!!
+    function _estimateWithdrawWETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data,
+        address msgSender
+    ) external returns(uint256) {
+        require(msg.sender == address(this), "estimateWithdrawETH: only callable by self.");
+        data = abi.encode(msgSender, data);
+        uint256 wethAmount = _controller.withdrawWETH(strategy, router, amount, slippage, data);
+        revert(toString(wethAmount));  // always reverts!!
+    }
+
+    // callable only by self END
+
     function receiveFlashLoan(
         address[] memory tokens,
         uint256[] memory amounts,
@@ -233,45 +279,5 @@ contract StrategyControllerLens is StringUtils, Initializable {
         } else {
             revert("receiveFlashLoan: op not supported.");
         }
-    }
-
-    // the try reverts every time! only call with callStatic unless you want to pay for gas
-    function estimateWithdrawWETH(
-        address account,
-        IStrategy strategy,
-        IStrategyRouter router,
-        uint256 amount,
-        uint256 slippage,
-        bytes memory data
-    ) external returns(string memory) {
-        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data, account) {
-        
-        } catch (bytes memory reason) {
-            if (reason.length != 100) { // length of abi encoded uint256
-                assembly {
-                    reason := add(reason, 0x04)
-                }
-                revert(abi.decode(reason, (string)));
-            }
-            assembly {
-                reason := add(reason, 0x04)
-            }
-            return abi.decode(reason, (string)); // this should be the wethAmount to be decoded
-        } 
-    }
-
-    // do not call unless you are me!!!
-    function _estimateWithdrawWETH(
-        IStrategy strategy,
-        IStrategyRouter router,
-        uint256 amount,
-        uint256 slippage,
-        bytes memory data,
-        address msgSender
-    ) external returns(uint256) {
-        require(msg.sender == address(this), "estimateWithdrawETH: only callable by self.");
-        data = abi.encode(msgSender, data);
-        uint256 wethAmount = _controller.withdrawWETH(strategy, router, amount, slippage, data);
-        revert(toString(wethAmount));  // always reverts!!
     }
 }
