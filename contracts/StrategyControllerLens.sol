@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.8.0;
+pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./helpers/StringUtils.sol";
 import "./interfaces/IStrategyController.sol";
@@ -10,8 +12,26 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyRouter.sol";
 import "./helpers/StrategyTypes.sol";
 
-contract StrategyControllerLens is StringUtils { // TODO make upgradeable
+import "hardhat/console.sol";
 
+/* 
+   `StrategyControllerLensProxy` deployed using `SingletonFactory` defined in EIP-2470 
+   located at address `0xce0042B868300000d44A59004Da54A005ffdcf9f` 
+   with 
+   salt keccak256("ensoFinance/v1-core:StrategyControllerLensProxy") 
+   and params 
+   _logic: platformProxyAdminAddress, // to be upgraded later to `StrategyControllerLens`
+   _admin: platformProxyAdminAddress, 
+   _data: new bytes(0)
+ **/
+
+contract StrategyControllerLensProxy is TransparentUpgradeableProxy {
+    constructor(address _logic, address admin_, bytes memory _data) TransparentUpgradeableProxy(_logic, admin_, _data) public {}
+}
+
+contract StrategyControllerLens is StringUtils, Initializable {
+
+    address public platformProxyAdmin;
     IStrategyController immutable private _controller; 
     IStrategyProxyFactory immutable private _factory; 
     address immutable private _weth;
@@ -24,12 +44,14 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
     }
     
     // Initialize constructor to disable implementation
-    constructor(address controller_, address weth_, address factory_) public /*initializer*/ { // FIXME update initializer
+    constructor(address controller_, address weth_, address factory_) public initializer {
         _controller = IStrategyController(controller_);
         _factory = IStrategyProxyFactory(factory_);
         _weth = weth_;
         _balancerVault = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     }
+
+    function initialize() external initializer returns (bool) {}
 
     // needed to withdraw weth
     fallback() external payable {}
@@ -254,5 +276,4 @@ contract StrategyControllerLens is StringUtils { // TODO make upgradeable
         uint256 wethAmount = _controller.withdrawWETH(strategy, router, amount, slippage, data);
         revert(toString(wethAmount));  // always reverts!!
     }
-
 }
