@@ -226,13 +226,13 @@ describe('Estimator', function() {
 
     const depositAmount = BigNumber.from('10000000000000000')
     const estimatedDepositValue = await estimator.create(depositAmount,
-				accounts[1].address,
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				routerAddress,
-				'0x',
+        accounts[1].address,
+        name,
+        symbol,
+        strategyItems,
+        strategyState,
+        routerAddress,
+        '0x',
     )
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 
@@ -307,13 +307,13 @@ describe('Estimator', function() {
     const depositAmount = BigNumber.from('10000000000000000')
     const estimatedDepositValue = await estimator.create(
         depositAmount,
-				accounts[1].address,
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				routerAddress,
-				'0x',
+        accounts[1].address,
+        name,
+        symbol,
+        strategyItems,
+        strategyState,
+        routerAddress,
+        '0x',
     )
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 
