@@ -164,8 +164,6 @@ describe('Live Estimates', function () {
         const depositAmount = WeiPerEther
         const estimatedDepositValue = await estimator.deposit(eDPI, router.address, depositAmount, 0, '0x')
         console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-
-
         await controller.connect(accounts[1]).deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
         const [ totalAfter ] = await oracle['estimateStrategy(address)'](eDPI.address)
         console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
