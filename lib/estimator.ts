@@ -328,49 +328,49 @@ export class Estimator {
     tokenOut: string
   ) {
     switch (adapter.toLowerCase()) {
-      case this.aaveV2AdapterAddress.toLowerCase(): { console.log("debug 0")
+      case this.aaveV2AdapterAddress.toLowerCase(): { 
         return this.estimateAaveV2(amount, tokenIn, tokenOut)
       }
-      case this.aaveV2DebtAdapterAddress.toLowerCase(): { console.log("debug 1")
+      case this.aaveV2DebtAdapterAddress.toLowerCase(): {
         return BigNumber.from('0')//this.estimateAaveV2Debt(amount, tokenIn, tokenOut)
       }
-      case this.balancerAdapterAddress.toLowerCase(): { console.log("debug 2")
+      case this.balancerAdapterAddress.toLowerCase(): {
         return BigNumber.from('0')//this.estimateBalancer(amount, tokenIn, tokenOut)
       }
-      case this.compoundAdapterAddress.toLowerCase(): { console.log("debug 3")
+      case this.compoundAdapterAddress.toLowerCase(): {
         return this.estimateCompound(amount, tokenIn, tokenOut)
       }
-      case this.curveAdapterAddress.toLowerCase(): { console.log("debug 4")
+      case this.curveAdapterAddress.toLowerCase(): {
         return this.estimateCurve(amount, tokenIn, tokenOut)
       }
-      case this.curveLPAdapterAddress.toLowerCase(): { console.log("debug 5")
+      case this.curveLPAdapterAddress.toLowerCase(): {
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
       }
-      case this.curveGaugeAdapterAddress.toLowerCase(): { console.log("debug 6")
+      case this.curveGaugeAdapterAddress.toLowerCase(): {
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
       }
-      case this.kyberSwapAdapterAddress.toLowerCase(): { console.log("debug 7")
+      case this.kyberSwapAdapterAddress.toLowerCase(): {
         return this.estimateKyberSwap(amount, tokenIn, tokenOut)
       }
-      /*case this.metaStrategyAdapterAddress.toLowerCase(): { console.log("debug 8")
-        return this.estimateMetaStrategy(amount, tokenIn, tokenOut) // FIXME update after `withdraw` update
+      /*case this.metaStrategyAdapterAddress.toLowerCase(): {
+        return this.estimateMetaStrategy(amount, tokenIn, tokenOut) //  update after `withdraw` update
       }*/
-      case this.sushiSwapAdapterAddress.toLowerCase(): { console.log("debug 9")
+      case this.sushiSwapAdapterAddress.toLowerCase(): {
         return this.estimateSushiSwap(amount, tokenIn, tokenOut)
       }
-      case this.synthetixAdapterAddress.toLowerCase(): { console.log("debug 10")
+      case this.synthetixAdapterAddress.toLowerCase(): {
         return this.estimateSynthetix(amount, tokenIn, tokenOut)
       }
-      case this.uniswapV2AdapterAddress.toLowerCase(): { console.log("debug 11")
+      case this.uniswapV2AdapterAddress.toLowerCase(): {
         return this.estimateUniswapV2(amount, tokenIn, tokenOut)
       }
-      case this.uniswapV3AdapterAddress.toLowerCase(): { console.log("debug 12")
+      case this.uniswapV3AdapterAddress.toLowerCase(): {
         return this.estimateUniswapV3(amount, tokenIn, tokenOut)
       }
-      case this.yearnV2AdapterAddress.toLowerCase(): { console.log("debug 13")
+      case this.yearnV2AdapterAddress.toLowerCase(): {
         return this.estimateYearnV2(amount, tokenIn, tokenOut)
       }
-      default: { console.log("debug 14")
+      default: {
         return BigNumber.from('0');
       }
     }
@@ -512,8 +512,6 @@ export class Estimator {
 
   async estimateUniswapV3(amount: BigNumber, tokenIn: string, tokenOut: string) {
     const fee = await this.uniswapV3Registry.getFee(tokenIn, tokenOut)
-    // debug
-    //console.log({tokenIn, tokenOut, fee, amount});
     return this.uniswapV3Quoter.callStatic.quoteExactInputSingle(
       tokenIn,
       tokenOut,
