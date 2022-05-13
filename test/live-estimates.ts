@@ -5,7 +5,7 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
-import { deployLoopRouter/*, deployUniswapV3Adapter*/ } from '../lib/deploy'
+import { deployLoopRouter } from '../lib/deploy'
 import { DIVISOR } from '../lib/constants'
 import { createLink, linkBytecode } from '../lib/link'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -15,12 +15,8 @@ const { WeiPerEther, AddressZero } = constants
 
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
-//import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
-//const uniswapV3SwapRouterAddress = '0xE592427A0AEce92De3Edee1F18E0157C05861564'
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
-
-const runAll = true 
 
 describe('Live Estimates', function () {
 	let	accounts: SignerWithAddress[],
@@ -93,36 +89,9 @@ describe('Live Estimates', function () {
         return await ethers.getSigner(address);
     }
 
-    //await impersonate(await eDPI.manager())
-
     async function impersonateManager(strategyContract: Contract) : Promise<SignerWithAddress> {
         return await impersonate(await strategyContract.manager())
     }
-
-    /*async function updateTradeData(strategyContract: Contract) { // FIXME pass in old address
-        const items = await strategyContract.items()
-        for (var i=0; i<items.length; i++) {
-            const tradeData = await strategyContract.getTradeData(items[i]); 
-            let changed = false
-            let newTradeData = {
-                adapters: [''],
-                path: tradeData.path,
-                cache: tradeData.cache 
-            }
-            newTradeData.adapters.pop() // was to invoke type
-            for (var j=0; j<tradeData.adapters.length; j++) {
-                if (tradeData.adapters[j].toLowerCase() == oldUniswapV3Address.toLowerCase()) {
-                    newTradeData.adapters.push(enso.adapters.uniswapV3.address)
-                    changed = true
-                } else {
-                    newTradeData.adapters.push(tradeData.adapters[j])
-                }
-            }
-            if (changed) {
-                await strategyContract.connect(await impersonateManager(strategyContract)).updateTradeData(items[i], newTradeData)
-            }
-        }
-    }*/
 
 		const Strategy = await getContractFactory('Strategy')
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
@@ -140,55 +109,31 @@ describe('Live Estimates', function () {
     // update controller and other contracts of this changeset
 		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
 
-		//const strategyController = await StrategyController.deploy(enso.platform.strategyFactory.address)
-    
-    console.log("debug -1")
     const singletonFactoryAddress = '0xce0042B868300000d44A59004Da54A005ffdcf9f'
-    const singletonFactory = new Contract(singletonFactoryAddress, [{"inputs":[{"internalType":"bytes","name":"_initCode","type":"bytes"},{"internalType":"bytes32","name":"_salt","type":"bytes32"}],"name":"deploy","outputs":[{"internalType":"address payable","name":"createdContract","type":"address"}],"stateMutability":"nonpayable","type":"function"}], accounts[0])
-
-    console.log("debug 0")
+    const singletonFactory = new Contract(
+      singletonFactoryAddress, 
+      // abi
+      [{"inputs":[{"internalType":"bytes","name":"_initCode","type":"bytes"},{"internalType":"bytes32","name":"_salt","type":"bytes32"}],"name":"deploy","outputs":[{"internalType":"address payable","name":"createdContract","type":"address"}],"stateMutability":"nonpayable","type":"function"}], 
+      accounts[0]
+    )
     const StrategyControllerLensProxy = await getContractFactory("StrategyControllerLensProxy")
 
-    console.log("debug 1")
-    const salt = ethers.utils.solidityKeccak256(["string"], ["ensoFinance/v1-core:StrategyControllerLensProxy"])//ethers.utils.keccak256(ethers.utils.toUtf8Bytes("ensoFinance/v1-core:StrategyControllerLensProxy"))
+    const salt = ethers.utils.solidityKeccak256(["string"], ["ensoFinance/v1-core:StrategyControllerLensProxy"])
     const initCode = StrategyControllerLensProxy.getDeployTransaction(platformProxyAdmin.address, platformProxyAdmin.address, '0x').data
-    
 
-      // DEBUG vv
     await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')
 
     await singletonFactory.connect(accounts[0]).deploy(initCode, salt)
 
-    //const strategyControllerLensProxyAddress
-    const strategyControllerLensProxy = await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')//ethers.utils.getCreate2Address(singletonFactoryAddress, salt, ethers.utils.solidityKeccak256(["bytes"], [initCode]))
+    const strategyControllerLensProxy = await StrategyControllerLensProxy.deploy(platformProxyAdmin.address, platformProxyAdmin.address, '0x')
     await strategyControllerLensProxy.deployed()
-
     const strategyControllerLensProxyAddress = strategyControllerLensProxy.address
-    console.log(strategyControllerLensProxyAddress)
 
-    console.log("debug 2")
     const StrategyControllerLensImplementation = await getContractFactory("StrategyControllerLens")
     const controllerLensImplementation = await StrategyControllerLensImplementation.deploy(controller.address, weth.address, enso.platform.strategyFactory.address)
     await controllerLensImplementation.deployed()
-
-    console.log("debug 3")
-    await controllerLensImplementation.deployed()
-
-    console.log("debug 4")
-    console.log(controllerLensImplementation.address)
-
-    console.log("debug 4.5")
-    // debugging delete vv
-    //await (new Contract(strategyControllerLensProxyAddress, StrategyControllerLensProxy.interface, accounts[0])).test()
-    //console.log(await tx.wait())
-
-    console.log("debug 4.75")
-
     await platformProxyAdmin.connect(owner).upgrade(strategyControllerLensProxyAddress, controllerLensImplementation.address)
 
-    console.log("debug 5")
-
-    //estimator.controllerLens = controllerLensImplementation 
     estimator.controllerLens = new Contract(strategyControllerLensProxyAddress, (await getContractFactory("StrategyControllerLens")).interface, accounts[0]) 
 
     const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
@@ -200,11 +145,10 @@ describe('Live Estimates', function () {
       [enso.platform.strategyFactory.address, estimator.controllerLens.address]
     )
     await controllerImplementation.deployed()
-		//const controllerProxy = await platformProxyAdmin.controller()
 		await platformProxyAdmin.connect(owner).upgrade(controller.address, controllerImplementation.address)
 
 
-    const newStrategyImplementation = await Strategy.deploy(enso.platform.strategyFactory.address, controller.address, AddressZero, AddressZero) // FIXME do we need these last two as non-zero??
+    const newStrategyImplementation = await Strategy.deploy(enso.platform.strategyFactory.address, controller.address, AddressZero, AddressZero) // last two as non-zero
 		const version = parseInt(await enso.platform.strategyFactory.version());
 		await enso.platform.strategyFactory.connect(owner).updateImplementation(newStrategyImplementation.address, (version+1).toString())
 		const strategyAdminAddress = await enso.platform.strategyFactory.admin()
@@ -214,15 +158,6 @@ describe('Live Estimates', function () {
 		await strategyAdmin.connect(await impersonateManager(eYETI)).upgrade(eYETI.address)
 		await strategyAdmin.connect(await impersonateManager(eYLA)).upgrade(eYLA.address)
 		await strategyAdmin.connect(await impersonateManager(eNFTP)).upgrade(eNFTP.address)
-    /*
-    let oldUniswapV3Address = enso.adapters.uniswapV3.address
-    const uniswapV3SwapRouter = new Contract(uniswapV3SwapRouterAddress, SwapRouter.abi, accounts[0])
-		enso.adapters.uniswapV3 = await deployUniswapV3Adapter(owner, enso.platform.oracles.registries.uniswapV3Registry, uniswapV3SwapRouter, weth)
-		await enso.platform.administration.whitelist.connect(owner).approve(enso.adapters.uniswapV3.address)
-
-    // FIXME don't need to deploy uni v3.. review and delete much of this section
-    await updateTradeData(eDPI)
-    */
 	})
 
 	it('Should estimate deposit eDPI', async function() {
@@ -237,8 +172,6 @@ describe('Live Estimates', function () {
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 
-  if (runAll) {
-
 	it('Should estimate withdraw eDPI', async function() {
 		await increaseTime(1)
 		const [ totalBefore, ] = await oracle['estimateStrategy(address)'](eDPI.address)
@@ -248,16 +181,8 @@ describe('Live Estimates', function () {
 		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-
-    /*
-		const estimatedWithdrawValue = await estimator.withdraw(eDPI, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-    */
-    
 		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eDPI, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-    
-  
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
 		const receipt = await tx.wait()
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
@@ -265,8 +190,6 @@ describe('Live Estimates', function () {
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
     
 	})
-
-  //if (runAll) {
 
 	it('Should estimate deposit eYETI', async function() {
 		await increaseTime(1)
@@ -288,10 +211,8 @@ describe('Live Estimates', function () {
 		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-
 		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eYETI, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
 		const receipt = await tx.wait()
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
@@ -319,10 +240,8 @@ describe('Live Estimates', function () {
 		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-
 		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eYLA, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
 		const receipt = await tx.wait()
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
@@ -350,15 +269,12 @@ describe('Live Estimates', function () {
 		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-
  		const estimatedWithdrawValue = await estimator.withdraw(accounts[1].address, eNFTP, router.address, withdrawAmount, BigNumber.from(0), '0x')
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-
 		let tx = await controller.connect(accounts[1]).withdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')
 		const receipt = await tx.wait()
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
 	})
-  }
 })

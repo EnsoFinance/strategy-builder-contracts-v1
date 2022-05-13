@@ -12,8 +12,6 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyRouter.sol";
 import "./helpers/StrategyTypes.sol";
 
-import "hardhat/console.sol";
-
 /* 
    `StrategyControllerLensProxy` deployed using `SingletonFactory` defined in EIP-2470 
    located at address `0xce0042B868300000d44A59004Da54A005ffdcf9f` 
