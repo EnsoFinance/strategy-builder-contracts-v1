@@ -51,10 +51,10 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
             TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
             _sellPath(
-              tradeData,
-              _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
-              strategyItem,
-              strategy
+                tradeData,
+                _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+                strategyItem,
+                strategy
             ); 
             ++i;
         }
