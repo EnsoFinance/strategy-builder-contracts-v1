@@ -328,51 +328,50 @@ export class Estimator {
     tokenOut: string
   ) {
     switch (adapter.toLowerCase()) {
-      case this.aaveV2AdapterAddress.toLowerCase(): { 
+      case this.aaveV2AdapterAddress.toLowerCase():  
         return this.estimateAaveV2(amount, tokenIn, tokenOut)
-      }
-      case this.aaveV2DebtAdapterAddress.toLowerCase(): {
+      
+      case this.aaveV2DebtAdapterAddress.toLowerCase(): 
         return BigNumber.from('0')//this.estimateAaveV2Debt(amount, tokenIn, tokenOut)
-      }
-      case this.balancerAdapterAddress.toLowerCase(): {
+      
+      case this.balancerAdapterAddress.toLowerCase(): 
         return BigNumber.from('0')//this.estimateBalancer(amount, tokenIn, tokenOut)
-      }
-      case this.compoundAdapterAddress.toLowerCase(): {
+      
+      case this.compoundAdapterAddress.toLowerCase(): 
         return this.estimateCompound(amount, tokenIn, tokenOut)
-      }
-      case this.curveAdapterAddress.toLowerCase(): {
+      
+      case this.curveAdapterAddress.toLowerCase(): 
         return this.estimateCurve(amount, tokenIn, tokenOut)
-      }
-      case this.curveLPAdapterAddress.toLowerCase(): {
+      
+      case this.curveLPAdapterAddress.toLowerCase(): 
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
-      }
-      case this.curveGaugeAdapterAddress.toLowerCase(): {
+      
+      case this.curveGaugeAdapterAddress.toLowerCase(): 
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
-      }
-      case this.kyberSwapAdapterAddress.toLowerCase(): {
+      
+      case this.kyberSwapAdapterAddress.toLowerCase(): 
         return this.estimateKyberSwap(amount, tokenIn, tokenOut)
-      }
-      /*case this.metaStrategyAdapterAddress.toLowerCase(): {
+      
+      /*case this.metaStrategyAdapterAddress.toLowerCase(): 
         return this.estimateMetaStrategy(amount, tokenIn, tokenOut) //  update after `withdraw` update
-      }*/
-      case this.sushiSwapAdapterAddress.toLowerCase(): {
+      */
+      case this.sushiSwapAdapterAddress.toLowerCase(): 
         return this.estimateSushiSwap(amount, tokenIn, tokenOut)
-      }
-      case this.synthetixAdapterAddress.toLowerCase(): {
+      
+      case this.synthetixAdapterAddress.toLowerCase(): 
         return this.estimateSynthetix(amount, tokenIn, tokenOut)
-      }
-      case this.uniswapV2AdapterAddress.toLowerCase(): {
+      
+      case this.uniswapV2AdapterAddress.toLowerCase(): 
         return this.estimateUniswapV2(amount, tokenIn, tokenOut)
-      }
-      case this.uniswapV3AdapterAddress.toLowerCase(): {
+      
+      case this.uniswapV3AdapterAddress.toLowerCase(): 
         return this.estimateUniswapV3(amount, tokenIn, tokenOut)
-      }
-      case this.yearnV2AdapterAddress.toLowerCase(): {
+      
+      case this.yearnV2AdapterAddress.toLowerCase(): 
         return this.estimateYearnV2(amount, tokenIn, tokenOut)
-      }
-      default: {
+      
+      default: 
         return BigNumber.from('0');
-      }
     }
   }
 

@@ -185,7 +185,7 @@ describe('Estimator', function() {
     await increaseTime(600)
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
     const depositAmount = BigNumber.from('10000000000000000')
-		const estimatedDepositValue = await estimator.deposit(strategy, routerAddress, depositAmount, 0, '0x')
+    const estimatedDepositValue = await estimator.deposit(strategy, routerAddress, depositAmount, 0, '0x')
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
     await enso.platform.controller.connect(accounts[1]).deposit(strategy.address, routerAddress, 0, 0, '0x', { value: depositAmount })
     const [ totalAfter ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
@@ -338,7 +338,6 @@ describe('Estimator', function() {
 
     const [ total ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
     console.log('Actual deposit value: ', total.toString())
-    
   })
   
   it('Should estimate withdraw', async function() {
@@ -349,7 +348,7 @@ describe('Estimator', function() {
     const wethBefore = await weth.balanceOf(accounts[1].address)
     const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
     console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = BigNumber.from(parseInt(await estimator.withdraw(accounts[1].address, metaStrategy, routerAddress, withdrawAmount, BigNumber.from(0), '0x')))
+    const estimatedWithdrawValue = BigNumber.from(parseInt(await estimator.withdraw(accounts[1].address, metaStrategy, routerAddress, withdrawAmount, BigNumber.from(0), '0x')))
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     let slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
     if (slippage.gt(999)) slippage = BigNumber.from(999)
