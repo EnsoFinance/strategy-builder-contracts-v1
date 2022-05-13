@@ -49,19 +49,15 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
             (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
-            _sellPath(strategy, strategyItem, diff, estimate);
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
+            _sellPath(
+              tradeData,
+              _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+              strategyItem,
+              strategy
+            ); 
             ++i;
         }
-    }
-
-    function _sellPath(address strategy, address strategyItem, uint256 diff, int256 estimate) private {
-        TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
-        _sellPath(
-          tradeData,
-          _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
-          strategyItem,
-          strategy
-        ); 
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
