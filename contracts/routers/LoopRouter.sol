@@ -55,7 +55,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
                 strategyItem,
                 strategy
-            ); 
+            );
             ++i;
         }
     }
@@ -244,7 +244,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256 expectedValue;
         uint256 numberAdded;
         
-        for (uint256 i; i<strategyItems.length; ++i) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             expectedValue = StrategyLibrary.getExpectedTokenValue(
                 total,
                 strategy,
@@ -261,5 +261,4 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         payloads = new bytes[](numberAdded);
         tree.readInto(diffs, payloads);
     }
-
 }
