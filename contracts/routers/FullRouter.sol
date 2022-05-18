@@ -55,20 +55,25 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         onlyController
     {
         _startTempEstimateSession(strategy);
-        (uint256 percentage, uint256 total, int256[] memory estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
-
-        uint256 expectedWeth = total.mul(percentage).div(10**18);
-        total = total.sub(expectedWeth);
+        uint256 total;
+        int256[] memory estimates;
+        uint256 expectedWeth;
+        {
+            uint256 percentage;
+            (percentage, total, estimates) =
+                abi.decode(data, (uint256, uint256, int256[]));
+            expectedWeth = total.mul(percentage).div(10**18);
+            total = total.sub(expectedWeth);
+        }
 
         address[] memory strategyItems = IStrategy(strategy).items();
-
-        // Deleverage debt
-        _deleverageForWithdraw(strategy, strategyItems.length, estimates, total);
+        address[] memory strategyDebt = IStrategy(strategy).debt();
 
         // Sell loop
         uint256 i;
         while (expectedWeth > 0 && i < strategyItems.length) {
+            // Deleverage debt
+            _deleverageForWithdrawSingle(strategy, strategyDebt[i], estimates[strategyItems.length + i], StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]), total);
             address strategyItem = strategyItems[i];
             int256 estimatedValue = estimates[i];
             if (_getTempEstimate(strategy, strategyItem) > 0) {
@@ -730,6 +735,17 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             leverageItem
         ));
         return leverageAmount;
+    }
+
+    function _deleverageForWithdrawSingle(address strategy, address strategyDebt, int256 estimatedValue, int256 expectedValue, uint256 total) private {
+        if (estimatedValue < expectedValue) {
+            _repayPath(
+                IStrategy(strategy).getTradeData(strategyDebt),
+                uint256(-estimatedValue.sub(expectedValue)),
+                total,
+                strategy
+            );
+        }
     }
 
     function _deleverageForWithdraw(address strategy, uint256 strategyItemsLength, int256[] memory estimates, uint256 total) private {
