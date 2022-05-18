@@ -64,10 +64,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems = IStrategy(strategy).items();
 
         // Deleverage debt
-        _deleverageForWithdraw(strategy, strategyItems, estimates, total);
+        _deleverageForWithdraw(strategy, strategyItems.length, estimates, total);
 
         // Sell loop
-        uint256 i = 0;
+        uint256 i;
         while (expectedWeth > 0 && i < strategyItems.length) {
             address strategyItem = strategyItems[i];
             int256 estimatedValue = estimates[i];
@@ -75,7 +75,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 estimatedValue = _getTempEstimate(strategy, strategyItem);
                 _removeTempEstimate(strategy, strategyItem);
             }
-            uint256 diff = 0;
+            uint256 diff;
             {
                 int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
                     total,
@@ -100,7 +100,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     strategy
                 );
             }
-            i++;
+            ++i;
         }
     }
 
@@ -111,7 +111,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
         // Deleverage debt
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        uint256 i;
+        for (; i < strategyDebt.length; ++i) {
             _repayToken(
                 strategy,
                 strategyDebt[i],
@@ -121,7 +122,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
         // Sell loop
         int256[] memory buy = new int256[](strategyItems.length);
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (i = 0; i < strategyItems.length; ++i) {
             address strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
             if (_getTempEstimate(strategy, strategyItem) > 0) {
@@ -139,7 +140,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             // semantic overloading to cache `expected` since it will be used in next loop.
         }
         // Buy loop
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (i = 0; i < strategyItems.length; ++i) {
             if (buy[i] != 0) {
                 address strategyItem = strategyItems[i];
                 int256 expected = buy[i];
@@ -154,7 +155,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
         if (IStrategy(strategy).supportsSynths()) _batchBuySynths(strategy, total);
         // Leverage debt
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (i = 0; i < strategyDebt.length; ++i) {
             _borrowToken(
                 strategy,
                 strategyDebt[i],
@@ -191,7 +192,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems,
         address[] memory strategyDebt
     ) internal {
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        uint256 i;
+        for (; i < strategyDebt.length; ++i) {
             int256 estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
@@ -211,7 +213,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (i = 0; i < strategyItems.length; ++i) {
             // Convert funds into Ether
             address strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
@@ -256,7 +258,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems,
         address[] memory strategyDebt
     ) internal {
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        uint256 i;
+        for (; i < strategyItems.length; ++i) {
             address strategyItem = strategyItems[i];
             _buyToken(
                 strategy,
@@ -279,7 +282,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             uint256 susdBalanceAfter = IERC20(susd).balanceOf(strategy);
             _batchBuySynths(strategy, susdBalanceAfter.sub(susdBalanceBefore));
         }
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (i = 0; i < strategyDebt.length; ++i) {
             _borrowToken(
                 strategy,
                 strategyDebt[i],
@@ -311,7 +314,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         // Use SUSD to purchase other synths
         uint256 virtualPercentage = uint256(IStrategy(strategy).getPercentage(address(-1)));
         address[] memory synths = IStrategy(strategy).synths();
-        for (uint256 i = 0; i < synths.length; i++) {
+        for (uint256 i; i < synths.length; ++i) {
             uint256 percentage = uint256(IStrategy(strategy).getPercentage(synths[i]));
             if (percentage != 0) {
                 uint256 amount = susdBalance.mul(percentage).div(virtualPercentage);
@@ -473,13 +476,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             leverageLiquidity = new uint256[](leverageItems.length);
             if (amount == 0) {
                 // Special case where debt doesn't need to change but the relative amounts of leverage tokens do. We must first deleverage our debt
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                for (uint256 i; i < leverageItems.length; ++i) {
                     leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false);
                     amount = amount.add(leverageLiquidity[i]);
                 }
             } else {
                 uint256 leverageAmount = amount; // amount is denominated in weth here
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                for (uint256 i; i < leverageItems.length; ++i) {
                     address token = leverageItems[i].token;
                     if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
                         uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false);
@@ -502,7 +505,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
                 bool isLiquidityRemaining = false;
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                for (uint256 i = 0; i < leverageItems.length; ++i) {
                     if (leverageLiquidity[i] > 0 && availableBorrowsETH > 0) {
                         // Only deleverage token when there is a disparity between the expected value and the estimated value
                         uint256 leverageAmount = _deleverage(oracle, strategy, leverageItems[i].token, leverageLiquidity[i], availableBorrowsETH);
@@ -574,12 +577,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
             if (isDeposit) {
-              for (uint256 i = 0; i < leverageItems.length; i++) {
+              for (uint256 i = 0; i < leverageItems.length; ++i) {
                   leverageLiquidity[i] = _getLeveragePercentage(strategy, leverageItems[i].token, leverageItems[i].percentage, total);
               }
             } else {
               IOracle oracle = controller.oracle();
-              for (uint256 i = 0; i < leverageItems.length; i++) {
+              for (uint256 i = 0; i < leverageItems.length; ++i) {
                   leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, true);
               }
             }
@@ -587,7 +590,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
         while (amount > 0) { //First loop must either borrow the entire amount or add more tokens as collateral in order to borrow more on following loops
             ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
-            for (uint256 i = 0; i < data.adapters.length; i++) {
+            uint256 i;
+            for (; i < data.adapters.length; ++i) {
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut = data.path[i];
@@ -625,7 +629,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 // Only purchase token when there is a disparity between the expected value and the estimated value
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                for (i = 0; i < leverageItems.length; ++i) {
                     // Since we're inside a while loop, the last item will be when `amount` == 0
                     bool lastItem = amount == 0 && i == leverageItems.length - 1;
                     if (leverageLiquidity[i] > 0 || lastItem) {
@@ -728,11 +732,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         return leverageAmount;
     }
 
-    function _deleverageForWithdraw(address strategy, address[] memory strategyItems, int256[] memory estimates, uint256 total) private {
+    function _deleverageForWithdraw(address strategy, uint256 strategyItemsLength, int256[] memory estimates, uint256 total) private {
         address[] memory strategyDebt = IStrategy(strategy).debt();
         // Deleverage debt
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            int256 estimatedValue = estimates[strategyItems.length + i];
+        for (uint256 i; i < strategyDebt.length; ++i) {
+            int256 estimatedValue = estimates[strategyItemsLength + i];
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
             if (estimatedValue < expectedValue) {
                 _repayPath(
