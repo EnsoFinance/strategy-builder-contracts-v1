@@ -199,7 +199,7 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -219,7 +219,7 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -260,10 +260,11 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should finalize structure', async function () {
-		await controller
+		const tx = await controller
 			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x')
-
+			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
@@ -278,7 +279,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
-		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '985', '0x')
+		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -290,7 +291,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, '985', '0x')
+		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
