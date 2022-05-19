@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
@@ -33,30 +34,35 @@ contract CompoundEstimator is IEstimator, Exponential {
     function _estimateUnclaimedComp(address user, address token) private view returns(uint256 unclaimedComp) {
         Exp memory marketBorrowIndex = Exp({mantissa: ICToken(token).borrowIndex()}); 
         IComptroller comptroller = IComptroller(ICToken(token).comptroller());
-
+        
+        // borrower 
         Double memory borrowIndex = Double({mantissa: comptroller.compBorrowState(token).index});
+        
         Double memory borrowerIndex = Double({mantissa: comptroller.compBorrowerIndex(token, user)});
+        Double memory deltaIndex;
         if (borrowerIndex.mantissa > 0) {
-            Double memory deltaIndex = sub_(borrowIndex, borrowerIndex);
+            deltaIndex = sub_(borrowIndex, borrowerIndex);
             uint borrowerAmount = div_(ICToken(token).borrowBalanceStored(user), marketBorrowIndex);
             uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
             unclaimedComp = add_(comptroller.compAccrued(user), borrowerDelta);
         }
 
+        // supplier
+        Double memory supplyIndex = Double({mantissa: comptroller.compSupplyState(token).index});
+        
+        Double memory supplierIndex = Double({mantissa: comptroller.compSupplierIndex(token, user)});
+        if (supplierIndex.mantissa == 0 && supplyIndex.mantissa > 0) {
+            supplierIndex.mantissa = 1e36; // compInitialIndex;
+        }
+        deltaIndex = sub_(supplyIndex, supplierIndex);
+        uint256 supplierTokens = IERC20(token).balanceOf(user);
+        uint256 supplierDelta = mul_(supplierTokens, deltaIndex);
+        unclaimedComp = unclaimedComp.add(add_(comptroller.compAccrued(user), supplierDelta));
 
-        //compSupplyState
-        //compSupplyIndex
+        // fixme now estimate the comp
+
         // TODO
         /*
-            refer to compound's 
-
-           compSupplyState
-           compSupplyIndex
-           compAccrued
-
-           mimic their internal logic here and expose an estimate function 
-           will know comp owed per cToken
-
            then estimate comp
 
            note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy

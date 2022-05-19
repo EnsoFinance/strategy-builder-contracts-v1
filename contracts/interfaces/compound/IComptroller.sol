@@ -15,13 +15,15 @@ interface IComptroller {
 
     function claimComp(address holder, address[] memory cTokens) external;
 
+    //function compBorrowState(address cToken) external view returns(CompMarketState memory);
+
     function compBorrowState(address cToken) external view returns(CompMarketState memory);
 
     function compBorrowerIndex(address cToken, address borrower) external view returns(uint256);
 
     function compSupplyState(address cTokens) external view returns(CompMarketState memory);
 
-    function compSupplyIndex(address cToken, address supplier) external view returns(uint256);
+    function compSupplierIndex(address cToken, address supplier) external view returns(uint256);
     
     function compAccrued(address account) external view returns(uint256);
 }
