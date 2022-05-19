@@ -21,6 +21,24 @@ contract CompoundEstimator is IEstimator {
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
         address underlyingToken = ICToken(token).underlying();
+        // TODO
+        /*
+            refer to compound's 
+
+           compBorrowState
+           compBorrowerIndex
+           compSupplyState
+           compSupplyIndex
+           compAccrued
+
+           mimic their internal logic here and expose an estimate function 
+           will know comp owed per cToken
+
+           then estimate comp
+
+           note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy
+        
+        **/
         uint256 share = balance.mul(ICToken(token).exchangeRateStored()).div(10**18);
         return IOracle(msg.sender).estimateItem(share, underlyingToken);
     }

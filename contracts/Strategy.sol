@@ -215,6 +215,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 synthsLength = _synths.length;
         bool isSynths = synthsLength > 0;
         uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
+        uint256 claimablesLength = _claimables.length;
+        bool isClaimables = claimablesLength > 0;
+        numTokens = isClaimables ? numTokens + claimablesLength : itemsLength;
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
         for (uint256 i = 0; i < itemsLength; i++) {
@@ -236,6 +239,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             uint256 susdBalance = susd.balanceOf(address(this));
             amounts[numTokens - 2] = susdBalance.mul(percentage).div(10**18);
             tokens[numTokens - 2] = susd;
+        }
+        if (isClaimables) {
+            // FIXME TODO
         }
         // Include WETH
         IERC20 weth = IERC20(_weth);
@@ -506,6 +512,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _debt;
     }
 
+    function claimables() external view override returns (address[] memory) {
+        return _claimables;
+    }
+
     function rebalanceThreshold() external view override returns (uint256) {
         return uint256(_rebalanceThreshold);
     }
@@ -622,6 +632,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 _synths.push(newItem);
             } else if (category == ItemCategory.DEBT) {
                 _debt.push(newItem);
+            } else if (category == ItemCategory.CLAIMABLE) {
+                _items.push(newItem);
+                _setClaimable(newItems[i]);
             }
         }
         if (_synths.length > 0) {
@@ -633,6 +646,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             _items.push(susd);
         }
     }
+
+    function _setClaimable(StrategyItem memory claimableItem) internal {
+        address claimable = abi.decode(claimableItem.data.cache, (address));
+        if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
+            _exists[keccak256(abi.encode("_claimables", claimable))] = true;
+            _claimables.push(claimable);
+        }
+    } 
 
     /**
      * @notice Sets the new _lastTokenValue based on the total price and token supply

@@ -499,6 +499,10 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _debt;
     }
 
+    function claimables() external view override returns (address[] memory) {
+      // FIXME
+    }
+
     function rebalanceThreshold() external view override returns (uint256) {
         return uint256(_rebalanceThreshold);
     }

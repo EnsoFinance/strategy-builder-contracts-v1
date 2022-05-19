@@ -2,7 +2,7 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 interface StrategyTypes {
-    enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE}
+    enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE, CLAIMABLE}
 
     enum EstimatorCategory {
       DEFAULT_ORACLE,
