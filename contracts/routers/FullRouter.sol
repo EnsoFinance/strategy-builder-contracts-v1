@@ -2,13 +2,12 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IBaseAdapter.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/aave/ILendingPool.sol";
 import "../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../libraries/StrategyLibrary.sol";
+import "../libraries/BinaryTreeWithPayload.sol";
 import "./StrategyRouter.sol";
 
 struct LeverageItem {
@@ -17,8 +16,7 @@ struct LeverageItem {
 }
 
 contract FullRouter is StrategyTypes, StrategyRouter {
-    using SafeMath for uint256;
-    using SignedSafeMath for int256;
+    using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
@@ -55,52 +53,44 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         onlyController
     {
         _startTempEstimateSession(strategy);
-        (uint256 percentage, uint256 total, int256[] memory estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
 
-        uint256 expectedWeth = total.mul(percentage).div(10**18);
-        total = total.sub(expectedWeth);
+        uint256 expectedWeth;
+        uint256[] memory diffs;
+        bytes[] memory payloads;
+        {
+            uint256 total;
+            int256[] memory estimates;
+            (expectedWeth, total, estimates) = _getExpectedWeth(data);
+            address[] memory strategyItems = IStrategy(strategy).items();
 
-        address[] memory strategyItems = IStrategy(strategy).items();
-
-        // Deleverage debt
-        _deleverageForWithdraw(strategy, strategyItems, estimates, total);
+            // Deleverage debt
+            _deleverageForWithdraw(strategy, estimates, total, expectedWeth, strategyItems.length);
+            // Sort diffs for capital efficiency
+            (diffs, payloads) = _getSortedDiffs(strategy, strategyItems, estimates, total);
+        }
 
         // Sell loop
-        uint256 i = 0;
-        while (expectedWeth > 0 && i < strategyItems.length) {
-            address strategyItem = strategyItems[i];
-            int256 estimatedValue = estimates[i];
-            if (_getTempEstimate(strategy, strategyItem) > 0) {
-                estimatedValue = _getTempEstimate(strategy, strategyItem);
-                _removeTempEstimate(strategy, strategyItem);
+        uint256 diff;
+        address strategyItem;
+        int256 estimate;
+        uint256 i;
+        while (expectedWeth > 0 && i < payloads.length) {
+            diff = diffs[i];
+            if (diff > expectedWeth) {
+                diff = expectedWeth;
+                expectedWeth = 0;
+            } else {
+                expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
-            uint256 diff = 0;
-            {
-                int256 expectedValue = StrategyLibrary.getExpectedTokenValue(
-                    total,
-                    strategy,
-                    strategyItem
-                );
-                if (estimatedValue > expectedValue) {
-                    diff = uint256(estimatedValue.sub(expectedValue));
-                    if (diff > expectedWeth) {
-                        diff = expectedWeth;
-                        expectedWeth = 0;
-                    } else {
-                        expectedWeth = expectedWeth.sub(diff);
-                    }
-                }
-            }
-            if (diff > 0) {
-                _sellPath(
-                    IStrategy(strategy).getTradeData(strategyItem),
-                    _estimateSellAmount(strategy, strategyItem, diff, uint256(estimatedValue)),
-                    strategyItem,
-                    strategy
-                );
-            }
-            i++;
+            (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
+            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
+            _sellPath(
+                tradeData,
+                _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
+                strategyItem,
+                strategy
+            );
+            ++i;
         }
     }
 
@@ -728,20 +718,42 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         return leverageAmount;
     }
 
-    function _deleverageForWithdraw(address strategy, address[] memory strategyItems, int256[] memory estimates, uint256 total) private {
+    function _deleverageForWithdraw(address strategy, int256[] memory estimates, uint256 total, uint256 expectedWeth, uint256 itemsLength) private {
         address[] memory strategyDebt = IStrategy(strategy).debt();
-        // Deleverage debt
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            int256 estimatedValue = estimates[strategyItems.length + i];
+        uint256 expectedDebt;
+        {
+            // Add up debt estimates
+            uint256 estimatedDebtBefore = 0;
+            for (uint256 i = 0; i < strategyDebt.length; i++) {
+              estimatedDebtBefore = estimatedDebtBefore.add(uint256(-estimates[itemsLength + i]));
+            }
+            // Note: Loss of precision by using 'debtPercentage' as a intermediary is an advantage here
+            // because it rounds the 'estimatedDebtAfter' down to the nearest tenth of a percent
+            uint256 debtPercentage = estimatedDebtBefore.mul(DIVISOR).div(total.add(expectedWeth)); // total before = total + expected weth
+            uint256 estimatedDebtAfter = total.mul(debtPercentage).div(DIVISOR);
+            expectedDebt = estimatedDebtBefore.sub(estimatedDebtAfter);
+        }
+
+        uint256 i;
+        while (expectedDebt > 0 && i < strategyDebt.length) {
+            int256 estimatedValue = estimates[itemsLength + i];
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
             if (estimatedValue < expectedValue) {
+                uint256 diff = uint256(-estimatedValue.sub(expectedValue));
+                if (diff > expectedDebt) {
+                    diff = expectedDebt;
+                    expectedDebt = 0;
+                } else {
+                    expectedDebt = expectedDebt-diff;  // since expectedDebt >= diff
+                }
                 _repayPath(
                     IStrategy(strategy).getTradeData(strategyDebt[i]),
-                    uint256(-estimatedValue.sub(expectedValue)),
+                    diff,
                     total,
                     strategy
                 );
             }
+            ++i;
         }
     }
 
@@ -775,4 +787,49 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         delete _tempEstimate[session][strategy][item];
     }
 
+    function _getExpectedWeth(bytes calldata data) private pure returns (uint256 expectedWeth, uint256 total, int256[] memory estimates) {
+        uint256 percentage;
+        (percentage, total, estimates) =
+            abi.decode(data, (uint256, uint256, int256[]));
+        expectedWeth = total.mul(percentage).div(10**18);
+        total = total.sub(expectedWeth);
+    }
+
+    function _getSortedDiffs(
+        address strategy,
+        address[] memory strategyItems,
+        int256[] memory estimates,
+        uint256 total
+    ) private returns(
+        uint256[] memory diffs,
+        bytes[] memory payloads
+    ) {
+        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+
+        address strategyItem;
+        int256 expectedValue;
+        int256 estimatedValue;
+        uint256 numberAdded;
+        for (uint256 i; i < strategyItems.length; ++i) {
+            strategyItem = strategyItems[i];
+            expectedValue = StrategyLibrary.getExpectedTokenValue(
+                total,
+                strategy,
+                strategyItem
+            );
+            estimatedValue = estimates[i];
+            if (_getTempEstimate(strategy, strategyItem) > 0) {
+                estimatedValue = _getTempEstimate(strategy, strategyItem);
+                _removeTempEstimate(strategy, strategyItem);
+            }
+            if (estimatedValue > expectedValue) {
+                // condition check above means adding diff that isn't overflowed
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItem, estimatedValue));
+                ++numberAdded;
+            }
+        }
+        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        payloads = new bytes[](numberAdded);
+        tree.readInto(diffs, payloads);
+    }
 }
