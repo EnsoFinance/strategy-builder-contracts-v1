@@ -21,8 +21,7 @@ contract CompoundEstimator is IEstimator, Exponential {
 
     function estimateItem(address user, address token) public view override returns (int256) { 
         uint256 balance = IERC20(token).balanceOf(address(user));
-
-        return int256(_estimateUnclaimedComp(user, token)).add(_estimateItem(balance, token));
+        return _estimateUnclaimedComp(user, token).add(_estimateItem(balance, token));
     }
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
@@ -31,22 +30,23 @@ contract CompoundEstimator is IEstimator, Exponential {
         return IOracle(msg.sender).estimateItem(share, underlyingToken);
     }
 
-    function _estimateUnclaimedComp(address user, address token) private view returns(uint256 unclaimedComp) {
+    function _estimateUnclaimedComp(address user, address token) private view returns(int256) {
         Exp memory marketBorrowIndex = Exp({mantissa: ICToken(token).borrowIndex()}); 
         IComptroller comptroller = IComptroller(ICToken(token).comptroller());
-        
-        // borrower 
-        Double memory borrowIndex = Double({mantissa: comptroller.compBorrowState(token).index});
-        
-        Double memory borrowerIndex = Double({mantissa: comptroller.compBorrowerIndex(token, user)});
+        uint256 unclaimedComp;
         Double memory deltaIndex;
-        if (borrowerIndex.mantissa > 0) {
-            deltaIndex = sub_(borrowIndex, borrowerIndex);
-            uint borrowerAmount = div_(ICToken(token).borrowBalanceStored(user), marketBorrowIndex);
-            uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
-            unclaimedComp = add_(comptroller.compAccrued(user), borrowerDelta);
+        {
+            // borrower 
+            Double memory borrowIndex = Double({mantissa: comptroller.compBorrowState(token).index});
+            
+            Double memory borrowerIndex = Double({mantissa: comptroller.compBorrowerIndex(token, user)});
+            if (borrowerIndex.mantissa > 0) {
+                deltaIndex = sub_(borrowIndex, borrowerIndex);
+                uint borrowerAmount = div_(ICToken(token).borrowBalanceStored(user), marketBorrowIndex);
+                uint borrowerDelta = mul_(borrowerAmount, deltaIndex);
+                unclaimedComp = add_(comptroller.compAccrued(user), borrowerDelta);
+            }
         }
-
         // supplier
         Double memory supplyIndex = Double({mantissa: comptroller.compSupplyState(token).index});
         
@@ -58,15 +58,7 @@ contract CompoundEstimator is IEstimator, Exponential {
         uint256 supplierTokens = IERC20(token).balanceOf(user);
         uint256 supplierDelta = mul_(supplierTokens, deltaIndex);
         unclaimedComp = unclaimedComp.add(add_(comptroller.compAccrued(user), supplierDelta));
-
-        // fixme now estimate the comp
-
-        // TODO
-        /*
-           then estimate comp
-
-           note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy
-        
-        **/
+        return IOracle(msg.sender).estimateItem(unclaimedComp, comptroller.getCompAddress());
+        // note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy
     }
 }
