@@ -16,6 +16,7 @@ import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
+import "./interfaces/compound/IComptroller.sol";
 import "./StrategyToken.sol";
 
 interface ISynthetixAddressResolver {
@@ -203,6 +204,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         require(_debt.length == 0, "Cannot withdraw debt");
         require(amount > 0, "0 amount");
         settleSynths();
+        settleClaimables();
         uint256 percentage;
         {
             // Deduct withdrawal fee, burn tokens, and calculate percentage
@@ -213,26 +215,32 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         // Withdraw funds
         uint256 itemsLength = _items.length;
         uint256 synthsLength = _synths.length;
-        bool isSynths = synthsLength > 0;
-        uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
+        //bool isSynths = synthsLength > 0;
+        uint256 numTokens = (synthsLength > 0) ? itemsLength + synthsLength + 2 : itemsLength + 1;
+
         uint256 claimablesLength = _claimables.length;
-        bool isClaimables = claimablesLength > 0;
-        numTokens = isClaimables ? numTokens + claimablesLength : itemsLength;
+        //bool isClaimables = claimablesLength > 0;
+        numTokens = (claimablesLength > 0) ? numTokens + claimablesLength : itemsLength;
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
-        for (uint256 i = 0; i < itemsLength; i++) {
+        for (uint256 i = 0; i < itemsLength; ++i) {
             // Should not be possible to have address(0) since the Strategy will check for it
             IERC20 token = IERC20(_items[i]);
             uint256 currentBalance = token.balanceOf(address(this));
             amounts[i] = currentBalance.mul(percentage).div(10**18);
             tokens[i] = token;
         }
-        if (isSynths) {
-            for (uint256 i = itemsLength; i < numTokens - 2; i ++) {
-                IERC20 synth = IERC20(_synths[i - itemsLength]);
-                uint256 currentBalance = synth.balanceOf(address(this));
+        uint256 bound;
+        uint256 currentBalance;
+        uint256 idx;
+        if (synthsLength > 0) {
+            bound = itemsLength + synthsLength;
+            for (uint256 i = itemsLength; i < bound; ++i) {
+                IERC20 synth = IERC20(_synths[idx]);
+                currentBalance = synth.balanceOf(address(this));
                 amounts[i] = currentBalance.mul(percentage).div(10**18);
                 tokens[i] = synth;
+                ++idx;
             }
             // Include SUSD
             IERC20 susd = IERC20(_susd);
@@ -240,8 +248,17 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             amounts[numTokens - 2] = susdBalance.mul(percentage).div(10**18);
             tokens[numTokens - 2] = susd;
         }
-        if (isClaimables) {
-            // FIXME TODO
+        if (claimablesLength > 0) {
+            bound = numTokens - 1; 
+            idx = 0; 
+            IERC20 claimable;
+            for (uint256 i = itemsLength + synthsLength + 2; i < bound; ++i) {
+                claimable = IERC20(_claimables[idx]);
+                currentBalance = claimable.balanceOf(address(this));
+                amounts[i] = currentBalance.mul(percentage).div(10**18);
+                tokens[i] = claimable;
+                ++idx; 
+            }
         }
         // Include WETH
         IERC20 weth = IERC20(_weth);
@@ -249,7 +266,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         amounts[numTokens - 1] = wethBalance.mul(percentage).div(10**18);
         tokens[numTokens - 1] = weth;
         // Transfer amounts
-        for (uint256 i = 0; i < numTokens; i++) {
+        for (uint256 i; i < numTokens; ++i) {
             if (amounts[i] > 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
         emit Withdraw(msg.sender, amount, amounts);
@@ -395,6 +412,29 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             for (uint256 i = 0; i < _synths.length; i++) {
                 exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
             }
+        }
+    }
+
+    /**
+     * @notice Settle the amount owed for each claimable
+     */
+    function settleClaimables() public override {
+        for (uint256 i; i < _claimables.length; ++i) {
+            settleClaimable(_claimables[i]);
+        }
+    }
+
+    /**
+     * @notice Settle the amount owed for a claimable
+     */
+    function settleClaimable(address claimable) public override {
+        if (claimable == 0xc00e94Cb662C3520282E6f5717214004A7f26888) { // COMP
+            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
+            require(_claimableFor[resolverStash].length == 1, "settleClaimable: claimable resolver never set.");
+            address resolver = _claimableFor[resolverStash][0];
+            IComptroller(resolver).claimComp(address(this), _claimableFor[claimable]);
+        } else { // future version will support other claimable tokens
+            revert("settleClaimable: claimable not supported.");
         }
     }
 
@@ -648,10 +688,16 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function _setClaimable(StrategyItem memory claimableItem) internal {
-        address claimable = abi.decode(claimableItem.data.cache, (address));
+        (address claimable, address resolver) = abi.decode(claimableItem.data.cache, (address, address));
         if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
             _exists[keccak256(abi.encode("_claimables", claimable))] = true;
             _claimables.push(claimable);
+            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
+            _claimableFor[resolverStash].push(resolver);
+        }
+        if (!_exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))]) {
+            _exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))] = true;
+            _claimableFor[claimable].push(claimableItem.item);
         }
     } 
 

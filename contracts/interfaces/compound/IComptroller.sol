@@ -26,4 +26,6 @@ interface IComptroller {
     function compSupplierIndex(address cToken, address supplier) external view returns(uint256);
     
     function compAccrued(address account) external view returns(uint256);
+
+    function getCompAddress() external view returns(address);
 }

@@ -539,6 +539,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(amount > 0, "0 amount");
         _checkDivisor(slippage);
         strategy.settleSynths();
+        strategy.settleClaimables();
         strategy.issueStreamingFee();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);

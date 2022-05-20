@@ -16,6 +16,7 @@ import "../interfaces/synthetix/IExchanger.sol";
 import "../interfaces/synthetix/IIssuer.sol";
 import "../interfaces/aave/ILendingPool.sol";
 import "../interfaces/aave/IDebtToken.sol";
+import "../interfaces/compound/IComptroller.sol";
 import "./OtherStrategyToken.sol";
 
 interface ISynthetixAddressResolver {
@@ -386,6 +387,29 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
+     * @notice Settle the amount owed for each claimable
+     */
+    function settleClaimables() public override {
+        for (uint256 i; i < _claimables.length; ++i) {
+            settleClaimable(_claimables[i]);
+        }
+    }
+
+    /**
+     * @notice Settle the amount owed for a claimable
+     */
+    function settleClaimable(address claimable) public override {
+        if (claimable == 0xc00e94Cb662C3520282E6f5717214004A7f26888) { // COMP
+            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
+            require(_claimableFor[resolverStash].length == 1, "settleClaimable: claimable resolver never set.");
+            address resolver = _claimableFor[resolverStash][0];
+            IComptroller(resolver).claimComp(address(this), _claimableFor[claimable]);
+        } else { // future version will support other claimable tokens
+            revert("settleClaimable: claimable not supported.");
+        }
+    }
+
+    /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
     function issueStreamingFee() external override onlyController {
@@ -500,7 +524,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     function claimables() external view override returns (address[] memory) {
-      // FIXME
+        return _claimables;
     }
 
     function rebalanceThreshold() external view override returns (uint256) {
@@ -612,7 +636,11 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
                 _synths.push(newItem);
             } else if (category == ItemCategory.DEBT) {
                 _debt.push(newItem);
+            } else if (category == ItemCategory.CLAIMABLE) {
+                _items.push(newItem);
+                _setClaimable(newItems[i]);
             }
+
         }
         if (_synths.length > 0) {
             // Add SUSD percentage
@@ -623,6 +651,20 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
             _items.push(susd);
         }
     }
+
+    function _setClaimable(StrategyItem memory claimableItem) internal {
+        (address claimable, address resolver) = abi.decode(claimableItem.data.cache, (address, address));
+        if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
+            _exists[keccak256(abi.encode("_claimables", claimable))] = true;
+            _claimables.push(claimable);
+            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
+            _claimableFor[resolverStash].push(resolver);
+        }
+        if (!_exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))]) {
+            _exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))] = true;
+            _claimableFor[claimable].push(claimableItem.item);
+        }
+    } 
 
     /**
      * @notice Sets the new _lastTokenValue based on the total price and token supply

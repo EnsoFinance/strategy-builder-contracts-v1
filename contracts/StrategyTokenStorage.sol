@@ -35,10 +35,10 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(address => int256) internal _percentage;
     mapping(address => TradeData) internal _tradeData;
 
-    // debug new
-    address[] internal _claimables; // TODO  
-    mapping(bytes32 => bool) internal _exists; // TODO used to reduce redundancy
+    address[] internal _claimables;
+    mapping(address => address[]) internal _claimableFor;
+    mapping(bytes32 => bool) internal _exists;
 
     // Gap for future storage changes
-    uint256[50] private __gap; // fixme update for "new"
+    uint256[47] private __gap;
 }

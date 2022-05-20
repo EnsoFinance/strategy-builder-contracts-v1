@@ -31,8 +31,9 @@ contract EnsoOracle is IOracle, StrategyTypes {
     function estimateStrategy(IStrategy strategy) public view override returns (uint256, int256[] memory) {
         address[] memory strategyItems = strategy.items();
         address[] memory strategyDebt = strategy.debt();
+        address[] memory strategyClaimables = strategy.claimables();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
-        int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
+        int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1 + strategyClaimables.length); // +1 for virtual item
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimate = estimateItem(
                 address(strategy),
@@ -53,8 +54,8 @@ contract EnsoOracle is IOracle, StrategyTypes {
         if (strategySynths.length > 0) {
             // All synths rely on the chainlink oracle
             IEstimator chainlinkEstimator = tokenRegistry.estimators(uint256(EstimatorCategory.CHAINLINK_ORACLE));
-            int256 estimate = 0;
-            for (uint256 i = 0; i < strategySynths.length; i++) {
+            int256 estimate;
+            for (uint256 i; i < strategySynths.length; i++) {
                 estimate = estimate.add(chainlinkEstimator.estimateItem(
                     address(strategy),
                     strategySynths[i]
@@ -67,9 +68,16 @@ contract EnsoOracle is IOracle, StrategyTypes {
             total = total.add(estimate);
             estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
         }
-        address[] memory strategyClaimables = strategy.claimables();
-        if (strategyClaimables.length > 0) {
-            // FIXME TODO
+        if (strategyClaimables.length > 0) { 
+            // estimates the current value held, owed value is checked in respective claimable earning tokens. See `CompoundEstimator`.
+            int256 estimate;
+            uint256 balance;
+            for (uint256 i; i < strategyClaimables.length; ++i) {
+                balance = IERC20(strategyClaimables[i]).balanceOf(address(strategy));
+                // we take the balance here, since using the overloaded `estimateItem(address,address)`
+                // may estimate the additional unclaimed claimable token. See `CompoundEstimator`.
+                estimate = estimate.add(estimateItem(balance, strategyClaimables[i]));
+            }
         }
         require(total >= 0, "Negative total");
         return (uint256(total), estimates);
