@@ -70,7 +70,7 @@ describe('CompoundAdapter', function () {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] }
+			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt], cache: ethers.utils.defaultAbiCoder.encode(['address', 'address'], [tokens.COMP, MAINNET_ADDRESSES.COMPOUND_COMPTROLLER])} 
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {

@@ -688,6 +688,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function _setClaimable(StrategyItem memory claimableItem) internal {
+        require(claimableItem.data.cache.length >= 64, "_setClaimable: cache will not decode.");
         (address claimable, address resolver) = abi.decode(claimableItem.data.cache, (address, address));
         if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
             _exists[keccak256(abi.encode("_claimables", claimable))] = true;

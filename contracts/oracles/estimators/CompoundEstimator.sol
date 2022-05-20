@@ -58,6 +58,7 @@ contract CompoundEstimator is IEstimator, Exponential {
         uint256 supplierTokens = IERC20(token).balanceOf(user);
         uint256 supplierDelta = mul_(supplierTokens, deltaIndex);
         unclaimedComp = unclaimedComp.add(add_(comptroller.compAccrued(user), supplierDelta));
+
         return IOracle(msg.sender).estimateItem(unclaimedComp, comptroller.getCompAddress());
         // note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy
     }
