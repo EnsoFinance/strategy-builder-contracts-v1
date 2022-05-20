@@ -215,12 +215,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         // Withdraw funds
         uint256 itemsLength = _items.length;
         uint256 synthsLength = _synths.length;
-        //bool isSynths = synthsLength > 0;
         uint256 numTokens = (synthsLength > 0) ? itemsLength + synthsLength + 2 : itemsLength + 1;
 
         uint256 claimablesLength = _claimables.length;
-        //bool isClaimables = claimablesLength > 0;
-        numTokens = (claimablesLength > 0) ? numTokens + claimablesLength : itemsLength;
+        numTokens = (claimablesLength > 0) ? numTokens + claimablesLength : numTokens + 1;
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
         for (uint256 i = 0; i < itemsLength; ++i) {
@@ -245,8 +243,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             // Include SUSD
             IERC20 susd = IERC20(_susd);
             uint256 susdBalance = susd.balanceOf(address(this));
-            amounts[numTokens - 2] = susdBalance.mul(percentage).div(10**18);
-            tokens[numTokens - 2] = susd;
+            amounts[bound] = susdBalance.mul(percentage).div(10**18);
+            tokens[bound] = susd;
         }
         if (claimablesLength > 0) {
             bound = numTokens - 1; 
