@@ -253,7 +253,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             for (uint256 i = numTokens - 1 - claimablesLength; i < bound; ++i) {
                 claimable = IERC20(_claimables[idx]);
                 currentBalance = claimable.balanceOf(address(this));
-                amounts[i] = currentBalance.mul(percentage).div(10**18);
+                amounts[i] = currentBalance.mul(percentage).div(10**18); // FIXME does this mean can drain claimable token by repeated deposits,withdraws?
                 tokens[i] = claimable;
                 ++idx; 
             }
