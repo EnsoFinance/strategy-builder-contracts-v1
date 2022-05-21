@@ -7,6 +7,7 @@ import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
+import { increaseTime } from '../lib/utils'
 import { Tokens } from '../lib/tokens'
 import {
 	deployCompoundAdapter,
@@ -159,5 +160,24 @@ describe('CompoundAdapter', function () {
 
 	it('Should claim rewards', async function() {
 		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
+	})
+
+	it('Should withdrawAll on a portion of tokens', async function () {
+		await increaseTime(600);
+    const cTokenContract = new Contract(cToken, ERC20.abi, accounts[0])
+    const COMPContract = new Contract(tokens.COMP, ERC20.abi, accounts[0])
+		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
+		const wethBalanceBefore = await weth.balanceOf(strategy.address)
+		const cTokenBalanceBefore = await cTokenContract.balanceOf(strategy.address)
+		const COMPBalanceBefore = await COMPContract.balanceOf(accounts[1].address)
+		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const wethBalanceAfter = await weth.balanceOf(strategy.address)
+		const cTokenBalanceAfter = await cTokenContract.balanceOf(strategy.address)
+		const COMPBalanceAfter = await COMPContract.balanceOf(accounts[1].address)
+		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
+		expect(cTokenBalanceBefore.gt(cTokenBalanceAfter)).to.equal(true)
+		expect(COMPBalanceBefore.lt(COMPBalanceAfter)).to.equal(true)
 	})
 })
