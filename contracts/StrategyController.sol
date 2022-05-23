@@ -126,6 +126,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
+      // FIXME consider claimables
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
@@ -150,6 +151,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
+      // FIXME consider claimables
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
@@ -167,6 +169,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
+      // FIXME consider claimables
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyApproved(address(router));

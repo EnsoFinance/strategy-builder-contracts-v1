@@ -49,6 +49,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
+    IComptroller private immutable comptroller;
     address public immutable factory;
     address public immutable override controller;
 
@@ -60,11 +61,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     event StreamingFee(uint256 amount);
 
     // Initialize constructor to disable implementation
-    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
+    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_, address comptroller_) public initializer {
         factory = factory_;
         controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
+        comptroller = IComptroller(comptroller_);
     }
 
     /**
@@ -426,11 +428,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Settle the amount owed for a claimable
      */
     function settleClaimable(address claimable) public override {
-        if (claimable == 0xc00e94Cb662C3520282E6f5717214004A7f26888) { // COMP
-            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
-            require(_claimableFor[resolverStash].length == 1, "settleClaimable: claimable resolver never set.");
-            address resolver = _claimableFor[resolverStash][0];
-            IComptroller(resolver).claimComp(address(this), _claimableFor[claimable]);
+        address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
+        require(_claimableFor[resolverStash].length == 1, "settleClaimable: claimable resolver never set.");
+        address resolver = _claimableFor[resolverStash][0];
+        if (resolver == address(comptroller)) { // COMP
+            comptroller.claimComp(address(this), _claimableFor[claimable]);
         } else { // future version will support other claimable tokens
             revert("settleClaimable: claimable not supported.");
         }
@@ -686,18 +688,24 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function _setClaimable(StrategyItem memory claimableItem) internal {
-        require(claimableItem.data.cache.length >= 64, "_setClaimable: cache will not decode.");
-        (address claimable, address resolver) = abi.decode(claimableItem.data.cache, (address, address));
+        if (_exists[keccak256(abi.encode("_claimableFor", claimableItem.item))]) return;
+        _exists[keccak256(abi.encode("_claimableFor", claimableItem.item))] = true;
+        // is it a cToken?
+        address claimable;
+        address resolver;
+        if (comptroller.markets(claimableItem.item).isComped) {
+            claimable = comptroller.getCompAddress();
+            resolver = address(comptroller);
+        } else {
+            revert("_setClaimable: item is not claimable.");
+        }
         if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
             _exists[keccak256(abi.encode("_claimables", claimable))] = true;
             _claimables.push(claimable);
             address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
             _claimableFor[resolverStash].push(resolver);
         }
-        if (!_exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))]) {
-            _exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))] = true;
-            _claimableFor[claimable].push(claimableItem.item);
-        }
+        _claimableFor[claimable].push(claimableItem.item);
     } 
 
     /**

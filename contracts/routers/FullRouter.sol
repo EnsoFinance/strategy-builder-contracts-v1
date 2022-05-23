@@ -39,6 +39,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1);
+
         _batchBuy(
           strategy,
           depositor,
