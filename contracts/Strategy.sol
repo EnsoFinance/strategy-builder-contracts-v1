@@ -646,6 +646,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         for (uint256 i = 0; i < _synths.length; i++) {
             delete _percentage[_synths[i]];
         }
+        _removeClaimables();
         delete _debt;
         delete _items;
         delete _synths;
@@ -701,6 +702,25 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             claimable.rewardsTokens.push(rewardsTokens[i]);
         }
     } 
+
+    function _removeClaimables() internal {
+        address[] memory claimables = _claimables;
+        Claimable memory claimableData;
+        address[] memory tokens;
+        for (uint256 i; i < claimables.length; ++i) {
+            claimableData = _claimableData[claimables[i]];
+            tokens = claimableData.rewardsTokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                _exists[keccak256(abi.encode("_claimableData.tokens", tokens[j]))] = false;
+            } 
+            tokens = claimableData.tokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                _exists[keccak256(abi.encode("_claimableData.rewardsTokens", tokens[j]))] = false;
+            } 
+            delete _claimableData[claimables[i]];
+        } 
+        delete _claimables;
+    }
 
     /**
      * @notice Sets the new _lastTokenValue based on the total price and token supply
