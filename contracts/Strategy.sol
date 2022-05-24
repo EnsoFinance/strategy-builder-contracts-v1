@@ -646,7 +646,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         for (uint256 i = 0; i < _synths.length; i++) {
             delete _percentage[_synths[i]];
         }
-        _removeClaimables();
+        // claimables should not be removed via _removeClaimables
+        // until there is a robust solution to withdraw rewards.
         delete _debt;
         delete _items;
         delete _synths;
@@ -709,11 +710,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address[] memory tokens;
         for (uint256 i; i < claimables.length; ++i) {
             claimableData = _claimableData[claimables[i]];
-            tokens = claimableData.rewardsTokens;
+            tokens = claimableData.tokens;
             for (uint256 j; j < tokens.length; ++j) {
                 _exists[keccak256(abi.encode("_claimableData.tokens", tokens[j]))] = false;
             } 
-            tokens = claimableData.tokens;
+            tokens = claimableData.rewardsTokens;
             for (uint256 j; j < tokens.length; ++j) {
                 _exists[keccak256(abi.encode("_claimableData.rewardsTokens", tokens[j]))] = false;
             } 
