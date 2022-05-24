@@ -53,6 +53,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         updateAddresses();
     }
 
+    function _require(bool condition, uint256 code) private pure {
+        require(condition, string(abi.encodePacked(code)));
+    }
+
     /**
      * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
      * @param manager_ The address that is set as manager
@@ -70,7 +74,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external payable override {
         IStrategy strategy = IStrategy(strategy_);
         _setStrategyLock(strategy);
-        require(msg.sender == factory);// FIXME, "Not factory");
+        _require(msg.sender == factory, uint256(0x0000) /* error_macro("Not factory") */);
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
@@ -132,7 +136,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
         IWETH(weth).withdraw(wethAmount);
         (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
-        require(success);
+        _require(success, uint256(0x0001) /* error_macro("withdrawETH: call failed.") */);
         _removeStrategyLock(strategy);
     }
 
@@ -173,14 +177,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyManager(strategy);
         strategy.settleSynths();
         (bool balancedBefore, uint256[] memory totalsBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(!balancedBefore);// FIXME, "Balanced");
+        _require(!balancedBefore, uint256(0x0002) /* error_macro("Balanced") */);
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalsBefore[1], estimates);
         // Rebalance
         _useRouter(strategy, router, Action.REBALANCE, strategy.items(), strategy.debt(), data);
         // Recheck total
         (bool balancedAfter, uint256[] memory totalsAfter,) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(balancedAfter);// FIXME, "Not balanced");
+        _require(balancedAfter, uint256(0x0003) /* error_macro("Not balanced") */);
         _checkSlippage(totalsAfter[0], totalsBefore[0], _strategyStates[address(strategy)].rebalanceSlippage);
         strategy.updateTokenValue(totalsAfter[0], strategy.totalSupply());
         emit Balanced(address(strategy), totalsBefore[0], totalsAfter[0]);
@@ -248,13 +252,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
-        require(
+        _require(
             lock.timestamp == 0 ||
                 block.timestamp >
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
-            "Timelock active"
+            uint256(0x0004) /* error_macro("Timelock active") */
         );
-        require(verifyStructure(address(strategy), strategyItems));// FIXME, "Invalid structure");
+        _require(verifyStructure(address(strategy), strategyItems), uint256(0x0005) /* error_macro("Invalid structure") */);
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems);
@@ -282,15 +286,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.settleSynths();
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        require(
+        _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
-            "Timelock active"
+            uint256(0x0006) /* error_macro("Timelock active") */
         );
-        require(lock.category == TimelockCategory.RESTRUCTURE);//, "Wrong category");
+        _require(lock.category == TimelockCategory.RESTRUCTURE, uint256(0x0007) /* error_macro("Wrong category") */);
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
-        require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
+        _require(verifyStructure(address(strategy), strategyItems), uint256(0x0008) /* error_macro("Invalid structure") */);
         _finalizeStructure(strategy, router, strategyItems, data);
         delete lock.category;
         delete lock.timestamp;
@@ -313,11 +317,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
-        require(
+        _require(
             lock.timestamp == 0 ||
                 block.timestamp >
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
-            "Timelock active"
+            uint256(0x0009) /* error_macro("Timelock active") */
         );
         require(category != TimelockCategory.RESTRUCTURE);
         if (category != TimelockCategory.TIMELOCK) {
@@ -340,11 +344,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        require(lock.category != TimelockCategory.RESTRUCTURE, "Wrong category");
-        require(
+        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x000a) /* error_macro("Wrong category") */);
+        _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
-            "Timelock active"
+            uint256(0x000b) /* error_macro("Timelock active") */
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
         if (lock.category == TimelockCategory.TIMELOCK) {
@@ -374,7 +378,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        require(!strategyState.social, "Strategy already open");
+        _require(!strategyState.social, uint256(0x000c) /* error_macro("Strategy already open") */);
         strategyState.social = true;
         emit StrategyOpen(address(strategy));
         _removeStrategyLock(strategy);
@@ -389,7 +393,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        require(!strategyState.set, "Strategy already set");
+        _require(!strategyState.set, uint256(0x000d) /* error_macro("Strategy already set") */);
         strategyState.set = true;
         emit StrategySet(address(strategy));
         _removeStrategyLock(strategy);
@@ -406,7 +410,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
-     * @notice This function verifies that the structure passed in parameters is valid
+     * @notice This verifies that the structure passed in parameters is valid
      * @dev We check that the array lengths match, that the percentages add 100%,
      *      no zero addresses, and no duplicates
      * @dev Token addresses must be passed in, according to increasing byte value
@@ -417,9 +421,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         override
         returns (bool)
     {
-        require(newItems.length > 0, "Cannot set empty structure");
-        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught by the ordering requirement below
-        require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
+        _require(newItems.length > 0, uint256(0x000e) /* error_macro("Cannot set empty structure") */);
+        _require(newItems[0].item != address(0), uint256(0x000f) /* error_macro("Invalid item addr") */); //Everything else will caught by the ordering _requirement below
+        _require(newItems[newItems.length-1].item != address(-1), uint256(0x0010) /* error_macro("Invalid item addr") */); //Reserved space for virtual item
 
         ITokenRegistry registry = oracle().tokenRegistry();
 
@@ -429,27 +433,27 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         int256 total = 0;
         for (uint256 i = 0; i < newItems.length; i++) {
             address item = newItems[i].item;
-            require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
+            _require(i == 0 || newItems[i].item > newItems[i - 1].item, uint256(0x0011) /* error_macro("Item ordering") */);
             int256 percentage = newItems[i].percentage;
             uint256 itemCategory = registry.itemCategories(item);
             if (itemCategory == uint256(ItemCategory.DEBT)) {
               supportsDebt = true;
-              require(percentage <= 0, "Debt cannot be positive");
-              require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
+              _require(percentage <= 0, uint256(0x0012) /* error_macro("Debt cannot be positive") */);
+              _require(percentage >= -PERCENTAGE_BOUND, uint256(0x0013) /* error_macro("Out of bounds") */);
             } else {
               if (itemCategory == uint256(ItemCategory.SYNTH))
                   supportsSynths = true;
-              require(percentage >= 0, "Token cannot be negative");
-              require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
+              _require(percentage >= 0, uint256(0x0014) /* error_macro("Token cannot be negative") */);
+              _require(percentage <= PERCENTAGE_BOUND, uint256(0x0015) /* error_macro("Out of bounds") */);
             }
             uint256 estimatorCategory = registry.estimatorCategories(item);
-            require(estimatorCategory != uint256(EstimatorCategory.BLOCKED), "Token blocked");
+            _require(estimatorCategory != uint256(EstimatorCategory.BLOCKED), uint256(0x0016) /* error_macro("Token blocked") */);
             if (estimatorCategory == uint256(EstimatorCategory.STRATEGY))
                 _checkCyclicDependency(strategy, IStrategy(item), registry);
             total = total.add(percentage);
         }
-        require(!(supportsSynths && supportsDebt), "No synths and debt");
-        require(total == int256(DIVISOR), "Total percentage wrong");
+        _require(!(supportsSynths && supportsDebt), uint256(0x0017) /* error_macro("No synths and debt") */);
+        _require(total == int256(DIVISOR), uint256(0x0018) /* error_macro("Total percentage wrong") */);
         return true;
     }
 
@@ -496,7 +500,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
         if (msg.value > 0) {
-            require(amount == 0, "Ambiguous amount");
+            _require(amount == 0, uint256(0x0019) /* error_macro("Ambiguous amount") */);
             amount = msg.value;
             address weth = _weth;
             IWETH(weth).deposit{value: amount}();
@@ -513,7 +517,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
         (uint256[] memory totalsAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
-        require(totalsAfter[0] > grandTotalBefore, "Lost value");
+        _require(totalsAfter[0] > grandTotalBefore, uint256(0x001a) /* error_macro("Lost value") */);
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalsAfter[1], estimates);
         uint256 valueAdded = totalsAfter[0] - grandTotalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
@@ -536,7 +540,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
-        require(amount > 0, "0 amount");
+        _require(amount > 0, uint256(0x001b) /* error_macro("0 amount") */);
         _checkDivisor(slippage);
         strategy.settleSynths();
         strategy.issueStreamingFee();
@@ -634,13 +638,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
         // Check balance
         (bool balancedAfter, uint256[] memory totalsAfter,) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(balancedAfter, "Not balanced");
+        _require(balancedAfter, uint256(0x001c) /* error_macro("Not balanced") */);
         _checkSlippage(totalsAfter[0], totalsBefore[0], _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalsAfter[0], strategy.totalSupply());
     }
 
     /**
-     * @notice Wrap router function with approve and unapprove
+     * @notice Wrap router calls with approve and unapprove
      * @param strategy The strategy contract
      * @param router The router that will be used
      * @param action The action that the router will perform
@@ -712,8 +716,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
-        require(address(strategy) != test, "Cyclic dependency");
-        require(!strategy.supportsSynths(), "Synths not supported");
+        _require(address(strategy) != test, uint256(0x001d) /* error_macro("Cyclic dependency") */);
+        _require(!strategy.supportsSynths(), uint256(0x001e) /* error_macro("Synths not supported") */);
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
@@ -722,14 +726,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
-      require(
+      _require(
           slippedValue >= referenceValue.mul(slippage).div(DIVISOR),
-          "Too much slippage"
+          uint256(0x001f) /* error_macro("Too much slippage") */
       );
     }
 
     function _checkDivisor(uint256 value) private pure {
-        require(value <= DIVISOR, "Out of bounds");
+        _require(value <= DIVISOR, uint256(0x0020) /* error_macro("Out of bounds") */);
     }
 
     function _checkAndEmit(address strategy, TimelockCategory category, uint256 value, bool finalized) private {
@@ -741,35 +745,35 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Checks that strategy is initialized
      */
     function _isInitialized(address strategy) private view {
-        require(initialized(strategy), "Not initialized");
+        _require(initialized(strategy), uint256(0x0021) /* error_macro("Not initialized") */);
     }
 
     /**
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) private view {
-        require(whitelist().approved(account), "Not approved");
+        _require(whitelist().approved(account), uint256(0x0022) /* error_macro("Not approved") */);
     }
 
     /**
      * @notice Checks if msg.sender is manager
      */
     function _onlyManager(IStrategy strategy) private view {
-        require(msg.sender == strategy.manager(), "Not manager");
+        _require(msg.sender == strategy.manager(), uint256(0x0023) /* error_macro("Not manager") */);
     }
 
     /**
-     * @notice Checks if strategy is social or else require msg.sender is manager
+     * @notice Checks if strategy is social or else _require msg.sender is manager
      */
     function _socialOrManager(IStrategy strategy) private view {
-        require(
+        _require(
             msg.sender == strategy.manager() || _strategyStates[address(strategy)].social,
-            "Not manager"
+            uint256(0x0024) /* error_macro("Not manager") */
         );
     }
 
     function _notSet(address strategy) private view {
-        require(!_strategyStates[strategy].set, "Strategy cannot change");
+        _require(!_strategyStates[strategy].set, uint256(0x0025) /* error_macro("Strategy cannot change") */);
     }
 
     /**
@@ -787,6 +791,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     receive() external payable {
-        require(msg.sender == _weth, "Not WETH");
+        _require(msg.sender == _weth, uint256(0x0026) /* error_macro("Not WETH") */);
     }
 }
