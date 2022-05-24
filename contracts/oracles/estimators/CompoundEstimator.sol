@@ -12,8 +12,6 @@ import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
 import "../../libraries/Exponential.sol";
 
-import "hardhat/console.sol";
-
 contract CompoundEstimator is IEstimator, IRewardsEstimator, Exponential {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -66,10 +64,7 @@ contract CompoundEstimator is IEstimator, IRewardsEstimator, Exponential {
         uint256 supplierDelta = mul_(supplierTokens, deltaIndex);
         unclaimedComp = unclaimedComp.add(add_(comptroller.compAccrued(user), supplierDelta));
 
-        int256 estimate = IOracle(msg.sender).estimateItem(unclaimedComp, comptroller.getCompAddress());
-        
-        console.log(uint256(estimate));
-        return estimate;
+        return IOracle(msg.sender).estimateItem(unclaimedComp, comptroller.getCompAddress());
         // note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy
     }
 }

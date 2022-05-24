@@ -9,8 +9,6 @@ import "../interfaces/IOracle.sol";
 import "../interfaces/IRewardsEstimator.sol";
 import "../helpers/StrategyTypes.sol";
 
-import "hardhat/console.sol";
-
 contract EnsoOracle is IOracle, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -70,11 +68,16 @@ contract EnsoOracle is IOracle, StrategyTypes {
             total = total.add(estimate);
             estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
         }
+        total = total.add(_estimateStrategyRewards(strategy));
         require(total >= 0, "Negative total");
         return (uint256(total), estimates);
     }
 
-    function estimateStrategyRewards(IStrategy strategy) external view /*override*/ returns (int256) {
+    function estimateStrategyRewards(IStrategy strategy) public view /*override*/ returns (int256) {
+        return _estimateStrategyRewards(strategy);
+    }
+
+    function _estimateStrategyRewards(IStrategy strategy) private view /*override*/ returns (int256) {
         address[] memory strategyClaimables = strategy.claimables();
         Claimable memory claimableData;
         address[] memory tokens;
@@ -95,6 +98,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
                 total = total.add(estimateUnclaimedRewards(address(strategy), tokens[j]));
             } 
         }
+        return total;
     }
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {

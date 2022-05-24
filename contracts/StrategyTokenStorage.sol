@@ -41,5 +41,5 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(bytes32 => bool) internal _exists;
 
     // Gap for future storage changes
-    uint256[47] private __gap; // FIXME
+    uint256[47] private __gap;
 }

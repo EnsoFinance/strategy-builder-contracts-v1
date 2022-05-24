@@ -149,7 +149,6 @@ describe('SynthetixAdapter', function () {
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
-    console.log(crv.address, tokens.sBTC, tokens.sEUR, tokens.cUSDT)
 		const positions = [
 			{ token: crv.address, percentage: BigNumber.from(250) },
 			{ token: tokens.sUSD, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
@@ -159,7 +158,6 @@ describe('SynthetixAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
-    console.log("debug before")
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -173,7 +171,6 @@ describe('SynthetixAdapter', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 
-    console.log("debug after")
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
