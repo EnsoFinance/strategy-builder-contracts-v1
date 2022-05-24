@@ -92,7 +92,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
             // estimate unclaimed
             tokens = claimableData.tokens;
             for (uint256 j; j < tokens.length; ++j) {
-                total = total.add(estimateUnclaimedRewards(address(strategy), tokens[i]));
+                total = total.add(estimateUnclaimedRewards(address(strategy), tokens[j]));
             } 
         }
     }

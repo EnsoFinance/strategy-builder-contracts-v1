@@ -38,8 +38,6 @@ contract StrategyTokenStorage is StrategyTypes {
     address[] internal _claimables;
     mapping(address => Claimable) internal _claimableData;
 
-    //address[] internal _claimables;
-    //mapping(address => address[]) internal _claimableFor;
     mapping(bytes32 => bool) internal _exists;
 
     // Gap for future storage changes
