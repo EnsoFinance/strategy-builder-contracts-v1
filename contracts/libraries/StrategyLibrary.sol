@@ -31,17 +31,19 @@ library StrategyLibrary {
      *         whether the strategy is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
      */
-    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
-        (uint256 total, int256[] memory estimates) =
+    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256[] memory, int256[] memory) {
+        (uint256[] memory totals, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
         uint256 threshold = IStrategy(strategy).rebalanceThreshold();
 
         bool balanced = true;
         address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 expectedValue = getExpectedTokenValue(total, strategy, strategyItems[i]);
+        int256 expectedValue;
+        int256 rebalanceRange;
+        for (uint256 i; i < strategyItems.length; ++i) {
+            expectedValue = getExpectedTokenValue(totals[1], strategy, strategyItems[i]);
             if (expectedValue > 0) {
-                int256 rebalanceRange = getRange(expectedValue, threshold);
+                rebalanceRange = getRange(expectedValue, threshold);
                 if (estimates[i] > expectedValue.add(rebalanceRange)) {
                     balanced = false;
                     break;
@@ -54,7 +56,7 @@ library StrategyLibrary {
                 // Token has an expected value of 0, so any value can cause the contract
                 // to be 'unbalanced' so we need an alternative way to determine balance.
                 // Min percent = 0.1%. If token value is above, consider it unbalanced
-                if (estimates[i] > getRange(int256(total), 1)) {
+                if (estimates[i] > getRange(int256(totals[1]), 1)) {
                     balanced = false;
                     break;
                 }
@@ -63,8 +65,8 @@ library StrategyLibrary {
         if (balanced) {
             address[] memory strategyDebt = IStrategy(strategy).debt();
             for (uint256 i = 0; i < strategyDebt.length; i++) {
-              int256 expectedValue = getExpectedTokenValue(total, strategy, strategyDebt[i]);
-              int256 rebalanceRange = getRange(expectedValue, threshold);
+              expectedValue = getExpectedTokenValue(totals[1], strategy, strategyDebt[i]);
+              rebalanceRange = getRange(expectedValue, threshold);
               uint256 index = strategyItems.length + i;
                // Debt
                if (estimates[index] < expectedValue.add(rebalanceRange)) {
@@ -77,7 +79,7 @@ library StrategyLibrary {
                }
             }
         }
-        return (balanced, total, estimates);
+        return (balanced, totals, estimates);
     }
 
     /**

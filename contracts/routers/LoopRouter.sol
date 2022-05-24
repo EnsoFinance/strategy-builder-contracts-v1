@@ -97,9 +97,9 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         ) = abi.decode(data, (uint256, int256[], address[]));
 
         _batchSell(strategy, currentTotal, currentEstimates, currentItems);
-        (uint256 newTotal, int256[] memory newEstimates) = IStrategy(strategy).oracle().estimateStrategy(IStrategy(strategy));
+        (uint256[] memory newTotals, int256[] memory newEstimates) = IStrategy(strategy).oracle().estimateStrategy(IStrategy(strategy));
         address[] memory newItems = IStrategy(strategy).items();
-        _batchBuy(strategy, strategy, newTotal, newEstimates, newItems);
+        _batchBuy(strategy, strategy, newTotals[1], newEstimates, newItems);
     }
 
     function _batchSell(

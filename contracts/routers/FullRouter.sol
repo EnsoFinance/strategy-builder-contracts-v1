@@ -158,10 +158,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         ) = abi.decode(data, (uint256, int256[], address[], address[]));
 
         _batchSell(strategy, currentTotal, currentEstimates, currentItems, currentDebt);
-        (uint256 newTotal, int256[] memory newEstimates) = IOracle(IStrategy(strategy).oracle()).estimateStrategy(IStrategy(strategy));
+        (uint256[] memory newTotals, int256[] memory newEstimates) = IOracle(IStrategy(strategy).oracle()).estimateStrategy(IStrategy(strategy));
         address[] memory newItems = IStrategy(strategy).items();
         address[] memory newDebt = IStrategy(strategy).debt();
-        _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt);
+        _batchBuy(strategy, strategy, newTotals[1], newEstimates, newItems, newDebt);
     }
 
     function _batchSell(

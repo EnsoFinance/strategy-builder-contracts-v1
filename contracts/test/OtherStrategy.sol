@@ -667,8 +667,6 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      * @notice Update the per token value based on the most recent strategy value.
      */
     function _updateTokenValue() internal {
-        (uint256 total, ) = oracle().estimateStrategy(this);
-        _setTokenValue(total, _totalSupply);
     }
 
     /**

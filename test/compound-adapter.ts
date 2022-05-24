@@ -116,6 +116,23 @@ describe('CompoundAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+  
+	it('Should restructure', async function () {
+		const positions = [ // same positions, just trying to see if _removeClaimables fails at all
+			{ token: weth.address, percentage: BigNumber.from(500) },
+			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt]} 
+		]
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
+
+	it('Should finalize structure', async function () {
+		await increaseTime(600);
+		await controller
+			.connect(accounts[1])
+			.finalizeStructure(strategy.address, router.address, '0x')
+	})
+
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(1000)

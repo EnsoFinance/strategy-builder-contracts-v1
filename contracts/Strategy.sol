@@ -734,8 +734,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Update the per token value based on the most recent strategy value.
      */
     function _updateTokenValue() internal {
-        (uint256 total, ) = oracle().estimateStrategy(this);
-        _setTokenValue(total, _totalSupply);
+        (uint256[] memory totals,) = oracle().estimateStrategy(this);
+        _setTokenValue(totals[0], _totalSupply);
     }
 
     /**

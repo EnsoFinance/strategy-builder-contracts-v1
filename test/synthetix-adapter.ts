@@ -27,8 +27,6 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
 
-const runAll = false
-
 describe('SynthetixAdapter', function () {
 	let	weth: Contract,
 		crv: Contract,
@@ -192,8 +190,6 @@ describe('SynthetixAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-  if (runAll) {
-
 	it('Should fail to deploy strategy: meta cannot support synths', async function () {
 		const name = 'Fail Strategy'
 		const symbol = 'FAIL'
@@ -353,5 +349,4 @@ describe('SynthetixAdapter', function () {
 			.finalizeStructure(strategy.address, router.address, '0x')
 		expect((await strategy.synths()).length).to.be.equal(0)
 	})
-  }
 })

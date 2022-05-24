@@ -70,7 +70,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external payable override {
         IStrategy strategy = IStrategy(strategy_);
         _setStrategyLock(strategy);
-        require(msg.sender == factory, "Not factory");
+        require(msg.sender == factory);// FIXME, "Not factory");
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
@@ -106,9 +106,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _socialOrManager(strategy);
         strategy.settleSynths();
         strategy.issueStreamingFee();
-        (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
-        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
-        _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
+        (uint256[] memory totalsBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
+        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalsBefore[1], estimates);
+        _deposit(strategy, router, msg.sender, amount, slippage, totalsBefore[0], balanceBefore, data);
         _removeStrategyLock(strategy);
     }
 
@@ -126,7 +126,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-      // FIXME consider claimables (rewards distribution...)
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
@@ -151,7 +150,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-      // FIXME consider claimables (rewards distribution...)
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
@@ -174,18 +172,18 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
-        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(!balancedBefore, "Balanced");
+        (bool balancedBefore, uint256[] memory totalsBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+        require(!balancedBefore);// FIXME, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates);
+            data = abi.encode(totalsBefore[1], estimates);
         // Rebalance
         _useRouter(strategy, router, Action.REBALANCE, strategy.items(), strategy.debt(), data);
         // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        require(balancedAfter, "Not balanced");
-        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
-        emit Balanced(address(strategy), totalBefore, totalAfter);
+        (bool balancedAfter, uint256[] memory totalsAfter,) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+        require(balancedAfter);// FIXME, "Not balanced");
+        _checkSlippage(totalsAfter[0], totalsBefore[0], _strategyStates[address(strategy)].rebalanceSlippage);
+        strategy.updateTokenValue(totalsAfter[0], strategy.totalSupply());
+        emit Balanced(address(strategy), totalsBefore[0], totalsAfter[0]);
         _removeStrategyLock(strategy);
     }
 
@@ -256,7 +254,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
             "Timelock active"
         );
-        require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
+        require(verifyStructure(address(strategy), strategyItems));// FIXME, "Invalid structure");
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems);
@@ -289,7 +287,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
             "Timelock active"
         );
-        require(lock.category == TimelockCategory.RESTRUCTURE, "Wrong category");
+        require(lock.category == TimelockCategory.RESTRUCTURE);//, "Wrong category");
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
         require(verifyStructure(address(strategy), strategyItems), "Invalid structure");
@@ -489,7 +487,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         address account,
         uint256 amount,
         uint256 slippage,
-        uint256 totalBefore,
+        uint256 grandTotalBefore,
         uint256 balanceBefore,
         bytes memory data
     ) internal {
@@ -514,15 +512,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
-        (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
-        require(totalAfter > totalBefore, "Lost value");
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
-        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
+        (uint256[] memory totalsAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
+        require(totalsAfter[0] > grandTotalBefore, "Lost value");
+        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalsAfter[1], estimates);
+        uint256 valueAdded = totalsAfter[0] - grandTotalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
         uint256 totalSupply = strategy.totalSupply();
         uint256 relativeTokens =
-            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
-        strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+            totalSupply > 0 ? totalSupply.mul(valueAdded).div(grandTotalBefore) : totalsAfter[0];
+        strategy.updateTokenValue(totalsAfter[0], totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
     }
@@ -543,30 +541,30 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.settleSynths();
         strategy.issueStreamingFee();
         IOracle o = oracle();
-        (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
-        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
+        (uint256[] memory totalsBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
+        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalsBefore[1], estimatesBefore);
         {
             uint256 totalSupply = strategy.totalSupply();
             // Deduct fee and burn strategy tokens
             amount = strategy.burn(msg.sender, amount);
-            wethAmount = totalBefore.mul(amount).div(totalSupply);
+            wethAmount = totalsBefore[0].mul(amount).div(totalSupply);
             // Setup data
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
                 uint256 percentage = amount.mul(10**18).div(totalSupply);
-                data = abi.encode(percentage, totalBefore, estimatesBefore);
+                data = abi.encode(percentage, totalsBefore[1], estimatesBefore);
             }
         }
         // Withdraw
         _useRouter(strategy, router, Action.WITHDRAW, strategy.items(), strategy.debt(), data);
         // Check value and balance
-        (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
+        (uint256[] memory totalsAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
         {
             // Calculate weth amount
             weth = _weth;
             uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
             uint256 wethAfterSlippage;
-            if (totalBefore > totalAfter) {
-              uint256 slippageAmount = totalBefore.sub(totalAfter);
+            if (totalsBefore[0] > totalsAfter[0]) {
+              uint256 slippageAmount = totalsBefore[0].sub(totalsAfter[0]);
               if (slippageAmount > wethAmount) revert("Too much slippage");
               wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
             } else {
@@ -582,7 +580,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 wethAmount = wethAfterSlippage;
             }
         }
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalsAfter[0].sub(wethAmount), estimatesAfter);
         // Approve weth amount
         strategy.approveToken(weth, address(this), wethAmount);
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
@@ -623,22 +621,22 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal {
         // Get strategy value
         IOracle o = oracle();
-        (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
+        (uint256[] memory totalsBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
         address[] memory currentDebt = strategy.debt();
         // Conditionally set data
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
+            data = abi.encode(totalsBefore[1], estimates, currentItems, currentDebt);
         // Set new structure
         strategy.setStructure(newItems);
         // Liquidate unused tokens
         _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
         // Check balance
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+        (bool balancedAfter, uint256[] memory totalsAfter,) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         require(balancedAfter, "Not balanced");
-        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        _checkSlippage(totalsAfter[0], totalsBefore[0], _strategyStates[address(strategy)].restructureSlippage);
+        strategy.updateTokenValue(totalsAfter[0], strategy.totalSupply());
     }
 
     /**

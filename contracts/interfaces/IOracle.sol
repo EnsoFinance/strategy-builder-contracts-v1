@@ -12,7 +12,7 @@ interface IOracle {
 
     function tokenRegistry() external view returns (ITokenRegistry);
 
-    function estimateStrategy(IStrategy strategy) external view returns (uint256, int256[] memory);
+    function estimateStrategy(IStrategy strategy) external view returns (uint256[] memory, int256[] memory);
 
     function estimateItem(
         uint256 balance,

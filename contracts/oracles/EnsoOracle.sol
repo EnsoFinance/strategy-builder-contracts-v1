@@ -29,7 +29,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         susd = susd_;
     }
 
-    function estimateStrategy(IStrategy strategy) public view override returns (uint256, int256[] memory) {
+    function estimateStrategy(IStrategy strategy) public view override returns (uint256[] memory, int256[] memory) {
         address[] memory strategyItems = strategy.items();
         address[] memory strategyDebt = strategy.debt();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
@@ -68,9 +68,12 @@ contract EnsoOracle is IOracle, StrategyTypes {
             total = total.add(estimate);
             estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
         }
-        total = total.add(_estimateStrategyRewards(strategy));
-        require(total >= 0, "Negative total");
-        return (uint256(total), estimates);
+        int256 grandTotal = total.add(_estimateStrategyRewards(strategy));
+        require(total >= 0 && grandTotal >= 0, "Negative total");
+        uint256[] memory totals = new uint256[](2);
+        totals[0] = uint256(grandTotal);
+        totals[1] = uint256(total);
+        return (totals, estimates);
     }
 
     function estimateStrategyRewards(IStrategy strategy) public view /*override*/ returns (int256) {
@@ -113,12 +116,14 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return IRewardsEstimator(address(tokenRegistry.getEstimator(token))).estimateUnclaimedRewards(user, token);
     }
 
-    function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {
+    function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory, uint256[] memory) {
+        uint256[] memory grandTotals = new uint256[](strategies.length);
         uint256[] memory totals = new uint256[](strategies.length);
         for (uint256 i; i < strategies.length; ++i) {
-            (uint256 total, ) = estimateStrategy(strategies[i]);
-            totals[i] = total;
+            (uint256[] memory totals, ) = estimateStrategy(strategies[i]);
+            grandTotals[i] = totals[0];
+            totals[i] = totals[1];
         }
-        return totals;
+        return (grandTotals, totals);
     }
 }

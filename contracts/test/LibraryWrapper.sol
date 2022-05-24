@@ -45,8 +45,8 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function getStrategyValue() external view returns (uint256) {
-        (uint256 total, ) = oracle.estimateStrategy(strategy);
-        return total;
+        (uint256[] memory totals,) = oracle.estimateStrategy(strategy);
+        return totals[0];
     }
 
     function getTokenValue(address token) external view returns (int256) {
@@ -87,12 +87,12 @@ contract LibraryWrapper is StrategyTypes{
     function _checkBalance(
         uint256 threshold
     ) internal view returns (bool) {
-        (uint256 total, int256[] memory estimates) =
+        (uint256[] memory totals, int256[] memory estimates) =
             oracle.estimateStrategy(strategy);
         bool balanced = true;
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(totals[1], address(strategy), strategyItems[i]);
             if (expectedValue > 0) {
                 int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
                 if (estimates[i] > expectedValue.add(rebalanceRange)) {
@@ -107,7 +107,7 @@ contract LibraryWrapper is StrategyTypes{
                 // Token has an expected value of 0, so any value can cause the contract
                 // to be 'unbalanced' so we need an alternative way to determine balance.
                 // Min percent = 0.1%. If token value is above, consider it unbalanced
-                if (estimates[i] > StrategyLibrary.getRange(int256(total), 1)) {
+                if (estimates[i] > StrategyLibrary.getRange(int256(totals[1]), 1)) {
                     balanced = false;
                     break;
                 }
@@ -116,7 +116,7 @@ contract LibraryWrapper is StrategyTypes{
         if (balanced) {
             address[] memory strategyDebt = strategy.debt();
             for (uint256 i = 0; i < strategyDebt.length; i++) {
-              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
+              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(totals[1], address(strategy), strategyDebt[i]);
               int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
               uint256 index = strategyItems.length + i;
                // Debt
