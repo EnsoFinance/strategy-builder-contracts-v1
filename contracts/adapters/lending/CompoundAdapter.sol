@@ -58,6 +58,17 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
         comptroller.claimComp(address(this), tokens);
     }
 
+    // Intended to be called via delegateCall
+    function claim(address[] memory tokens) external override {
+        comptroller.claimComp(address(this), tokens);
+    }
+
+    function rewardsTokens(address token) external override returns(address[] memory) {
+        address[] memory ret = new address[](1);
+        ret[0] = comptroller.getCompAddress();
+        return ret;
+    }
+
     function _checkCToken(address token) internal view returns (bool) {
         bytes32 selector = keccak256("isCToken()");
         uint256 gasCost = gasCostProvider.gasCost();

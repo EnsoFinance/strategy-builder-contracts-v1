@@ -36,9 +36,11 @@ interface IComptroller {
     function compBorrowState(address cToken) external view returns(CompMarketState memory);
 
     function compBorrowerIndex(address cToken, address borrower) external view returns(uint256);
+
     function compSupplyState(address cTokens) external view returns(CompMarketState memory);
 
     function compSupplierIndex(address cToken, address supplier) external view returns(uint256);
+
     function compAccrued(address account) external view returns(uint256);
 
     function getCompAddress() external view returns(address);

@@ -50,4 +50,14 @@ contract FailAdapter is BaseAdapter, IRewardsAdapter {
         (token);
         revert();
     }
+
+    function claim(address[] memory tokens) public override {
+        (tokens);
+        revert();
+    }
+
+    function rewardsTokens(address token) external override returns(address[] memory) {
+        (token);
+        revert();
+    }
 }

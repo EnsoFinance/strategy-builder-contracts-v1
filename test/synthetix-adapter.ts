@@ -13,6 +13,7 @@ import {
 	deployCurveAdapter,
 	deployUniswapV2Adapter,
 	deployMetaStrategyAdapter,
+  deployCompoundAdapter,
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
@@ -25,6 +26,8 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
+
+const runAll = false
 
 describe('SynthetixAdapter', function () {
 	let	weth: Contract,
@@ -39,6 +42,7 @@ describe('SynthetixAdapter', function () {
 		oracle: Contract,
 		library: Contract,
 		uniswapAdapter: Contract,
+		compoundAdapter: Contract,
 		curveAdapter: Contract,
 		synthetixAdapter: Contract,
 		metaStrategyAdapter: Contract,
@@ -88,6 +92,8 @@ describe('SynthetixAdapter', function () {
 		await whitelist.connect(accounts[10]).approve(synthetixAdapter.address)
 		metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[10], controller, router, weth)
 		await whitelist.connect(accounts[10]).approve(metaStrategyAdapter.address)
+		compoundAdapter = await deployCompoundAdapter(accounts[10], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth)
+		await whitelist.connect(accounts[10]).approve(compoundAdapter.address)
 	})
 
 	it('Should fail to deploy strategy: virtual item', async function () {
@@ -143,14 +149,17 @@ describe('SynthetixAdapter', function () {
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
+    console.log(crv.address, tokens.sBTC, tokens.sEUR, tokens.cUSDT)
 		const positions = [
-			{ token: crv.address, percentage: BigNumber.from(400) },
+			{ token: crv.address, percentage: BigNumber.from(250) },
 			{ token: tokens.sUSD, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
-			{ token: tokens.sBTC, percentage: BigNumber.from(400), adapters: [synthetixAdapter.address], path: [] },
-			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapter.address], path: [] }
+			{ token: tokens.sBTC, percentage: BigNumber.from(250), adapters: [synthetixAdapter.address], path: [] },
+			{ token: tokens.sEUR, percentage: BigNumber.from(250), adapters: [synthetixAdapter.address], path: [] },
+			{ token: tokens.cUSDT, percentage: BigNumber.from(250), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt]} 
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
+    console.log("debug before")
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -163,6 +172,8 @@ describe('SynthetixAdapter', function () {
 				'0x',
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
+
+    console.log("debug after")
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -183,6 +194,8 @@ describe('SynthetixAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
+
+  if (runAll) {
 
 	it('Should fail to deploy strategy: meta cannot support synths', async function () {
 		const name = 'Fail Strategy'
@@ -343,4 +356,5 @@ describe('SynthetixAdapter', function () {
 			.finalizeStructure(strategy.address, router.address, '0x')
 		expect((await strategy.synths()).length).to.be.equal(0)
 	})
+  }
 })

@@ -6,12 +6,15 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../interfaces/IEstimator.sol";
+import "../../interfaces/IRewardsEstimator.sol";
 import "../../interfaces/IOracle.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
 import "../../libraries/Exponential.sol";
 
-contract CompoundEstimator is IEstimator, Exponential {
+import "hardhat/console.sol";
+
+contract CompoundEstimator is IEstimator, IRewardsEstimator, Exponential {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
@@ -21,7 +24,11 @@ contract CompoundEstimator is IEstimator, Exponential {
 
     function estimateItem(address user, address token) public view override returns (int256) { 
         uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateUnclaimedComp(user, token).add(_estimateItem(balance, token));
+        return _estimateItem(balance, token);
+    }
+
+    function estimateUnclaimedRewards(address user, address token) external view override returns(int256) {
+        return _estimateUnclaimedComp(user, token); 
     }
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
@@ -59,7 +66,10 @@ contract CompoundEstimator is IEstimator, Exponential {
         uint256 supplierDelta = mul_(supplierTokens, deltaIndex);
         unclaimedComp = unclaimedComp.add(add_(comptroller.compAccrued(user), supplierDelta));
 
-        return IOracle(msg.sender).estimateItem(unclaimedComp, comptroller.getCompAddress());
+        int256 estimate = IOracle(msg.sender).estimateItem(unclaimedComp, comptroller.getCompAddress());
+        
+        console.log(uint256(estimate));
+        return estimate;
         // note: comp already held by strategy will be estimated as additional step in enso oracle estimateStrategy
     }
 }

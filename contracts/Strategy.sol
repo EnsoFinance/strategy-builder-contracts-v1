@@ -11,6 +11,7 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
+import "./interfaces/IRewardsAdapter.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
 import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
@@ -49,24 +50,23 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
-    IComptroller private immutable comptroller;
     address public immutable factory;
     address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event RewardsClaimed(address indexed adapter, address indexed token);
+    event RewardsClaimed(address indexed adapter, address[] indexed tokens);
     event UpdateManager(address manager);
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
     event StreamingFee(uint256 amount);
 
     // Initialize constructor to disable implementation
-    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_, address comptroller_) public initializer {
+    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
         factory = factory_;
         controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
-        comptroller = IComptroller(comptroller_);
     }
 
     /**
@@ -206,7 +206,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         require(_debt.length == 0, "Cannot withdraw debt");
         require(amount > 0, "0 amount");
         settleSynths();
-        settleClaimables();
         uint256 percentage;
         {
             // Deduct withdrawal fee, burn tokens, and calculate percentage
@@ -218,9 +217,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 itemsLength = _items.length;
         uint256 synthsLength = _synths.length;
         uint256 numTokens = (synthsLength > 0) ? itemsLength + synthsLength + 2 : itemsLength + 1; // 1 for susd and 1 for weth
-
-        uint256 claimablesLength = _claimables.length;
-        numTokens = (claimablesLength > 0) ? numTokens + claimablesLength : numTokens; // 1 for weth accounted for above
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
         for (uint256 i = 0; i < itemsLength; ++i) {
@@ -247,18 +243,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             uint256 susdBalance = susd.balanceOf(address(this));
             amounts[bound] = susdBalance.mul(percentage).div(10**18);
             tokens[bound] = susd;
-        }
-        if (claimablesLength > 0) {
-            bound = numTokens - 1; 
-            idx = 0; 
-            IERC20 claimable;
-            for (uint256 i = numTokens - 1 - claimablesLength; i < bound; ++i) {
-                claimable = IERC20(_claimables[idx]);
-                currentBalance = claimable.balanceOf(address(this));
-                amounts[i] = currentBalance.mul(percentage).div(10**18); // FIXME does this mean can drain claimable token by repeated deposits,withdraws?
-                tokens[i] = claimable;
-                ++idx; 
-            }
         }
         // Include WETH
         IERC20 weth = IERC20(_weth);
@@ -394,9 +378,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
         _setLock();
         _onlyManager();
-        require(adapters.length == tokens.length, "Incorrect parameters");
-        for (uint256 i = 0; i < adapters.length; i++) {
-          _delegateClaim(adapters[i], tokens[i]);
+        require(adapters.length <= tokens.length, "Incorrect parameters.");
+        if (adapters.length == tokens.length) {
+            for (uint256 i = 0; i < adapters.length; i++) {
+              _delegateClaim(adapters[i], tokens[i]);
+            }
+        } else {
+            require(adapters.length == 1, "Incorrect parameters.");
+            _delegateClaim(adapters[0], tokens);
         }
         _removeLock();
     }
@@ -412,29 +401,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             for (uint256 i = 0; i < _synths.length; i++) {
                 exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
             }
-        }
-    }
-
-    /**
-     * @notice Settle the amount owed for each claimable
-     */
-    function settleClaimables() public override {
-        for (uint256 i; i < _claimables.length; ++i) {
-            settleClaimable(_claimables[i]);
-        }
-    }
-
-    /**
-     * @notice Settle the amount owed for a claimable
-     */
-    function settleClaimable(address claimable) public override {
-        address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
-        require(_claimableFor[resolverStash].length == 1, "settleClaimable: claimable resolver never set.");
-        address resolver = _claimableFor[resolverStash][0];
-        if (resolver == address(comptroller)) { // COMP
-            comptroller.claimComp(address(this), _claimableFor[claimable]);
-        } else { // future version will support other claimable tokens
-            revert("settleClaimable: claimable not supported.");
         }
     }
 
@@ -556,6 +522,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _claimables;
     }
 
+    function claimableData(address claimable) external view override returns (Claimable memory) {
+        return _claimableData[claimable];
+    }
+
     function rebalanceThreshold() external view override returns (uint256) {
         return uint256(_rebalanceThreshold);
     }
@@ -633,6 +603,29 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         emit RewardsClaimed(adapter, token);
     }
 
+    function _delegateClaim(address adapter, address[] memory tokens) internal {
+        _onlyApproved(adapter);
+        bytes memory data =
+            abi.encodeWithSelector(
+                bytes4(keccak256("claim(address[])")),
+                tokens
+            );
+        uint256 txGas = gasleft();
+        bool success;
+        assembly {
+            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
+        }
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
+        emit RewardsClaimed(adapter, tokens);
+    }
+
     /**
      * @notice Set the structure of the strategy
      * @param newItems An array of Item structs that will comprise the strategy
@@ -688,24 +681,25 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function _setClaimable(StrategyItem memory claimableItem) internal {
-        if (_exists[keccak256(abi.encode("_claimableFor", claimableItem.item))]) return;
-        _exists[keccak256(abi.encode("_claimableFor", claimableItem.item))] = true;
-        // is it a cToken?
-        address claimable;
-        address resolver;
-        if (comptroller.markets(claimableItem.item).isComped) {
-            claimable = comptroller.getCompAddress();
-            resolver = address(comptroller);
-        } else {
-            revert("_setClaimable: item is not claimable.");
+        if (_exists[keccak256(abi.encode("_claimableData.tokens", claimableItem.item))]) return;
+        _exists[keccak256(abi.encode("_claimableData.tokens", claimableItem.item))] = true;
+
+        uint256 len = claimableItem.data.adapters.length;
+        require(len > 0, "_setClaimable: adapters.length == 0.");
+
+        address rewardsAdapter = claimableItem.data.adapters[len-1];
+        Claimable storage claimable = _claimableData[rewardsAdapter];
+        if (claimable.rewardsAdapter == address(0)) { // it hasn't been stored
+            claimable.rewardsAdapter = rewardsAdapter;
+            _claimables.push(rewardsAdapter); 
         }
-        if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
-            _exists[keccak256(abi.encode("_claimables", claimable))] = true;
-            _claimables.push(claimable);
-            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
-            _claimableFor[resolverStash].push(resolver);
+        claimable.tokens.push(claimableItem.item);
+        address[] memory rewardsTokens = IRewardsAdapter(rewardsAdapter).rewardsTokens(claimableItem.item);
+        for (uint256 i; i < rewardsTokens.length; ++i) {
+            if (_exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))]) continue; 
+            _exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))] = true;
+            claimable.rewardsTokens.push(rewardsTokens[i]);
         }
-        _claimableFor[claimable].push(claimableItem.item);
     } 
 
     /**

@@ -50,6 +50,12 @@ interface StrategyTypes {
         bool set;
     }
 
+    struct Claimable {
+        address rewardsAdapter;
+        address[] tokens;
+        address[] rewardsTokens;
+    }
+
     /**
         @notice A time lock requirement for changing the state of this Strategy
         @dev WARNING: Only one TimelockCategory can be pending at a time

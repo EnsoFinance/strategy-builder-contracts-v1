@@ -126,7 +126,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-      // FIXME consider claimables
+      // FIXME consider claimables (rewards distribution...)
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
@@ -151,7 +151,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-      // FIXME consider claimables
+      // FIXME consider claimables (rewards distribution...)
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
@@ -169,7 +169,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
-      // FIXME consider claimables
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyApproved(address(router));
@@ -542,7 +541,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         require(amount > 0, "0 amount");
         _checkDivisor(slippage);
         strategy.settleSynths();
-        strategy.settleClaimables();
         strategy.issueStreamingFee();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);

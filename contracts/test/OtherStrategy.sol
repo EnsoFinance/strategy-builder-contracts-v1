@@ -11,6 +11,7 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrategyManagement.sol";
 import "../interfaces/IStrategyController.sol";
 import "../interfaces/IStrategyProxyFactory.sol";
+import "../interfaces/IRewardsAdapter.sol";
 import "../interfaces/synthetix/IDelegateApprovals.sol";
 import "../interfaces/synthetix/IExchanger.sol";
 import "../interfaces/synthetix/IIssuer.sol";
@@ -387,29 +388,6 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
-     * @notice Settle the amount owed for each claimable
-     */
-    function settleClaimables() public override {
-        for (uint256 i; i < _claimables.length; ++i) {
-            settleClaimable(_claimables[i]);
-        }
-    }
-
-    /**
-     * @notice Settle the amount owed for a claimable
-     */
-    function settleClaimable(address claimable) public override {
-        if (claimable == 0xc00e94Cb662C3520282E6f5717214004A7f26888) { // COMP
-            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
-            require(_claimableFor[resolverStash].length == 1, "settleClaimable: claimable resolver never set.");
-            address resolver = _claimableFor[resolverStash][0];
-            IComptroller(resolver).claimComp(address(this), _claimableFor[claimable]);
-        } else { // future version will support other claimable tokens
-            revert("settleClaimable: claimable not supported.");
-        }
-    }
-
-    /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
     function issueStreamingFee() external override onlyController {
@@ -525,6 +503,10 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
 
     function claimables() external view override returns (address[] memory) {
         return _claimables;
+    }
+
+    function claimableData(address claimable) external view override returns (Claimable memory) {
+        return _claimableData[claimable];
     }
 
     function rebalanceThreshold() external view override returns (uint256) {
@@ -653,19 +635,27 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     function _setClaimable(StrategyItem memory claimableItem) internal {
-        (address claimable, address resolver) = abi.decode(claimableItem.data.cache, (address, address));
-        if (!_exists[keccak256(abi.encode("_claimables", claimable))]) { // may already exist for other claimableItem's
-            _exists[keccak256(abi.encode("_claimables", claimable))] = true;
-            _claimables.push(claimable);
-            address resolverStash = address(uint160(uint256(keccak256(abi.encode(claimable, "resolverStash")))));
-            _claimableFor[resolverStash].push(resolver);
+        if (_exists[keccak256(abi.encode("_claimableData.tokens", claimableItem.item))]) return;
+        _exists[keccak256(abi.encode("_claimableData.tokens", claimableItem.item))] = true;
+
+        uint256 len = claimableItem.data.adapters.length;
+        require(len > 0, "_setClaimable: adapters.length == 0.");
+
+        address rewardsAdapter = claimableItem.data.adapters[len-1];
+        Claimable storage claimable = _claimableData[rewardsAdapter];
+        if (claimable.rewardsAdapter == address(0)) { // it hasn't been stored
+            claimable.rewardsAdapter = rewardsAdapter;
+            _claimables.push(rewardsAdapter); 
         }
-        if (!_exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))]) {
-            _exists[keccak256(abi.encode("_claimableFor", claimable, claimableItem.item))] = true;
-            _claimableFor[claimable].push(claimableItem.item);
+        claimable.tokens.push(claimableItem.item);
+        address[] memory rewardsTokens = IRewardsAdapter(rewardsAdapter).rewardsTokens(claimableItem.item);
+        for (uint256 i; i < rewardsTokens.length; ++i) {
+            if (_exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))]) continue; 
+            _exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))] = true;
+            claimable.rewardsTokens.push(rewardsTokens[i]);
         }
     } 
-
+    
     /**
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */

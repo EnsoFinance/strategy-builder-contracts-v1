@@ -36,7 +36,7 @@ contract OtherStrategyTokenStorage is StrategyTypes {
     mapping(address => TradeData) internal _tradeData;
 
     address[] internal _claimables;
-    mapping(address => address[]) internal _claimableFor;
+    mapping(address => Claimable) internal _claimableData;
     mapping(bytes32 => bool) internal _exists;
 
     // New storage slots

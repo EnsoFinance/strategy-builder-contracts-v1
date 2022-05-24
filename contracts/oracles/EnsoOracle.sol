@@ -6,7 +6,10 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
+import "../interfaces/IRewardsEstimator.sol";
 import "../helpers/StrategyTypes.sol";
+
+import "hardhat/console.sol";
 
 contract EnsoOracle is IOracle, StrategyTypes {
     using SafeMath for uint256;
@@ -31,9 +34,8 @@ contract EnsoOracle is IOracle, StrategyTypes {
     function estimateStrategy(IStrategy strategy) public view override returns (uint256, int256[] memory) {
         address[] memory strategyItems = strategy.items();
         address[] memory strategyDebt = strategy.debt();
-        address[] memory strategyClaimables = strategy.claimables();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
-        int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1 + strategyClaimables.length); // +1 for virtual item
+        int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
         for (uint256 i; i < strategyItems.length; ++i) {
             int256 estimate = estimateItem(
                 address(strategy),
@@ -68,19 +70,31 @@ contract EnsoOracle is IOracle, StrategyTypes {
             total = total.add(estimate);
             estimates[estimates.length - 1] = estimate; //Synths' estimates are pooled together in the virtual item address
         }
-        if (strategyClaimables.length > 0) { 
-            // estimates the current value held, owed value is checked in respective claimable earning tokens. See `CompoundEstimator`.
-            int256 estimate;
-            uint256 balance;
-            for (uint256 i; i < strategyClaimables.length; ++i) {
-                balance = IERC20(strategyClaimables[i]).balanceOf(address(strategy));
-                // we take the balance here, since using the overloaded `estimateItem(address,address)`
-                // may estimate the additional unclaimed claimable token. See `CompoundEstimator`.
-                estimate = estimate.add(estimateItem(balance, strategyClaimables[i]));
-            }
-        }
         require(total >= 0, "Negative total");
         return (uint256(total), estimates);
+    }
+
+    function estimateStrategyRewards(IStrategy strategy) external view /*override*/ returns (int256) {
+        address[] memory strategyClaimables = strategy.claimables();
+        Claimable memory claimableData;
+        address[] memory tokens;
+        address token;
+        int256 total;
+        address rewardsAdapter;
+        for (uint256 i; i < strategyClaimables.length; ++i) { // claimed
+            claimableData = strategy.claimableData(strategyClaimables[i]);
+            // estimate claimed
+            tokens = claimableData.rewardsTokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                token = tokens[j];
+                total = total.add(estimateItem(IERC20(token).balanceOf(address(strategy)), token)); 
+            } 
+            // estimate unclaimed
+            tokens = claimableData.tokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                total = total.add(estimateUnclaimedRewards(address(strategy), tokens[i]));
+            } 
+        }
     }
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
@@ -89,6 +103,10 @@ contract EnsoOracle is IOracle, StrategyTypes {
 
     function estimateItem(address user, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(user, token);
+    }
+
+    function estimateUnclaimedRewards(address user, address token) public view override returns (int256) {
+        return IRewardsEstimator(address(tokenRegistry.getEstimator(token))).estimateUnclaimedRewards(user, token);
     }
 
     function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {

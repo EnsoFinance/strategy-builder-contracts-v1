@@ -52,10 +52,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function settleSynths() external;
 
-    function settleClaimables() external; 
-
-    function settleClaimable(address claimable) external; 
-
     function issueStreamingFee() external;
 
     function updateTokenValue(uint256 total, uint256 supply) external;
@@ -79,6 +75,8 @@ interface IStrategy is IStrategyToken, StrategyTypes {
     function debt() external view returns (address[] memory);
 
     function claimables() external view returns (address[] memory);
+
+    function claimableData(address claimable) external view returns (Claimable memory);
 
     function rebalanceThreshold() external view returns (uint256);
 

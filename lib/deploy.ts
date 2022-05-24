@@ -368,7 +368,7 @@ export async function deployPlatform(
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
-		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
+		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
 	])
 	await strategyImplementation.deployed()
 
