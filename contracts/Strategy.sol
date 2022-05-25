@@ -54,7 +54,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
-    event RewardsClaimed(address indexed adapter, address indexed token);
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
     event UpdateManager(address manager);
     event PerformanceFee(address indexed account, uint256 amount);
@@ -600,7 +599,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 revert(ptr, size)
             }
         }
-        emit RewardsClaimed(adapter, token);
+        address[] memory tokens = new address[](1);
+        tokens[0] = token;
+        emit RewardsClaimed(adapter, tokens);
     }
 
     function _delegateClaim(address adapter, address[] memory tokens) internal {
