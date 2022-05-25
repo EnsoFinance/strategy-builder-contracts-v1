@@ -55,7 +55,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _require(bool condition, uint256 code) private pure {
-        require(condition, string(toString(code)));
+        if (condition) return;
+        revert(toString(code));
     }
 
     /**
