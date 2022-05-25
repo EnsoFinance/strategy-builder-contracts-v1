@@ -21,6 +21,7 @@ import {
 	StrategyItem,
 	InitialState
 } from '../lib/encode'
+import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 
 const { constants, getContractFactory, getSigners } = ethers
@@ -160,9 +161,10 @@ describe('MulticallRouter', function () {
 	it('Should fail to deposit: total slipped', async function () {
 		const call = await encodeTransferFrom(weth, controller.address, accounts[1].address, BigNumber.from(1))
 		const data = await multicallRouter.encodeCalls([call])
-		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: 1 })
-		).to.be.revertedWith('Lost value')
+		expect(
+      await isRevertedWith(
+			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: 1 }),
+		  'Lost value', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to rebalance: no reentrancy', async function () {
@@ -202,9 +204,10 @@ describe('MulticallRouter', function () {
 			strategy.address
 		)
 		const data = await multicallRouter.encodeCalls([call])
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
-		).to.be.revertedWith('Not balanced')
+		expect(
+      await isRevertedWith(
+			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data),
+		  'Not balanced', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to delegateSwap: swap failed', async function () {
@@ -232,7 +235,7 @@ describe('MulticallRouter', function () {
 		const buyLoop = [] as BuyLoop[]
 		const tokens = await strategy.items()
 		const [actualTotal, estimates] = await oracle.estimateStrategy(strategy.address)
-		const total = actualTotal.sub(amount)
+		const total = actualTotal[0].sub(amount)
 		const Erc20Factory = await getContractFactory('ERC20Mock')
 		let wethInStrategy = false
 		// Sell loop
@@ -314,9 +317,10 @@ describe('MulticallRouter', function () {
 		}
 
 		const data = await multicallRouter.encodeCalls(calls)
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
-		).to.be.revertedWith('Too much slippage')
+		expect(
+      await isRevertedWith(
+			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data),
+		  'Too much slippage', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should rebalance strategy with multicall', async function () {
@@ -348,9 +352,10 @@ describe('MulticallRouter', function () {
 		}))).filter(call => call)
 		calls.pop() // Remove a token transfer to leave some funds in Strategy (otherwise we encounter a sutraction overlow since more funds are removed than weth owed)
 		const data = await multicallRouter.encodeCalls(calls)
-		await expect(
-			controller.connect(accounts[1]).withdrawWETH(strategy.address, multicallRouter.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, data)
-		).to.be.revertedWith('Too much slippage')
+		expect(
+      await isRevertedWith(
+			controller.connect(accounts[1]).withdrawWETH(strategy.address, multicallRouter.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, data),
+		  'Too much slippage', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to call delegateSwap: only internal', async function () {
@@ -470,11 +475,12 @@ describe('MulticallRouter', function () {
 		))
 		const data = await multicallRouter.encodeCalls(calls)
 
-		await expect(
+		expect(
+      await isRevertedWith(
 			controller
 				.connect(accounts[1])
-				.finalizeStructure(strategy.address, multicallRouter.address, data)
-			).to.be.revertedWith('Too much slippage')
+				.finalizeStructure(strategy.address, multicallRouter.address, data),
+			  'Too much slippage', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to restructure: out of balance', async function () {
@@ -501,11 +507,12 @@ describe('MulticallRouter', function () {
 		}
 		const data = await multicallRouter.encodeCalls(calls)
 
-		await expect(
+		expect(
+      await isRevertedWith(
 			controller
 				.connect(accounts[1])
-				.finalizeStructure(strategy.address, multicallRouter.address, data)
-			).to.be.revertedWith('Not balanced')
+				.finalizeStructure(strategy.address, multicallRouter.address, data),
+			  'Not balanced', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should finalize structure', async function () {
