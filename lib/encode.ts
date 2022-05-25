@@ -94,7 +94,7 @@ export async function prepareRebalanceMulticall(
 	for (let i = 0; i < tokens.length; i++) {
 		const token = await ethers.getContractAt(ERC20.abi, tokens[i])
 		const estimatedValue = ethers.BigNumber.from(estimates[i])
-		const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
+		const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total[0], token.address, strategy))
 		if (token.address.toLowerCase() != weth.address.toLowerCase()) {
 			if (estimatedValue.gt(expectedValue)) {
 				const balance = await token.balanceOf(strategy.address)
@@ -140,7 +140,7 @@ export async function prepareRebalanceMulticall(
 					)
 				)
 			} else {
-				const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total, token.address, strategy))
+				const expectedValue = ethers.BigNumber.from(await getExpectedTokenValue(total[0], token.address, strategy))
 				if (estimatedValue.lt(expectedValue)) {
 					const balance = await token.balanceOf(strategy.address)
 					const diff = expectedValue.sub(estimatedValue)
