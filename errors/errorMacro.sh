@@ -1,33 +1,41 @@
 #!/bin/sh
 
+# TODO make general
 input=StrategyController.sol
 inputIndex=0
-#functionIndexer=0
 errorIndexer=0
-commentStart="\/*"
-commentEnd="*\/"
+
+commentStart="\/\*"
+commentEnd="\*\/"
 
 # assuming that the indices don't exceed 255, but is unchecked
-# since there won't be that many functions or errors within a function
+# since there won't be that many contracts or errors within a contract
 
 jsonObject='[{"contract": "'$input'", "errorcodes": {}}]'
-
 jsonObject=$(echo $jsonObject | jq ".[0].contractId = $inputIndex")
+
+ERROR_MACRO="ERROR_MACRO"
+error_macro_for="error_macro_for"
 
 while IFS= read -r line
 do
-  isFunctionOrModifier=$(echo "$line" | grep "function\|modifier\|receive\|fallback")
-  if [ "$isFunctionOrModifier" != "" ]; then
-    functionName=\"$(echo $line | sed 's/function //' | sed 's/modifier //' | sed 's/receive //' | sed 's/fallback //' | sed 's/(.*//')\"
-  fi 
-  isErrorMacroLine=$(echo "$line" | grep "ERROR_MACRO")
+  isErrorMacroLine=$(echo "$line" | grep "$ERROR_MACRO")
+  isErrorMacroForLine=$(echo "$line" | grep "$error_macro_for")
   if [ "$isErrorMacroLine" != "" ]; then
     error=$(printf "%02x" "$inputIndex")$(printf "%02x" "$errorIndexer")
     # 2 chars for contract, 2 chars for errorIndexer
-    errorToStore=$(echo "$line" | sed s/.*ERROR_MACRO\(// | sed s/\).*//)
+    errorToStore=$(echo "$line" | sed s/.*$ERROR_MACRO\(// | sed s/\).*//)
 
     jsonObject=$(echo $jsonObject | jq ".[0].errorcodes.\"$error\" = $errorToStore")
-    line=$(echo "$line" | sed "s/ERROR_MACRO($errorToStore)/uint256(0x$error) $commentStart error_macro($errorToStore) $commentEnd/") 
+    line=$(echo "$line" | sed "s/$ERROR_MACRO($errorToStore)/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
+    echo "$line"
+    errorIndexer=$((errorIndexer+1))
+  elif [ "$isErrorMacroForLine" != "" ]; then
+    error=$(printf "%02x" "$inputIndex")$(printf "%02x" "$errorIndexer")
+    # 2 chars for contract, 2 chars for errorIndexer
+    errorToStore=$(echo "$line" | sed s/.*$error_macro_for\(// | sed s/\).*//)
+    jsonObject=$(echo $jsonObject | jq ".[0].errorcodes.\"$error\" = $errorToStore")
+    line=$(echo "$line" | sed "s/uint256(0x[0-9]\+) $commentStart $error_macro_for($errorToStore) $commentEnd/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
     echo "$line"
     errorIndexer=$((errorIndexer+1))
   else
@@ -36,5 +44,3 @@ do
 done < ../contracts/"$input"
 
 echo $jsonObject | jq > errors.json
-
-## TODO recalibrate macros
