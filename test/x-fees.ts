@@ -38,10 +38,10 @@ describe('StrategyToken Fees', function () {
 		lastTimestamp: BigNumJs
 
 	async function estimateValue(account: string): Promise<BigNumber> {
-		const [total, ] = await oracle.estimateStrategy(strategy.address);
+		const [totals, ] = await oracle.estimateStrategy(strategy.address);
 		const totalSupply = await strategy.totalSupply()
 		const balance = await strategy.balanceOf(account)
-		return BigNumber.from(total).mul(balance).div(totalSupply)
+		return BigNumber.from(totals[0]).mul(balance).div(totalSupply)
 	}
 
 	before('Setup Uniswap + Factory', async function () {
@@ -100,7 +100,8 @@ describe('StrategyToken Fees', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await getContractFactory('Strategy')
 		strategy = Strategy.attach(strategyAddress)
-		;[total] = await oracle.estimateStrategy(strategy.address)
+		const [totals, ] = await oracle.estimateStrategy(strategy.address)
+    total = totals[0]
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
 
