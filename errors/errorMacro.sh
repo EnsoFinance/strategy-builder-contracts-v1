@@ -35,7 +35,7 @@ do
     # 2 chars for contract, 2 chars for errorIndexer
     errorToStore=$(echo "$line" | sed s/.*$error_macro_for\(// | sed s/\).*//)
     jsonObject=$(echo $jsonObject | jq ".[0].errorcodes.\"$error\" = $errorToStore")
-    line=$(echo "$line" | sed "s/uint256(0x[0-9]\+) $commentStart $error_macro_for($errorToStore) $commentEnd/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
+    line=$(echo "$line" | sed "s/uint256(0x[a-z0-9]\+) $commentStart $error_macro_for($errorToStore) $commentEnd/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
     echo "$line"
     errorIndexer=$((errorIndexer+1))
   else

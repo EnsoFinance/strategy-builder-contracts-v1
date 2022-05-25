@@ -344,11 +344,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x000a) /* error_macro_for("Wrong category") */);
+        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x000b) /* error_macro_for("Wrong category") */);
         _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
-            uint256(0x000b) /* error_macro_for("Timelock active") */
+            uint256(0x000c) /* error_macro_for("Timelock active") */
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
         if (lock.category == TimelockCategory.TIMELOCK) {
@@ -378,7 +378,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        _require(!strategyState.social, uint256(0x000c) /* error_macro_for("Strategy already open") */);
+        _require(!strategyState.social, uint256(0x000d) /* error_macro_for("Strategy already open") */);
         strategyState.social = true;
         emit StrategyOpen(address(strategy));
         _removeStrategyLock(strategy);
@@ -393,7 +393,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        _require(!strategyState.set, uint256(0x000d) /* error_macro_for("Strategy already set") */);
+        _require(!strategyState.set, uint256(0x000e) /* error_macro_for("Strategy already set") */);
         strategyState.set = true;
         emit StrategySet(address(strategy));
         _removeStrategyLock(strategy);
@@ -421,8 +421,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         override
         returns (bool)
     {
-        _require(newItems.length > 0, uint256(0x000e) /* error_macro_for("Cannot set empty structure") */);
-        _require(newItems[0].item != address(0), uint256(0x000f) /* error_macro_for("Invalid item addr") */); //Everything else will caught by the ordering _requirement below
+        _require(newItems.length > 0, uint256(0x000f) /* error_macro_for("Cannot set empty structure") */);
+        _require(newItems[0].item != address(0), uint256(0x0010) /* error_macro_for("Invalid item addr") */); //Everything else will caught by the ordering _requirement below
         _require(newItems[newItems.length-1].item != address(-1), uint256(0x0011) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
 
         ITokenRegistry registry = oracle().tokenRegistry();
@@ -517,7 +517,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
         (uint256[] memory totalsAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
-        _require(totalsAfter[0] > grandTotalBefore, uint256(0x001a) /* error_macro_for("Lost value") */);
+        _require(totalsAfter[0] > grandTotalBefore, uint256(0x001b) /* error_macro_for("Lost value") */);
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalsAfter[1], estimates);
         uint256 valueAdded = totalsAfter[0] - grandTotalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
@@ -540,7 +540,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
-        _require(amount > 0, uint256(0x001b) /* error_macro_for("0 amount") */);
+        _require(amount > 0, uint256(0x001c) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);
         strategy.settleSynths();
         strategy.issueStreamingFee();
@@ -638,7 +638,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
         // Check balance
         (bool balancedAfter, uint256[] memory totalsAfter,) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        _require(balancedAfter, uint256(0x001c) /* error_macro_for("Not balanced") */);
+        _require(balancedAfter, uint256(0x001d) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalsAfter[0], totalsBefore[0], _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalsAfter[0], strategy.totalSupply());
     }
@@ -716,8 +716,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
-        _require(address(strategy) != test, uint256(0x001d) /* error_macro_for("Cyclic dependency") */);
-        _require(!strategy.supportsSynths(), uint256(0x001e) /* error_macro_for("Synths not supported") */);
+        _require(address(strategy) != test, uint256(0x001e) /* error_macro_for("Cyclic dependency") */);
+        _require(!strategy.supportsSynths(), uint256(0x001f) /* error_macro_for("Synths not supported") */);
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
@@ -728,7 +728,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
       _require(
           slippedValue >= referenceValue.mul(slippage).div(DIVISOR),
-          uint256(0x001f) /* error_macro_for("Too much slippage") */
+          uint256(0x0020) /* error_macro_for("Too much slippage") */
       );
     }
 
