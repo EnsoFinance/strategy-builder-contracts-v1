@@ -17,6 +17,7 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
+import { isRevertedWith } from '../lib/errors'
 import { increaseTime } from '../lib/utils'
 import { MAINNET_ADDRESSES} from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -102,8 +103,9 @@ describe('SynthetixAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
-		await expect(
-			strategyFactory
+    expect(
+      await isRevertedWith(
+        strategyFactory
 				.connect(accounts[1])
 				.createStrategy(
 					accounts[1].address,
@@ -114,8 +116,8 @@ describe('SynthetixAdapter', function () {
 					router.address,
 					'0x',
 					{ value: ethers.BigNumber.from('20000000000000000') }
-				)
-			).to.be.revertedWith('Invalid item addr')
+				),
+        'Invalid item addr', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deploy strategy: blocked token', async function () {
@@ -128,20 +130,21 @@ describe('SynthetixAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					name,
-					symbol,
-					strategyItems,
-					strategyState,
-					router.address,
-					'0x',
-					{ value: ethers.BigNumber.from('20000000000000000') }
-				)
-			).to.be.revertedWith('Token blocked')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+            .connect(accounts[1])
+            .createStrategy(
+              accounts[1].address,
+              name,
+              symbol,
+              strategyItems,
+              strategyState,
+              router.address,
+              '0x',
+              { value: ethers.BigNumber.from('20000000000000000') }
+            ),
+            'Token blocked', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should deploy strategy', async function () {
@@ -198,20 +201,21 @@ describe('SynthetixAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					name,
-					symbol,
-					strategyItems,
-					strategyState,
-					router.address,
-					'0x',
-					{ value: ethers.BigNumber.from('20000000000000000') }
-				)
-			).to.be.revertedWith('Synths not supported')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+            .connect(accounts[1])
+            .createStrategy(
+              accounts[1].address,
+              name,
+              symbol,
+              strategyItems,
+              strategyState,
+              router.address,
+              '0x',
+              { value: ethers.BigNumber.from('20000000000000000') }
+            ),
+            'Synths not supported', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should withdrawAll on a portion of tokens', async function () {
@@ -315,7 +319,7 @@ describe('SynthetixAdapter', function () {
 	})
 
 	it('Should fail to reposition synths into susd: within waiting period', async function () {
-		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
+		expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
