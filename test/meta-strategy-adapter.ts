@@ -18,6 +18,7 @@ import {
 	StrategyItem,
 	InitialState
 } from '../lib/encode'
+import { isRevertedWith } from '../lib/errors'
 import {
 	deployTokens,
 	deployUniswapV2,
@@ -186,19 +187,20 @@ describe('MetaStrategyAdapter', function () {
 			{ token: create2Address, percentage: BigNumber.from(500), adapters: [metaStrategyAdapter.address], path: [] }
 		]
 		const failItems = prepareStrategy(positions, uniswapAdapter.address)
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					name,
-					symbol,
-					failItems,
-					STRATEGY_STATE,
-					loopRouter.address,
-					'0x'
-				)
-		).to.be.revertedWith('Cyclic dependency')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+            .connect(accounts[1])
+            .createStrategy(
+              accounts[1].address,
+              name,
+              symbol,
+              failItems,
+              STRATEGY_STATE,
+              loopRouter.address,
+              '0x'
+            ),
+            'Cyclic dependency', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should deploy a meta meta strategy', async function () {
@@ -301,8 +303,8 @@ describe('MetaStrategyAdapter', function () {
 
 	it('Should estimate all strategies', async function () {
 		const estimates = await oracle.estimateStrategies([basicStrategy.address, metaStrategy.address, metaMetaStrategy.address])
-		expect(estimates.length).to.equal(3)
-		estimates.forEach((estimate: BigNumber) => {
+		expect(estimates[0].length).to.equal(3)
+		estimates[0].forEach((estimate: BigNumber) => {
 			expect(estimate.gt(0)).to.equal(true)
 		})
 	})
