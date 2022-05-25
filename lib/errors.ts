@@ -61,6 +61,7 @@ export function getErrorCodesAsRegExp(contractFileName: string, errMsg: string) 
     return new RegExp(joined)
 }
 
+// this was needed since for some reason chai was not allowing regexp for "revertedWith"
 export async function isRevertedWith(p: Promise<any>, errMsg: string, contractFile: string) : Promise<boolean> {
     const errCodes = getErrorCodesAsRegExp(contractFile, errMsg)
 
