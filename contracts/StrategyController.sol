@@ -7,9 +7,10 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
+import "./libraries/StrategyLibrary.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
-import "./libraries/StrategyLibrary.sol";
+import "./helpers/StringUtils.sol";
 import "./StrategyControllerStorage.sol";
 
 /**
@@ -17,7 +18,7 @@ import "./StrategyControllerStorage.sol";
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
  * @dev To avoid someone from repeatedly skimming off this slippage value, rebalance threshold should be set sufficiently high
  */
-contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable {
+contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, StringUtils {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -54,7 +55,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _require(bool condition, uint256 code) private pure {
-        require(condition, string(abi.encodePacked(code)));
+        require(condition, string(toString(code)));
     }
 
     /**
