@@ -221,8 +221,8 @@ export class Estimator {
         this.oracle.estimateStrategy(strategy.address)
       ])
       const [ totalBefore, estimates ] = strategyEstimate
-      const expectedWeth = totalBefore.mul(amount).div(totalSupply)
-      const expectedTotal = totalBefore.sub(expectedWeth)
+      const expectedWeth = totalBefore[0].mul(amount).div(totalSupply)
+      const expectedTotal = totalBefore[0].sub(expectedWeth)
 
       const amounts = await Promise.all(items.map(async (item: string, index: number) => {
         const [ percentage, data ] = await Promise.all([
@@ -254,8 +254,8 @@ export class Estimator {
       const totalWeth = wethAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
 
       let wethAfterSlippage
-      if (totalBefore.gt(totalAfter)) {
-        const slippageAmount = totalBefore.sub(totalAfter)
+      if (totalBefore[0].gt(totalAfter)) {
+        const slippageAmount = totalBefore[0].sub(totalAfter)
         if (slippageAmount.gt(expectedWeth)) return BigNumber.from(0)
         wethAfterSlippage = expectedWeth.sub(slippageAmount)
       } else {

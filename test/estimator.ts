@@ -169,7 +169,7 @@ describe('Estimator', function() {
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
     await enso.platform.controller.connect(accounts[1]).deposit(strategy.address, routerAddress, 0, 0, '0x', { value: depositAmount })
     const [ totalAfter ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
-    console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    console.log('Actual deposit value: ', totalAfter[0].sub(totalBefore[0]).toString())
   })
 
   it('Should deploy lending strategy', async function() {
@@ -237,7 +237,7 @@ describe('Estimator', function() {
     const totalSupply = await strategy.totalSupply()
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
     const wethBefore = await weth.balanceOf(accounts[1].address)
-    const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+    const expectedWithdrawValue = totalBefore[0].mul(withdrawAmountAfterFee).div(totalSupply)
     console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
     const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
@@ -308,7 +308,7 @@ describe('Estimator', function() {
     const totalSupply = await metaStrategy.totalSupply()
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
     const wethBefore = await weth.balanceOf(accounts[1].address)
-    const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+    const expectedWithdrawValue = totalBefore[0].mul(withdrawAmountAfterFee).div(totalSupply)
     console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
     const estimatedWithdrawValue = await estimator.withdraw(metaStrategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
     console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
