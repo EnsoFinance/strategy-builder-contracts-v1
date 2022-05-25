@@ -5,6 +5,7 @@ chai.use(solidity)
 const hre = require('hardhat')
 const { ethers } = hre
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
+import { isRevertedWith } from '../lib/errors'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { increaseTime  } from '../lib/utils'
 import {  DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
@@ -172,23 +173,26 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should fail to restructure: time lock active', async function () {
-		await expect(controller.connect(accounts[1]).restructure(strategy.address, [], [])).to.be.revertedWith(
-			'Timelock active'
-		)
+		expect(
+      await isRevertedWith(
+        controller.connect(accounts[1]).restructure(strategy.address, [], []),
+			  'Timelock active', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update value: time lock active', async function () {
-		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0)
-		).to.be.revertedWith('Timelock active')
+		expect(
+      await isRevertedWith(
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0),
+			    'Timelock active', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to finalize structure: time lock not passed', async function () {
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Timelock active')
+		expect(
+      await isRevertedWith(
+			    controller
+          .connect(accounts[1])
+          .finalizeStructure(strategy.address, router.address, '0x'),
+			    'Timelock active', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should finalize structure', async function () {
@@ -221,8 +225,9 @@ describe('StrategyController - Social', function () {
 
 	it('Should update timelock + fail to finalize: timelock active', async function () {
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0)
-		await expect(controller.connect(accounts[1]).finalizeValue(strategy.address)).to.be.revertedWith(
-			'Timelock active'
-		)
+		expect(
+      await isRevertedWith(
+        controller.connect(accounts[1]).finalizeValue(strategy.address),
+			  'Timelock active', 'StrategyController.sol')).to.be.true
 	})
 })
