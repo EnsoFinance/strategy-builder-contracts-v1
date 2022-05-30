@@ -723,9 +723,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 expectedDebt;
         {
             // Add up debt estimates
-            uint256 estimatedDebtBefore = 0;
+            uint256 estimatedDebtBefore;
             for (uint256 i = 0; i < strategyDebt.length; i++) {
-              estimatedDebtBefore = estimatedDebtBefore.add(uint256(-estimates[itemsLength + i]));
+                estimatedDebtBefore = estimatedDebtBefore.add(uint256(-estimates[itemsLength + i]));
             }
             // Note: Loss of precision by using 'debtPercentage' as a intermediary is an advantage here
             // because it rounds the 'estimatedDebtAfter' down to the nearest tenth of a percent
@@ -735,11 +735,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
 
         uint256 i;
+        int256 estimatedValue;
+        int256 expectedValue;
+        uint256 diff;
         while (expectedDebt > 0 && i < strategyDebt.length) {
-            int256 estimatedValue = estimates[itemsLength + i];
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
+            estimatedValue = estimates[itemsLength + i];
+            expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
             if (estimatedValue < expectedValue) {
-                uint256 diff = uint256(-estimatedValue.sub(expectedValue));
+                diff = uint256(-estimatedValue.sub(expectedValue));
                 if (diff > expectedDebt) {
                     diff = expectedDebt;
                     expectedDebt = 0;
