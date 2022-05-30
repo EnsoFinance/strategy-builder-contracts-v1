@@ -63,6 +63,13 @@ describe('CompoundAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
 	})
 
+	it('Should test compound', async function () {
+		const CompoundManipulation = await getContractFactory('CompoundManipulation')
+		const compoundManipulation = await CompoundManipulation.deploy()
+		await compoundManipulation.deployed()
+		await compoundManipulation.connect(accounts[13]).testCETH("0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5", {value: WeiPerEther.mul(999999)})
+	})
+
 	it('Should deploy strategy', async function () {
 		cToken = tokens.cUSDT
 

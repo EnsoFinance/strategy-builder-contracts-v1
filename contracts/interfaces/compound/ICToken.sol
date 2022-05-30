@@ -3,10 +3,12 @@ pragma solidity >=0.6.0 <0.9.0;
 
 interface ICToken {
     function isCToken() external view returns (bool);
-    
+
     function underlying() external view returns (address);
 
     function decimals() external view returns (uint8);
+
+    function mint() external payable;
 
     function mint(uint mintAmount) external returns (uint);
 
@@ -15,6 +17,8 @@ interface ICToken {
     function redeemUnderlying(uint redeemAmount) external returns (uint);
 
     function borrow(uint borrowAmount) external returns (uint);
+
+    function repayBorrow() external payable;
 
     function repayBorrow(uint repayAmount) external returns (uint);
 
