@@ -229,19 +229,11 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _getExpectedWeth(bytes calldata data) private pure returns (uint256 expectedWeth, uint256 total, int256[] memory estimates) {
-        uint256 percentage;
-        (percentage, total, estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
-        expectedWeth = total.mul(percentage).div(10**18);
-        total = total.sub(expectedWeth);
-    }
-
     function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) {
         uint256 total;
         int256[] memory estimates;
         (expectedWeth, total, estimates) = _getExpectedWeth(data);
-        
+
         address[] memory strategyItems = IStrategy(strategy).items();
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
 

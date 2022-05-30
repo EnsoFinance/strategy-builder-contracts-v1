@@ -760,44 +760,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
-    function _startTempEstimateSession(address strategy) private {
-        /*
-          To ensure that a stale "temp" estimate isn't leaked into other function calls
-          by not being "delete"d in the same external call in which it is set, we
-          associate to each external call a "session counter" so that it only deals with
-          temp values corresponding to its own session.
-        **/
-
-        ++_tempEstimate[0][strategy][address(0)]; // ++counter
-    }
-
-    function _getCurrentTempEstimateSession(address strategy) private view returns(int256) {
-        return _tempEstimate[0][strategy][address(0)]; // counter
-    }
-
-    function _setTempEstimate(address strategy, address item, int256 value) private {
-        int256 session = _getCurrentTempEstimateSession(strategy);
-        _tempEstimate[session][strategy][item] = value;
-    }
-
-    function _getTempEstimate(address strategy, address item) private view returns(int256) {
-        int256 session = _getCurrentTempEstimateSession(strategy);
-        return _tempEstimate[session][strategy][item];
-    }
-
-    function _removeTempEstimate(address strategy, address item) private {
-        int256 session = _getCurrentTempEstimateSession(strategy);
-        delete _tempEstimate[session][strategy][item];
-    }
-
-    function _getExpectedWeth(bytes calldata data) private pure returns (uint256 expectedWeth, uint256 total, int256[] memory estimates) {
-        uint256 percentage;
-        (percentage, total, estimates) =
-            abi.decode(data, (uint256, uint256, int256[]));
-        expectedWeth = total.mul(percentage).div(10**18);
-        total = total.sub(expectedWeth);
-    }
-
     function _getSortedDiffs(
         address strategy,
         address[] memory strategyItems,
@@ -834,5 +796,35 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
         payloads = new bytes[](numberAdded);
         tree.readInto(diffs, payloads);
+    }
+
+    function _startTempEstimateSession(address strategy) private {
+        /*
+          To ensure that a stale "temp" estimate isn't leaked into other function calls
+          by not being "delete"d in the same external call in which it is set, we
+          associate to each external call a "session counter" so that it only deals with
+          temp values corresponding to its own session.
+        **/
+
+        ++_tempEstimate[0][strategy][address(0)]; // ++counter
+    }
+
+    function _getCurrentTempEstimateSession(address strategy) private view returns(int256) {
+        return _tempEstimate[0][strategy][address(0)]; // counter
+    }
+
+    function _setTempEstimate(address strategy, address item, int256 value) private {
+        int256 session = _getCurrentTempEstimateSession(strategy);
+        _tempEstimate[session][strategy][item] = value;
+    }
+
+    function _getTempEstimate(address strategy, address item) private view returns(int256) {
+        int256 session = _getCurrentTempEstimateSession(strategy);
+        return _tempEstimate[session][strategy][item];
+    }
+
+    function _removeTempEstimate(address strategy, address item) private {
+        int256 session = _getCurrentTempEstimateSession(strategy);
+        delete _tempEstimate[session][strategy][item];
     }
 }
