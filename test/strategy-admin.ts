@@ -118,11 +118,11 @@ describe('StrategyProxyAdmin', function () {
 	})
 
 	it('Should fail to get implementation: not proxy admin', async function () {
-		await expect(newAdmin.getProxyImplementation(strategy.address)).to.be.revertedWith('')
+		await expect(newAdmin.getProxyImplementation(strategy.address)).to.be.revertedWith('getProxyImplementation: staticcall failure.')
 	})
 
 	it('Should fail to get proxy admin: not proxy admin', async function () {
-		await expect(newAdmin.getProxyAdmin(strategy.address)).to.be.revertedWith('')
+		await expect(newAdmin.getProxyAdmin(strategy.address)).to.be.revertedWith('getProxyAdmin: staticcall failure.')
 	})
 
 	it('Should get proxy admin', async function () {
