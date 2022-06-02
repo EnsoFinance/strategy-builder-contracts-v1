@@ -537,6 +537,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
         require(amount > 0, "0 amount");
+        _onlyApproved(address(router));
         _checkDivisor(slippage);
         strategy.settleSynths();
         strategy.issueStreamingFee();
