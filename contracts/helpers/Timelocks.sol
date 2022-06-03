@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 contract Timelocks {
     
     mapping(bytes4 => TimelockData) internal _timelockData;
-    bytes32 constant public UNSET_VALUE = keccak256("Timelocks: unset value.");
+    bytes constant public UNSET_VALUE = abi.encode(keccak256("Timelocks: unset value."));
 
     struct TimelockData {
         uint256 delay;
@@ -15,7 +15,7 @@ contract Timelocks {
     function _setTimelock(bytes4 selector, uint256 delay) internal {
         TimelockData storage td = _timelockData[selector]; 
         td.delay = delay;
-        td.value = abi.encode(UNSET_VALUE);
+        td.value = UNSET_VALUE;
     }
 
     function _startTimelock(bytes4 selector, bytes memory value) internal {
@@ -38,6 +38,6 @@ contract Timelocks {
     function _resetTimelock(bytes4 selector) internal {
         TimelockData storage td = _timelockData[selector]; 
         td.timestamp = 0;
-        td.value = abi.encode(UNSET_VALUE);
+        td.value = UNSET_VALUE;
     }
 }
