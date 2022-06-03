@@ -94,7 +94,7 @@ if test -f tmp0.txt; then
   rm tmp0.txt
 fi
 
-files=$(tree ../contracts| sed 's/.*- //' | grep sol)
+files=$(tree ../contracts| sed 's/.* //' | grep sol)
 for val in $files; do
   echo "checking ""$val"
   applyMacros "$val"
