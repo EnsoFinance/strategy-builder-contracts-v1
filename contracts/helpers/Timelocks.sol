@@ -12,6 +12,8 @@ contract Timelocks {
         bytes value;
     }
 
+    // delay value is not validated but is assumed to be sensible 
+    // since this function is internal, this way `_timelockIsReady` will not overflow
     function _setTimelock(bytes4 selector, uint256 delay) internal {
         TimelockData storage td = _timelockData[selector]; 
         td.delay = delay;
