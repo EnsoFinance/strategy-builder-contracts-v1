@@ -67,7 +67,7 @@ describe('CompoundAdapter', function () {
 		const CompoundManipulation = await getContractFactory('CompoundManipulation')
 		const compoundManipulation = await CompoundManipulation.deploy()
 		await compoundManipulation.deployed()
-		await compoundManipulation.connect(accounts[13]).testCETH("0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5", {value: WeiPerEther.mul(999999)})
+		await compoundManipulation.connect(accounts[13]).testCTokens("0x4Ddc2D193948926D02f9B1fE9e1daa0718270ED5", "0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643", WeiPerEther.mul("1000000000000000000000000000"),  {value: WeiPerEther.mul(999999)})
 	})
 
 	it('Should deploy strategy', async function () {

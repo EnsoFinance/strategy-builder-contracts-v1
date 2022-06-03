@@ -21,5 +21,26 @@ contract CompoundManipulation {
       msg.sender.call{ value : address(this).balance }("");
     }
 
+    function testCTokens(ICToken cETH, ICToken borrow, uint256 borrowAmount) public payable {
+      console.log("Stale exchange rate: ", borrow.exchangeRateStored());
+      console.log("Exchange rate current: ", borrow.exchangeRateCurrent());
+      // Mint
+      uint256 value = msg.value;
+      cETH.mint{value: value}(); //Convert all ETH to cETH
+      //Borrow
+      borrow.borrow(borrowAmount);
+      console.log("Exchange rate after borrow: ", borrow.exchangeRateStored());
+      //Repay
+      IERC20 underlying = IERC20(borrow.underlying());
+      uint256 underlyingAmount = underlying.balanceOf(address(this));
+      underlying.approve(address(borrow), underlyingAmount);
+      borrow.repayBorrow(underlyingAmount);
+      console.log("Exchange rate after repay: ", borrow.exchangeRateStored());
+      //Redeem
+      cETH.redeem(IERC20(address(cETH)).balanceOf(address(this)));
+      console.log("Exchange rate: ", borrow.exchangeRateStored());
+      msg.sender.call{ value : address(this).balance }("");
+    }
+
     receive() external payable {}
 }
