@@ -29,8 +29,7 @@ applyMacros() {
   input="$1"
   errorIndexer=0
 
-  inputHash=$(echo "$input" | sha256sum)
-  inputHash=${inputHash:0:12}
+  inputHash=$(echo "$input" | sha256sum | cut -c1-12)
 
   jsonObject=$(echo $jsonObject | jq ".[$inputIndex].contractId = \"$inputHash\"" )
   jsonObject=$(echo $jsonObject | jq ".[$inputIndex].contractName = \"$input\"" )
