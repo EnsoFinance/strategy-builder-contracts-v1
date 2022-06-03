@@ -4,6 +4,7 @@ import { Contract, BigNumber, Event } from 'ethers'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
+import { isRevertedWith } from '../lib/errors'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
@@ -125,11 +126,12 @@ describe('StrategyProxyFactory', function () {
 
 	it('Should update whitelist', async function () {
 		const oldBalance = await strategy.balanceOf(accounts[1].address)
-		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-				value: ethers.BigNumber.from('10000000000000000'),
-			})
-		).to.be.revertedWith('Not approved')
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+              value: ethers.BigNumber.from('10000000000000000'),
+            }),
+            'Not approved', 'StrategyController.sol')).to.be.true
 		await strategyFactory.connect(accounts[10]).updateWhitelist(newWhitelist.address)
 		expect(await strategyFactory.whitelist()).to.equal(newWhitelist.address)
 		await controller.updateAddresses()

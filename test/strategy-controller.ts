@@ -9,6 +9,7 @@ import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
+import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/constants'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter, Platform } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
@@ -80,7 +81,8 @@ describe('StrategyController', function () {
 			social: false,
 			set: false
 		}
-		await expect(
+		expect(
+      await isRevertedWith(
 			strategyFactory
 				.connect(accounts[1])
 				.createStrategy(
@@ -91,8 +93,8 @@ describe('StrategyController', function () {
 					failState,
 					router.address,
 					'0x'
-				)
-		).to.be.revertedWith('Out of bounds')
+				),
+		    'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
@@ -110,19 +112,20 @@ describe('StrategyController', function () {
 			social: false,
 			set: false
 		}
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					'Fail Strategy',
-					'FAIL',
-					failItems,
-					failState,
-					router.address,
-					'0x'
-				)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+            .connect(accounts[1])
+            .createStrategy(
+              accounts[1].address,
+              'Fail Strategy',
+              'FAIL',
+              failItems,
+              failState,
+              router.address,
+              '0x'
+            ),
+            'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
@@ -140,19 +143,20 @@ describe('StrategyController', function () {
 			social: false,
 			set: false
 		}
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					'Fail Strategy',
-					'FAIL',
-					failItems,
-					failState,
-					router.address,
-					'0x'
-				)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+            .connect(accounts[1])
+            .createStrategy(
+              accounts[1].address,
+              'Fail Strategy',
+              'FAIL',
+              failItems,
+              failState,
+              router.address,
+              '0x'
+            ),
+            'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deploy strategy: fee too high', async function () {
@@ -170,19 +174,20 @@ describe('StrategyController', function () {
 			social: true,
 			set: false
 		}
-		await expect(
-			strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					accounts[1].address,
-					'Fail Strategy',
-					'FAIL',
-					failItems,
-					failState,
-					router.address,
-					'0x'
-				)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+            .connect(accounts[1])
+            .createStrategy(
+              accounts[1].address,
+              'Fail Strategy',
+              'FAIL',
+              failItems,
+              failState,
+              router.address,
+              '0x'
+            ),
+            'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should deploy empty strategy', async function() {
@@ -341,9 +346,10 @@ describe('StrategyController', function () {
 			social: false,
 			set: false
 		}
-		await expect(
-			controller.setupStrategy(accounts[1].address, strategy.address, failState, router.address, '0x')
-		).to.be.revertedWith('Not factory')
+		expect(
+      await isRevertedWith(
+			    controller.setupStrategy(accounts[1].address, strategy.address, failState, router.address, '0x'),
+		      'Not factory', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to verify structure: 0 address', async function () {
@@ -353,7 +359,10 @@ describe('StrategyController', function () {
 			{ token: AddressZero, percentage: BigNumber.from(500) }
 		]
 		const failItems = prepareStrategy(failPositions, adapter.address)
-		await expect(controller.verifyStructure(strategy.address, failItems)).to.be.revertedWith('Invalid item addr')
+		expect(
+        await isRevertedWith(
+          controller.verifyStructure(strategy.address, failItems),
+          'Invalid item addr', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to verify structure: out of order', async function () {
@@ -368,7 +377,10 @@ describe('StrategyController', function () {
 		// Switch order
 		failItems[0] = pos1
 		failItems[1] = pos0
-		await expect(controller.verifyStructure(strategy.address, failItems)).to.be.revertedWith('Item ordering')
+		expect(
+        await isRevertedWith(
+            controller.verifyStructure(strategy.address, failItems),
+            'Item ordering', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update value: restructure is invalid option', async function () {
@@ -382,15 +394,17 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to update threshold: not manager', async function () {
-		await expect(
-			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1)
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update threshold: value too large', async function () {
-		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1001)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1001),
+          'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update threshold', async function () {
@@ -399,9 +413,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to finalize restructure: timelock not set for restructure', async function () {
-		await expect(
-			controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Wrong category')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x'),
+		        'Wrong category', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should finalize value', async function () {
@@ -413,15 +428,17 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to update rebalance slippage: not manager', async function () {
-		await expect(
-			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1)
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update rebalance slippage: value too large', async function () {
-		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1001)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_SLIPPAGE, 1001),
+          'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update rebalance slippage', async function () {
@@ -432,15 +449,17 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to update restructure slippage: not manager', async function () {
-		await expect(
-			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1)
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update restructure slippage: value too large', async function () {
-		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1001)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE_SLIPPAGE, 1001),
+          'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update restructure slippage', async function () {
@@ -452,15 +471,17 @@ describe('StrategyController', function () {
 
 
 	it('Should fail to update performance fee: not manager', async function () {
-		await expect(
-			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1)
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update performance fee: value too large', async function () {
-		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1001)
-		).to.be.revertedWith('Out of bounds')
+		expect(
+      await isRevertedWith(
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1001),
+          'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update performance fee', async function () {
@@ -471,9 +492,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to update timelock: not manager', async function () {
-		await expect(
-			controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 1)
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 1),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update timelock', async function () {
@@ -484,9 +506,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to rebalance, already balanced', async function () {
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Balanced')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+		        'Balanced', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -513,9 +536,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to rebalance, router not approved', async function () {
-		await expect(controller.connect(accounts[1]).rebalance(strategy.address, AddressZero, '0x')).to.be.revertedWith(
-			'Not approved'
-		)
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).rebalance(strategy.address, AddressZero, '0x'),
+			      'Not approved', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -527,27 +551,31 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to rebalance, only manager may rebalance', async function () {
-		await expect(
-			controller.connect(accounts[2]).rebalance(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[2]).rebalance(strategy.address, router.address, '0x'),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deposit: not manager', async function () {
-		await expect(
-			controller.connect(owner).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(owner).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') }),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deposit: no funds deposited', async function () {
-		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
-		).to.be.revertedWith('Lost value')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x'),
+		        'Lost value', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deposit: too much slippage', async function () {
-		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, 1000, '0x', { value: BigNumber.from('1000') })
-		).to.be.revertedWith('Too much slippage')
+    expect(
+        await isRevertedWith(
+			      controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, 1000, '0x', { value: BigNumber.from('1000') }),
+		        'Too much slippage', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should deposit more: ETH', async function () {
@@ -580,11 +608,15 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to withdrawAll: no amount passed', async function () {
-		await expect(strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
+		await expect(
+        strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
-		await expect(controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x')).to.be.revertedWith('0 amount')
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x'),
+            '0 amount', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should withdrawAll', async function () {
@@ -598,9 +630,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to restructure: no items', async function () {
-		await expect(controller.connect(accounts[1]).restructure(strategy.address, [], [])).to.be.revertedWith(
-			'Cannot set empty structure'
-		)
+		expect(
+      await isRevertedWith(
+          controller.connect(accounts[1]).restructure(strategy.address, [], []),
+			    'Cannot set empty structure', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to restructure: wrong percentages', async function () {
@@ -610,9 +643,10 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(300) },
 		] as Position[]
 		const failItems = prepareStrategy(positions, adapter.address)
-		await expect(
-			controller.connect(accounts[1]).restructure(strategy.address, failItems)
-		).to.be.revertedWith('Total percentage wrong')
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).restructure(strategy.address, failItems),
+            'Total percentage wrong', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to restructure: not manager', async function () {
@@ -622,9 +656,10 @@ describe('StrategyController', function () {
 			{ token: tokens[2].address, percentage: BigNumber.from(400) },
 		] as Position[]
 		const failItems = prepareStrategy(positions, adapter.address)
-		await expect(
-			controller.connect(accounts[2]).restructure(strategy.address, failItems)
-		).to.be.revertedWith('Not manager')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[2]).restructure(strategy.address, failItems),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should restructure', async function () {
@@ -640,7 +675,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to finalize value: wrong category', async function () {
-		await expect(controller.finalizeValue(strategy.address)).to.be.revertedWith('Wrong category')
+		expect(
+        await isRevertedWith(
+            controller.finalizeValue(strategy.address),
+		        'Wrong category', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should finalize structure', async function () {
@@ -690,9 +728,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to open strategy: not manager', async function () {
-		await expect(controller.connect(owner).openStrategy(strategy.address)).to.be.revertedWith(
-			'Not manager'
-		)
+		expect(
+        await isRevertedWith(
+            controller.connect(owner).openStrategy(strategy.address),
+		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should open strategy', async function () {
@@ -701,9 +740,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to open strategy: already open', async function () {
-		await expect(controller.connect(accounts[1]).openStrategy(strategy.address)).to.be.revertedWith(
-			'Strategy already open'
-		)
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).openStrategy(strategy.address),
+            'Strategy already open', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should deploy fail adapter + setup strategy to need rebalance', async function () {
@@ -738,9 +778,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Transfer reserve token to require rebalance', async function () {
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Balanced')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+		        'Balanced', 'StrategyController.sol')).to.be.true
 
 		const value = WeiPerEther.div(1000)
 		await tokens[2].connect(accounts[0]).transfer(strategy.address, value)
@@ -751,9 +792,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Transfer reserve weth to require rebalance', async function () {
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Balanced')
+		expect(
+        await isRevertedWith(
+			      controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+		        'Balanced', 'StrategyController.sol')).to.be.true
 
 		const value = WeiPerEther.div(100)
 		await weth.connect(accounts[4]).deposit({ value: value })
@@ -796,13 +838,16 @@ describe('StrategyController', function () {
 			{ token: weth.address, percentage: BigNumber.from(1000) }
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
-		await expect(controller.connect(accounts[1]).restructure(strategy.address, strategyItems)).to.be.revertedWith('Strategy cannot change')
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).restructure(strategy.address, strategyItems),
+            'Strategy cannot change', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to set strategy: already set', async function () {
-		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.be.revertedWith(
-			'Strategy already set'
-		)
+		expect(
+        await isRevertedWith(
+            controller.connect(accounts[1]).setStrategy(strategy.address),
+			      'Strategy already set', 'StrategyController.sol')).to.be.true
 	})
-
 })
