@@ -520,6 +520,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 totalSupply = strategy.totalSupply();
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+        require(relativeTokens > 0, "Insuffient tokens");
         strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
