@@ -13,7 +13,7 @@ contract YEarnV2Adapter is BaseAdapter {
     GasCostProvider public immutable gasCostProvider;
 
     constructor(address weth_) public BaseAdapter(weth_) {
-        gasCostProvider = new GasCostProvider(9000, msg.sender);
+        gasCostProvider = new GasCostProvider(9000, msg.sender, 5 minutes);
     }
 
     function swap(

@@ -27,7 +27,7 @@ contract Timelocks {
     function _timelockIsReady(bytes4 selector) internal returns(bool) {
         TimelockData memory td = _timelockData[selector]; 
         if (td.timestamp == 0) return false;
-        if (td.timestamp >= block.timestamp + td.delay) return true;
+        if (block.timestamp >= td.timestamp + td.delay) return true;
     }
 
     // unchecked, assumes caller has checked `isReady`

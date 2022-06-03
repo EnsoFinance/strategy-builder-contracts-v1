@@ -21,7 +21,7 @@ contract AaveV2Adapter is BaseAdapter {
     constructor(address addressesProvider_, address strategyController_, address weth_) public BaseAdapter(weth_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         strategyController = IStrategyController(strategyController_);
-        gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
+        gasCostProvider = new GasCostProvider(6000, msg.sender, 5 minutes); // estimated gas cost
     }
 
     function swap(

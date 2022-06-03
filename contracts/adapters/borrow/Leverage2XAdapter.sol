@@ -35,7 +35,7 @@ contract Leverage2XAdapter is BaseAdapter {
         aaveV2Adapter = aaveV2Adapter_;
         aaveV2DebtAdapter = aaveV2DebtAdapter_;
         debtToken = debtToken_;
-        gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
+        gasCostProvider = new GasCostProvider(6000, msg.sender, 5 minutes); // estimated gas cost
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
     }
 

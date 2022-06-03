@@ -18,7 +18,7 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
 
     constructor(address comptroller_, address weth_) public BaseAdapter(weth_) {
         comptroller = IComptroller(comptroller_);
-        gasCostProvider = new GasCostProvider(400, msg.sender);
+        gasCostProvider = new GasCostProvider(400, msg.sender, 5 minutes);
     }
 
     function swap(
