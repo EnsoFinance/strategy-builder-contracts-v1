@@ -420,12 +420,11 @@ describe('StrategyController', function () {
 	})
 
 	it('Should finalize value', async function () {
-    const inner = true
-		expect(BigNumber.from(await strategy.rebalanceThreshold(inner)).eq(REBALANCE_THRESHOLD)).to.equal(
+		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(REBALANCE_THRESHOLD)).to.equal(
 			true
 		)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await strategy.rebalanceThreshold(inner)).eq(newThreshold)).to.equal(true)
+		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(newThreshold)).to.equal(true)
 	})
 
 	it('Should fail to update rebalance slippage: not manager', async function () {
