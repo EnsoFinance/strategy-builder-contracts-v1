@@ -16,6 +16,7 @@ import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
+import "./helpers/Timelocks.sol";
 import "./StrategyToken.sol";
 
 interface ISynthetixAddressResolver {
@@ -30,7 +31,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable {
+contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable, Timelocks {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -57,6 +58,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
     event StreamingFee(uint256 amount);
+    event UpdateTradeData(address item, bool finalized);
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
@@ -64,6 +66,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
+        _setTimelock(this.updateTradeData.selector, 5 minutes);
     }
 
     /**
@@ -444,7 +447,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateTradeData(address item, TradeData memory data) external override {
         _onlyManager();
+        _startTimelock(this.updateTradeData.selector, abi.encode(item, data));
+        emit UpdateTradeData(item, false);
+    }
+
+    function finalizeUpdateTradeData() external {
+        require(_timelockIsReady(this.updateTradeData.selector), "finalizeUpdateTradeData: timelock not ready.");
+        (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
+        emit UpdateTradeData(item, true);
     }
 
     /**

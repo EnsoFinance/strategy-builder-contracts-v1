@@ -255,6 +255,8 @@ describe('SynthetixAdapter', function () {
 			path: [],
 			cache: '0x'
 		})
+		await increaseTime(5*60);
+		await strategy.connect(accounts[1]).finalizeUpdateTradeData()
 
 		let [adaptersAfter] = await strategy.getTradeData(tokens.sUSD)
 		expect(adaptersAfter.length).to.be.equal(1)
