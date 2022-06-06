@@ -475,8 +475,8 @@ export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressP
 	return adapter
 }
 
-export async function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract) {
-	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address])
+export async function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract, tokenRegistry: Contract, categoryIndex: number) {
+	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address, tokenRegistry.address, categoryIndex])
 	await adapter.deployed()
 	return adapter
 }
