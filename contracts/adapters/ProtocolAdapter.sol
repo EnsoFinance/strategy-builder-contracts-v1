@@ -9,6 +9,7 @@ abstract contract ProtocolAdapter is BaseAdapter {
     uint256 public immutable categoryIndex;
 
     constructor(address weth_, address tokenRegistry_, uint256 categoryIndex_) internal BaseAdapter(weth_) {
+        require(categoryIndex_ > 0, "Invalid category");
         tokenRegistry = ITokenRegistry(tokenRegistry_);
         categoryIndex = categoryIndex_;
     }
