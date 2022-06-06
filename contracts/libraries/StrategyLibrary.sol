@@ -31,10 +31,10 @@ library StrategyLibrary {
      *         whether the strategy is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
      */
-    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
+    function verifyBalance(address strategy, address oracle, bool inner) public view returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
-        uint256 threshold = IStrategy(strategy).rebalanceThreshold();
+        uint256 threshold = IStrategy(strategy).rebalanceThreshold(inner);
 
         bool balanced = true;
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -111,7 +111,7 @@ library StrategyLibrary {
 
     function checkBalance(address strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) public view {
         uint256 balanceAfter = amountOutOfBalance(strategy, total, estimates);
-        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
+        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold(true)).div(uint256(DIVISOR))) // inner==true
             require(balanceAfter <= balanceBefore, "Lost balance");
     }
 }
