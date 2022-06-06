@@ -10,6 +10,7 @@ import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/constants'
+import { increaseTime } from '../lib/utils'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter, Platform } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
 
@@ -786,6 +787,10 @@ describe('StrategyController', function () {
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
 		const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
 		await emergencyEstimator.setEstimate(tokens[1].address, originalEstimate)
+
+		await increaseTime(10*60)
+
+		await emergencyEstimator.finalizeSetEstimate()
 
 		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther})).to.emit(controller, 'Deposit')
 	})
