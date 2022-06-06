@@ -6,10 +6,10 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
-import "../../helpers/GasCostProvider.sol";
 import "../ProtocolAdapter.sol";
+import "../../helpers/StringUtils.sol";
 
-contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter {
+contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter, StringUtils {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -37,17 +37,20 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter {
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
 
+        uint256 err;
         if (_checkToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);
             require(cToken.underlying() == tokenIn, "Incompatible");
             IERC20(tokenIn).safeApprove(tokenOut, amount);
-            cToken.mint(amount);
+            err = cToken.mint(amount);
         } else {
             require(_checkToken(tokenIn), "No Compound token");
             ICToken cToken = ICToken(tokenIn);
             require(cToken.underlying() == tokenOut, "Incompatible");
-            cToken.redeem(amount);
+            err = cToken.redeem(amount);
         }
+        if (err != 0)
+            revert(string(abi.encodePacked("swap: Compound error hex(", toHexString(err), ").")));
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
 
