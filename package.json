@@ -14,7 +14,7 @@
   },
   "scripts": {
     "start": "yarn hardhat node --network hardhat --hostname 0.0.0.0",
-    "build": "yarn hardhat compile --force && tsc --build",
+    "build": "cd errors && ./errorMacro.sh && cd - && yarn hardhat compile --force && tsc --build",
     "coverage": "rm -r artifacts && rm -r typechain && TS_NODE_TRANSPILE_ONLY=true yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.ts --network",
     "register-tokens": "yarn hardhat run scripts/register-token.ts --network",
@@ -23,7 +23,7 @@
     "lint": "yarn eslint",
     "prettier:solidity": "yarn prettier --write 'contracts/**/*.sol'",
     "solhint": "solhint -f table --fix 'contracts/**/*.sol'",
-    "test": "yarn hardhat test"
+    "test": "cd errors && ./errorMacro.sh && cd - && yarn hardhat test"
   },
   "dependencies": {
     "@0xsequence/token-directory": "1.1.14",
