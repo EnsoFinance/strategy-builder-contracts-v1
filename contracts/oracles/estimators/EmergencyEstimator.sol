@@ -31,6 +31,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     function finalizeSetEstimate() external {
         require(_timelockIsReady(this.setEstimate.selector), "finalizeSetEstimate: timelock not ready.");
         (address token, int256 amount) = abi.decode(_getTimelockValue(this.setEstimate.selector), (address, int256));
+        _resetTimelock(this.setEstimate.selector);
         estimates[token] = amount;
         emit EstimateSet(token, amount, true);
     }
