@@ -481,8 +481,8 @@ export async function deployCompoundAdapter(owner: SignerWithAddress, comptrolle
 	return adapter
 }
 
-export async function deployYEarnAdapter(owner: SignerWithAddress, weth: Contract) {
-	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address])
+export async function deployYEarnAdapter(owner: SignerWithAddress, weth: Contract, tokenRegistry: Contract, categoryIndex: number) {
+	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address, tokenRegistry.address, categoryIndex])
 	await adapter.deployed()
 	return adapter
 }

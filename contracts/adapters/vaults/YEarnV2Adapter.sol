@@ -4,17 +4,16 @@ pragma experimental ABIEncoderV2;
 
 import "../../libraries/SafeERC20.sol";
 import "../../interfaces/yearn/IYEarnV2Vault.sol";
-import "../../helpers/GasCostProvider.sol";
-import "../BaseAdapter.sol";
+import "../ProtocolAdapter.sol";
 
-contract YEarnV2Adapter is BaseAdapter {
+contract YEarnV2Adapter is ProtocolAdapter {
     using SafeERC20 for IERC20;
 
-    GasCostProvider public immutable gasCostProvider;
-
-    constructor(address weth_) public BaseAdapter(weth_) {
-        gasCostProvider = new GasCostProvider(9000, msg.sender);
-    }
+    constructor(
+      address weth_,
+      address tokenRegistry_,
+      uint256 categoryIndex_
+    ) public ProtocolAdapter(weth_, tokenRegistry_, categoryIndex_) {}
 
     function swap(
         uint256 amount,
@@ -29,12 +28,13 @@ contract YEarnV2Adapter is BaseAdapter {
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
         uint256 received;
-        if (_checkVault(tokenOut)) {
+        if (_checkToken(tokenOut)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);
             require(address(vault.token()) == tokenIn, "Incompatible");
             IERC20(tokenIn).safeApprove(tokenOut, amount);
             received = vault.deposit(amount, address(this));
         } else {
+            require(_checkToken(tokenIn), "No YEarn token");
             IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);
             require(address(vault.token()) == tokenOut, "Incompatible");
             received = vault.withdraw(amount, address(this), 1); // Default maxLoss is 1
@@ -44,28 +44,5 @@ contract YEarnV2Adapter is BaseAdapter {
 
         if (to != address(this))
             IERC20(tokenOut).safeTransfer(to, received);
-    }
-
-    function _checkVault(address vault) internal view returns (bool) {
-        bytes32 selector = keccak256("token()");
-        uint256 gasCost = gasCostProvider.gasCost();
-
-        bool success;
-        address token;
-        assembly {
-            let ptr := mload(0x40)
-            mstore(0x40, add(ptr, 32))
-            mstore(ptr, selector)
-            success := staticcall(
-                gasCost,
-                vault,
-                ptr,
-                4,
-                ptr,
-                32
-            )
-            token := mload(ptr)
-        }
-        return success && token != address(0);
     }
 }
