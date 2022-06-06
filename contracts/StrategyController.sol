@@ -11,6 +11,7 @@ import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
+import "./helpers/Timelocks.sol";
 import "./StrategyControllerStorage.sol";
 
 /**
@@ -18,7 +19,7 @@ import "./StrategyControllerStorage.sol";
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
  * @dev To avoid someone from repeatedly skimming off this slippage value, rebalance threshold should be set sufficiently high
  */
-contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, Require {
+contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, Require, Timelocks {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -45,6 +46,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     // Initialize constructor to disable implementation
     constructor(address factory_) public initializer {
         factory = factory_;
+        // to prevent multiple rebalances in a single transaction
+        _setTimelock(this.rebalance.selector, 1 seconds);
+        _startTimelock(this.rebalance.selector, new bytes(0));
     }
 
     /**
@@ -168,6 +172,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
+        // timelock prevents repeated rebalance calls in the same tx
+        require(_timelockIsReady(this.rebalance.selector), "rebalance: timelock is not ready.");
+        _resetTimelock(this.rebalance.selector);
+        _startTimelock(this.rebalance.selector, new bytes(0));
+
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyApproved(address(router));
