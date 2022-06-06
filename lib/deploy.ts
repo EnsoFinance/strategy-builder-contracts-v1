@@ -458,12 +458,16 @@ export async function deployAaveV2Adapter(
 	owner: SignerWithAddress,
 	addressProvider: Contract,
 	strategyController: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
 	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [
 		addressProvider.address,
 		strategyController.address,
 		weth.address,
+		tokenRegistry.address,
+		categoryIndex
 	])
 	await adapter.deployed()
 	return adapter

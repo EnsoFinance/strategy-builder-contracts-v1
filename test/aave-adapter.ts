@@ -18,7 +18,7 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -78,7 +78,7 @@ describe('AaveAdapter', function () {
 		const synthetixAddressProvider = new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], accounts[0]);
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 
-		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
+		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 		collateralToken = tokens.aWETH
 		collateralToken2 = tokens.aCRV
@@ -87,7 +87,7 @@ describe('AaveAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth, tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], aaveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
