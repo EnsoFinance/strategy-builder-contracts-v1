@@ -455,6 +455,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         require(_timelockIsReady(this.updateTradeData.selector), "finalizeUpdateTradeData: timelock not ready.");
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
+        _resetTimelock(this.updateTradeData.selector);
         emit UpdateTradeData(item, true);
     }
 
