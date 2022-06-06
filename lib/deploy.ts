@@ -510,10 +510,11 @@ export async function deployCurveLPAdapter(
 
 export async function deployCurveGaugeAdapter(
 	owner: SignerWithAddress,
-	curveAddressProvider: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
-	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [curveAddressProvider.address, weth.address])
+	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [weth.address, tokenRegistry.address, categoryIndex])
 	await adapter.deployed()
 	return adapter
 }
