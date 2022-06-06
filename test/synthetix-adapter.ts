@@ -319,7 +319,7 @@ describe('SynthetixAdapter', function () {
 	})
 
 	it('Should fail to reposition synths into susd: within waiting period', async function () {
-		expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
+		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
