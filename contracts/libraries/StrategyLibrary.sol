@@ -10,6 +10,7 @@ library StrategyLibrary {
     using SignedSafeMath for int256;
 
     int256 private constant DIVISOR = 1000;
+    uint256 private constant REBALANCE_THRESHOLD_SCALAR = 10**2; // FIXME tune
 
     function getExpectedTokenValue(
         uint256 total,
@@ -34,7 +35,10 @@ library StrategyLibrary {
     function verifyBalance(address strategy, address oracle, bool inner) public view returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
-        uint256 threshold = IStrategy(strategy).rebalanceThreshold(inner);
+        uint256 threshold = IStrategy(strategy).rebalanceThreshold();
+        if (!inner) {
+            threshold = threshold.mul(REBALANCE_THRESHOLD_SCALAR);
+        }
 
         bool balanced = true;
         address[] memory strategyItems = IStrategy(strategy).items();
@@ -111,7 +115,7 @@ library StrategyLibrary {
 
     function checkBalance(address strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) public view {
         uint256 balanceAfter = amountOutOfBalance(strategy, total, estimates);
-        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold(true)).div(uint256(DIVISOR))) // inner==true
+        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
             require(balanceAfter <= balanceBefore, "Lost balance");
     }
 }

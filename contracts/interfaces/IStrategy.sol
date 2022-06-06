@@ -74,7 +74,7 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function debt() external view returns (address[] memory);
 
-    function rebalanceThreshold(bool inner) external view returns (uint256);
+    function rebalanceThreshold() external view returns (uint256);
 
     function performanceFee() external view returns (uint256);
 

@@ -499,8 +499,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _debt;
     }
 
-    function rebalanceThreshold(bool inner) external view override returns (uint256) {
-        // ignore inner since this contract is DUMMY
+    function rebalanceThreshold() external view override returns (uint256) {
         return uint256(_rebalanceThreshold);
     }
 

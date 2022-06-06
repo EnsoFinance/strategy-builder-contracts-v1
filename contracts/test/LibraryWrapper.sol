@@ -26,7 +26,7 @@ contract LibraryWrapper is StrategyTypes{
     function isBalanced() external view returns (bool) {
         return
             _checkBalance(
-                strategy.rebalanceThreshold(true) // inner==true
+                strategy.rebalanceThreshold()
             );
     }
 
@@ -40,7 +40,7 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function getRebalanceRange(int256 expectedValue) external view returns (int256) {
-        uint256 range = strategy.rebalanceThreshold(true); // inner==true
+        uint256 range = strategy.rebalanceThreshold(); 
         return StrategyLibrary.getRange(expectedValue, range);
     }
 

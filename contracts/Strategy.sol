@@ -51,8 +51,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     address public immutable factory;
     address public immutable override controller;
 
-    uint256 public constant REBALANCE_THRESHOLD_SCALAR = 10**2; // FIXME tune
-
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event RewardsClaimed(address indexed adapter, address indexed token);
     event UpdateManager(address manager);
@@ -508,11 +506,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _debt;
     }
 
-    function rebalanceThreshold(bool inner) external view override returns (uint256) {
-        if (inner) {
-            return uint256(_rebalanceThreshold);
-        }
-        return uint256(_rebalanceThreshold).mul(REBALANCE_THRESHOLD_SCALAR);
+    function rebalanceThreshold() external view override returns (uint256) {
+        return uint256(_rebalanceThreshold);
     }
 
     function performanceFee() external view override returns (uint256) {
