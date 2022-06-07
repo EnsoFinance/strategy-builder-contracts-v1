@@ -1,87 +1,5 @@
 [
   {
-    "contractId": "c992c0df3436",
-    "contractName": "PlatformProxyAdmin.sol"
-  },
-  {
-    "contractId": "b3e5dea2190e",
-    "contractName": "Strategy.sol"
-  },
-  {
-    "contractId": "1bb63a90056c",
-    "contractName": "StrategyController.sol",
-    "errorcodes": {
-      "1bb63a90056c00": "Not factory",
-      "1bb63a90056c01": "withdrawETH: call failed.",
-      "1bb63a90056c02": "Balanced",
-      "1bb63a90056c03": "Not balanced",
-      "1bb63a90056c04": "Timelock active",
-      "1bb63a90056c05": "Invalid structure",
-      "1bb63a90056c06": "Timelock active",
-      "1bb63a90056c07": "Wrong category",
-      "1bb63a90056c08": "Invalid structure",
-      "1bb63a90056c09": "Timelock active",
-      "1bb63a90056c0a": "updateValue: category is RESTRUCTURE.",
-      "1bb63a90056c0b": "Wrong category",
-      "1bb63a90056c0c": "Timelock active",
-      "1bb63a90056c0d": "Strategy already open",
-      "1bb63a90056c0e": "Strategy already set",
-      "1bb63a90056c0f": "Cannot set empty structure",
-      "1bb63a90056c10": "Invalid item addr",
-      "1bb63a90056c11": "Invalid item addr",
-      "1bb63a90056c12": "Item ordering",
-      "1bb63a90056c13": "Debt cannot be positive",
-      "1bb63a90056c14": "Out of bounds",
-      "1bb63a90056c15": "Token cannot be negative",
-      "1bb63a90056c16": "Out of bounds",
-      "1bb63a90056c17": "Token blocked",
-      "1bb63a90056c18": "No synths and debt",
-      "1bb63a90056c19": "Total percentage wrong",
-      "1bb63a90056c1a": "Ambiguous amount",
-      "1bb63a90056c1b": "Lost value",
-      "1bb63a90056c1c": "0 amount",
-      "1bb63a90056c1d": "Not balanced",
-      "1bb63a90056c1e": "Cyclic dependency",
-      "1bb63a90056c1f": "Synths not supported",
-      "1bb63a90056c20": "Too much slippage",
-      "1bb63a90056c21": "Out of bounds",
-      "1bb63a90056c22": "Not initialized",
-      "1bb63a90056c23": "Not approved",
-      "1bb63a90056c24": "Not manager",
-      "1bb63a90056c25": "Not manager",
-      "1bb63a90056c26": "Strategy cannot change",
-      "1bb63a90056c27": "Not WETH"
-    }
-  },
-  {
-    "contractId": "dbc2b7686bf5",
-    "contractName": "StrategyControllerStorage.sol"
-  },
-  {
-    "contractId": "f19f85f5ead4",
-    "contractName": "StrategyProxyAdmin.sol"
-  },
-  {
-    "contractId": "676a717422f5",
-    "contractName": "StrategyProxyFactory.sol"
-  },
-  {
-    "contractId": "89b89b5bfe68",
-    "contractName": "StrategyProxyFactoryStorage.sol"
-  },
-  {
-    "contractId": "90dae108da2b",
-    "contractName": "StrategyToken.sol"
-  },
-  {
-    "contractId": "3d55eff30f48",
-    "contractName": "StrategyTokenStorage.sol"
-  },
-  {
-    "contractId": "3218a8876422",
-    "contractName": "Whitelist.sol"
-  },
-  {
     "contractId": "dbdaf7ee2982",
     "contractName": "BaseAdapter.sol"
   },
@@ -174,58 +92,6 @@
     "contractName": "StrategyControllerPaused.sol"
   },
   {
-    "contractId": "91e8076401bf",
-    "contractName": "IBaseAdapter.sol"
-  },
-  {
-    "contractId": "2ebf3ce0e034",
-    "contractName": "IERC20NonStandard.sol"
-  },
-  {
-    "contractId": "906224e4c805",
-    "contractName": "IEstimator.sol"
-  },
-  {
-    "contractId": "79db5b508d34",
-    "contractName": "IOracle.sol"
-  },
-  {
-    "contractId": "db3dccf77bac",
-    "contractName": "IProtocolOracle.sol"
-  },
-  {
-    "contractId": "e72bd811e08a",
-    "contractName": "IRewardsAdapter.sol"
-  },
-  {
-    "contractId": "e385ec642d7c",
-    "contractName": "IStrategy.sol"
-  },
-  {
-    "contractId": "4d75d9fd2891",
-    "contractName": "IStrategyController.sol"
-  },
-  {
-    "contractId": "6096fda362bb",
-    "contractName": "IStrategyManagement.sol"
-  },
-  {
-    "contractId": "30801c49821f",
-    "contractName": "IStrategyProxyFactory.sol"
-  },
-  {
-    "contractId": "69f724b1c69c",
-    "contractName": "IStrategyRouter.sol"
-  },
-  {
-    "contractId": "763d337fbb62",
-    "contractName": "IStrategyToken.sol"
-  },
-  {
-    "contractId": "0902058bce5a",
-    "contractName": "IWhitelist.sol"
-  },
-  {
     "contractId": "50f8a65c2df3",
     "contractName": "IAToken.sol"
   },
@@ -234,24 +100,24 @@
     "contractName": "IDebtToken.sol"
   },
   {
-    "contractId": "273a4e18db0f",
-    "contractName": "ILendingPool.sol"
-  },
-  {
     "contractId": "3d647fefe612",
     "contractName": "ILendingPoolAddressesProvider.sol"
+  },
+  {
+    "contractId": "273a4e18db0f",
+    "contractName": "ILendingPool.sol"
   },
   {
     "contractId": "a0dcdefa851d",
     "contractName": "IPriceOracleGetter.sol"
   },
   {
-    "contractId": "3ee5f64bb23f",
-    "contractName": "ICToken.sol"
-  },
-  {
     "contractId": "da10e236a9f4",
     "contractName": "IComptroller.sol"
+  },
+  {
+    "contractId": "3ee5f64bb23f",
+    "contractName": "ICToken.sol"
   },
   {
     "contractId": "e27e5151c74b",
@@ -276,6 +142,58 @@
   {
     "contractId": "166191cfc32f",
     "contractName": "ICurveStableSwap.sol"
+  },
+  {
+    "contractId": "91e8076401bf",
+    "contractName": "IBaseAdapter.sol"
+  },
+  {
+    "contractId": "2ebf3ce0e034",
+    "contractName": "IERC20NonStandard.sol"
+  },
+  {
+    "contractId": "906224e4c805",
+    "contractName": "IEstimator.sol"
+  },
+  {
+    "contractId": "79db5b508d34",
+    "contractName": "IOracle.sol"
+  },
+  {
+    "contractId": "db3dccf77bac",
+    "contractName": "IProtocolOracle.sol"
+  },
+  {
+    "contractId": "e72bd811e08a",
+    "contractName": "IRewardsAdapter.sol"
+  },
+  {
+    "contractId": "4d75d9fd2891",
+    "contractName": "IStrategyController.sol"
+  },
+  {
+    "contractId": "6096fda362bb",
+    "contractName": "IStrategyManagement.sol"
+  },
+  {
+    "contractId": "30801c49821f",
+    "contractName": "IStrategyProxyFactory.sol"
+  },
+  {
+    "contractId": "69f724b1c69c",
+    "contractName": "IStrategyRouter.sol"
+  },
+  {
+    "contractId": "e385ec642d7c",
+    "contractName": "IStrategy.sol"
+  },
+  {
+    "contractId": "763d337fbb62",
+    "contractName": "IStrategyToken.sol"
+  },
+  {
+    "contractId": "0902058bce5a",
+    "contractName": "IWhitelist.sol"
   },
   {
     "contractId": "e06c798d2f53",
@@ -318,12 +236,12 @@
     "contractName": "IIssuer.sol"
   },
   {
-    "contractId": "96c19af48e5b",
-    "contractName": "ISynth.sol"
-  },
-  {
     "contractId": "8f1163de284d",
     "contractName": "ISynthetix.sol"
+  },
+  {
+    "contractId": "96c19af48e5b",
+    "contractName": "ISynth.sol"
   },
   {
     "contractId": "5308f6e26a33",
@@ -336,6 +254,10 @@
   {
     "contractId": "2e04868f1ba0",
     "contractName": "IYEarnV2Vault.sol"
+  },
+  {
+    "contractId": "a0976939a344",
+    "contractName": "BinaryTreeWithPayload.sol"
   },
   {
     "contractId": "90f6bba6c5c4",
@@ -434,6 +356,10 @@
     "contractName": "UniswapV3Registry.sol"
   },
   {
+    "contractId": "c992c0df3436",
+    "contractName": "PlatformProxyAdmin.sol"
+  },
+  {
     "contractId": "ce61f7e73fa0",
     "contractName": "BatchDepositRouter.sol"
   },
@@ -454,16 +380,91 @@
     "contractName": "StrategyRouter.sol"
   },
   {
+    "contractId": "1bb63a90056c",
+    "contractName": "StrategyController.sol",
+    "errorcodes": {
+      "1bb63a90056c00": "Not factory",
+      "1bb63a90056c01": "withdrawETH: call failed.",
+      "1bb63a90056c02": "Balanced",
+      "1bb63a90056c03": "Not balanced",
+      "1bb63a90056c04": "Timelock active",
+      "1bb63a90056c05": "Invalid structure",
+      "1bb63a90056c06": "Timelock active",
+      "1bb63a90056c07": "Wrong category",
+      "1bb63a90056c08": "Invalid structure",
+      "1bb63a90056c09": "Timelock active",
+      "1bb63a90056c0a": "updateValue: category is RESTRUCTURE.",
+      "1bb63a90056c0b": "Wrong category",
+      "1bb63a90056c0c": "Timelock active",
+      "1bb63a90056c0d": "Strategy already open",
+      "1bb63a90056c0e": "Strategy already set",
+      "1bb63a90056c0f": "Cannot set empty structure",
+      "1bb63a90056c10": "Invalid item addr",
+      "1bb63a90056c11": "Invalid item addr",
+      "1bb63a90056c12": "Item ordering",
+      "1bb63a90056c13": "Debt cannot be positive",
+      "1bb63a90056c14": "Out of bounds",
+      "1bb63a90056c15": "Token cannot be negative",
+      "1bb63a90056c16": "Out of bounds",
+      "1bb63a90056c17": "Token blocked",
+      "1bb63a90056c18": "No synths and debt",
+      "1bb63a90056c19": "Total percentage wrong",
+      "1bb63a90056c1a": "Ambiguous amount",
+      "1bb63a90056c1b": "Lost value",
+      "1bb63a90056c1c": "0 amount",
+      "1bb63a90056c1d": "Timelock is too long",
+      "1bb63a90056c1e": "Not balanced",
+      "1bb63a90056c1f": "Cyclic dependency",
+      "1bb63a90056c20": "Synths not supported",
+      "1bb63a90056c21": "Too much slippage",
+      "1bb63a90056c22": "Out of bounds",
+      "1bb63a90056c23": "Not initialized",
+      "1bb63a90056c24": "Not approved",
+      "1bb63a90056c25": "Not manager",
+      "1bb63a90056c26": "Not manager",
+      "1bb63a90056c27": "Strategy cannot change",
+      "1bb63a90056c28": "Not WETH"
+    }
+  },
+  {
+    "contractId": "dbc2b7686bf5",
+    "contractName": "StrategyControllerStorage.sol"
+  },
+  {
+    "contractId": "f19f85f5ead4",
+    "contractName": "StrategyProxyAdmin.sol"
+  },
+  {
+    "contractId": "676a717422f5",
+    "contractName": "StrategyProxyFactory.sol"
+  },
+  {
+    "contractId": "89b89b5bfe68",
+    "contractName": "StrategyProxyFactoryStorage.sol"
+  },
+  {
+    "contractId": "b3e5dea2190e",
+    "contractName": "Strategy.sol"
+  },
+  {
+    "contractId": "90dae108da2b",
+    "contractName": "StrategyToken.sol"
+  },
+  {
+    "contractId": "3d55eff30f48",
+    "contractName": "StrategyTokenStorage.sol"
+  },
+  {
     "contractId": "4ed253196e4a",
     "contractName": "Arbitrager.sol"
   },
   {
-    "contractId": "07a8c36aa215",
-    "contractName": "Balancer.sol"
-  },
-  {
     "contractId": "62e52f24d678",
     "contractName": "BalancerRegistry.sol"
+  },
+  {
+    "contractId": "07a8c36aa215",
+    "contractName": "Balancer.sol"
   },
   {
     "contractId": "cddb89594569",
@@ -576,5 +577,9 @@
   {
     "contractId": "98f9f325de21",
     "contractName": "Upgradable.sol"
+  },
+  {
+    "contractId": "3218a8876422",
+    "contractName": "Whitelist.sol"
   }
 ]
