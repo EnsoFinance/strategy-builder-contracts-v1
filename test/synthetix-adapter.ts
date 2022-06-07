@@ -28,8 +28,6 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
 
-const runAll = false // FIXME to isolate test causing error
-
 describe('SynthetixAdapter', function () {
 	let	weth: Contract,
 		crv: Contract,
@@ -320,18 +318,14 @@ describe('SynthetixAdapter', function () {
 
 	})
 
-  if (runAll) { // FIXME these two tests are causing error in subsequent tests. why?
-
 	it('Should fail to reposition synths into susd: within waiting period', async function () {
-		expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
+		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
 		await increaseTime(600);
 		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, tokens.sEUR)).to.be.revertedWith('Unsupported token');
 	})
-
-  }
 
 	it('Should reposition synths into susd and back', async function () {
     await increaseTime(600);
