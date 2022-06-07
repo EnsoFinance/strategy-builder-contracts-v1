@@ -17,7 +17,7 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -60,7 +60,7 @@ describe('Experimental Strategy', function () {
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
 
-		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
+		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
 		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
@@ -69,9 +69,9 @@ describe('Experimental Strategy', function () {
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
 		curveLPAdapter = await deployCurveLPAdapter(accounts[0], curveAddressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
-		yearnAdapter = await deployYEarnAdapter(accounts[0], weth)
+		yearnAdapter = await deployYEarnAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.YEARN_V2)
 		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth, tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], aaveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)

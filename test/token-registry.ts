@@ -10,9 +10,6 @@ import { Tokens } from '../lib/tokens'
 import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES } from '../lib/constants'
 import { prepareStrategy, InitialState } from '../lib/encode'
 import {
-	deployCurveAdapter,
-	deployCurveLPAdapter,
-	deployCurveGaugeAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployLoopRouter,
@@ -28,8 +25,6 @@ describe('TokenRegistry', function () {
 		this.accounts = await getSigners()
 		this.tokens = new Tokens()
 		this.weth = new Contract(this.tokens.weth, WETH9.abi, this.accounts[0])
-		this.crv = new Contract(this.tokens.crv, ERC20.abi, this.accounts[0])
-		this.dai = new Contract(this.tokens.dai, ERC20.abi, this.accounts[0])
 		this.uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, this.accounts[0])
 		const susd = new Contract(this.tokens.sUSD, ERC20.abi, this.accounts[0])
 		const platform = await deployPlatform(
@@ -55,46 +50,26 @@ describe('TokenRegistry', function () {
 			curveDepositZapRegistry
 		)
 
-		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.accounts[0])
 		this.router = await deployLoopRouter(this.accounts[0], this.controller, this.library)
 		await this.whitelist.connect(this.accounts[0]).approve(this.router.address)
 		this.uniswapAdapter = await deployUniswapV2Adapter(this.accounts[0], this.uniswapFactory, this.weth)
 		await this.whitelist.connect(this.accounts[0]).approve(this.uniswapAdapter.address)
-		this.curveAdapter = await deployCurveAdapter(this.accounts[0], addressProvider, this.weth)
-		await this.whitelist.connect(this.accounts[0]).approve(this.curveAdapter.address)
-		this.curveLPAdapter = await deployCurveLPAdapter(
-			this.accounts[0],
-			addressProvider,
-			curveDepositZapRegistry,
-			this.weth
-		)
-		await this.whitelist.connect(this.accounts[0]).approve(this.curveLPAdapter.address)
-		this.curveGaugeAdapter = await deployCurveGaugeAdapter(this.accounts[0], addressProvider, this.weth)
-		await this.whitelist.connect(this.accounts[0]).approve(this.curveGaugeAdapter.address)
 	})
 
-	it('Should add CURVE estimator to unknown index', async function () {
-		const estimator = await this.tokenRegistry.getEstimator(this.tokens.crvLINKGauge)
-		const category = await this.tokenRegistry.estimatorCategories(this.tokens.crvLINKGauge)
-		expect(category).to.eq(ESTIMATOR_CATEGORY.CURVE_GAUGE)
+	it('Should add default estimator to unknown index', async function () {
+		const estimator = await this.tokenRegistry.getEstimator(this.tokens.usdt)
+		const category = await this.tokenRegistry.estimatorCategories(this.tokens.usdt)
+		expect(category).to.eq(ESTIMATOR_CATEGORY.DEFAULT_ORACLE)
 		const newEnum = ESTIMATOR_CATEGORY.YEARN_V2 + 1
 		await this.factory.addEstimatorToRegistry(newEnum, estimator)
-		await this.factory.addItemToRegistry(ITEM_CATEGORY.BASIC, newEnum, this.tokens.crvLINKGauge)
+		await this.factory.addItemToRegistry(ITEM_CATEGORY.BASIC, newEnum, this.tokens.usdt)
 	})
 
 	it('Should deploy strategy', async function () {
-		this.rewardToken = this.tokens.crvLINKGauge
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: this.dai.address, percentage: BigNumber.from(500) },
-			{ token: this.crv.address, percentage: BigNumber.from(0) },
-			{
-				token: this.rewardToken,
-				percentage: BigNumber.from(500),
-				adapters: [this.uniswapAdapter.address, this.curveLPAdapter.address, this.curveGaugeAdapter.address],
-				path: [this.tokens.link, this.tokens.crvLINK],
-			},
+			{ token: this.tokens.usdt, percentage: BigNumber.from(1000) }
 		]
 		const strategyItems = prepareStrategy(positions, this.uniswapAdapter.address)
 		const strategyState: InitialState = {
