@@ -11,7 +11,6 @@ import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
-import "./helpers/Timelocks.sol";
 import "./StrategyControllerStorage.sol";
 
 /**
@@ -19,7 +18,7 @@ import "./StrategyControllerStorage.sol";
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
  * @dev To avoid someone from repeatedly skimming off this slippage value, rebalance threshold should be set sufficiently high
  */
-contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, Require, Timelocks {
+contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
