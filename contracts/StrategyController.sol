@@ -170,6 +170,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
+        if (address(strategy.oracle()) != _oracle) strategy.updateAddresses();
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
@@ -496,6 +497,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
+        if (address(strategy.oracle()) != address(o)) strategy.updateAddresses();
         if (msg.value > 0) {
             _require(amount == 0, uint256(0x1bb63a90056c1a) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
@@ -624,6 +626,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal {
         // Get strategy value
         IOracle o = oracle();
+        if (address(strategy.oracle()) != address(o)) strategy.updateAddresses();
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
