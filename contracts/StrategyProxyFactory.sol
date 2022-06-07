@@ -9,6 +9,7 @@ import "./StrategyProxyAdmin.sol";
 import "./helpers/StrategyTypes.sol";
 import "./helpers/AddressUtils.sol";
 import "./helpers/StringUtils.sol";
+import "./helpers/draft-EIP712.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -19,7 +20,7 @@ import "./interfaces/registries/ITokenRegistry.sol";
  * @dev The contract implements a custom PrxoyAdmin
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
-contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils {
+contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils, EIP712 {
     address public immutable override controller;
 
     /**
@@ -58,10 +59,13 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      */
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
+    bytes32 private constant _CREATE_TYPEHASH = 
+      keccak256("Create(string name, string symbol, StrategyItem[] strategyItems, InitialState strategyState, address router, bytes data)");
+
     /**
      * @notice Initialize constructor to disable implementation
      */
-    constructor(address controller_) initializer {
+    constructor(address controller_) EIP712("StrategyControllerFactory", "1") initializer {
         controller = controller_;
     }
 
@@ -109,30 +113,29 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         @dev Can send ETH with this call to automatically deposit items into the strategy
     */
     function createStrategy(
-        address manager,
         string memory name,
         string memory symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
         bytes memory data
-    ) external payable override returns (address){
-        address strategy = _createProxy(manager, name, symbol, strategyItems);
-        emit NewStrategy(
-            strategy,
-            manager,
-            name,
-            symbol,
-            strategyItems
-        );
-        _setupStrategy(
-           manager,
-           strategy,
-           strategyState,
-           router,
-           data
-        );
-        return strategy;
+    ) external payable override returns (address) {
+        return _createStrategy(msg.sender, name, symbol, strategyItems, strategyState, router, data);
+    }
+
+    function createStrategyFor(
+        string memory name,
+        string memory symbol,
+        StrategyItem[] memory strategyItems,
+        InitialState memory strategyState,
+        address router,
+        bytes memory data,
+        bytes memory signature
+    ) external payable override returns (address) {
+        bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, name, symbol, strategyItems, strategyState, router, data));
+        bytes32 hash = _hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(hash, signature);
+        return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
 
     function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
@@ -241,6 +244,34 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function getManager(address proxy) external view override returns (address) {
         return IStrategyManagement(proxy).manager();
     }
+
+    function _createStrategy(
+        address manager,
+        string memory name,
+        string memory symbol,
+        StrategyItem[] memory strategyItems,
+        InitialState memory strategyState,
+        address router,
+        bytes memory data
+    ) private returns (address) {
+        address strategy = _createProxy(manager, name, symbol, strategyItems);
+        emit NewStrategy(
+            strategy,
+            manager,
+            name,
+            symbol,
+            strategyItems
+        );
+        _setupStrategy(
+           manager,
+           strategy,
+           strategyState,
+           router,
+           data
+        );
+        return strategy;
+    }
+
 
     /**
         @notice Creates a Strategy proxy and makes a delegate call to initialize items + percentages on the proxy
