@@ -44,7 +44,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     // a year via inflation. The multiplier (0.001001001) is used to calculate
     // the amount of tokens that need to be minted over a year to give the fee
     // pool 0.1% of the tokens (STREAM_FEE*totalSupply)
-    uint256 public constant STREAM_FEE = uint256(10**33)/uint256(10**18-10**15);
+    uint256 public constant STREAM_FEE = uint256(1001001001001001);
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
@@ -57,6 +57,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
     event StreamingFee(uint256 amount);
+    event UpdateTradeData(address item, bool finalized);
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
@@ -64,6 +65,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
+        _setTimelock(this.updateTradeData.selector, 5 minutes);
     }
 
     /**
@@ -339,7 +341,14 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         assembly {
             success := delegatecall(txGas, adapter, add(swapData, 0x20), mload(swapData), 0, 0)
         }
-        require(success, "Swap failed");
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
     }
 
     /**
@@ -437,7 +446,16 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      */
     function updateTradeData(address item, TradeData memory data) external override {
         _onlyManager();
+        _startTimelock(this.updateTradeData.selector, abi.encode(item, data));
+        emit UpdateTradeData(item, false);
+    }
+
+    function finalizeUpdateTradeData() external {
+        require(_timelockIsReady(this.updateTradeData.selector), "finalizeUpdateTradeData: timelock not ready.");
+        (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
+        _resetTimelock(this.updateTradeData.selector);
+        emit UpdateTradeData(item, true);
     }
 
     /**
@@ -565,7 +583,14 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         assembly {
             success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
         }
-        require(success, "Claim failed");
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
         emit RewardsClaimed(adapter, token);
     }
 

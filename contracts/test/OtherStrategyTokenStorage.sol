@@ -2,8 +2,9 @@
 pragma solidity 0.6.12;
 
 import "../helpers/StrategyTypes.sol";
+import "../helpers/Timelocks.sol";
 
-contract OtherStrategyTokenStorage is StrategyTypes {
+contract OtherStrategyTokenStorage is StrategyTypes, Timelocks {
     bytes32 public DOMAIN_SEPARATOR;
 
     mapping(address => mapping(address => uint256)) internal _allowances;
@@ -37,5 +38,5 @@ contract OtherStrategyTokenStorage is StrategyTypes {
     // New storage slots
     uint256[2] public OTHERVARIABLES;
     // Gap for future storage changes
-    uint256[48] private __gap;
+    uint256[47] private __gap;
 }
