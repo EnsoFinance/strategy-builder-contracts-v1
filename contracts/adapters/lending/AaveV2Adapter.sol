@@ -56,5 +56,7 @@ contract AaveV2Adapter is ProtocolAdapter {
             if (balance < amount) amount = balance; //Protoect against Aave's off-by-one rounding issue
             ILendingPool(addressesProvider.getLendingPool()).withdraw(tokenOut, amount, to);
         }
+        uint256 received = IERC20(tokenOut).balanceOf(address(this));
+        require(received >= expected, "Insufficient tokenOut amount");
     }
 }
