@@ -12,26 +12,27 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     using SignedSafeMath for int256;
 
     mapping(address => int256) public estimates;
+    mapping(bytes4 => TimelockData) private __timelockData;
 
     event EstimateSet(address token, int256 amount, bool finalized);
 
     constructor() public {
-        _setTimelock(this.setEstimate.selector, 5 minutes);
+        _setTimelock(this.updateEstimate.selector, 5 minutes);
     }
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return _estimateItem(balance, token);
     }
 
-    function setEstimate(address token, int256 amount) external onlyOwner {
-        _startTimelock(this.setEstimate.selector, abi.encode(token, amount));
+    function updateEstimate(address token, int256 amount) external onlyOwner {
+        _startTimelock(this.updateEstimate.selector, abi.encode(token, amount));
         emit EstimateSet(token, amount, false);
     }
 
     function finalizeSetEstimate() external {
-        require(_timelockIsReady(this.setEstimate.selector), "finalizeSetEstimate: timelock not ready.");
-        (address token, int256 amount) = abi.decode(_getTimelockValue(this.setEstimate.selector), (address, int256));
-        _resetTimelock(this.setEstimate.selector);
+        require(_timelockIsReady(this.updateEstimate.selector), "finalizeSetEstimate: timelock not ready.");
+        (address token, int256 amount) = abi.decode(_getTimelockValue(this.updateEstimate.selector), (address, int256));
+        _resetTimelock(this.updateEstimate.selector);
         estimates[token] = amount;
         emit EstimateSet(token, amount, true);
     }
@@ -43,5 +44,9 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
         return int256(balance).mul(estimates[token]).div(int256(10**uint256(IERC20NonStandard(token).decimals())));
+    }
+
+    function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
+        return __timelockData[functionSelector];
     }
 }

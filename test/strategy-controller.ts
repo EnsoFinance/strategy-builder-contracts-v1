@@ -786,7 +786,7 @@ describe('StrategyController', function () {
 
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
 		const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
-		await emergencyEstimator.setEstimate(tokens[1].address, originalEstimate)
+		await emergencyEstimator.updateEstimate(tokens[1].address, originalEstimate)
 
 		await increaseTime(10*60)
 
