@@ -124,6 +124,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     function createStrategyFor(
+        address manager,
         string memory name,
         string memory symbol,
         StrategyItem[] memory strategyItems,
@@ -135,6 +136,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, name, symbol, strategyItems, strategyState, router, data));
         bytes32 hash = _hashTypedDataV4(structHash);
         address signer = ECDSA.recover(hash, signature);
+        require(signer == manager, "createStrategyFor: not signed by manager.");
         return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
 

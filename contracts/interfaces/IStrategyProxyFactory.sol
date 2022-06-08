@@ -16,6 +16,7 @@ interface IStrategyProxyFactory is StrategyTypes{
     ) external payable returns (address);
 
     function createStrategyFor(
+        address manager,
         string memory name,
         string memory symbol,
         StrategyItem[] memory strategyItems,
