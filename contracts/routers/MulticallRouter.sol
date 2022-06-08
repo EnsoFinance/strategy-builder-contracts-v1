@@ -87,6 +87,7 @@ contract MulticallRouter is StrategyRouter, Multicall {
 
     function settleSwap(
         address adapter,
+        uint256 expected,
         address tokenIn,
         address tokenOut,
         address from,
@@ -95,7 +96,7 @@ contract MulticallRouter is StrategyRouter, Multicall {
         _onlyInternal();
         uint256 amount = IERC20(tokenIn).balanceOf(from);
         if (amount > 0)
-            _delegateSwap(adapter, amount, 0, tokenIn, tokenOut, from, to);
+            _delegateSwap(adapter, amount, expected, tokenIn, tokenOut, from, to);
     }
 
     function settleTransfer(

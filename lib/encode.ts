@@ -374,6 +374,7 @@ export function encodeSettleSwap(
 ): Multicall {
 	const settleSwapEncoded = router.interface.encodeFunctionData('settleSwap', [
 		adapter,
+		0,
 		tokenIn,
 		tokenOut,
 		accountFrom,
