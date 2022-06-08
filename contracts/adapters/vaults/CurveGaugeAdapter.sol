@@ -29,22 +29,31 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
         if (_checkToken(tokenOut)) {
             ICurveGauge gauge = ICurveGauge(tokenOut);
             require(gauge.lp_token() == tokenIn, "Incompatible");
-            if (from != address(this))
-                IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+            amount = _takeTokens(from, tokenIn, amount);
             IERC20(tokenIn).safeApprove(tokenOut, amount);
             gauge.deposit(amount, address(this));
         } else {
             require(_checkToken(tokenIn), "No Curve Gauge token");
             ICurveGauge gauge = ICurveGauge(tokenIn);
             require(gauge.lp_token() == tokenOut, "Incompatible");
-            if (from != address(this))
-                IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+            amount = _takeTokens(from, tokenIn, amount);
             gauge.withdraw(amount);
         }
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
-        if (to != address(this))
-            IERC20(tokenOut).safeTransfer(to, received);
+        if (to != address(this)) IERC20(tokenOut).safeTransfer(to, received);
+    }
+
+    function _takeTokens(address from, address tokenIn, uint256 amount) internal returns (uint256) {
+        if (from != address(this)) {
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
+            IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+            require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+            return afterBalance - beforeBalance;
+        } else {
+            return amount;
+        }
     }
 
     // Intended to be called via delegateCall

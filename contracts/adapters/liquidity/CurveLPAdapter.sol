@@ -39,9 +39,13 @@ contract CurveLPAdapter is BaseAdapter {
         address to
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
-        if (from != address(this))
+        if (from != address(this)) {
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+            require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+            amount = afterBalance - beforeBalance;
+        }
         ICurveRegistry curveRegistry = ICurveRegistry(addressProvider.get_registry());
         address poolIn = curveRegistry.get_pool_from_lp_token(tokenIn);
         address poolOut = curveRegistry.get_pool_from_lp_token(tokenOut);

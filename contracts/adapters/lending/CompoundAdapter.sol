@@ -34,9 +34,13 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter, StringUtils {
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
 
-        if (from != address(this))
+        if (from != address(this)){
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+            require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+            amount = afterBalance - beforeBalance;
+        }
         uint256 err;
         if (_checkToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);
