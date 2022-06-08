@@ -60,12 +60,12 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     bytes32 private constant _CREATE_TYPEHASH = 
-      keccak256("Create(string name, string symbol, StrategyItem[] strategyItems, InitialState strategyState, address router, bytes data)");
+      keccak256("Create(string name,string symbol)");
 
     /**
      * @notice Initialize constructor to disable implementation
      */
-    constructor(address controller_) EIP712("StrategyControllerFactory", "1") initializer {
+    constructor(address controller_) EIP712("StrategyProxyFactory", "1") initializer {
         controller = controller_;
     }
 
@@ -133,9 +133,9 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         bytes memory data,
         bytes memory signature
     ) external payable override returns (address) {
-        bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, name, symbol, strategyItems, strategyState, router, data));
-        bytes32 hash = _hashTypedDataV4(structHash);
-        address signer = ECDSA.recover(hash, signature);
+        bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, keccak256(bytes(name)), keccak256(bytes(symbol))));
+        bytes32 digest = _hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(digest, signature);
         require(signer == manager, "createStrategyFor: not signed by manager.");
         return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
