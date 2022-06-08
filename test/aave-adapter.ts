@@ -149,7 +149,6 @@ describe('AaveAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -341,7 +340,6 @@ describe('AaveAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -429,7 +427,6 @@ describe('AaveAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -526,7 +523,6 @@ describe('AaveAdapter', function () {
 		const tx = await strategyFactory
 		.connect(accounts[1])
 		.createStrategy(
-			accounts[1].address,
 			name,
 			symbol,
 			strategyItems,
@@ -575,7 +571,6 @@ describe('AaveAdapter', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				basicStrategyItems,
@@ -627,7 +622,6 @@ describe('AaveAdapter', function () {
 		tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				metaStrategyItems,
@@ -702,7 +696,6 @@ describe('AaveAdapter', function () {
           strategyFactory
           .connect(accounts[1])
           .createStrategy(
-            accounts[1].address,
             name,
             symbol,
             failItems,

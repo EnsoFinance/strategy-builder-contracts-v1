@@ -139,7 +139,6 @@ describe('Leverage2XAdapter', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -236,7 +235,6 @@ describe('Leverage2XAdapter', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,

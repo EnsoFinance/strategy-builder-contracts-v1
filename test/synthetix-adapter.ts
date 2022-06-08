@@ -108,7 +108,6 @@ describe('SynthetixAdapter', function () {
         strategyFactory
 				.connect(accounts[1])
 				.createStrategy(
-					accounts[1].address,
 					name,
 					symbol,
 					strategyItems,
@@ -135,7 +134,6 @@ describe('SynthetixAdapter', function () {
           strategyFactory
             .connect(accounts[1])
             .createStrategy(
-              accounts[1].address,
               name,
               symbol,
               strategyItems,
@@ -162,7 +160,6 @@ describe('SynthetixAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -206,7 +203,6 @@ describe('SynthetixAdapter', function () {
           strategyFactory
             .connect(accounts[1])
             .createStrategy(
-              accounts[1].address,
               name,
               symbol,
               strategyItems,

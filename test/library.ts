@@ -71,7 +71,6 @@ describe('StrategyLibrary', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				'Test Strategy',
 				'TEST',
 				strategyItems,

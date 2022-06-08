@@ -114,7 +114,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -236,7 +235,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -331,7 +329,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,

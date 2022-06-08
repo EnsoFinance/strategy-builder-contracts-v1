@@ -141,7 +141,6 @@ describe('Estimator', function() {
 		const tx = await enso.platform.strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -211,7 +210,6 @@ describe('Estimator', function() {
 		const tx = await enso.platform.strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -282,7 +280,6 @@ describe('Estimator', function() {
 		const tx = await enso.platform.strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
