@@ -59,4 +59,10 @@ interface StrategyTypes {
         uint256 timestamp;
         bytes data;
     }
+
+    struct TimelockData {
+        uint256 delay;
+        uint256 timestamp;
+        bytes value;
+    }
 }
