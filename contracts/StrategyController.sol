@@ -583,8 +583,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             }
         }
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         // Approve weth amount
-        strategy.updateTokenValue();
         strategy.approveToken(weth, address(this), wethAmount);
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
