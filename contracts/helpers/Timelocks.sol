@@ -1,17 +1,16 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-abstract contract Timelocks {
+import "./StrategyTypes.sol";
+
+abstract contract Timelocks is StrategyTypes {
     
+    event TimelockSet(bytes4 selector, uint256 value);
+
     bytes constant public UNSET_VALUE = abi.encode(keccak256("Timelocks: unset value."));
 
-    function _timelockData(bytes4 functionSelector) internal virtual returns(TimelockData storage);
-
-    struct TimelockData {
-        uint256 delay;
-        uint256 timestamp;
-        bytes value;
-    }
+    // updgradable implementations would benefit from the ability to set new timelocks.
+    function setTimelock(bytes4 selector, uint256 delay) external virtual;
 
     // delay value is not validated but is assumed to be sensible 
     // since this function is internal, this way `_timelockIsReady` will not overflow
@@ -19,7 +18,10 @@ abstract contract Timelocks {
         TimelockData storage td = _timelockData(selector); 
         td.delay = delay;
         td.value = UNSET_VALUE;
+        emit TimelockSet(selector, delay);
     }
+
+    function _timelockData(bytes4 functionSelector) internal virtual returns(TimelockData storage);
 
     function _startTimelock(bytes4 selector, bytes memory value) internal {
         TimelockData storage td = _timelockData(selector); 
