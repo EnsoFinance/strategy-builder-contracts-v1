@@ -37,7 +37,7 @@ contract YEarnV2Adapter is BaseAdapter {
         } else {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);
             require(address(vault.token()) == tokenOut, "Incompatible");
-            received = vault.withdraw(amount, address(this), 1); // Default maxLoss is 1
+            received = vault.withdraw(amount, address(this), 10000); // Default maxLoss is 10000
         }
 
         require(received >= expected, "Insufficient tokenOut amount");

@@ -8,6 +8,7 @@ import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
+import { isRevertedWith } from '../lib/errors'
 import {
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
@@ -696,19 +697,21 @@ describe('AaveAdapter', function () {
 
 		const failItems = prepareStrategy(positions, uniswapAdapter.address)
 
-		await expect(strategyFactory
-			.connect(accounts[1])
-			.createStrategy(
-				accounts[1].address,
-				name,
-				symbol,
-				failItems,
-				STRATEGY_STATE,
-				router.address,
-				'0x',
-				{ value: WeiPerEther }
-			)
-		).to.be.revertedWith('No synths and debt')
+		expect(
+      await isRevertedWith(
+          strategyFactory
+          .connect(accounts[1])
+          .createStrategy(
+            accounts[1].address,
+            name,
+            symbol,
+            failItems,
+            STRATEGY_STATE,
+            router.address,
+            '0x',
+            { value: WeiPerEther }
+          ),
+          'No synths and debt', 'StrategyController.sol')).to.be.true
 	})
 
 })

@@ -8,13 +8,11 @@ abstract contract Timelocks is StrategyTypes {
     event TimelockSet(bytes4 selector, uint256 value);
     event UpdateTimelock(uint256 delay, bool finalized);
 
-
     bytes constant public UNSET_VALUE = abi.encode(keccak256("Timelocks: unset value."));
 
     // updgradable implementations would benefit from the ability to set new timelocks.
     function updateTimelock(bytes4 selector, uint256 delay) external virtual;
     function finalizeTimelock() external virtual;
-
 
     // delay value is not validated but is assumed to be sensible 
     // since this function is internal, this way `_timelockIsReady` will not overflow
