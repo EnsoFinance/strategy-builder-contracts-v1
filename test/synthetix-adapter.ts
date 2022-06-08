@@ -179,6 +179,10 @@ describe('SynthetixAdapter', function () {
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
 
+    let updateTradeDataSelector = strategy.interface.getSighash("updateTradeData")
+    await strategy.connect(accounts[1]).updateTimelock(updateTradeDataSelector, 5*60);
+    await strategy.connect(accounts[1]).finalizeTimelock()
+
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -265,6 +269,10 @@ describe('SynthetixAdapter', function () {
 			path: [],
 			cache: '0x'
 		})
+    // sanity check
+    await expect(strategy.connect(accounts[1]).finalizeUpdateTradeData()).to.be.revertedWith('finalizeUpdateTradeData: timelock not ready.')
+		await increaseTime(5*60)
+		await strategy.connect(accounts[1]).finalizeUpdateTradeData()
 
 		let [adaptersAfter] = await strategy.getTradeData(tokens.sUSD)
 		expect(adaptersAfter.length).to.be.equal(1)

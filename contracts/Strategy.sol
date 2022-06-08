@@ -16,6 +16,7 @@ import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
+import "./helpers/Timelocks.sol";
 import "./StrategyToken.sol";
 
 interface ISynthetixAddressResolver {
@@ -30,7 +31,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable {
+contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable, Timelocks {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -57,6 +58,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
     event StreamingFee(uint256 amount);
+    event UpdateTradeData(address item, bool finalized);
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
@@ -188,6 +190,23 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function setRouter(address router) external override onlyController {
         _tempRouter = router;
+    }
+
+    function updateTimelock(bytes4 functionSelector, uint256 delay) external override {
+        _onlyManager();
+        _startTimelock(this.updateTimelock.selector, abi.encode(functionSelector, delay));
+        emit UpdateTimelock(delay, false);
+    }
+
+    function finalizeTimelock() external override {
+        if (!_timelockIsReady(this.updateTimelock.selector)) {
+            TimelockData memory td = _timelockData(this.updateTimelock.selector);
+            require(td.delay == 0, "finalizeTimelock: timelock is not ready.");
+        }
+        (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(this.updateTimelock.selector), (bytes4, uint256));
+        _setTimelock(selector, delay);
+        _resetTimelock(this.updateTimelock.selector);
+        emit UpdateTimelock(delay, true);
     }
 
     function setCollateral(address token) external override onlyRouter {
@@ -444,7 +463,16 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateTradeData(address item, TradeData memory data) external override {
         _onlyManager();
+        _startTimelock(this.updateTradeData.selector, abi.encode(item, data));
+        emit UpdateTradeData(item, false);
+    }
+
+    function finalizeUpdateTradeData() external {
+        require(_timelockIsReady(this.updateTradeData.selector), "finalizeUpdateTradeData: timelock not ready.");
+        (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
+        _resetTimelock(this.updateTradeData.selector);
+        emit UpdateTradeData(item, true);
     }
 
     /**
@@ -865,5 +893,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function _removeLock() internal {
         _locked = 0;
+    }
+
+    function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
+        return __timelockData[functionSelector];
     }
 }
