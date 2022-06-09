@@ -44,7 +44,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             diff = diffs[i];
             if (diff > expectedWeth) {
                 diff = expectedWeth;
-                expectedWeth = 0; 
+                expectedWeth = 0;
             } else {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
@@ -232,18 +232,13 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
     function _getSortedDiffs(address strategy, bytes calldata data) private view returns(uint256 expectedWeth, uint256[] memory diffs, bytes[] memory payloads) {
         uint256 total;
         int256[] memory estimates;
-        {
-            uint256 percentage;
-            (percentage, total, estimates) =
-                abi.decode(data, (uint256, uint256, int256[]));
-            expectedWeth = total.mul(percentage).div(10**18);
-            total = total.sub(expectedWeth);
-        }
+        (expectedWeth, total, estimates) = _getExpectedWeth(data);
+
         address[] memory strategyItems = IStrategy(strategy).items();
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+
         int256 expectedValue;
         uint256 numberAdded;
-        
         for (uint256 i; i < strategyItems.length; ++i) {
             expectedValue = StrategyLibrary.getExpectedTokenValue(
                 total,
@@ -253,7 +248,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             int256 estimatedValue = estimates[i];
             if (estimatedValue > expectedValue) {
                 // condition check above means adding diff that isn't overflowed
-                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimates[i]));
+                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItems[i], estimatedValue));
                 ++numberAdded;
             }
         }
