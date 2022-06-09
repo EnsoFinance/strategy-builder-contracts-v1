@@ -5,8 +5,8 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
-import { deployLoopRouter } from '../lib/deploy'
-import { DIVISOR } from '../lib/constants'
+import { deployFullRouter } from '../lib/deploy'
+import { DIVISOR, MAINNET_ADDRESSES } from '../lib/constants'
 import { createLink, linkBytecode } from '../lib/link'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
@@ -102,7 +102,8 @@ describe('Live Estimates', function () {
         // Impersonate owner
         const owner = await impersonate(ownerAddress)
         // Deploy new router
-        router = await deployLoopRouter(accounts[0], controller, enso.platform.library)
+      	router = await deployFullRouter(accounts[0], new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]), controller, enso.platform.library)
+
         // Whitelist
         await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 

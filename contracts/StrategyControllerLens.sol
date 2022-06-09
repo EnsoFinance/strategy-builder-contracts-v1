@@ -12,17 +12,6 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyRouter.sol";
 import "./helpers/StrategyTypes.sol";
 
-/* 
-   `StrategyControllerLensProxy` deployed using `SingletonFactory` defined in EIP-2470 
-   located at address `0xce0042B868300000d44A59004Da54A005ffdcf9f` 
-   with 
-   salt keccak256("ensoFinance/v1-core:StrategyControllerLensProxy") 
-   and params 
-   _logic: platformProxyAdminAddress, // to be upgraded later to `StrategyControllerLens`
-   _admin: platformProxyAdminAddress, 
-   _data: new bytes(0)
- **/
-
 contract StrategyControllerLensProxy is TransparentUpgradeableProxy {
     constructor(address _logic, address admin_, bytes memory _data) TransparentUpgradeableProxy(_logic, admin_, _data) public {}
 }
