@@ -30,7 +30,10 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
         IChainlinkRegistry.ChainlinkOracleData memory oracleData
     ) internal view returns (uint256){
         AggregatorV3Interface oracle = AggregatorV3Interface(oracleData.oracle);
-        (, int256 price, , , ) = oracle.latestRoundData();
+        (uint80 roundId, int256 price, , uint256 updatedAt, uint80 answeredInRound) = oracle.latestRoundData();
+        require(price != 0, "_traversePairs: price == 0.");
+        require(updatedAt != 0, "_traversePairs: Incomplete round.");
+        require(answeredInRound >= roundId, "_traversePairs: Stale price.");
         uint256 value;
         if (oracleData.inverse) {
             value = amount.mul(10**uint256(oracle.decimals())).div(uint256(price));

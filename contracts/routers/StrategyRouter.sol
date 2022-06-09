@@ -179,4 +179,18 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
           return balance;
         }
     }
+
+    function _getExpectedWeth(
+        bytes calldata data
+    ) internal pure returns (
+        uint256 expectedWeth,
+        uint256 total,
+        int256[] memory estimates
+    ) {
+        uint256 percentage;
+        (percentage, total, estimates) =
+            abi.decode(data, (uint256, uint256, int256[]));
+        expectedWeth = total.mul(percentage).div(10**18);
+        total = total.sub(expectedWeth);
+    }
 }

@@ -27,7 +27,7 @@ contract TokenRegistry is ITokenRegistry, Ownable {
 
     function addItems(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata token) external override onlyOwner {
         uint numItems = itemCategoryIndex.length; 
-        require(itemCategoryIndex.length == numItems && numItems == token.length, "Mismatched array lengths");
+        require(estimatorCategoryIndex.length == numItems && numItems == token.length, "Mismatched array lengths");
         for (uint i = 0; i < numItems; i++) {
            _addItem(itemCategoryIndex[i], estimatorCategoryIndex[i], token[i]); 
         }
