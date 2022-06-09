@@ -10,8 +10,6 @@ import { increaseTime } from '../lib/utils'
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
 
-const runAll = false 
-
 async function impersonate(address: string) : Promise<SignerWithAddress> {
     await network.provider.request({
         method: 'hardhat_impersonateAccount',
@@ -164,8 +162,6 @@ describe('Live Estimates', function () {
 		console.log('Actual deposit value: ', totalAfter[0].sub(totalBefore[0]).toString())
 	})
 
-  if (runAll) {
-
 	it('Should estimate deposit eYETI', async function() {
 		await increaseTime(1)
 		const [ totalBefore, ] = await oracle.estimateStrategy(eYETI.address)
@@ -174,7 +170,7 @@ describe('Live Estimates', function () {
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [ totalAfter ] = await oracle.estimateStrategy(eYETI.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		console.log('Actual deposit value: ', totalAfter[0].sub(totalBefore[0]).toString())
 	})
 
 	it('Should estimate deposit eYLA', async function() {
@@ -185,7 +181,6 @@ describe('Live Estimates', function () {
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller.connect(accounts[1]).deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [ totalAfter ] = await oracle.estimateStrategy(eYLA.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		console.log('Actual deposit value: ', totalAfter[0].sub(totalBefore[0]).toString())
 	})
-  }
 })
