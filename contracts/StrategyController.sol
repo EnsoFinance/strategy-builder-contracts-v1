@@ -183,7 +183,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c03) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        if (address(strategy.oracle()) != _oracle) strategy.updateAddresses();
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
@@ -523,7 +522,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         require(relativeTokens > 0, "Insuffient tokens");
-        if (address(strategy.oracle()) != address(o)) strategy.updateAddresses();
         strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
@@ -626,7 +624,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal {
         // Get strategy value
         IOracle o = oracle();
-        if (address(strategy.oracle()) != address(o)) strategy.updateAddresses();
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();

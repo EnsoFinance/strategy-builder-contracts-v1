@@ -443,7 +443,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     /**
         @notice Refresh Strategy's addresses
      */
-    function updateAddresses() public override {
+    function updateAddresses() public {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         address newPool = f.pool();
         address currentPool = _pool;

@@ -62,8 +62,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function updateTradeData(address item, TradeData memory data) external;
 
-    function updateAddresses() external;
-
     function lock() external;
 
     function unlock() external;
