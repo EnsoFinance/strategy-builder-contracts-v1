@@ -18,7 +18,7 @@ import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
 import "./interfaces/compound/IComptroller.sol";
-
+import "./helpers/Timelocks.sol";
 import "./StrategyToken.sol";
 
 interface ISynthetixAddressResolver {
