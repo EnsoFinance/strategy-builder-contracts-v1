@@ -50,7 +50,7 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter, StringUtils {
             err = cToken.redeem(amount);
         }
         if (err != 0)
-            revert(string(abi.encodePacked("swap: Compound error hex(", toHexString(err), ").")));
+            revert(string(abi.encodePacked("swap: Compound error (", toString(err), ").")));
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
 
