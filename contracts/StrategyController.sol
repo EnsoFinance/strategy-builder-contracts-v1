@@ -170,7 +170,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        if (address(strategy.oracle()) != _oracle) strategy.updateAddresses();
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
@@ -184,6 +183,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c03) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
+        if (address(strategy.oracle()) != _oracle) strategy.updateAddresses();
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
@@ -497,7 +497,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
-        if (address(strategy.oracle()) != address(o)) strategy.updateAddresses();
         if (msg.value > 0) {
             _require(amount == 0, uint256(0x1bb63a90056c1a) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
@@ -524,6 +523,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         require(relativeTokens > 0, "Insuffient tokens");
+        if (address(strategy.oracle()) != address(o)) strategy.updateAddresses();
         strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
