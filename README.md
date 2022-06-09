@@ -3,6 +3,10 @@
 
 Enso V1 core contracts allow users to create strategies for a set of assets within the Defi ecosystem.The contracts are made up of 5 core components:  Strategy, StrategyController, Routers, Adapters, and the Oracle
 
+## Security
+
+See the [Enso security repo](https://github.com/EnsoFinance/enso-security)
+
 ## Installation
 Github
 ```bash
@@ -100,4 +104,5 @@ yarn run test
 ├── StrategyTokenStorage.sol
 └── Whitelist.sol
 ```
+
 
