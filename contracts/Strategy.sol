@@ -635,6 +635,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         delete _items;
         delete _synths;
 
+        if (oracle() != IStrategyController(controller).oracle()) updateAddresses();
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         // Set new items
         int256 virtualPercentage = 0;
@@ -673,6 +674,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Update the per token value based on the most recent strategy value.
      */
     function _updateTokenValue() internal {
+        if (oracle() != IStrategyController(controller).oracle()) updateAddresses();
         (uint256 total, ) = oracle().estimateStrategy(this);
         _setTokenValue(total, _totalSupply);
     }
