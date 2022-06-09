@@ -36,7 +36,6 @@ contract AaveV2Adapter is ProtocolAdapter {
         address to
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
-        require(amount >= expected, "Insufficient tokenOut amount");
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
         if (_checkToken(tokenOut)) {
@@ -53,10 +52,10 @@ contract AaveV2Adapter is ProtocolAdapter {
             require(_checkToken(tokenIn), "No Aave token");
             require(IAToken(tokenIn).UNDERLYING_ASSET_ADDRESS() == tokenOut, "Incompatible");
             uint256 balance = IERC20(tokenIn).balanceOf(address(this));
-            if (balance < amount) amount = balance; //Protoect against Aave's off-by-one rounding issue
+            if (balance < amount) amount = balance; //Protect against Aave's off-by-one rounding issue
             ILendingPool(addressesProvider.getLendingPool()).withdraw(tokenOut, amount, to);
         }
-        uint256 received = IERC20(tokenOut).balanceOf(address(this));
+        uint256 received = IERC20(tokenOut).balanceOf(to);
         require(received >= expected, "Insufficient tokenOut amount");
     }
 }

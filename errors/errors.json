@@ -48,6 +48,10 @@
     "contractName": "CurveLPAdapter.sol"
   },
   {
+    "contractId": "3b17cfcc5c47",
+    "contractName": "ProtocolAdapter.sol"
+  },
+  {
     "contractId": "e61173344bc0",
     "contractName": "MetaStrategyAdapter.sol"
   },
@@ -62,6 +66,10 @@
   {
     "contractId": "f088c1213998",
     "contractName": "AddressUtils.sol"
+  },
+  {
+    "contractId": "0b86a4d1bb3e",
+    "contractName": "EIP712.sol"
   },
   {
     "contractId": "e9a36ee1816f",
@@ -86,6 +94,10 @@
   {
     "contractId": "d630181e49b4",
     "contractName": "StringUtils.sol"
+  },
+  {
+    "contractId": "33ab778b75b7",
+    "contractName": "Timelocks.sol"
   },
   {
     "contractId": "6c18b2bb6cf5",
@@ -262,6 +274,10 @@
   {
     "contractId": "90f6bba6c5c4",
     "contractName": "Math.sol"
+  },
+  {
+    "contractId": "58d2cfd47f18",
+    "contractName": "MemoryMappings.sol"
   },
   {
     "contractId": "d4205fad1c82",
