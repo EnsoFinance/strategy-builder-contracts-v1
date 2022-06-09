@@ -34,6 +34,7 @@ contract StrategyTokenStorage is StrategyTypes {
     address[] internal _debt;
     mapping(address => int256) internal _percentage;
     mapping(address => TradeData) internal _tradeData;
+    mapping(bytes4 => TimelockData) internal __timelockData;
 
     address[] internal _claimables;
     mapping(address => Claimable) internal _claimableData;
@@ -41,5 +42,5 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(bytes32 => bool) internal _exists;
 
     // Gap for future storage changes
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }

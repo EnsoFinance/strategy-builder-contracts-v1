@@ -11,6 +11,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/constants'
+import { increaseTime } from '../lib/utils'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter, Platform } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
 
@@ -18,7 +19,7 @@ const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
 const REBALANCE_SLIPPAGE = BigNumber.from(997) // 995/1000 = 99.7%
 const RESTRUCTURE_SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
-const TIMELOCK = BigNumber.from(60) // 1 minute
+const TIMELOCK = BigNumber.from(2592000) // 30 days 
 
 chai.use(solidity)
 
@@ -188,6 +189,31 @@ describe('StrategyController', function () {
               '0x'
             ),
             'Out of bounds', 'StrategyController.sol')).to.be.true
+	})
+
+	it('Should fail to deploy strategy: timelock too high', async function() {
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(TIMELOCK.add(1)),
+			rebalanceThreshold: REBALANCE_THRESHOLD,
+			rebalanceSlippage: REBALANCE_SLIPPAGE,
+			restructureSlippage: RESTRUCTURE_SLIPPAGE,
+			performanceFee: BigNumber.from(10), //1% fee
+			social: true, // social
+			set: false
+		}
+
+		expect(await isRevertedWith( strategyFactory
+			.connect(accounts[2])
+			.createStrategy(
+				accounts[2].address,
+				'Timelock is too long',
+				'FAIL',
+				[],
+				strategyState,
+				AddressZero,
+				'0x'
+			),
+			'Timelock is too long', 'StrategyController.sol')).to.be.true 
 	})
 
 	it('Should deploy empty strategy', async function() {
@@ -827,7 +853,11 @@ describe('StrategyController', function () {
 
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
 		const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
-		await emergencyEstimator.setEstimate(tokens[1].address, originalEstimate)
+		await emergencyEstimator.updateEstimate(tokens[1].address, originalEstimate)
+
+		await increaseTime(10*60)
+
+		await emergencyEstimator.finalizeSetEstimate()
 
 		await expect(controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther})).to.emit(controller, 'Deposit')
 	})

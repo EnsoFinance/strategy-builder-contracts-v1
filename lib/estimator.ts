@@ -224,32 +224,44 @@ export class Estimator {
       const expectedWeth = totalBefore[0].mul(amount).div(totalSupply)
       const expectedTotal = totalBefore[0].sub(expectedWeth)
 
-      const amounts = await Promise.all(items.map(async (item: string, index: number) => {
-        const [ percentage, data ] = await Promise.all([
-          strategy.getPercentage(item),
-          strategy.getTradeData(item)
-        ])
-        const estimatedValue = estimates[index];
-        const expectedValue = percentage.eq('0') ? BigNumber.from('0') : expectedTotal.mul(percentage).div(DIVISOR)
-        if (estimatedValue.gt(expectedValue)) {
-            const diff = estimatedValue.sub(expectedValue)
-            const wethAmount = await this.estimateSellPath(
-                data,
-                await this.estimateSellAmount(strategy.address, item, diff, estimatedValue),
-                item
-            );
-            return {
-              estimate: estimatedValue.sub(diff).add(wethAmount),
-              wethAmount: wethAmount
-            }
-        }
-        return {estimate: estimates[index], wethAmount: BigNumber.from('0')}
-      }))
-      const estimateAmounts = amounts.map(amount => amount.estimate)
-      const wethAmounts = amounts.map(amount => amount.wethAmount)
+      const wethAmounts: BigNumber[] = []
+      const estimateAmounts = [...estimates]
+
+      let i = 0;
+      let wethRemaining = expectedWeth
+      while (wethRemaining.gt(0) && i < items.length) {
+          const item = items[i]
+          const [ percentage, data ] = await Promise.all([
+            strategy.getPercentage(item),
+            strategy.getTradeData(item)
+          ])
+          const estimatedValue = estimates[i];
+          const expectedValue = percentage.eq('0') ? BigNumber.from('0') : expectedTotal.mul(percentage).div(DIVISOR)
+          if (estimatedValue.gt(expectedValue)) {
+              let diff = estimatedValue.sub(expectedValue)
+              if (diff.gt(wethRemaining)) {
+                  diff = wethRemaining
+                  wethRemaining = BigNumber.from(0)
+              } else {
+                  wethRemaining = wethRemaining.sub(diff)
+              }
+              if (diff.gt(0)) {
+                  const wethAmount = await this.estimateSellPath(
+                      data,
+                      await this.estimateSellAmount(strategy.address, item, diff, estimatedValue),
+                      item
+                  );
+                  estimateAmounts[i] = estimatedValue.sub(diff).add(wethAmount)
+                  wethAmounts.push(wethAmount)
+              }
+          }
+          i++
+      }
+
       const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
-      estimateAmounts.push(wethBalance)
       wethAmounts.push(wethBalance)
+      estimateAmounts.push(wethBalance)
+
       const totalAfter = estimateAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
       const totalWeth = wethAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
 

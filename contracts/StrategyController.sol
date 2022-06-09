@@ -11,6 +11,8 @@ import "./libraries/StrategyLibrary.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./helpers/StringUtils.sol";
+import "./libraries/StrategyLibrary.sol";
+import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
 /**
@@ -18,7 +20,7 @@ import "./StrategyControllerStorage.sol";
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
  * @dev To avoid someone from repeatedly skimming off this slippage value, rebalance threshold should be set sufficiently high
  */
-contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, StringUtils {
+contract StrategyController is IStrategyController, StrategyControllerStorage, Initializable, Require, StringUtils {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -526,6 +528,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 totalSupply = strategy.totalSupply();
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(grandTotalBefore) : totalsAfter[0];
+        require(relativeTokens > 0, "Insuffient tokens");
         strategy.updateTokenValue(totalsAfter[0], totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
@@ -587,6 +590,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             }
         }
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalsAfter[0].sub(wethAmount), estimatesAfter);
+        strategy.updateTokenValue(totalsAfter[0], strategy.totalSupply());
         // Approve weth amount
         strategy.approveToken(weth, address(this), wethAmount);
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
@@ -597,6 +601,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkAndEmit(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
+        _require(state.timelock <= 30 days, uint256(0x1bb63a90056c1d) /* error_macro_for("Timelock is too long") */);
         _initialized[strategy] = 1;
         _strategyStates[strategy] = StrategyState(
           state.timelock,

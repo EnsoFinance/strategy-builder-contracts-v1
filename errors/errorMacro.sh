@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ####################################
 # usage:
@@ -28,8 +28,9 @@ applyMacros() {
 
   input="$1"
 
-  inputHash=$(echo "$input" | sha256sum)
-  inputHash=${inputHash:0:12}
+  errorIndexer=0
+
+  inputHash=$(echo "$input" | sha256sum | cut -c1-12)
 
   jsonObject=$(echo $jsonObject | jq ".[$inputIndex].contractId = \"$inputHash\"" )
   jsonObject=$(echo $jsonObject | jq ".[$inputIndex].contractName = \"$input\"" )
@@ -59,7 +60,7 @@ applyMacros() {
     isErrorMacroForLine=$(echo "$line" | grep "$error_macro_for")
     if [ "$isErrorMacroLine" != "" ]; then
       error="$inputHash"$(printf "%02x" "$errorIndexer")
-      # 2 chars for contract, 2 chars for errorIndexer
+      # chars for contract, 2 chars for errorIndexer
       errorToStore=$(echo "$line" | sed s/.*$ERROR_MACRO\(// | sed s/\).*//)
 
       jsonObject=$(echo $jsonObject | jq ".[$inputIndex].errorcodes.\"$error\" = $errorToStore")
@@ -68,7 +69,7 @@ applyMacros() {
       errorIndexer=$((errorIndexer+1))
     elif [ "$isErrorMacroForLine" != "" ]; then
       error="$inputHash"$(printf "%02x" "$errorIndexer")
-      # 2 chars for contract, 2 chars for errorIndexer
+      # chars for contract, 2 chars for errorIndexer
       errorToStore=$(echo "$line" | sed s/.*$error_macro_for\(// | sed s/\).*//)
       jsonObject=$(echo $jsonObject | jq ".[$inputIndex].errorcodes.\"$error\" = $errorToStore")
       line=$(echo "$line" | sed "s/uint256(0x[a-z0-9]\+) $commentStart $error_macro_for($errorToStore) $commentEnd/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
@@ -93,7 +94,7 @@ if test -f tmp0.txt; then
   rm tmp0.txt
 fi
 
-files=$(tree ../contracts| sed 's/.*- //' | grep sol)
+files=$(tree ../contracts| sed 's/.* //' | grep sol)
 for val in $files; do
   echo "checking ""$val"
   applyMacros "$val"
