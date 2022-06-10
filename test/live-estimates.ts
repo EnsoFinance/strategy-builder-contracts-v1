@@ -75,6 +75,7 @@ describe('Live Estimates', function () {
     oracle = ensoOracle
 
 		const Strategy = await getContractFactory('Strategy')
+
     const newStrategyImplementation = await Strategy.deploy(
       enso.platform.strategyFactory.address,
       controller.address,
@@ -83,8 +84,6 @@ describe('Live Estimates', function () {
     )
     await newStrategyImplementation.deployed()
 		await	enso.platform.strategyFactory.connect(factoryOwner).updateImplementation(newStrategyImplementation.address, '3')
-
-    // TODO strategy owner needs to update it
 
 		const {
 			tokenRegistry,
@@ -162,6 +161,7 @@ describe('Live Estimates', function () {
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
 
+    const ownerAddress = await enso.platform.administration.whitelist.owner()
 		// Impersonate owner
 		await network.provider.request({
 			method: 'hardhat_impersonateAccount',
