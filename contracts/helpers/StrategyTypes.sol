@@ -61,8 +61,8 @@ interface StrategyTypes {
     }
 
     struct TimelockData {
-        uint256 delay;
-        uint256 timestamp;
+        uint128 delay;
+        uint128 timestamp;
         bytes value;
     }
 }
