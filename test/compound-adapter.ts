@@ -14,7 +14,7 @@ import {
 	deployPlatform,
 	deployLoopRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 // import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -52,6 +52,7 @@ describe('CompoundAdapter', function () {
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 		const whitelist = platform.administration.whitelist
+		const { tokenRegistry } = platform.oracles.registries
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
@@ -59,7 +60,7 @@ describe('CompoundAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth)
+		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
 	})
 

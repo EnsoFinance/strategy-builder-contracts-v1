@@ -458,12 +458,16 @@ export async function deployAaveV2Adapter(
 	owner: SignerWithAddress,
 	addressProvider: Contract,
 	strategyController: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
 	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [
 		addressProvider.address,
 		strategyController.address,
 		weth.address,
+		tokenRegistry.address,
+		categoryIndex
 	])
 	await adapter.deployed()
 	return adapter
@@ -475,14 +479,14 @@ export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressP
 	return adapter
 }
 
-export async function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract) {
-	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address])
+export async function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract, tokenRegistry: Contract, categoryIndex: number) {
+	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address, tokenRegistry.address, categoryIndex])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployYEarnAdapter(owner: SignerWithAddress, weth: Contract) {
-	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address])
+export async function deployYEarnAdapter(owner: SignerWithAddress, weth: Contract, tokenRegistry: Contract, categoryIndex: number) {
+	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address, tokenRegistry.address, categoryIndex])
 	await adapter.deployed()
 	return adapter
 }
@@ -510,10 +514,11 @@ export async function deployCurveLPAdapter(
 
 export async function deployCurveGaugeAdapter(
 	owner: SignerWithAddress,
-	curveAddressProvider: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
-	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [curveAddressProvider.address, weth.address])
+	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [weth.address, tokenRegistry.address, categoryIndex])
 	await adapter.deployed()
 	return adapter
 }

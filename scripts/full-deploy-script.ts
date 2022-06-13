@@ -287,7 +287,7 @@ async function main() {
 	// For registering estimators
 	let strategyProxyFactory: Contract
 	let factoryOwner: string = ''
-	if (contracts['StrategyProxyFactory'] ) {
+	if (contracts['StrategyProxyFactory']) {
 		strategyProxyFactory = StrategyProxyFactory.attach(contracts['StrategyProxyFactory'])
 		factoryOwner = await strategyProxyFactory.owner()
 	}
@@ -892,8 +892,9 @@ async function main() {
 	if (overwrite || !contracts['CurveGaugeAdapter'] ) {
 		const curveGaugeAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CurveGaugeAdapter.deploy(
-				deployedContracts[network].curveAddressProvider,
 				deployedContracts[network].weth,
+				tokenRegistry.address,
+				ESTIMATOR_CATEGORY.CURVE_GAUGE,
 				txArgs
 			)
 		}, signer)
@@ -916,6 +917,8 @@ async function main() {
 				deployedContracts[network].aaveAddressProvider,
 				controllerAddress,
 				deployedContracts[network].weth,
+				tokenRegistry.address,
+				ESTIMATOR_CATEGORY.AAVE_V2,
 				txArgs
 			)
 		}, signer)
@@ -972,6 +975,8 @@ async function main() {
 			return CompoundAdapter.deploy(
 				deployedContracts[network].compoundComptroller,
 				deployedContracts[network].weth,
+				tokenRegistry.address,
+				ESTIMATOR_CATEGORY.COMPOUND,
 				txArgs
 			)
 		}, signer)
@@ -997,7 +1002,12 @@ async function main() {
 
 	if (overwrite || !contracts['YEarnV2Adapter'] ) {
 		const yearnAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return YEarnV2Adapter.deploy(deployedContracts[network].weth, txArgs)
+			return YEarnV2Adapter.deploy(
+				deployedContracts[network].weth,
+				tokenRegistry.address,
+				ESTIMATOR_CATEGORY.YEARN_V2,
+				txArgs
+			)
 		}, signer)
 
 		add2Deployments('YEarnV2Adapter', yearnAdapter.address)
@@ -1018,7 +1028,7 @@ async function main() {
 			}, signer)
 		}
 	}
-	
+
 	if (overwrite || !contracts['Leverage2XAdapter'] ) {
 		const leverageAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return Leverage2XAdapter.deploy(

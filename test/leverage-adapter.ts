@@ -18,7 +18,7 @@ import {
 	StrategyItem,
 	InitialState
 } from '../lib/encode'
-import { MAINNET_ADDRESSES } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 
 import { displayBalances } from '../lib/logging'
 import { Contract, BigNumber } from 'ethers'
@@ -62,13 +62,14 @@ describe('Leverage2XAdapter', function () {
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
 		library = platform.library
+		const { tokenRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], addressProvider, controller, weth)
+		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], addressProvider, controller, weth, tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], addressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)

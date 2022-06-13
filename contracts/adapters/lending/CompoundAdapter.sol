@@ -7,18 +7,21 @@ import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
 import "../../helpers/GasCostProvider.sol";
-import "../BaseAdapter.sol";
+import "../ProtocolAdapter.sol";
 
-contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
+contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     IComptroller public immutable comptroller;
-    GasCostProvider public immutable gasCostProvider;
 
-    constructor(address comptroller_, address weth_) public BaseAdapter(weth_) {
+    constructor(
+      address comptroller_,
+      address weth_,
+      address tokenRegistry_,
+      uint256 categoryIndex_
+    ) public ProtocolAdapter(weth_, tokenRegistry_, categoryIndex_) {
         comptroller = IComptroller(comptroller_);
-        gasCostProvider = new GasCostProvider(400, msg.sender);
     }
 
     function swap(
@@ -34,12 +37,13 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
 
-        if (_checkCToken(tokenOut)) {
+        if (_checkToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);
             require(cToken.underlying() == tokenIn, "Incompatible");
             IERC20(tokenIn).safeApprove(tokenOut, amount);
             cToken.mint(amount);
         } else {
+            require(_checkToken(tokenIn), "No Compound token");
             ICToken cToken = ICToken(tokenIn);
             require(cToken.underlying() == tokenOut, "Incompatible");
             cToken.redeem(amount);
@@ -53,31 +57,9 @@ contract CompoundAdapter is BaseAdapter, IRewardsAdapter {
 
     // Intended to be called via delegateCall
     function claim(address token) external override {
+        require(_checkToken(token), "Not claimable");
         address[] memory tokens = new address[](1);
         tokens[0] = token;
         comptroller.claimComp(address(this), tokens);
-    }
-
-    function _checkCToken(address token) internal view returns (bool) {
-        bytes32 selector = keccak256("isCToken()");
-        uint256 gasCost = gasCostProvider.gasCost();
-
-        bool success;
-        bool isCToken;
-        assembly {
-            let ptr := mload(0x40)
-            mstore(0x40, add(ptr, 32))
-            mstore(ptr, selector)
-            success := staticcall(
-                gasCost,
-                token,
-                ptr,
-                4,
-                ptr,
-                32
-            )
-            isCToken := mload(ptr)
-        }
-        return success && isCToken;
     }
 }

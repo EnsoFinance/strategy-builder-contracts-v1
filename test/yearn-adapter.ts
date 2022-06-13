@@ -17,7 +17,7 @@ import {
 	deployPlatform,
 	deployLoopRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -60,7 +60,7 @@ describe('YEarnV2Adapter', function () {
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 
-		const { curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
+		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
@@ -75,7 +75,7 @@ describe('YEarnV2Adapter', function () {
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		curveLPAdapter = await deployCurveLPAdapter(accounts[0], addressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
-		yearnAdapter = await deployYEarnAdapter(accounts[0], weth)
+		yearnAdapter = await deployYEarnAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.YEARN_V2)
 		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
 	})
 
