@@ -19,7 +19,7 @@ import {
 } from '../lib/deploy'
 import { isRevertedWith } from '../lib/errors'
 import { increaseTime } from '../lib/utils'
-import { MAINNET_ADDRESSES} from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import IAddressResolver from '../artifacts/contracts/interfaces/synthetix/IAddressResolver.sol/IAddressResolver.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
@@ -91,7 +91,7 @@ describe('SynthetixAdapter', function () {
 		await whitelist.connect(accounts[10]).approve(synthetixAdapter.address)
 		metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[10], controller, router, weth)
 		await whitelist.connect(accounts[10]).approve(metaStrategyAdapter.address)
-		compoundAdapter = await deployCompoundAdapter(accounts[10], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth)
+		compoundAdapter = await deployCompoundAdapter(accounts[10], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, platform.oracles.registries.tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
 		await whitelist.connect(accounts[10]).approve(compoundAdapter.address)
 	})
 
