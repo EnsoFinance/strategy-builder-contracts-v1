@@ -18,7 +18,7 @@ struct LeverageItem {
 
 contract FullRouter is StrategyTypes, StrategyRouter {
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
-    using MemoryMappings for MemoryMappings.MemoryMapping;
+    using MemoryMappings for BinaryTreeWithPayload.Tree;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
@@ -45,7 +45,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           estimates,
           strategyItems,
           strategyDebt,
-          MemoryMappings.newMemoryMapping()
+          BinaryTreeWithPayload.newNode() // memory mapping
         );
     }
 
@@ -54,7 +54,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        MemoryMappings.MemoryMapping memory mm = _startTempEstimateSession();
+        BinaryTreeWithPayload.Tree memory mm = _startTempEstimateSession();
 
         uint256 expectedWeth;
         uint256[] memory diffs;
@@ -98,7 +98,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
-        MemoryMappings.MemoryMapping memory mm = _startTempEstimateSession();
+        BinaryTreeWithPayload.Tree memory mm = _startTempEstimateSession();
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
@@ -165,7 +165,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        MemoryMappings.MemoryMapping memory mm = _startTempEstimateSession();
+        BinaryTreeWithPayload.Tree memory mm = _startTempEstimateSession();
         (
           uint256 currentTotal,
           int256[] memory currentEstimates,
@@ -186,7 +186,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         address[] memory strategyItems,
         address[] memory strategyDebt,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         int256 estimate;
         for (uint256 i; i < strategyDebt.length; ++i) {
@@ -256,7 +256,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         address[] memory strategyItems,
         address[] memory strategyDebt,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         for (uint256 i; i < strategyItems.length; ++i) {
             _buyToken(
@@ -403,7 +403,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address token,
         uint256 total,
         int256 estimatedValue,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, token);
         int256 rebalanceRange =
@@ -428,7 +428,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address token,
         uint256 total,
         int256 estimatedValue,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, token);
         int256 amountInWeth;
@@ -463,7 +463,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 amount, // weth
         uint256 total,
         address strategy,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         if (amount == 0 && (data.path[data.path.length-1] != weth || data.cache.length == 0)) return; // Debt doesn't need to change and no leverage tokens to deleverage so return
         // Debt trade paths should have path.length == adapters.length,
@@ -579,7 +579,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 total,
         address strategy,
         bool isDeposit,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         // Debt trade paths should have path.length == adapters.length,
         // since final token can differ from the debt token defined in the strategy
@@ -698,7 +698,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address leverageItem,
         uint256 total,
         bool isLeveraging,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal returns (uint256) {
         int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
         int256 estimate = oracle.estimateItem(
@@ -746,7 +746,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address leverageItem,
         uint256 leverageLiquidity,
         uint256 available,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) internal returns (uint256) {
         uint256 leverageAmount = leverageLiquidity > available ? available : leverageLiquidity;
         uint256 leverageEstimate = uint256(_getTempEstimate(mm, strategy, leverageItem)); //Set in _getLeverageRemaining
@@ -771,7 +771,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
       uint256 total, 
       uint256 expectedWeth, 
       uint256 itemsLength, 
-      MemoryMappings.MemoryMapping memory mm
+      BinaryTreeWithPayload.Tree memory mm
     ) private {
         address[] memory strategyDebt = IStrategy(strategy).debt();
         uint256 expectedDebt;
@@ -821,7 +821,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems,
         int256[] memory estimates,
         uint256 total,
-        MemoryMappings.MemoryMapping memory mm
+        BinaryTreeWithPayload.Tree memory mm
     ) private returns(
         uint256[] memory diffs,
         bytes[] memory payloads
@@ -855,23 +855,23 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         tree.readInto(diffs, payloads);
     }
 
-    function _startTempEstimateSession() private returns(MemoryMappings.MemoryMapping memory) {
-        return MemoryMappings.newMemoryMapping();
+    function _startTempEstimateSession() private returns(BinaryTreeWithPayload.Tree memory) {
+        return BinaryTreeWithPayload.newNode();
     }
 
-    function _setTempEstimate(MemoryMappings.MemoryMapping memory mm, address strategy, address item, int256 value) private {
+    function _setTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item, int256 value) private {
         mm.add(keccak256(abi.encode(strategy, item)), bytes32(value));
     }
 
-    function _getTempEstimate(MemoryMappings.MemoryMapping memory mm, address strategy, address item) private view returns(int256) {
-        (bool ok, bytes memory result) = mm.get(keccak256(abi.encode(strategy, item)));
+    function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private view returns(int256) {
+        (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode(strategy, item)));
         if (ok) {
             return abi.decode(result, (int256));    
         }
         return 0;
     }
 
-    function _removeTempEstimate(MemoryMappings.MemoryMapping memory mm, address strategy, address item) private {
+    function _removeTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private {
         mm.add(keccak256(abi.encode(strategy, item)), bytes32(0));
     }
 }
