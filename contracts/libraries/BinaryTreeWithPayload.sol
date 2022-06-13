@@ -41,6 +41,13 @@ library BinaryTreeWithPayload {
         }
     }
 
+    function get(Tree memory tree, uint256 value) internal pure returns(Tree memory) {
+        if (!tree.exists || tree.value == value) return tree;
+        uint256 idx;
+        if (tree.value > value) idx = 1;
+        return get(tree.neighbors[idx], value);
+    }
+
     function readInto(Tree memory tree, uint256[] memory arrayA, bytes[] memory arrayB) internal pure { 
         if (tree.neighbors[0].exists) readInto(tree.neighbors[0], arrayA, arrayB); // left
         // center

@@ -22,7 +22,7 @@ const strategyState: InitialState = {
   social: true,
   set: false
 }
-
+   
 describe('Estimator', function() {
   let accounts: SignerWithAddress[],
       enso: EnsoEnvironment,

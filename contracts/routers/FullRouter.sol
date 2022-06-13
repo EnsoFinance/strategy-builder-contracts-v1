@@ -8,6 +8,7 @@ import "../interfaces/aave/ILendingPool.sol";
 import "../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../libraries/StrategyLibrary.sol";
 import "../libraries/BinaryTreeWithPayload.sol";
+import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
 
 struct LeverageItem {
@@ -17,10 +18,10 @@ struct LeverageItem {
 
 contract FullRouter is StrategyTypes, StrategyRouter {
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
+    using MemoryMappings for BinaryTreeWithPayload.Tree;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
-    mapping(int256 => mapping(address => mapping(address => int256))) private _tempEstimate;
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
@@ -43,7 +44,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           amount,
           estimates,
           strategyItems,
-          strategyDebt
+          strategyDebt,
+          BinaryTreeWithPayload.newNode() // memory mapping
         );
     }
 
@@ -52,7 +54,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        _startTempEstimateSession(strategy);
+        BinaryTreeWithPayload.Tree memory mm = _startTempEstimateSession();
 
         uint256 expectedWeth;
         uint256[] memory diffs;
@@ -64,11 +66,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address[] memory strategyItems = IStrategy(strategy).items();
 
             // Deleverage debt
-            _deleverageForWithdraw(strategy, estimates, total, expectedWeth, strategyItems.length);
+            _deleverageForWithdraw(strategy, estimates, total, expectedWeth, strategyItems.length, mm);
             // Sort diffs for capital efficiency
-            (diffs, payloads) = _getSortedDiffs(strategy, strategyItems, estimates, total);
+            (diffs, payloads) = _getSortedDiffs(strategy, strategyItems, estimates, total, mm);
         }
 
+        if (expectedWeth == 0 || payloads.length == 0) return;
         // Sell loop
         uint256 diff;
         address strategyItem;
@@ -95,30 +98,32 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function rebalance(address strategy, bytes calldata data) external override onlyController {
-        _startTempEstimateSession(strategy);
-        //_startTempEstimateSession(strategy);
+        BinaryTreeWithPayload.Tree memory mm = _startTempEstimateSession();
         (uint256 total, int256[] memory estimates) = abi.decode(data, (uint256, int256[]));
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
         // Deleverage debt
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (uint256 i; i < strategyDebt.length; ++i) {
             _repayToken(
                 strategy,
                 strategyDebt[i],
                 total,
-                estimates[strategyItems.length + i]
+                estimates[strategyItems.length + i],
+                mm
             );
         }
         // Sell loop
         int256[] memory buy = new int256[](strategyItems.length);
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            address strategyItem = strategyItems[i];
+        address strategyItem;
+        int256 expected;
+        for (uint256 i; i < strategyItems.length; ++i) {
+            strategyItem = strategyItems[i];
             int256 estimate = estimates[i];
-            if (_getTempEstimate(strategy, strategyItem) > 0) {
-                estimate = _getTempEstimate(strategy, strategyItem);
-                _removeTempEstimate(strategy, strategyItem);
+            if (_getTempEstimate(mm, strategy, strategyItem) > 0) {
+                estimate = _getTempEstimate(mm, strategy, strategyItem);
+                _removeTempEstimate(mm, strategy, strategyItem);
             }
-            int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
+            expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem);
             if (!_sellToken(
                     strategy,
                     strategyItem,
@@ -129,10 +134,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             // semantic overloading to cache `expected` since it will be used in next loop.
         }
         // Buy loop
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             if (buy[i] != 0) {
-                address strategyItem = strategyItems[i];
-                int256 expected = buy[i];
+                strategyItem = strategyItems[i];
+                expected = buy[i];
                 _buyToken(
                     strategy,
                     strategy,
@@ -144,12 +149,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
         if (IStrategy(strategy).supportsSynths()) _batchBuySynths(strategy, total);
         // Leverage debt
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (uint256 i; i < strategyDebt.length; ++i) {
             _borrowToken(
                 strategy,
                 strategyDebt[i],
                 total,
-                estimates[strategyItems.length + i]
+                estimates[strategyItems.length + i],
+                mm
             );
         }
     }
@@ -159,7 +165,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-        _startTempEstimateSession(strategy);
+        BinaryTreeWithPayload.Tree memory mm = _startTempEstimateSession();
         (
           uint256 currentTotal,
           int256[] memory currentEstimates,
@@ -167,11 +173,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           address[] memory currentDebt
         ) = abi.decode(data, (uint256, int256[], address[], address[]));
 
-        _batchSell(strategy, currentTotal, currentEstimates, currentItems, currentDebt);
+        _batchSell(strategy, currentTotal, currentEstimates, currentItems, currentDebt, mm);
         (uint256 newTotal, int256[] memory newEstimates) = controller.oracle().estimateStrategy(IStrategy(strategy));
         address[] memory newItems = IStrategy(strategy).items();
         address[] memory newDebt = IStrategy(strategy).debt();
-        _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt);
+        _batchBuy(strategy, strategy, newTotal, newEstimates, newItems, newDebt, mm);
     }
 
     function _batchSell(
@@ -179,17 +185,20 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 total,
         int256[] memory estimates,
         address[] memory strategyItems,
-        address[] memory strategyDebt
+        address[] memory strategyDebt,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
-            int256 estimate = estimates[strategyItems.length + i];
+        int256 estimate;
+        for (uint256 i; i < strategyDebt.length; ++i) {
+            estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
                 _repayPath(
                     IStrategy(strategy).getTradeData(strategyDebt[i]),
                     uint256(-estimate),
                     total,
-                    strategy
+                    strategy,
+                    mm
                 );
             } else {
                 //Only repay if above rebalance threshold
@@ -197,17 +206,19 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     strategy,
                     strategyDebt[i],
                     total,
-                    estimate
+                    estimate,
+                    mm
                 );
             }
         }
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        address strategyItem;
+        for (uint256 i; i < strategyItems.length; ++i) {
             // Convert funds into Ether
-            address strategyItem = strategyItems[i];
-            int256 estimate = estimates[i];
-            if (_getTempEstimate(strategy, strategyItem) > 0) {
-                estimate = _getTempEstimate(strategy, strategyItem);
-                _removeTempEstimate(strategy, strategyItem);
+            strategyItem = strategyItems[i];
+            estimate = estimates[i];
+            if (_getTempEstimate(mm, strategy, strategyItem) > 0) {
+                estimate = _getTempEstimate(mm, strategy, strategyItem);
+                _removeTempEstimate(mm, strategy, strategyItem);
             }
             if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
                 //Sell all tokens that have 0 percentage
@@ -244,16 +255,16 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 total,
         int256[] memory estimates,
         address[] memory strategyItems,
-        address[] memory strategyDebt
+        address[] memory strategyDebt,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            address strategyItem = strategyItems[i];
+        for (uint256 i; i < strategyItems.length; ++i) {
             _buyToken(
                 strategy,
                 from,
-                strategyItem,
+                strategyItems[i],
                 estimates[i],
-                StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItem)
+                StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i])
             );
         }
         if (IStrategy(strategy).supportsSynths()) {
@@ -269,12 +280,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             uint256 susdBalanceAfter = IERC20(susd).balanceOf(strategy);
             _batchBuySynths(strategy, susdBalanceAfter.sub(susdBalanceBefore));
         }
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (uint256 i; i < strategyDebt.length; ++i) {
             _borrowToken(
                 strategy,
                 strategyDebt[i],
                 total,
-                estimates[strategyItems.length + i]
+                estimates[strategyItems.length + i],
+                mm
             );
         }
         int256 percentage = IStrategy(strategy).getPercentage(weth);
@@ -301,10 +313,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         // Use SUSD to purchase other synths
         uint256 virtualPercentage = uint256(IStrategy(strategy).getPercentage(address(-1)));
         address[] memory synths = IStrategy(strategy).synths();
-        for (uint256 i = 0; i < synths.length; i++) {
-            uint256 percentage = uint256(IStrategy(strategy).getPercentage(synths[i]));
+        if (synths.length == 0) return;
+        uint256 percentage;
+        uint256 amount;
+        for (uint256 i; i < synths.length; ++i) {
+            percentage = uint256(IStrategy(strategy).getPercentage(synths[i]));
             if (percentage != 0) {
-                uint256 amount = susdBalance.mul(percentage).div(virtualPercentage);
+                amount = susdBalance.mul(percentage).div(virtualPercentage);
                 _delegateSwap(
                     IStrategy(strategy).getTradeData(synths[i]).adapters[0], // Assuming that synth only stores single SythetixAdapter
                     amount,
@@ -387,7 +402,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address strategy,
         address token,
         uint256 total,
-        int256 estimatedValue
+        int256 estimatedValue,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, token);
         int256 rebalanceRange =
@@ -402,7 +418,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             tradeData,
             amountInWeth,
             total,
-            strategy
+            strategy,
+            mm
         );
     }
 
@@ -410,7 +427,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address strategy,
         address token,
         uint256 total,
-        int256 estimatedValue
+        int256 estimatedValue,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, token);
         int256 amountInWeth;
@@ -434,7 +452,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 uint256(-amountInWeth),
                 total,
                 strategy,
-                isDeposit
+                isDeposit,
+                mm
             );
         }
     }
@@ -443,13 +462,13 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         TradeData memory data,
         uint256 amount, // weth
         uint256 total,
-        address strategy
+        address strategy,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         if (amount == 0 && (data.path[data.path.length-1] != weth || data.cache.length == 0)) return; // Debt doesn't need to change and no leverage tokens to deleverage so return
         // Debt trade paths should have path.length == adapters.length,
         // since final token can differ from the debt token defined in the strategy
         require(data.adapters.length == data.path.length, "Incorrect trade data");
-        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         IOracle oracle = controller.oracle();
         LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
@@ -464,22 +483,28 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             if (amount == 0) {
                 // Special case where debt doesn't need to change but the relative amounts of leverage tokens do. We must first deleverage our debt
                 for (uint256 i = 0; i < leverageItems.length; i++) {
-                    leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false);
+                    leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false, mm);
                     amount = amount.add(leverageLiquidity[i]);
                 }
             } else {
                 uint256 leverageAmount = amount; // amount is denominated in weth here
-                for (uint256 i = 0; i < leverageItems.length; i++) {
-                    address token = leverageItems[i].token;
+                address token;
+                for (uint256 i; i < leverageItems.length; ++i) {
+                    token = leverageItems[i].token;
                     if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
-                        uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false);
+                        uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false, mm);
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
                     } else {
                         leverageLiquidity[i] = leverageAmount;
-                        _setTempEstimate(strategy, token, oracle.estimateItem(
-                          IERC20(token).balanceOf(strategy),
-                          token
-                        ));
+                        _setTempEstimate(
+                          mm, 
+                          strategy, 
+                          token, 
+                          oracle.estimateItem(
+                            IERC20(token).balanceOf(strategy),
+                            token
+                          )
+                        );
                     }
                     leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
                 }
@@ -487,15 +512,17 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             }
         }
 
+        ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         while (amount > 0) {
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
                 bool isLiquidityRemaining = false;
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                uint256 leverageAmount;
+                for (uint256 i; i < leverageItems.length; ++i) {
                     if (leverageLiquidity[i] > 0 && availableBorrowsETH > 0) {
                         // Only deleverage token when there is a disparity between the expected value and the estimated value
-                        uint256 leverageAmount = _deleverage(oracle, strategy, leverageItems[i].token, leverageLiquidity[i], availableBorrowsETH);
+                        leverageAmount = _deleverage(oracle, strategy, leverageItems[i].token, leverageLiquidity[i], availableBorrowsETH, mm);
                         leverageLiquidity[i] = leverageLiquidity[i].sub(leverageAmount);
                         availableBorrowsETH = availableBorrowsETH.sub(leverageAmount);
                         if (leverageLiquidity[i] > 0) isLiquidityRemaining = true; // Liquidity still remaining
@@ -507,19 +534,19 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     if (amount > balance) amount = balance;
                 }
             }
-            for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
-                uint256 _amount;
-                address _tokenIn = data.path[uint256(i)];
-                address _tokenOut;
-                address _from;
-                address _to;
-
+            uint256 _amount;
+            address _tokenIn;
+            address _tokenOut;
+            address _from;
+            address _to;
+            for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
+                _tokenIn = data.path[uint256(i)];
                 if (uint256(i) == data.adapters.length-1) {
                     uint256 balance = IERC20(_tokenIn).balanceOf(strategy);
                     _amount = balance > amount ? amount : balance;
                     _from = strategy;
                     //Update amounts
-                    amount = amount.sub(_amount);
+                    amount = SafeMath.sub(amount, _amount); // a.sub(b) causes stack-too-deep and costs more in gas
                 } else {
                     _from = address(this);
                     _amount = IERC20(_tokenIn).balanceOf(_from);
@@ -551,7 +578,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 amount, // weth
         uint256 total,
         address strategy,
-        bool isDeposit
+        bool isDeposit,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal {
         // Debt trade paths should have path.length == adapters.length,
         // since final token can differ from the debt token defined in the strategy
@@ -564,62 +592,32 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
             if (isDeposit) {
-              for (uint256 i = 0; i < leverageItems.length; i++) {
+              for (uint256 i; i < leverageItems.length; ++i) {
                   leverageLiquidity[i] = _getLeveragePercentage(strategy, leverageItems[i].token, leverageItems[i].percentage, total);
               }
             } else {
               IOracle oracle = controller.oracle();
-              for (uint256 i = 0; i < leverageItems.length; i++) {
-                  leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, true);
+              for (uint256 i; i < leverageItems.length; ++i) {
+                  leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, true, mm);
               }
             }
         }
 
+        if (amount == 0) return;
+        uint256 availableBorrowsETH;
+        bool lastItem;
+        uint256 leverageAmount;
         while (amount > 0) { //First loop must either borrow the entire amount or add more tokens as collateral in order to borrow more on following loops
-            ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
-            for (uint256 i = 0; i < data.adapters.length; i++) {
-                uint256 _amount;
-                address _tokenIn;
-                address _tokenOut = data.path[i];
-                address _from;
-                address _to;
-                if (i == 0) {
-                    _tokenIn = address(0); //Since we are withdrawing from lendingPool's collateral reserves, we can set tokenIn to zero. However, amount will be valued in weth
-                    _amount = availableBorrowsETH > amount ? amount : availableBorrowsETH;
-                    _from = strategy;
-                    //Update amount
-                    amount = amount.sub(_amount);
-                } else {
-                    _tokenIn = data.path[i-1];
-                    _from = address(this);
-                    _amount = IERC20(_tokenIn).balanceOf(_from);
-                }
-                if (_amount > 0) {
-                    if (i == data.adapters.length-1 && leverageItems.length == 0) {
-                        _to = strategy;
-                    } else {
-                        _to = address(this);
-                    }
-                    _delegateSwap(
-                        data.adapters[i],
-                        _amount,
-                        1,
-                        _tokenIn,
-                        _tokenOut,
-                        _from,
-                        _to
-                    );
-                }
-            }
-
+            ( , , availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
+            amount = _amountFromBorrowPath(data, amount, strategy, availableBorrowsETH, leverageItems);
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 // Only purchase token when there is a disparity between the expected value and the estimated value
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                for (uint256 i; i < leverageItems.length; ++i) {
                     // Since we're inside a while loop, the last item will be when `amount` == 0
-                    bool lastItem = amount == 0 && i == leverageItems.length - 1;
+                    lastItem = amount == 0 && i == leverageItems.length - 1;
                     if (leverageLiquidity[i] > 0 || lastItem) {
-                        uint256 leverageAmount = _leverage(strategy, leverageItems[i].token, leverageLiquidity[i], lastItem);
+                        leverageAmount = _leverage(strategy, leverageItems[i].token, leverageLiquidity[i], lastItem);
                         if (leverageAmount > leverageLiquidity[i]) {
                             // Sometimes we may pay more than needed such as when we reach the lastItem
                             // and we use the remaining weth (rather than leave it in this contract) so
@@ -637,6 +635,53 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         }
     }
 
+    function _amountFromBorrowPath(
+        TradeData memory data,
+        uint256 amount, // weth
+        address strategy,
+        uint256 availableBorrowsETH,
+        LeverageItem[] memory leverageItems
+    ) private returns(uint256) { // needed for scoping issues
+            address[] memory adapters = data.adapters;
+            uint256 adaptersLength = adapters.length;
+            uint256 _amount;
+            address _tokenIn;
+            address _tokenOut;
+            address _from;
+            address _to;
+            for (uint256 i; i < adaptersLength; ++i) {
+                _tokenOut = data.path[i];
+                if (i == 0) {
+                    _tokenIn = address(0); //Since we are withdrawing from lendingPool's collateral reserves, we can set tokenIn to zero. However, amount will be valued in weth
+                    _amount = availableBorrowsETH > amount ? amount : availableBorrowsETH;
+                    _from = strategy;
+                    //Update amount
+                    amount = amount.sub(_amount);
+                } else {
+                    _tokenIn = data.path[i-1];
+                    _from = address(this);
+                    _amount = IERC20(_tokenIn).balanceOf(_from);
+                }
+                if (_amount > 0) {
+                    if (i == adaptersLength-1 && leverageItems.length == 0) {
+                        _to = strategy;
+                    } else {
+                        _to = address(this);
+                    }
+                    _delegateSwap(
+                        adapters[i],
+                        _amount,
+                        1,
+                        _tokenIn,
+                        _tokenOut,
+                        _from,
+                        _to
+                    );
+                }
+            }
+            return amount;
+    }
+
     function _getLeveragePercentage(
       address strategy,
       address leverageItem,
@@ -652,7 +697,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address strategy,
         address leverageItem,
         uint256 total,
-        bool isLeveraging
+        bool isLeveraging,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal returns (uint256) {
         int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
         int256 estimate = oracle.estimateItem(
@@ -662,7 +708,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         if (isLeveraging) {
             if (expected > estimate) return uint256(expected.sub(estimate));
         } else {
-            _setTempEstimate(strategy, leverageItem, estimate); // Store this value for _deleverage()
+            _setTempEstimate(mm, strategy, leverageItem, estimate); // Store this value for _deleverage()
             if (estimate > expected) return uint256(estimate.sub(expected));
         }
         return 0;
@@ -699,10 +745,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address strategy,
         address leverageItem,
         uint256 leverageLiquidity,
-        uint256 available
+        uint256 available,
+        BinaryTreeWithPayload.Tree memory mm
     ) internal returns (uint256) {
         uint256 leverageAmount = leverageLiquidity > available ? available : leverageLiquidity;
-        uint256 leverageEstimate = uint256(_getTempEstimate(strategy, leverageItem)); //Set in _getLeverageRemaining
+        uint256 leverageEstimate = uint256(_getTempEstimate(mm, strategy, leverageItem)); //Set in _getLeverageRemaining
         require(leverageEstimate > 0, "Insufficient collateral");
         _sellPath(
             IStrategy(strategy).getTradeData(leverageItem),
@@ -711,20 +758,27 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             strategy
         );
         // Update temp estimates with new value since tokens have been sold (it will be needed on later sell loops)
-        _setTempEstimate(strategy, leverageItem, oracle.estimateItem(
+        _setTempEstimate(mm, strategy, leverageItem, oracle.estimateItem(
             IERC20(leverageItem).balanceOf(strategy),
             leverageItem
         ));
         return leverageAmount;
     }
 
-    function _deleverageForWithdraw(address strategy, int256[] memory estimates, uint256 total, uint256 expectedWeth, uint256 itemsLength) private {
+    function _deleverageForWithdraw(
+      address strategy, 
+      int256[] memory estimates, 
+      uint256 total, 
+      uint256 expectedWeth, 
+      uint256 itemsLength, 
+      BinaryTreeWithPayload.Tree memory mm
+    ) private {
         address[] memory strategyDebt = IStrategy(strategy).debt();
         uint256 expectedDebt;
         {
             // Add up debt estimates
             uint256 estimatedDebtBefore;
-            for (uint256 i = 0; i < strategyDebt.length; i++) {
+            for (uint256 i; i < strategyDebt.length; ++i) {
                 estimatedDebtBefore = estimatedDebtBefore.add(uint256(-estimates[itemsLength + i]));
             }
             // Note: Loss of precision by using 'debtPercentage' as a intermediary is an advantage here
@@ -734,6 +788,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             expectedDebt = estimatedDebtBefore.sub(estimatedDebtAfter);
         }
 
+        if (expectedDebt == 0 || strategyDebt.length == 0) return;
         uint256 i;
         int256 estimatedValue;
         int256 expectedValue;
@@ -753,7 +808,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     IStrategy(strategy).getTradeData(strategyDebt[i]),
                     diff,
                     total,
-                    strategy
+                    strategy,
+                    mm
                 );
             }
             ++i;
@@ -764,7 +820,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address strategy,
         address[] memory strategyItems,
         int256[] memory estimates,
-        uint256 total
+        uint256 total,
+        BinaryTreeWithPayload.Tree memory mm
     ) private returns(
         uint256[] memory diffs,
         bytes[] memory payloads
@@ -783,9 +840,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 strategyItem
             );
             estimatedValue = estimates[i];
-            if (_getTempEstimate(strategy, strategyItem) > 0) {
-                estimatedValue = _getTempEstimate(strategy, strategyItem);
-                _removeTempEstimate(strategy, strategyItem);
+            if (_getTempEstimate(mm, strategy, strategyItem) > 0) {
+                estimatedValue = _getTempEstimate(mm, strategy, strategyItem);
+                _removeTempEstimate(mm, strategy, strategyItem);
             }
             if (estimatedValue > expectedValue) {
                 // condition check above means adding diff that isn't overflowed
@@ -798,33 +855,23 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         tree.readInto(diffs, payloads);
     }
 
-    function _startTempEstimateSession(address strategy) private {
-        /*
-          To ensure that a stale "temp" estimate isn't leaked into other function calls
-          by not being "delete"d in the same external call in which it is set, we
-          associate to each external call a "session counter" so that it only deals with
-          temp values corresponding to its own session.
-        **/
-
-        ++_tempEstimate[0][strategy][address(0)]; // ++counter
+    function _startTempEstimateSession() private returns(BinaryTreeWithPayload.Tree memory) {
+        return BinaryTreeWithPayload.newNode();
     }
 
-    function _getCurrentTempEstimateSession(address strategy) private view returns(int256) {
-        return _tempEstimate[0][strategy][address(0)]; // counter
+    function _setTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item, int256 value) private {
+        mm.add(keccak256(abi.encode(strategy, item)), bytes32(value));
     }
 
-    function _setTempEstimate(address strategy, address item, int256 value) private {
-        int256 session = _getCurrentTempEstimateSession(strategy);
-        _tempEstimate[session][strategy][item] = value;
+    function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private view returns(int256) {
+        (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode(strategy, item)));
+        if (ok) {
+            return abi.decode(result, (int256));    
+        }
+        return 0;
     }
 
-    function _getTempEstimate(address strategy, address item) private view returns(int256) {
-        int256 session = _getCurrentTempEstimateSession(strategy);
-        return _tempEstimate[session][strategy][item];
-    }
-
-    function _removeTempEstimate(address strategy, address item) private {
-        int256 session = _getCurrentTempEstimateSession(strategy);
-        delete _tempEstimate[session][strategy][item];
+    function _removeTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private {
+        mm.add(keccak256(abi.encode(strategy, item)), bytes32(0));
     }
 }
