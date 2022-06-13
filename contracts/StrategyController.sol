@@ -538,6 +538,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
+        _onlyApproved(address(router));
         _require(amount > 0, uint256(0x1bb63a90056c1c) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);
         strategy.settleSynths();
