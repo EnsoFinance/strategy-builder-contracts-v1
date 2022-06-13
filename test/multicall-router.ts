@@ -376,6 +376,7 @@ describe('MulticallRouter', function () {
 		await expect(
 			multicallRouter.settleSwap(
 				adapter.address,
+				0,
 				tokens[1].address,
 				weth.address,
 				strategy.address,
