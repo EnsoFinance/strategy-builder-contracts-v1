@@ -118,6 +118,13 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         revert("StrategyControllerPaused.");
     }
 
+    function claimAll(
+        IStrategy strategy
+    ) external override {
+        (strategy); // shh compiler
+        revert("StrategyControllerPaused.");
+    }
+
     /**
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
      *         In order to rebalance the strategy, all Synths must first be converted into sUSD

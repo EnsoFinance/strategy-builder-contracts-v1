@@ -6,7 +6,6 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
-import "../../helpers/GasCostProvider.sol";
 import "../ProtocolAdapter.sol";
 
 contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter {
@@ -61,5 +60,16 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter {
         address[] memory tokens = new address[](1);
         tokens[0] = token;
         comptroller.claimComp(address(this), tokens);
+    }
+
+    // Intended to be called via delegateCall
+    function claim(address[] memory tokens) external override {
+        comptroller.claimComp(address(this), tokens);
+    }
+
+    function rewardsTokens(address token) external override returns(address[] memory) {
+        address[] memory ret = new address[](1);
+        ret[0] = comptroller.getCompAddress();
+        return ret;
     }
 }

@@ -11,6 +11,7 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
+import "./interfaces/IRewardsAdapter.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
 import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
@@ -83,7 +84,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         require(_tempRouter == msg.sender, "Router only");
         _;
     }
-
 
     /**
      * @notice Initializes new Strategy
@@ -211,6 +211,24 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function setCollateral(address token) external override onlyRouter {
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
+    }
+
+    // claim all rewards tokens of claimables
+    function claimAll() external override {
+        /* 
+        indeed, COMP is claimable by anyone, so it would make sense to extend this
+        model to other rewards tokens, but we always err on the side of 
+        the "principle of least privelege" so that flaws in such mechanics are siloed.
+        **/
+        if (msg.sender != controller) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
+        Claimable memory claimableData;
+        address[] memory strategyClaimables = _claimables;
+        for (uint256 i; i < strategyClaimables.length; ++i) {
+            claimableData = _claimableData[strategyClaimables[i]];
+            IRewardsAdapter(claimableData.rewardsAdapter).claim(
+                claimableData.tokens
+            );
+        }
     }
 
     /**
@@ -534,6 +552,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return _debt;
     }
 
+    function claimables() external view override returns (address[] memory) {
+        return _claimables;
+    }
+
+    function claimableData(address claimable) external view override returns (Claimable memory) {
+        return _claimableData[claimable];
+    }
+
     function rebalanceThreshold() external view override returns (uint256) {
         return uint256(_rebalanceThreshold);
     }
@@ -651,6 +677,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 _synths.push(newItem);
             } else if (category == ItemCategory.DEBT) {
                 _debt.push(newItem);
+            } else if (category == ItemCategory.CLAIMABLE) {
+                _items.push(newItem);
+                _setClaimable(newItems[i]);
             }
         }
         if (_synths.length > 0) {
@@ -660,6 +689,28 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         } else if (_percentage[susd] > 0) {
             //If only synth is SUSD, treat it like a regular token
             _items.push(susd);
+        }
+    }
+
+    function _setClaimable(StrategyItem memory claimableItem) internal {
+        if (_exists[keccak256(abi.encode("_claimableData.tokens", claimableItem.item))]) return;
+        _exists[keccak256(abi.encode("_claimableData.tokens", claimableItem.item))] = true;
+
+        uint256 len = claimableItem.data.adapters.length;
+        require(len > 0, "_setClaimable: adapters.length == 0.");
+
+        address rewardsAdapter = claimableItem.data.adapters[len-1];
+        Claimable storage claimable = _claimableData[rewardsAdapter];
+        if (claimable.rewardsAdapter == address(0)) { // it hasn't been stored
+            claimable.rewardsAdapter = rewardsAdapter;
+            _claimables.push(rewardsAdapter);
+        }
+        claimable.tokens.push(claimableItem.item);
+        address[] memory rewardsTokens = IRewardsAdapter(rewardsAdapter).rewardsTokens(claimableItem.item);
+        for (uint256 i; i < rewardsTokens.length; ++i) {
+            if (_exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))]) continue;
+            _exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))] = true;
+            claimable.rewardsTokens.push(rewardsTokens[i]);
         }
     }
 

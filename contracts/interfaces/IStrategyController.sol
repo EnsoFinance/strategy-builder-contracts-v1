@@ -47,6 +47,10 @@ interface IStrategyController is StrategyTypes {
         bytes memory data
     ) external;
 
+    function claimAll(
+        IStrategy strategy
+    ) external;
+
     function restructure(
         IStrategy strategy,
         StrategyItem[] memory strategyItems

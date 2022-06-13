@@ -53,4 +53,20 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
         ICurveGauge gauge = ICurveGauge(token);
         gauge.claim_rewards(address(this));
     }
+
+    // Intended to be called via delegateCall
+    function claim(address[] memory tokens) external override {
+        for (uint256 i; i < tokens.length; ++i) {
+          ICurveGauge(tokens[i]).claim_rewards(address(this));
+        }
+    }
+
+    function rewardsTokens(address token) external override returns(address[] memory) {
+       ICurveGauge gauge = ICurveGauge(token);
+       uint256 maxRewards = gauge.MAX_REWARDS();
+       address[] memory ret = new address[](maxRewards);
+       for (uint256 i; i < ret.length; ++i) {
+          ret[i] = gauge.reward_tokens(i);
+       }
+    }
 }

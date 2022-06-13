@@ -2,7 +2,7 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 interface StrategyTypes {
-    enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE}
+    enum ItemCategory {BASIC, SYNTH, DEBT, RESERVE, CLAIMABLE}
 
     enum EstimatorCategory {
       DEFAULT_ORACLE,
@@ -48,6 +48,12 @@ interface StrategyTypes {
         uint16 restructureSlippage;
         bool social;
         bool set;
+    }
+
+     struct Claimable {
+        address rewardsAdapter;
+        address[] tokens;
+        address[] rewardsTokens;
     }
 
     /**

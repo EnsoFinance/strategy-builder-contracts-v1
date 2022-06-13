@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
+import "../interfaces/IRewardsEstimator.sol";
 import "../helpers/StrategyTypes.sol";
 
 contract EnsoOracle is IOracle, StrategyTypes {
@@ -87,4 +88,37 @@ contract EnsoOracle is IOracle, StrategyTypes {
         }
         return totals;
     }
+
+    function estimateUnclaimedRewards(address user, address token) public view returns(int256) {
+        return _estimateUnclaimedRewards(user, token);
+    }
+
+    function _estimateStrategyRewards(IStrategy strategy) private view returns (int256) {
+        address[] memory strategyClaimables = strategy.claimables();
+        Claimable memory claimableData;
+        address[] memory tokens;
+        address token;
+        int256 total;
+        address rewardsAdapter;
+        for (uint256 i; i < strategyClaimables.length; ++i) {
+            claimableData = strategy.claimableData(strategyClaimables[i]);
+            // estimate claimed
+            tokens = claimableData.rewardsTokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                token = tokens[j];
+                total = total.add(estimateItem(IERC20(token).balanceOf(address(strategy)), token));
+            }
+            // estimate unclaimed
+            tokens = claimableData.tokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                total = total.add(_estimateUnclaimedRewards(address(strategy), tokens[j]));
+            }
+        }
+        return total;
+    }
+
+    function _estimateUnclaimedRewards(address user, address token) private view returns (int256) {
+        return IRewardsEstimator(address(tokenRegistry.getEstimator(token))).estimateUnclaimedRewards(user, token);
+    }
+
 }
