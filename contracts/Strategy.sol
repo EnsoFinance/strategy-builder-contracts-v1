@@ -215,6 +215,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     // claim all rewards tokens of claimables
     function claimAll() external override {
+        _claimAll();
+    }
+
+    function _claimAll() private {
         /* 
         indeed, COMP is claimable by anyone, so it would make sense to extend this
         model to other rewards tokens, but we always err on the side of 
@@ -644,6 +648,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     function _setStructure(StrategyItem[] memory newItems) internal {
         address weth = _weth;
         address susd = _susd;
+        // Remove old claimables
+        _claimAll();
+        _removeClaimables();
         // Remove old percentages
         delete _percentage[weth];
         delete _percentage[susd];
@@ -712,6 +719,25 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             _exists[keccak256(abi.encode("_claimableData.rewardsTokens", rewardsTokens[i]))] = true;
             claimable.rewardsTokens.push(rewardsTokens[i]);
         }
+    }
+
+    function _removeClaimables() internal {
+        address[] memory claimables = _claimables;
+        Claimable memory claimableData;
+        address[] memory tokens;
+        for (uint256 i; i < claimables.length; ++i) {
+            claimableData = _claimableData[claimables[i]];
+            tokens = claimableData.tokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                _exists[keccak256(abi.encode("_claimableData.tokens", tokens[j]))] = false;
+            }
+            tokens = claimableData.rewardsTokens;
+            for (uint256 j; j < tokens.length; ++j) {
+                _exists[keccak256(abi.encode("_claimableData.rewardsTokens", tokens[j]))] = false;
+            }
+            delete _claimableData[claimables[i]];
+        }
+        delete _claimables;
     }
 
     /**
