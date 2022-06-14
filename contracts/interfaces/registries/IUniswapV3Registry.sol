@@ -6,23 +6,26 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 interface IUniswapV3Registry {
 
-  struct FeeData {
-      uint24 fee;
+  struct PairData {
       address pair;
+      uint24 fee;
+      uint32 timeWindow;
   }
 
   struct PoolData {
       address pool;
       address pair;
+      uint32 timeWindow;
   }
 
   function batchAddPools(
       address[] memory tokens,
       address[] memory pairs,
-      uint24[] memory fees
+      uint24[] memory fees,
+      uint32[] memory timeWindows
   ) external;
 
-  function addPool(address token, address pair, uint24 fee) external;
+  function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
 
   function removePool(address token) external;
 
@@ -30,9 +33,9 @@ interface IUniswapV3Registry {
 
   function getFee(address token, address pair) external view returns (uint24);
 
+  function getTimeWindow(address token, address pair) external view returns (uint32);
+
   function weth() external view returns (address);
 
   function factory() external view returns (IUniswapV3Factory);
-
-  function timeWindow() external view returns (uint32);
 }
