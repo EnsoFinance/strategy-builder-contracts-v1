@@ -101,7 +101,6 @@ describe('MetaStrategyAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				basicStrategyItems,
@@ -143,7 +142,6 @@ describe('MetaStrategyAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				metaStrategyItems,
@@ -192,7 +190,6 @@ describe('MetaStrategyAdapter', function () {
           strategyFactory
             .connect(accounts[1])
             .createStrategy(
-              accounts[1].address,
               name,
               symbol,
               failItems,
@@ -212,7 +209,6 @@ describe('MetaStrategyAdapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				'MetaMeta',
 				'MM',
 				mmStrategyItems,

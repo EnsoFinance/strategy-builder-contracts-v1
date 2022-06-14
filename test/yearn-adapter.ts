@@ -26,6 +26,7 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 
 chai.use(solidity)
 
+
 describe('YEarnV2Adapter', function () {
 	let	weth: Contract,
 		crv: Contract,
@@ -107,7 +108,6 @@ describe('YEarnV2Adapter', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,

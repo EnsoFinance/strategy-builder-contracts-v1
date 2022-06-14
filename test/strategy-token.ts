@@ -89,7 +89,6 @@ describe('StrategyToken', function () {
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				'Test Strategy',
 				'TEST',
 				strategyItems,
@@ -293,5 +292,81 @@ describe('StrategyToken', function () {
 	it('Should decrease allowance', async function() {
 		await strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)
 		expect((await strategy.allowance(accounts[1].address, accounts[2].address)).eq(0)).to.equal(true)
+	})
+
+	it('Should deploy strategy for', async function () {
+		const positions: Position[] = [
+			{ token: tokens[1].address, percentage: BigNumber.from(200) },
+			{ token: tokens[2].address, percentage: BigNumber.from(200) },
+			{ token: tokens[3].address, percentage: BigNumber.from(50) },
+			{ token: tokens[4].address, percentage: BigNumber.from(50) },
+			{ token: tokens[5].address, percentage: BigNumber.from(50) },
+			{ token: tokens[6].address, percentage: BigNumber.from(50) },
+			{ token: tokens[7].address, percentage: BigNumber.from(50) },
+			{ token: tokens[8].address, percentage: BigNumber.from(50) },
+			{ token: tokens[9].address, percentage: BigNumber.from(50) },
+			{ token: tokens[10].address, percentage: BigNumber.from(50) },
+			{ token: tokens[11].address, percentage: BigNumber.from(50) },
+			{ token: tokens[12].address, percentage: BigNumber.from(50) },
+			{ token: tokens[13].address, percentage: BigNumber.from(50) },
+			{ token: tokens[14].address, percentage: BigNumber.from(50) },
+		]
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
+			performanceFee: BigNumber.from(0),
+			social: false,
+			set: true
+		}
+
+    const forManager = accounts[7]
+    const domain = {
+        name: 'StrategyProxyFactory',
+        version: '1',
+        chainId: await forManager.getChainId(),
+        verifyingContract: strategyFactory.address 
+    };
+    const types = {
+        Create: [
+            {name: 'name', type: 'string'},
+            {name: 'symbol', type: 'string'},
+        ]
+    };
+
+    const value = {
+        name: 'Test Strategy',
+        symbol: 'TEST'
+    }
+    const signature = await forManager._signTypedData(domain, types, value)
+
+		amount = BigNumber.from('10000000000000000')
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategyFor(
+        forManager.address,
+        value.name,
+        value.symbol,
+        strategyItems,
+        strategyState,
+        router.address,
+        '0x',
+        signature,
+				{ value: amount }
+			)
+		let receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await getContractFactory('Strategy')
+		const strategyFor = Strategy.attach(strategyAddress)
+
+    expect((await strategyFor.manager()).toLowerCase()).to.be.deep.equal(forManager.address.toLowerCase())
+
+		;[total] = await oracle.estimateStrategy(strategyFor.address)
+		expect(BigNumber.from(await strategyFor.totalSupply()).eq(total)).to.equal(true)
+		expect(BigNumber.from(await strategyFor.balanceOf(forManager.address)).eq(total)).to.equal(true)
 	})
 })

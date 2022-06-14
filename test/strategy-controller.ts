@@ -87,7 +87,6 @@ describe('StrategyController', function () {
 			strategyFactory
 				.connect(accounts[1])
 				.createStrategy(
-					accounts[1].address,
 					'Fail Strategy',
 					'FAIL',
 					failItems,
@@ -118,7 +117,6 @@ describe('StrategyController', function () {
           strategyFactory
             .connect(accounts[1])
             .createStrategy(
-              accounts[1].address,
               'Fail Strategy',
               'FAIL',
               failItems,
@@ -149,7 +147,6 @@ describe('StrategyController', function () {
           strategyFactory
             .connect(accounts[1])
             .createStrategy(
-              accounts[1].address,
               'Fail Strategy',
               'FAIL',
               failItems,
@@ -180,7 +177,6 @@ describe('StrategyController', function () {
           strategyFactory
             .connect(accounts[1])
             .createStrategy(
-              accounts[1].address,
               'Fail Strategy',
               'FAIL',
               failItems,
@@ -229,7 +225,6 @@ describe('StrategyController', function () {
 		const tx = await strategyFactory
 			.connect(accounts[2])
 			.createStrategy(
-				accounts[2].address,
 				'Empty',
 				'MT',
 				[],
@@ -280,7 +275,6 @@ describe('StrategyController', function () {
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
-				accounts[1].address,
 				name,
 				symbol,
 				strategyItems,
@@ -350,7 +344,6 @@ describe('StrategyController', function () {
 			strategyFactory
 				.connect(accounts[1])
 				.createStrategy(
-					accounts[1].address,
 					name,
 					symbol,
 					strategyItems,

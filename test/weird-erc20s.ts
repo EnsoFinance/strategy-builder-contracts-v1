@@ -138,7 +138,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy',
 			'TEST',
 			strategyItems,
@@ -188,7 +187,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy 2',
 			'TEST2',
 			strategyItems,
@@ -237,7 +235,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy 3',
 			'TEST3',
 			strategyItems,
@@ -286,7 +283,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy 4',
 			'TEST4',
 			strategyItems,
@@ -335,7 +331,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy 5',
 			'TEST5',
 			strategyItems,
@@ -384,7 +379,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy 6',
 			'TEST6',
 			strategyItems,
@@ -433,7 +427,6 @@ describe('Weird ERC20s', function () {
 		strategyItems = prepareStrategy(positions, adapter.address)
 
 		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
 			'Test Strategy 7',
 			'TEST7',
 			strategyItems,

@@ -84,7 +84,6 @@ describe('TokenRegistry', function () {
 		const tx = await this.factory
 			.connect(this.accounts[1])
 			.createStrategy(
-				this.accounts[1].address,
 				name,
 				symbol,
 				strategyItems,

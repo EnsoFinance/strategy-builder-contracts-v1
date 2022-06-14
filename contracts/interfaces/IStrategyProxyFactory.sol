@@ -5,14 +5,25 @@ pragma experimental ABIEncoderV2;
 import "../helpers/StrategyTypes.sol";
 
 interface IStrategyProxyFactory is StrategyTypes{
+
     function createStrategy(
+        string memory name,
+        string memory symbol,
+        StrategyItem[] memory strategyItems,
+        InitialState memory strategyState,
+        address router,
+        bytes memory data
+    ) external payable returns (address);
+
+    function createStrategyFor(
         address manager,
         string memory name,
         string memory symbol,
         StrategyItem[] memory strategyItems,
-        InitialState memory strategyInit,
+        InitialState memory strategyState,
         address router,
-        bytes memory data
+        bytes memory data,
+        bytes memory signature
     ) external payable returns (address);
 
     function updateProxyVersion(address proxy) external;
