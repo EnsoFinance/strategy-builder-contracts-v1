@@ -106,7 +106,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
         strategy.settleSynths();
-        strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
@@ -366,8 +365,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             strategyState.restructureSlippage = uint16(newValue);
         } else if (lock.category == TimelockCategory.THRESHOLD) {
             strategy.updateRebalanceThreshold(uint16(newValue));
-        } else { // lock.category == TimelockCategory.PERFORMANCE
-            strategy.updatePerformanceFee(uint16(newValue));
         }
         emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
@@ -552,7 +549,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(amount > 0, uint256(0x1bb63a90056c1c) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);
         strategy.settleSynths();
-        strategy.issueStreamingFee();
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
@@ -601,7 +597,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
-        _checkAndEmit(strategy, TimelockCategory.PERFORMANCE, uint256(state.performanceFee), true);
         _checkAndEmit(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
@@ -614,7 +609,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           state.social,
           state.set
         );
-        IStrategy(strategy).updatePerformanceFee(state.performanceFee);
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
         if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);

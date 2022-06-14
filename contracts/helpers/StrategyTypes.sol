@@ -51,7 +51,6 @@ interface StrategyTypes {
     }
 
      struct Claimable {
-        address rewardsAdapter;
         address[] tokens;
         address[] rewardsTokens;
     }

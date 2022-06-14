@@ -54,11 +54,11 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function settleSynths() external;
 
-    function issueStreamingFee() external;
+    //function issueStreamingFee() external;
 
     function updateTokenValue(uint256 total, uint256 supply) external;
 
-    function updatePerformanceFee(uint16 fee) external;
+    //function updatePerformanceFee(uint16 fee) external;
 
     function updateRebalanceThreshold(uint16 threshold) external;
 
@@ -82,13 +82,13 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function rebalanceThreshold() external view returns (uint256);
 
-    function performanceFee() external view returns (uint256);
+    //function performanceFee() external view returns (uint256);
 
     function getPercentage(address item) external view returns (int256);
 
     function getTradeData(address item) external view returns (TradeData memory);
 
-    function getPerformanceFeeOwed(address account) external view returns (uint256);
+    //function getPerformanceFeeOwed(address account) external view returns (uint256);
 
     function controller() external view returns (address);
 

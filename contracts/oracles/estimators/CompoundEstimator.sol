@@ -12,6 +12,8 @@ import "../../interfaces/compound/ICToken.sol";
 import "../../interfaces/compound/IComptroller.sol";
 import "../../libraries/Exponential.sol";
 
+import "hardhat/console.sol";
+
 contract CompoundEstimator is IEstimator, IRewardsEstimator, Exponential {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -26,6 +28,8 @@ contract CompoundEstimator is IEstimator, IRewardsEstimator, Exponential {
     }
 
     function estimateUnclaimedRewards(address user, address token) external view override returns(int256) {
+      console.log(user);
+      console.log(token);
         return _estimateUnclaimedComp(user, token); 
     }
 

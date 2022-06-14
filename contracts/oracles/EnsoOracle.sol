@@ -89,7 +89,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return totals;
     }
 
-    function estimateUnclaimedRewards(address user, address token) public view returns(int256) {
+    function estimateUnclaimedRewards(address user, address token) external view override returns(int256) {
         return _estimateUnclaimedRewards(user, token);
     }
 

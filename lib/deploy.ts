@@ -364,6 +364,7 @@ export async function deployPlatform(
 	await factoryImplementation.deployed()
 
 	// Strategy Implementation
+  console.log(Strategy.bytecode.length)
 	const strategyImplementation = await waffle.deployContract(owner, Strategy, [
 		factoryAddress,
 		controllerAddress,

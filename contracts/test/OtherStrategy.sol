@@ -221,14 +221,14 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         model to other rewards tokens, but we always err on the side of 
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != controller) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
+        if (msg.sender != controller && msg.sender != factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e03) /* error_macro_for("claimAll: caller must be controller or manager.") */);
+        address rewardsAdapter;
         Claimable memory claimableData;
         address[] memory strategyClaimables = _claimables;
         for (uint256 i; i < strategyClaimables.length; ++i) {
-            claimableData = _claimableData[strategyClaimables[i]];
-            IRewardsAdapter(claimableData.rewardsAdapter).claim(
-                claimableData.tokens
-            );
+            rewardsAdapter = strategyClaimables[i];
+            claimableData = _claimableData[rewardsAdapter];
+            _delegateClaim(rewardsAdapter, claimableData.tokens);
         }
     }
 
@@ -433,7 +433,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
-    function issueStreamingFee() external override onlyController {
+    function issueStreamingFee() external /*override*/ onlyController {
         _issueStreamingFee(_pool);
     }
 
@@ -456,7 +456,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         _setTokenValue(total, supply);
     }
 
-    function updatePerformanceFee(uint16 fee) external override onlyController {
+    function updatePerformanceFee(uint16 fee) external /*override */onlyController {
         _performanceFee = fee;
     }
 
@@ -565,7 +565,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return uint256(_rebalanceThreshold);
     }
 
-    function performanceFee() external view override returns (uint256) {
+    function performanceFee() external view /*override */returns (uint256) {
         return uint256(_performanceFee);
     }
 
@@ -577,7 +577,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _tradeData[item];
     }
 
-    function getPerformanceFeeOwed(address account) external view override returns (uint256) {
+    function getPerformanceFeeOwed(address account) external view /*override */returns (uint256) {
         return _getPerformanceFee(account, uint256(_performanceFee));
     }
 
