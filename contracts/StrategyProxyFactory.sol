@@ -9,7 +9,7 @@ import "./StrategyProxyAdmin.sol";
 import "./helpers/StrategyTypes.sol";
 import "./helpers/AddressUtils.sol";
 import "./helpers/StringUtils.sol";
-import "./helpers/draft-EIP712.sol";
+import "./helpers/EIP712.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
