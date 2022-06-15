@@ -7,6 +7,8 @@ import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/curve/ICurveGauge.sol";
 import "../ProtocolAdapter.sol";
 
+import "hardhat/console.sol";
+
 contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
@@ -28,6 +30,9 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
         require(tokenIn != tokenOut, "Tokens cannot match");
         if (_checkToken(tokenOut)) {
             ICurveGauge gauge = ICurveGauge(tokenOut);
+            console.log("swap");
+            console.log(tokenIn);
+            console.log(tokenOut);
             require(gauge.lp_token() == tokenIn, "Incompatible");
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
@@ -55,18 +60,24 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
     }
 
     // Intended to be called via delegateCall
-    function claim(address[] memory tokens) external override {
-        for (uint256 i; i < tokens.length; ++i) {
-          ICurveGauge(tokens[i]).claim_rewards(address(this));
+    function claim(address[] memory rewardsTokens, address[] memory tokens) external override {
+        tokens; // shh compiler
+        for (uint256 i; i < rewardsTokens.length; ++i) {
+          ICurveGauge(rewardsTokens[i]).claim_rewards(address(this));
         }
     }
 
-    function rewardsTokens(address token) external override returns(address[] memory) {
-       ICurveGauge gauge = ICurveGauge(token);
-       uint256 maxRewards = gauge.MAX_REWARDS();
-       address[] memory ret = new address[](maxRewards);
-       for (uint256 i; i < ret.length; ++i) {
-          ret[i] = gauge.reward_tokens(i);
-       }
+    function rewardsTokens(address token) external override returns(address[] memory ret) {
+        ICurveGauge gauge = ICurveGauge(token);
+        ret = new address[](8); // 8 is max in curve
+        uint256 i;
+        for (; i < 8; ++i) {
+            ret[i] = gauge.reward_tokens(i); 
+            if (ret[i] == address(0)) break;
+        }
+        if (ret[0] == address(0)) i = 0;
+        assembly {
+            mstore(ret, i) // this resizes ret so there won't be useless zero entries
+        }
     }
 }

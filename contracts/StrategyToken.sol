@@ -229,7 +229,6 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     ) internal virtual {
         _validAddress(sender);
         _validAddress(recipient);
-        //_handleFees(amount, sender, recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
         _resetTokenValue(sender);

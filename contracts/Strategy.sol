@@ -229,9 +229,21 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         for (uint256 i; i < strategyClaimables.length; ++i) {
             rewardsAdapter = strategyClaimables[i];
             claimableData = _claimableData[rewardsAdapter];
-            _delegateClaim(rewardsAdapter, claimableData.tokens);
+            _delegateClaim(rewardsAdapter, claimableData.rewardsTokens, claimableData.tokens);
         }
     }
+
+    // TODO delete
+    function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
+        _setLock();
+        _onlyManager();
+        require(adapters.length == tokens.length, "Incorrect parameters");
+        for (uint256 i = 0; i < adapters.length; i++) {
+          _delegateClaim(adapters[i], tokens[i]);
+        }
+        _removeLock();
+    }
+
 
     /**
      * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
@@ -530,11 +542,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                       It must support the IRewardsAdapter interface and be whitelisted
      * @param tokens The addresses of the tokens being claimed
      */
-    function _delegateClaim(address adapter, address[] memory tokens) internal {
+    function _delegateClaim(address adapter, address[] memory rewardsTokens, address[] memory tokens) internal {
         _onlyApproved(adapter);
         bytes memory data =
             abi.encodeWithSelector(
-                bytes4(keccak256("claim(address[])")),
+                bytes4(keccak256("claim(address[],address[])")),
+                rewardsTokens,
                 tokens
             );
         uint256 txGas = gasleft();
@@ -551,6 +564,29 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             }
         }
         emit RewardsClaimed(adapter, tokens);
+    }
+
+    function _delegateClaim(address adapter, address token) internal {
+        _onlyApproved(adapter);
+        bytes memory data =
+            abi.encodeWithSelector(
+                bytes4(keccak256("claim(address)")),
+                token
+            );
+        uint256 txGas = gasleft();
+        bool success;
+        assembly {
+            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
+        }
+        if (!success) {
+            assembly {
+                let ptr := mload(0x40)
+                let size := returndatasize()
+                returndatacopy(ptr, 0, size)
+                revert(ptr, size)
+            }
+        }
+        //emit RewardsClaimed(adapter, tokens);
     }
 
     /**
@@ -615,7 +651,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         bytes4 _claimableDataSig = bytes4(0x540f3bc9); // keccak256(abi.encodePacked("_claimableData"))
         if (_exists[keccak256(abi.encode(_claimableDataSig, claimableItem.item))]) return;
         _exists[keccak256(abi.encode(_claimableDataSig, claimableItem.item))] = true;
-
+        
         uint256 len = claimableItem.data.adapters.length;
         _require(len > 0, uint256(0xb3e5dea2190e0b) /* error_macro_for("_setClaimable: adapters.length == 0.") */);
 
