@@ -23,9 +23,4 @@ interface IOracle {
         address user,
         address token
     ) external view returns (int256);
-
-    function estimateUnclaimedRewards(
-        address user,
-        address token
-    ) external view returns(int256);
 }
