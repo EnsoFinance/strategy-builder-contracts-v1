@@ -22,8 +22,6 @@ interface ICToken {
 
     function borrowRatePerBlock() external view returns (uint);
 
-    function borrowIndex() external view returns(uint);
-
     function supplyRatePerBlock() external view returns (uint);
 
     function totalBorrowsCurrent() external returns (uint);
@@ -35,6 +33,4 @@ interface ICToken {
     function exchangeRateCurrent() external returns (uint);
 
     function exchangeRateStored() external view returns (uint);
-
-    function comptroller() external view returns(address);
 }

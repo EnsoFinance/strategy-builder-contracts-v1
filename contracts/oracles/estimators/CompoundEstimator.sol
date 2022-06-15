@@ -1,13 +1,11 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
-pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IOracle.sol";
 import "../../interfaces/compound/ICToken.sol";
-import "../../interfaces/compound/IComptroller.sol";
 
 contract CompoundEstimator is IEstimator {
     using SafeMath for uint256;

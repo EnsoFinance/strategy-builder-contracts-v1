@@ -40,7 +40,7 @@ export class Tokens {
 	cDAI: string
 	cUSDC: string
 	cUSDT: string
-  COMP: string
+	COMP: string
   // Curve
   crv3: string
 	crvTriCrypto: string

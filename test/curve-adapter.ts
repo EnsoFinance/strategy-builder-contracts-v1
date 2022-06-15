@@ -50,7 +50,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
-		//failAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,

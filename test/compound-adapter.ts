@@ -46,7 +46,8 @@ describe('CompoundAdapter', function () {
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		usdt = new Contract(tokens.usdt, ERC20.abi, accounts[0])
-    comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
+		comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
+
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 
@@ -161,11 +162,11 @@ describe('CompoundAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should claim rewards', async function() {
-    const balanceBefore = await comp.balanceOf(strategy.address)
-		await strategy.connect(accounts[1]).claimAll()
-    const balanceAfter = await comp.balanceOf(strategy.address)
-    expect(balanceAfter).to.be.gt(balanceBefore)
-    expect(balanceAfter).to.be.equal(735192153)
-	})
+    it('Should claim rewards', async function() {
+        const balanceBefore = await comp.balanceOf(strategy.address)
+        await strategy.connect(accounts[1]).claimAll()
+        const balanceAfter = await comp.balanceOf(strategy.address)
+        expect(balanceAfter).to.be.gt(balanceBefore)
+        expect(balanceAfter).to.be.equal(735192153)
+    })
 })
