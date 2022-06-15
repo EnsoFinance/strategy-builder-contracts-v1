@@ -1,8 +1,8 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers } from 'hardhat'
+import { ethers, waffle, network } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -26,6 +26,14 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 
 chai.use(solidity)
 
+async function impersonate(address: string) : Promise<SignerWithAddress> {
+    await network.provider.request({
+        method: 'hardhat_impersonateAccount',
+        params: [address],
+    })
+    return await ethers.getSigner(address)
+}
+
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	let	weth: Contract,
 		crv: Contract,
@@ -42,12 +50,14 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
-		failAdapter: Contract,
+		//failAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		tokens: Tokens,
-		rewardToken: string
+		crvLINKGauge: string,
+    rewardsToken: Contract,
+    stakingRewards: Contract
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -81,10 +91,119 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
 		curveGaugeAdapter = await deployCurveGaugeAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.CURVE_GAUGE)
 		await whitelist.connect(accounts[0]).approve(curveGaugeAdapter.address)
+
+		crvLINKGauge = tokens.crvLINKGauge
+    // setting up rewards
+    rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
+    stakingRewards = await (await getContractFactory("StakingRewards")).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK)//, crvLINKGauge)
+    const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
+    await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance)
+    await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance)
+    let stakeSig = stakingRewards.interface.getSighash("stake")
+    let withdrawSig = stakingRewards.interface.getSighash("withdraw")
+    let claimSig = stakingRewards.interface.getSighash("getReward")
+    let sigs = '0x' + stakeSig.substring(2) + withdrawSig.substring(2) + claimSig.substring(2) + AddressZero.substring(2) 
+    let rewardTokens = [rewardsToken.address]
+    while (rewardTokens.length < 8) {
+        rewardTokens.push(AddressZero)
+    }
+    const crvLINKGaugeContract = new Contract(crvLINKGauge, [
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_rewardContract",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "_sigs",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address[8]",
+              "name": "_reward_tokens",
+              "type": "address[8]"
+            }
+          ],
+          "name": "set_rewards",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "admin",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        }
+        ], accounts[0])
+      const gaugeAdminProxy = new Contract(await crvLINKGaugeContract.admin(), [
+        {
+          "constant": false,
+          "inputs": [
+            {
+              "internalType": "address",
+              "name": "_gauge",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "_rewardContract",
+              "type": "address"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "_sigs",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "address[8]",
+              "name": "_reward_tokens",
+              "type": "address[8]"
+            }
+          ],
+          "name": "set_rewards",
+          "outputs": [],
+          "payable": false,
+          "stateMutability": "nonpayable",
+          "type": "function"
+        },
+        {
+          "constant": true,
+          "inputs": [],
+          "name": "ownership_admin",
+          "outputs": [
+            {
+              "internalType": "address",
+              "name": "",
+              "type": "address"
+            }
+          ],
+          "payable": false,
+          "stateMutability": "view",
+          "type": "function"
+        }
+      ], accounts[0])
+      const ownershipAdminAddress = await gaugeAdminProxy.ownership_admin()
+      await gaugeAdminProxy.connect(
+          await impersonate(ownershipAdminAddress)
+      )['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
+    
 	})
 
 	it('Should deploy strategy', async function () {
-		rewardToken = tokens.crvLINKGauge
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
@@ -95,7 +214,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
 				path: [tokens.usdc, tokens.eurs]
 			},
-			{ token: rewardToken,
+			{ token: crvLINKGauge,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
 				path: [tokens.link, tokens.crvLINK]
@@ -185,26 +304,19 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should fail to claim rewards', async function() {
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([], [rewardToken])).to.be.revertedWith('Incorrect parameters')
-	})
-
-	it('Should fail to claim rewards', async function() {
-			const FailAdapter = await getContractFactory('FailAdapter')
-			failAdapter = await FailAdapter.deploy(weth.address)
-			await failAdapter.deployed()
-
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.revertedWith('Not approved')
-	})
-
-	it('Should fail to claim rewards', async function() {
-			await whitelist.connect(accounts[0]).approve(failAdapter.address)
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.reverted
-	})
-
-
 	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).batchClaimRewards([curveGaugeAdapter.address], [rewardToken])
+    const rewardsTokens = await curveGaugeAdapter.callStatic.rewardsTokens(crvLINKGauge)
+    const rewardsTokensLength = rewardsTokens.length
+    expect(rewardsTokensLength).to.be.gt(0)
+    //expect(BigNumber.from(rewardsToken.length)).to.be.gt(BigNumber.from(0))
+    for (let i = 0; i < rewardsTokens.length; ++i) {
+        const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
+        const balanceBefore = await rewardsToken.balanceOf(strategy.address)
+      
+        await strategy.connect(accounts[1]).claimAll()
+        const balanceAfter = await rewardsToken.balanceOf(strategy.address)
+        expect(balanceAfter).to.be.gt(balanceBefore)
+    }
 	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {

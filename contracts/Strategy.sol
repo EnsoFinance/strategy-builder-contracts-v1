@@ -233,18 +233,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         }
     }
 
-    // TODO delete
-    function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
-        _setLock();
-        _onlyManager();
-        require(adapters.length == tokens.length, "Incorrect parameters");
-        for (uint256 i = 0; i < adapters.length; i++) {
-          _delegateClaim(adapters[i], tokens[i]);
-        }
-        _removeLock();
-    }
-
-
     /**
      * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
      * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
@@ -564,29 +552,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             }
         }
         emit RewardsClaimed(adapter, tokens);
-    }
-
-    function _delegateClaim(address adapter, address token) internal {
-        _onlyApproved(adapter);
-        bytes memory data =
-            abi.encodeWithSelector(
-                bytes4(keccak256("claim(address)")),
-                token
-            );
-        uint256 txGas = gasleft();
-        bool success;
-        assembly {
-            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
-        }
-        if (!success) {
-            assembly {
-                let ptr := mload(0x40)
-                let size := returndatasize()
-                returndatacopy(ptr, 0, size)
-                revert(ptr, size)
-            }
-        }
-        //emit RewardsClaimed(adapter, tokens);
     }
 
     /**

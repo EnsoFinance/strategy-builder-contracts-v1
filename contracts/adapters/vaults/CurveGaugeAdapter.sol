@@ -7,8 +7,6 @@ import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/curve/ICurveGauge.sol";
 import "../ProtocolAdapter.sol";
 
-import "hardhat/console.sol";
-
 contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
@@ -30,9 +28,6 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
         require(tokenIn != tokenOut, "Tokens cannot match");
         if (_checkToken(tokenOut)) {
             ICurveGauge gauge = ICurveGauge(tokenOut);
-            console.log("swap");
-            console.log(tokenIn);
-            console.log(tokenOut);
             require(gauge.lp_token() == tokenIn, "Incompatible");
             if (from != address(this))
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
@@ -53,17 +48,10 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
     }
 
     // Intended to be called via delegateCall
-    function claim(address token) external override {
-        require(_checkToken(token), "Not claimable");
-        ICurveGauge gauge = ICurveGauge(token);
-        gauge.claim_rewards(address(this));
-    }
-
-    // Intended to be called via delegateCall
     function claim(address[] memory rewardsTokens, address[] memory tokens) external override {
-        tokens; // shh compiler
+        rewardsTokens; // shh compiler
         for (uint256 i; i < rewardsTokens.length; ++i) {
-          ICurveGauge(rewardsTokens[i]).claim_rewards(address(this));
+          ICurveGauge(tokens[i]).claim_rewards(address(this));
         }
     }
 

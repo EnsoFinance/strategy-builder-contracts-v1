@@ -55,14 +55,6 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter {
     }
 
     // Intended to be called via delegateCall
-    function claim(address token) external override {
-        require(_checkToken(token), "Not claimable");
-        address[] memory tokens = new address[](1);
-        tokens[0] = token;
-        comptroller.claimComp(address(this), tokens);
-    }
-
-    // Intended to be called via delegateCall
     function claim(address[] memory rewardsTokens, address[] memory tokens) external override {
         rewardsTokens; // shh compiler
         comptroller.claimComp(address(this), tokens);

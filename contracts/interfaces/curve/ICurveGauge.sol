@@ -8,6 +8,8 @@ interface ICurveGauge {
 
     function reward_tokens(uint256 i) external view returns(address);
 
+    function reward_contract() external view returns(address);
+
     function deposit(uint256 _value, address _addr) external;
 
     function withdraw(uint256 _value) external;
