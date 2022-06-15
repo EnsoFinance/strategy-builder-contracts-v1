@@ -14,5 +14,7 @@ interface ICurveGauge {
 
     function withdraw(uint256 _value) external;
 
+    function claimable_reward(address _addr, address _token) external view returns(uint256);
+
     function claim_rewards(address _addr) external;
 }
