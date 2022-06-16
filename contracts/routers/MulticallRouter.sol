@@ -6,8 +6,16 @@ import "../libraries/SafeERC20.sol";
 import "../helpers/Multicall.sol";
 import "./StrategyRouter.sol";
 
-/**
- * @notice An experimental contract to allow for flexible trading strategies by aggregating calldata to accomplish a rebalance
+/*
+ * @notice An experimental contract to allow for flexible trading strategies by
+ *         aggregating calldata to accomplish trading actions
+ *
+ * WARNING: This contract should only be called by advanced users. It is unsafe
+ *          to approve this contract to spend tokens from an EOA. Please only
+ *          approve tokens from another contract and remove approval within the
+ *          same transaction. Furthermore, any funds left in this contract can
+ *          be removed by anyone, please design you multicalls to remove all funds
+ *          from the contract within the transaction or they could be lost.
  */
 contract MulticallRouter is StrategyRouter, Multicall {
     using SafeERC20 for IERC20;
