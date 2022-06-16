@@ -171,6 +171,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyApproved(address(router));
         _onlyManager(strategy);
+        strategy.claimAll();
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(!balancedBefore, uint256(0x1bb63a90056c02) /* error_macro_for("Balanced") */);

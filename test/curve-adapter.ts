@@ -22,6 +22,7 @@ import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 
 chai.use(solidity)
@@ -96,8 +97,17 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
     rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
     stakingRewards = await (await getContractFactory("StakingRewards")).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK)//, crvLINKGauge)
     const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
-    await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance)
-    await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance)
+
+    await uniswapV2Factory.createPair(rewardsToken.address, weth.address)
+    const pairAddress = await uniswapV2Factory.getPair(rewardsToken.address, weth.address)
+    const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
+    await rewardsToken.connect(accounts[0]).transfer(pairAddress, ownerBalance.mul(2).div(3))
+    await weth.connect(accounts[0]).deposit({value: ownerBalance.div(3)})
+    await weth.connect(accounts[0]).transfer(pairAddress, ownerBalance.div(3))
+    await pair.connect(accounts[0]).mint(accounts[0].address)
+
+    await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
+    await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
     let stakeSig = stakingRewards.interface.getSighash("stake")
     let withdrawSig = stakingRewards.interface.getSighash("withdraw")
     let claimSig = stakingRewards.interface.getSighash("getReward")
@@ -217,7 +227,11 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
 				path: [tokens.link, tokens.crvLINK]
-			}
+			},
+			{ token: rewardsToken.address,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapV2Adapter.address]
+      }
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -302,6 +316,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
+
 
 	it('Should claim rewards', async function() {
     const rewardsTokens = await curveGaugeAdapter.callStatic.rewardsTokens(crvLINKGauge)

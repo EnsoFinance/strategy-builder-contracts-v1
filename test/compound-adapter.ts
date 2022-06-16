@@ -75,7 +75,12 @@ describe('CompoundAdapter', function () {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] }
+			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] },
+			{ token: comp.address,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapAdapter.address]
+      }
+
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
@@ -167,6 +172,6 @@ describe('CompoundAdapter', function () {
         await strategy.connect(accounts[1]).claimAll()
         const balanceAfter = await comp.balanceOf(strategy.address)
         expect(balanceAfter).to.be.gt(balanceBefore)
-        expect(balanceAfter).to.be.equal(735192153)
+        expect(balanceAfter).to.be.equal(82913920)
     })
 })
