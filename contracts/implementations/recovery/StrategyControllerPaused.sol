@@ -130,6 +130,13 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         revert("StrategyControllerPaused.");
     }
 
+    function claimAll(
+        IStrategy strategy
+    ) external override {
+        (strategy); // shh compiler
+        revert("StrategyControllerPaused.");
+    }
+
     /**
      * @notice Initiate a restructure of the strategy items. This gives users a chance to withdraw before restructure
      * @dev The strategyItems array is encoded and temporarily stored while the timelock is active

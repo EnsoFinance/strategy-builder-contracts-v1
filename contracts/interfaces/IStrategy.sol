@@ -37,6 +37,8 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function setCollateral(address token) external;
 
+    function claimAll() external;
+
     function withdrawAll(uint256 amount) external;
 
     function mint(address account, uint256 amount) external;

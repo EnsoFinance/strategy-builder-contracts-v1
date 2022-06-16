@@ -7,6 +7,7 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
+import "./libraries/MemoryMappings.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -35,6 +36,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
+    using MemoryMappings for BinaryTreeWithPayload.Tree;
 
     uint256 private constant YEAR = 365 days;
     uint256 private constant POOL_SHARE = 300;
@@ -53,7 +55,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
-    event RewardsClaimed(address indexed adapter, address indexed token);
+    event RewardsClaimed(address indexed adapter, address[] indexed tokens);
     event UpdateManager(address manager);
     event PerformanceFee(address indexed account, uint256 amount);
     event WithdrawalFee(address indexed account, uint256 amount);
@@ -368,26 +370,85 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         }
     }
 
+    // claim all rewards tokens of claimables
+    function claimAll() external override {
+        /*
+        indeed, COMP is claimable by anyone, so it would make sense to extend this
+        model to other rewards tokens, but we always err on the side of
+        the "principle of least privelege" so that flaws in such mechanics are siloed.
+        **/
+        if (msg.sender != controller && msg.sender != factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
+        _claimAll();
+    }
+
+    function _claimAll() private {
+        BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
+        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
+        uint256 numAdded = _toClaim(mm, exists, _items);
+        numAdded += _toClaim(mm, exists, _synths);
+        numAdded += _toClaim(mm, exists, _debt);
+
+        uint256[] memory keys = new uint256[](numAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        bytes[] memory values = new bytes[](numAdded);
+        BinaryTreeWithPayload.readInto(mm, keys, values);
+        address[] memory tokens;
+        for (uint256 i; i < numAdded; ++i) {
+            (tokens) = abi.decode(values[i], (address[]));
+            _delegateClaim(address(uint256(keys[i])), tokens); 
+        }
+    }
+
+    function _toClaim(
+      BinaryTreeWithPayload.Tree memory mm,
+      BinaryTreeWithPayload.Tree memory exists,
+      address[] memory positions
+    ) private returns(uint256) {
+        uint256 numAdded;
+        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
+        address position;
+        TradeData memory tradeData;
+        uint256 adaptersLength;
+        address rewardsAdapter;
+        bytes32 key;
+        bool ok;
+        for (uint256 i; i < positions.length; ++i) {
+            position = positions[i];
+            if (!tokenRegistry.claimable(position)) continue; 
+            tradeData = _tradeData[position];
+            adaptersLength = tradeData.adapters.length;
+            if (adaptersLength < 1) continue;
+            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
+            key = keccak256(abi.encodePacked(rewardsAdapter, position));
+            (ok, ) = exists.getValue(key);
+            if (ok) continue;
+            exists.add(key, key); // second parameter is "any" value
+            ok = mm.append(bytes32(uint256(rewardsAdapter)), bytes32(uint256(position)));
+            // ok means "isNew"
+            if (ok) ++numAdded;
+        }
+        return numAdded;
+    }
+
     /**
-     * @notice Claim rewards using a delegate call to adapter
-     * @param adapter The address of the adapter that this function does a delegate call to.
+     * notice Claim rewards using a delegate call to adapter
+     * param adapter The address of the adapter that this function does a delegate call to.
                       It must support the IRewardsAdapter interface and be whitelisted
-     * @param token The address of the token being claimed
+     * param token The address of the token being claimed
      */
-    function claimRewards(address adapter, address token) external {
+    /*function claimRewards(address adapter, address token) external {
         _setLock();
         _onlyManager();
         _delegateClaim(adapter, token);
         _removeLock();
-    }
+    }*/
 
     /**
-     * @notice Batch claim rewards using a delegate call to adapters
-     * @param adapters The addresses of the adapters that this function does a delegate call to.
+     * notice Batch claim rewards using a delegate call to adapters
+     * param adapters The addresses of the adapters that this function does a delegate call to.
                        Adapters must support the IRewardsAdapter interface and be whitelisted
-     * @param tokens The addresses of the tokens being claimed
+     * param tokens The addresses of the tokens being claimed
      */
-    function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
+    /*function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
         _setLock();
         _onlyManager();
         require(adapters.length == tokens.length, "Incorrect parameters");
@@ -395,7 +456,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
           _delegateClaim(adapters[i], tokens[i]);
         }
         _removeLock();
-    }
+    }*/
 
     /**
      * @notice Settle the amount held for each Synth after an exchange has occured and the oracles have resolved a price
@@ -586,14 +647,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Claim rewards using a delegate call to an adapter
      * @param adapter The address of the adapter that this function does a delegate call to.
                       It must support the IRewardsAdapter interface and be whitelisted
-     * @param token The address of the token being claimed
+     * @param tokens The addresses of the tokens being claimed
      */
-    function _delegateClaim(address adapter, address token) internal {
+    function _delegateClaim(address adapter, address[] memory tokens) internal {
         _onlyApproved(adapter);
         bytes memory data =
             abi.encodeWithSelector(
-                bytes4(keccak256("claim(address)")),
-                token
+                bytes4(keccak256("claim(address[])")),
+                tokens
             );
         uint256 txGas = gasleft();
         bool success;
@@ -608,7 +669,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
                 revert(ptr, size)
             }
         }
-        emit RewardsClaimed(adapter, token);
+        emit RewardsClaimed(adapter, tokens);
     }
 
     /**
