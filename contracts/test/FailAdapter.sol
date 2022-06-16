@@ -46,8 +46,8 @@ contract FailAdapter is BaseAdapter, IRewardsAdapter {
         if (controller.sellFail() && tokenOut == weth) revert("Fail");
     }
 
-    function claim(address token) public override {
-        (token);
+    function claim(address[] memory tokens) public override {
+        (tokens);
         revert();
     }
 }
