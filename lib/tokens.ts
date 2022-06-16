@@ -2,6 +2,8 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from "./constants"
 
+const isClaimable = true;
+
 export class Tokens {
   // Basic
 	weth: string
@@ -40,6 +42,7 @@ export class Tokens {
 	cDAI: string
 	cUSDC: string
 	cUSDT: string
+  COMP: string
   // Curve
   crv3: string
 	crvTriCrypto: string
@@ -119,6 +122,7 @@ export class Tokens {
 		this.cDAI = '0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643'
 		this.cUSDC = '0x39aa39c021dfbae8fac545936693ac917d5e7563'
 		this.cUSDT = '0xf650C3d88D12dB855b8bf7D11Be6C55A4e07dCC9'
+    this.COMP = '0xc00e94Cb662C3520282E6f5717214004A7f26888'
     // Curve LP Tokens
     this.crv3 = '0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490'
 		this.crvTriCrypto = '0xcA3d75aC011BF5aD07a98d02f18225F9bD9A6BDF'
@@ -153,56 +157,57 @@ export class Tokens {
 
   async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract) {
     await Promise.all([
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.knc),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.cream),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sEUR),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sLINK),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sETH),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sAAVE),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sBTC),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDOT),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sADA),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWETH),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWBTC),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aDAI),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDC),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDT),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aCRV),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtDAI),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtUSDC),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtWBTC),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtWETH),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cDAI),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cUSDC),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cUSDT),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crv3),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvTriCrypto2),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvUSDP),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvSUSD),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvAAVE),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvSAAVE),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvLINK),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvCOMP),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvUSDN),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvSETH),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvREN),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvEURS),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvCOMPGauge),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvTriCrypto2),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD),
-      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yWBTC),
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, this.crvTriCrypto), // Depreciated for TriCrypto2
-			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.knc, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.cream, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sEUR, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sLINK, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sETH, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sAAVE, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sBTC, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDOT, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sADA, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWETH, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWBTC, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aDAI, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDC, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aUSDT, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aCRV, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtDAI, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtUSDC, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtWBTC, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.DEBT, ESTIMATOR_CATEGORY.AAVE_V2_DEBT, this.debtWETH, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cDAI, isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cUSDC, isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, this.cUSDT, isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.COMP, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crv3, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvTriCrypto2, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvUSDP, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvSUSD, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvAAVE, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvSAAVE, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvLINK, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvCOMP, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvUSDN, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvSETH, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvREN, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvEURS, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvAAVEGauge, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvSAAVEGauge, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvCOMPGauge, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvLINKGauge, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrv3, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvTriCrypto2, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvUSDP, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.ycrvSUSD, !isClaimable),
+      strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yDAI, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yUSDC, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.YEARN_V2, this.yWBTC, !isClaimable),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, this.crvTriCrypto, !isClaimable), // Depreciated for TriCrypto2
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E', !isClaimable) //TUSD second address
     ])
 		if (uniswapV3Registry) {
 			await uniswapV3Registry.connect(owner).addPool(this.wbtc, this.weth, '3000') //0.3%
@@ -215,15 +220,15 @@ export class Tokens {
 		}
 		if (chainlinkRegistry) {
 			await chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);
-			await chainlinkRegistry.connect(owner).addOracle(this.sEUR, this.sUSD, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.sLINK, this.weth, '0xDC530D9457755926550b59e8ECcdaE7624181557', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.knc, this.sUSD, '0xf8ff43e991a81e6ec886a3d281a2c6cc19ae70fc', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.sETH, this.sUSD, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.sAAVE, this.weth, '0x6df09e975c830ecae5bd4ed9d90f3a95a4f88012', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.sBTC, this.weth, '0xdeb288f737066589598e9214e782fa5a8ed689e8', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.sDOT, this.sUSD, '0x1c07afb8e2b827c5a4739c6d59ae3a5035f28734', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', false);
-			await chainlinkRegistry.connect(owner).addOracle(this.cream, this.weth, '0x82597cfe6af8baad7c0d441aa82cbc3b51759607', false);
+			await chainlinkRegistry.connect(owner).addOracle(this.sEUR, this.sUSD, '0xb49f677943BC038e9857d61E7d053CaA2C1734C1', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.sLINK, this.weth, '0xDC530D9457755926550b59e8ECcdaE7624181557', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.knc, this.sUSD, '0xf8ff43e991a81e6ec886a3d281a2c6cc19ae70fc', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.sETH, this.sUSD, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.sAAVE, this.weth, '0x6df09e975c830ecae5bd4ed9d90f3a95a4f88012', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.sBTC, this.weth, '0xdeb288f737066589598e9214e782fa5a8ed689e8', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.sDOT, this.sUSD, '0x1c07afb8e2b827c5a4739c6d59ae3a5035f28734', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.sADA, this.sUSD, '0xae48c91df1fe419994ffda27da09d5ac69c30f55', !isClaimable);
+			await chainlinkRegistry.connect(owner).addOracle(this.cream, this.weth, '0x82597cfe6af8baad7c0d441aa82cbc3b51759607', !isClaimable);
 		}
 		if (curveDepositZapRegistry) {
 			await curveDepositZapRegistry.connect(owner).addZap(this.crvSUSD, '0xfcba3e75865d2d561be8d220616520c171f12851', 0);

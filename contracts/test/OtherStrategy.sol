@@ -368,6 +368,21 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         }
     }
 
+    // claim all rewards tokens of claimables
+    function claimAll() external override {
+        /*
+        indeed, COMP is claimable by anyone, so it would make sense to extend this
+        model to other rewards tokens, but we always err on the side of
+        the "principle of least privelege" so that flaws in such mechanics are siloed.
+        **/
+        if (msg.sender != controller && msg.sender != factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
+        _claimAll();
+    }
+
+    function _claimAll() private {
+        revert("not implemented for this test contract");
+    }
+
     /**
      * @notice Claim rewards using a delegate call to adapter
      * @param adapter The address of the adapter that this function does a delegate call to.
