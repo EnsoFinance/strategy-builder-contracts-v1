@@ -43,7 +43,7 @@ applyMacros() {
 
   cp "$contractPath" tmp0.txt
   echo $BOOKMARK >> tmp0.txt
-  # bookmark for strange unix bug 
+  # bookmark for strange unix bug
   # https://stackoverflow.com/questions/12916352/shell-script-read-missing-last-line
 
   while IFS= read -r line;
@@ -63,7 +63,7 @@ applyMacros() {
       errorToStore=$(echo "$line" | sed s/.*$ERROR_MACRO\(// | sed s/\).*//)
 
       jsonObject=$(echo $jsonObject | jq ".[$inputIndex].errorcodes.\"$error\" = $errorToStore")
-      line=$(echo "$line" | sed "s/$ERROR_MACRO($errorToStore)/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
+      line=$(echo "$line" | sed "s/$ERROR_MACRO($errorToStore)/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/")
       echo "$line" >> tmp.txt
       errorIndexer=$((errorIndexer+1))
     elif [ "$isErrorMacroForLine" != "" ]; then
@@ -71,13 +71,13 @@ applyMacros() {
       # chars for contract, 2 chars for errorIndexer
       errorToStore=$(echo "$line" | sed s/.*$error_macro_for\(// | sed s/\).*//)
       jsonObject=$(echo $jsonObject | jq ".[$inputIndex].errorcodes.\"$error\" = $errorToStore")
-      line=$(echo "$line" | sed "s/uint256(0x[a-z0-9]\+) $commentStart $error_macro_for($errorToStore) $commentEnd/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/") 
+      line=$(echo "$line" | sed "s/uint256(0x[a-z0-9]\+) $commentStart $error_macro_for($errorToStore) $commentEnd/uint256(0x$error) $commentStart $error_macro_for($errorToStore) $commentEnd/")
       echo "$line" >> tmp.txt
       errorIndexer=$((errorIndexer+1))
     else
       echo "$line"  >> tmp.txt
     fi
-  done < tmp0.txt 
+  done < tmp0.txt
 
   cp tmp.txt "$contractPath"
   rm tmp0.txt

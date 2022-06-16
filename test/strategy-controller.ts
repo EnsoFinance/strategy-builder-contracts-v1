@@ -19,7 +19,7 @@ const NUM_TOKENS = 15
 const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
 const REBALANCE_SLIPPAGE = BigNumber.from(997) // 995/1000 = 99.7%
 const RESTRUCTURE_SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
-const TIMELOCK = BigNumber.from(2592000) // 30 days 
+const TIMELOCK = BigNumber.from(2592000) // 30 days
 
 chai.use(solidity)
 
@@ -201,7 +201,6 @@ describe('StrategyController', function () {
 		expect(await isRevertedWith( strategyFactory
 			.connect(accounts[2])
 			.createStrategy(
-				accounts[2].address,
 				'Timelock is too long',
 				'FAIL',
 				[],
@@ -209,7 +208,7 @@ describe('StrategyController', function () {
 				AddressZero,
 				'0x'
 			),
-			'Timelock is too long', 'StrategyController.sol')).to.be.true 
+			'Timelock is too long', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should deploy empty strategy', async function() {
