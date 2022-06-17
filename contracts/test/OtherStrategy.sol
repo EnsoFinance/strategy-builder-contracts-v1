@@ -55,9 +55,9 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event RewardsClaimed(address indexed adapter, address indexed token);
     event UpdateManager(address manager);
-    event PerformanceFee(address indexed account, uint256 amount);
-    event WithdrawalFee(address indexed account, uint256 amount);
-    event StreamingFee(uint256 amount);
+    //event PerformanceFee(address indexed account, uint256 amount);
+    //event WithdrawalFee(address indexed account, uint256 amount);
+    //event StreamingFee(uint256 amount);
     event UpdateTradeData(address item, bool finalized);
 
     // Initialize constructor to disable implementation
@@ -270,10 +270,10 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
-     * @notice Withdraws the performance fee to the manager and the fee pool
-     * @param holders An array of accounts that will be used to calculate the performance fee
+     * notice Withdraws the performance fee to the manager and the fee pool
+     * param holders An array of accounts that will be used to calculate the performance fee
      */
-    function withdrawPerformanceFee(address[] memory holders) external {
+    /*function withdrawPerformanceFee(address[] memory holders) external {
         _setLock();
         _onlyManager();
         _updateTokenValue();
@@ -287,16 +287,16 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         _issuePerformanceFee(pool, amount);
         _updateStreamingFeeRate(pool);
         _removeLock();
-    }
+    }*/
 
     /**
-     * @notice Withdraws the streaming fee to the fee pool
+     * notice Withdraws the streaming fee to the fee pool
      */
-    function withdrawStreamingFee() external {
+    /*function withdrawStreamingFee() external {
         _setLock();
         _issueStreamingFee(_pool);
         _removeLock();
-    }
+    }*/
 
     /**
      * @notice Mint new tokens. Only callable by controller
@@ -305,7 +305,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      */
     function mint(address account, uint256 amount) external override onlyController {
         //Assumes updateTokenValue has been called
-        address pool = _pool;
+        /*address pool = _pool;
         uint256 fee = _settlePerformanceFeeRecipient(
             account,
             amount,
@@ -313,8 +313,9 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
             uint256(_performanceFee)
         );
         if (fee > 0) _issuePerformanceFee(pool, fee);
+        */
         _mint(account, amount);
-        _updateStreamingFeeRate(pool);
+        //_updateStreamingFeeRate(pool);
     }
 
     /**
@@ -427,11 +428,11 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
-     * @notice Issues the streaming fee to the fee pool. Only callable by controller
+     * notice Issues the streaming fee to the fee pool. Only callable by controller
      */
-    function issueStreamingFee() external override onlyController {
+    /*function issueStreamingFee() external override onlyController {
         _issueStreamingFee(_pool);
-    }
+    }*/
 
     /**
      * @notice Update the per token value based on the most recent strategy value.
@@ -452,9 +453,9 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         _setTokenValue(total, supply);
     }
 
-    function updatePerformanceFee(uint16 fee) external override onlyController {
+    /*function updatePerformanceFee(uint16 fee) external override onlyController {
         _performanceFee = fee;
-    }
+    }*/
 
     function updateRebalanceThreshold(uint16 threshold) external override onlyController {
         _rebalanceThreshold = threshold;
@@ -501,7 +502,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
             // If pool has been initialized but is now changing update paidTokenValue
             if (currentPool != address(0)) {
                 _paidTokenValues[currentPool] = _lastTokenValue;
-                _updateStreamingFeeRate(newPool);
+                //_updateStreamingFeeRate(newPool);
             }
             _paidTokenValues[newPool] = uint256(-1);
             _pool = newPool;
@@ -553,9 +554,9 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return uint256(_rebalanceThreshold);
     }
 
-    function performanceFee() external view override returns (uint256) {
+    /*function performanceFee() external view override returns (uint256) {
         return uint256(_performanceFee);
-    }
+    }*/
 
     function getPercentage(address item) external view override returns (int256) {
         return _percentage[item];
@@ -565,9 +566,9 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _tradeData[item];
     }
 
-    function getPerformanceFeeOwed(address account) external view override returns (uint256) {
+    /*function getPerformanceFeeOwed(address account) external view override returns (uint256) {
         return _getPerformanceFee(account, uint256(_performanceFee));
-    }
+    }*/
 
     function getPaidTokenValue(address account) external view returns (uint256) {
         return uint256(_paidTokenValues[account]);
@@ -693,9 +694,9 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
-     * @notice Called any time there is a transfer to settle the performance and streaming fees
+     * notice Called any time there is a transfer to settle the performance and streaming fees
      */
-    function _handleFees(uint256 amount, address sender, address recipient) internal override {
+    /*function _handleFees(uint256 amount, address sender, address recipient) internal override {
         uint256 fee = uint256(_performanceFee);
         if (fee > 0) {
             uint256 senderPaidValue = _paidTokenValues[sender];
@@ -736,21 +737,21 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
                 }
             }
         }
-    }
+    }*/
 
     /**
-     * @notice Mints performance fee to the manager and fee pool
+     * notice Mints performance fee to the manager and fee pool
      */
-    function _issuePerformanceFee(address pool, uint256 amount) internal {
+    /*function _issuePerformanceFee(address pool, uint256 amount) internal {
         uint256 poolAmount = amount.mul(POOL_SHARE).div(DIVISOR);
         _mint(pool, poolAmount);
         _mint(_manager, amount.sub(poolAmount));
-    }
+    }*/
 
     /**
-     * @notice Mints new tokens to cover the streaming fee based on the time passed since last payment and the current streaming fee rate
+     * notice Mints new tokens to cover the streaming fee based on the time passed since last payment and the current streaming fee rate
      */
-    function _issueStreamingFee(address pool) internal {
+    /*function _issueStreamingFee(address pool) internal {
         uint256 timePassed = block.timestamp.sub(uint256(_lastStreamTimestamp));
         if (timePassed > 0) {
             uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed).div(YEAR).div(10**18);
@@ -759,49 +760,50 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
             _lastStreamTimestamp = uint96(block.timestamp);
             emit StreamingFee(amountToMint);
         }
-    }
+    }*/
 
     /**
-     * @notice Sets the new _streamingFeeRate which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
+     * notice Sets the new _streamingFeeRate which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
      */
-    function _updateStreamingFeeRate(address pool) internal {
+    /*function _updateStreamingFeeRate(address pool) internal {
         _streamingFeeRate = uint192(_totalSupply.sub(_balances[pool]).mul(STREAM_FEE));
-    }
+    }*/
 
     /**
      * @notice Deduct withdrawal fee and burn remaining tokens. Returns the amount of tokens that have been burned
      */
     function _deductFeeAndBurn(address account, uint256 amount) internal returns (uint256) {
-        address pool = _pool;
+        /*address pool = _pool;
         amount = _deductWithdrawalFee(account, pool, amount);
+       */
         _burn(account, amount);
-        _updateStreamingFeeRate(pool);
+        //_updateStreamingFeeRate(pool);
         return amount;
     }
 
     /**
-     * @notice Deducts the withdrawal fee and returns the remaining token amount
+     * notice Deducts the withdrawal fee and returns the remaining token amount
      */
-    function _deductWithdrawalFee(address account, address pool, uint256 amount) internal returns (uint256) {
+    /*function _deductWithdrawalFee(address account, address pool, uint256 amount) internal returns (uint256) {
         if (account == pool) return amount;
         uint256 fee = amount.mul(WITHDRAWAL_FEE).div(10**18);
         _transfer(account, pool, fee);
         emit WithdrawalFee(account, fee);
         return amount.sub(fee);
-    }
+    }*/
 
     // Settle performance fee
-    function _settlePerformanceFee(address account, uint256 fee) internal returns (uint256) {
+    /*function _settlePerformanceFee(address account, uint256 fee) internal returns (uint256) {
         uint256 amount = _getPerformanceFee(account, fee);
         if (amount > 0) {
             _paidTokenValues[account] = uint256(_lastTokenValue);
             emit PerformanceFee(account, amount);
         }
         return amount;
-    }
+    }*/
 
     // Settle performance fee when the account is receiving new tokens
-    function _settlePerformanceFeeRecipient(
+    /*function _settlePerformanceFeeRecipient(
         address account,
         uint256 amount,
         uint256 tokenValue,
@@ -847,12 +849,12 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
             // No fees need to be issued
             return 0;
         }
-    }
+    }*/
 
     /**
-     * @notice Returns the current amount of performance fees owed by the account
+     * notice Returns the current amount of performance fees owed by the account
      */
-    function _getPerformanceFee(address account, uint256 fee) internal view returns (uint256) {
+    /*function _getPerformanceFee(address account, uint256 fee) internal view returns (uint256) {
         // We don't need to check pool or manager address since their paid token value is max uint256
         if (uint256(_lastTokenValue) > _paidTokenValues[account])
             return _calcPerformanceFee(
@@ -862,15 +864,15 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
                 fee
             );
         return 0;
-    }
+    }*/
 
     /**
-     * @notice Calculated performance fee based on the current token value and the amount the user has already paid for
+     * notice Calculated performance fee based on the current token value and the amount the user has already paid for
      */
-    function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 fee) internal pure returns (uint256) {
+    /*function _calcPerformanceFee(uint256 balance, uint256 paidTokenValue, uint256 tokenValue, uint256 fee) internal pure returns (uint256) {
         uint256 diff = tokenValue.sub(paidTokenValue);
         return balance.mul(diff).mul(fee).div(DIVISOR).div(tokenValue);
-    }
+    }*/
 
     /**
      * @notice Averages the paid token value of a user between two sets of tokens that have paid different fees
