@@ -186,6 +186,16 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _addItemToRegistry(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
+    function addItemDetailedToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        TradeData memory tradeData,
+        bool isClaimable
+    ) external onlyOwner {
+        _addItemDetailedToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
+    }
+
     /**
      * @dev Leaves the contract without owner. It will not be possible to call
      * `onlyOwner` functions anymore. Can only be called by the current owner.
@@ -325,5 +335,15 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address token
     ) internal {
         ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token);
+    }
+
+    function _addItemDetailedToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        TradeData memory tradeData,
+        bool isClaimable
+    ) internal {
+        ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
     }
 }
