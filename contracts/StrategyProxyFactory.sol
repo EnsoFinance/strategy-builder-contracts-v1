@@ -174,17 +174,16 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         ITokenRegistry(_registry).addEstimator(estimatorCategoryIndex, estimator);
     }
 
-    function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata tokens, bool[] calldata isClaimable) external onlyOwner {
-        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, tokens, isClaimable);
+    function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata tokens) external onlyOwner {
+        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, tokens);
     }
 
     function addItemToRegistry(
         uint256 itemCategoryIndex,
         uint256 estimatorCategoryIndex,
-        address token,
-        bool isClaimable
+        address token
     ) external onlyOwner {
-        _addItemToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, isClaimable);
+        _addItemToRegistry(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
     /**
@@ -291,7 +290,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
         _proxyExists[salt_] = true;
-        _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy), false);
+        _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy));
         // Instead we initialize it directly in the Strategy contract
         IStrategyManagement(address(proxy)).initialize(
             name,
@@ -323,10 +322,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function _addItemToRegistry(
         uint256 itemCategoryIndex,
         uint256 estimatorCategoryIndex,
-        address token,
-        bool isClaimable
+        address token
     ) internal {
-        ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token, isClaimable);
+        ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token);
     }
-
 }

@@ -335,11 +335,11 @@ export async function deployPlatform(
 	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
 	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
 
-	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address, false) // not claimable
+	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 	if (susd)
 		await tokenRegistry
 			.connect(owner)
-			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address, false) // not claimable
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address) 
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
@@ -364,6 +364,7 @@ export async function deployPlatform(
 	await factoryImplementation.deployed()
 
 	// Strategy Implementation
+  console.log(Strategy.bytecode.length)
 	const strategyImplementation = await waffle.deployContract(owner, Strategy, [
 		factoryAddress,
 		controllerAddress,

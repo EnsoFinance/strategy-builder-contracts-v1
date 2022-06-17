@@ -383,20 +383,24 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function _claimAll() private {
+        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
+        address[] memory tokens;
+        for (uint256 i; i < values.length; ++i) {
+            (tokens) = abi.decode(values[i], (address[]));
+            _delegateClaim(address(uint256(keys[i])), tokens); 
+        }
+    }
+
+    function _getAllToClaim() private returns(uint256[] memory keys, bytes[] memory values) {
         BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         uint256 numAdded = _toClaim(mm, exists, _items);
         numAdded += _toClaim(mm, exists, _synths);
         numAdded += _toClaim(mm, exists, _debt);
 
-        uint256[] memory keys = new uint256[](numAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
-        bytes[] memory values = new bytes[](numAdded);
+        keys = new uint256[](numAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        values = new bytes[](numAdded);
         BinaryTreeWithPayload.readInto(mm, keys, values);
-        address[] memory tokens;
-        for (uint256 i; i < numAdded; ++i) {
-            (tokens) = abi.decode(values[i], (address[]));
-            _delegateClaim(address(uint256(keys[i])), tokens); 
-        }
     }
 
     function _toClaim(
@@ -414,7 +418,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         bool ok;
         for (uint256 i; i < positions.length; ++i) {
             position = positions[i];
-            if (!tokenRegistry.claimable(position)) continue; 
+            if (!tokenRegistry.isClaimable(position)) continue; 
             tradeData = _tradeData[position];
             adaptersLength = tradeData.adapters.length;
             if (adaptersLength < 1) continue;
@@ -422,7 +426,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             key = keccak256(abi.encodePacked(rewardsAdapter, position));
             (ok, ) = exists.getValue(key);
             if (ok) continue;
-            exists.add(key, key); // second parameter is "any" value
+            exists.add(key, bytes32(0x0)); // second parameter is "any" value
             ok = mm.append(bytes32(uint256(rewardsAdapter)), bytes32(uint256(position)));
             // ok means "isNew"
             if (ok) ++numAdded;
@@ -701,28 +705,54 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         // Set new items
         int256 virtualPercentage = 0;
+        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         for (uint256 i = 0; i < newItems.length; i++) {
-            address newItem = newItems[i].item;
-            _tradeData[newItem] = newItems[i].data;
-            _percentage[newItem] = newItems[i].percentage;
-            ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
-            if (category == ItemCategory.BASIC) {
-                _items.push(newItem);
-            } else if (category == ItemCategory.SYNTH) {
-                virtualPercentage = virtualPercentage.add(_percentage[newItem]);
-                _synths.push(newItem);
-            } else if (category == ItemCategory.DEBT) {
-                _debt.push(newItem);
+            virtualPercentage = _setItem(newItems[i], tokenRegistry, virtualPercentage);
+            exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
+        }
+
+        if (_percentage[susd] > 0) {
+            //If only synth is SUSD, treat it like a regular token
+            _items.push(susd);
+            exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
+        }
+
+        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
+        address[] memory rewardTokens;
+        bool ok;
+        StrategyItem memory item;
+        for (uint256 i; i < values.length; ++i) {
+            (rewardTokens) = abi.decode(values[i], (address[]));
+            for (uint256 j; j < rewardTokens.length; ++j) {
+                (ok, ) = exists.getValue(bytes32(uint256(rewardTokens[j])));
+                if (ok) continue;
+                exists.add(bytes32(uint256(rewardTokens[j])), bytes32(0x0)); // second parameter is "any" value
+                item = StrategyItem({item: rewardTokens[j], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[j]).tradeData});
+                virtualPercentage = _setItem(item, tokenRegistry, virtualPercentage);
             }
         }
+        
         if (_synths.length > 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;
-        } else if (_percentage[susd] > 0) {
-            //If only synth is SUSD, treat it like a regular token
-            _items.push(susd);
+        } 
+    }
+
+    function _setItem(StrategyItem memory strategyItem, ITokenRegistry tokenRegistry, int256 virtualPercentage) private returns(int256) {
+        address newItem = strategyItem.item;
+        _tradeData[newItem] = strategyItem.data;
+        _percentage[newItem] = strategyItem.percentage;
+        ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
+        if (category == ItemCategory.BASIC) {
+            _items.push(newItem);
+        } else if (category == ItemCategory.SYNTH) {
+            virtualPercentage = virtualPercentage.add(_percentage[newItem]);
+            _synths.push(newItem);
+        } else if (category == ItemCategory.DEBT) {
+            _debt.push(newItem);
         }
+        return virtualPercentage;
     }
 
     /**
