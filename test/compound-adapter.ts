@@ -14,7 +14,7 @@ import {
 	deployPlatform,
 	deployLoopRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
+import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 // import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -164,11 +164,25 @@ describe('CompoundAdapter', function () {
 		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
 	})*/
 
+	it('Should deposit more: ETH', async function () {
+		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+	})
+
     it('Should claim rewards', async function() {
         const balanceBefore = await comp.balanceOf(strategy.address)
-        await strategy.connect(accounts[1]).claimAll()
+        const tx = await strategy.connect(accounts[1]).claimAll()
+        const receipt = await tx.wait()
+		    console.log('Gas Used: ', receipt.gasUsed.toString())
         const balanceAfter = await comp.balanceOf(strategy.address)
         expect(balanceAfter).to.be.gt(balanceBefore)
-        expect(balanceAfter).to.be.equal(735192153)
+        expect(balanceAfter).to.be.equal(900772947)
     })
+  
 })
