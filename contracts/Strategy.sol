@@ -600,7 +600,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         int256 virtualPercentage = 0;
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         for (uint256 i = 0; i < newItems.length; i++) {
-            virtualPercentage = _setItem(newItems[i], tokenRegistry, virtualPercentage);
+            virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
         }
 
@@ -610,6 +610,34 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
             exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
         }
 
+        virtualPercentage = virtualPercentage.add(_updateClaimables(exists, tokenRegistry));
+        
+        if (_synths.length > 0) {
+            // Add SUSD percentage
+            virtualPercentage = virtualPercentage.add(_percentage[susd]);
+            _percentage[address(-1)] = virtualPercentage;
+        } 
+    }
+
+    function _setItem(StrategyItem memory strategyItem, ITokenRegistry tokenRegistry) private returns(int256) {
+        address newItem = strategyItem.item;
+        _tradeData[newItem] = strategyItem.data;
+        _percentage[newItem] = strategyItem.percentage;
+        ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
+        int256 virtualPercentage;
+        if (category == ItemCategory.BASIC) {
+            _items.push(newItem);
+        } else if (category == ItemCategory.SYNTH) {
+            virtualPercentage = _percentage[newItem];
+            _synths.push(newItem);
+        } else if (category == ItemCategory.DEBT) {
+            _debt.push(newItem);
+        }
+        return virtualPercentage;
+    }
+
+    function _updateClaimables(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal returns(int256) {
+        int256 virtualPercentage; 
         (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
         address[] memory rewardTokens;
         bool ok;
@@ -621,29 +649,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
                 if (ok) continue;
                 exists.add(bytes32(uint256(rewardTokens[j])), bytes32(0x0)); // second parameter is "any" value
                 item = StrategyItem({item: rewardTokens[j], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[j]).tradeData});
-                virtualPercentage = _setItem(item, tokenRegistry, virtualPercentage);
+                virtualPercentage = virtualPercentage.add(_setItem(item, tokenRegistry));
             }
-        }
-        
-        if (_synths.length > 0) {
-            // Add SUSD percentage
-            virtualPercentage = virtualPercentage.add(_percentage[susd]);
-            _percentage[address(-1)] = virtualPercentage;
-        } 
-    }
-
-    function _setItem(StrategyItem memory strategyItem, ITokenRegistry tokenRegistry, int256 virtualPercentage) private returns(int256) {
-        address newItem = strategyItem.item;
-        _tradeData[newItem] = strategyItem.data;
-        _percentage[newItem] = strategyItem.percentage;
-        ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
-        if (category == ItemCategory.BASIC) {
-            _items.push(newItem);
-        } else if (category == ItemCategory.SYNTH) {
-            virtualPercentage = virtualPercentage.add(_percentage[newItem]);
-            _synths.push(newItem);
-        } else if (category == ItemCategory.DEBT) {
-            _debt.push(newItem);
         }
         return virtualPercentage;
     }
