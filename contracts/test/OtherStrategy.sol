@@ -375,12 +375,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         model to other rewards tokens, but we always err on the side of
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != controller && msg.sender != factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
-        _claimAll();
-    }
-
-    function _claimAll() private {
-        revert("not implemented for this test contract");
+        revert("testing contract noop");
     }
 
     /**

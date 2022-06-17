@@ -2,7 +2,6 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -331,7 +330,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         model to other rewards tokens, but we always err on the side of
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != controller && msg.sender != factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
+        if (msg.sender != _controller && msg.sender != _factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
         _claimAll();
     }
 
