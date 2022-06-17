@@ -382,6 +382,10 @@
     "contractName": "SafeERC20.sol"
   },
   {
+    "contractId": "9bf33f03195f",
+    "contractName": "StrategyClaim.sol"
+  },
+  {
     "contractId": "804863855eaa",
     "contractName": "StrategyLibrary.sol"
   },
@@ -528,10 +532,6 @@
   {
     "contractId": "f82c9bfb87d3",
     "contractName": "NonfungibleTokenPositionDescriptor.sol"
-  },
-  {
-    "contractId": "5ad92c6b7990",
-    "contractName": "OtherStrategy.sol"
   },
   {
     "contractId": "6552d16b6572",
