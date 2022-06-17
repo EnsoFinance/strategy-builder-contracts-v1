@@ -184,6 +184,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
+        strategy.claimAll();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(!balancedBefore, uint256(0x1bb63a90056c03) /* error_macro_for("Balanced") */);
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
@@ -565,6 +566,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyApproved(address(router));
         _require(amount > 0, uint256(0x1bb63a90056c1d) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);
+        strategy.claimAll();
         strategy.settleSynths();
         address pool = _pool;
         uint256 poolWethAmount;
@@ -671,6 +673,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal {
         // Get strategy value
         IOracle o = oracle();
+        strategy.claimAll(); // from the old structure
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
@@ -680,6 +683,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
         // Set new structure
         strategy.setStructure(newItems);
+        strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
         _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
         // Check balance
