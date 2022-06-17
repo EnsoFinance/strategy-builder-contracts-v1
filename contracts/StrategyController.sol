@@ -105,6 +105,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
+        strategy.claimAll();
         Timelock memory lock = _timelocks[address(strategy)];
         _require(
           lock.timestamp == 0 || lock.category != TimelockCategory.RESTRUCTURE,
