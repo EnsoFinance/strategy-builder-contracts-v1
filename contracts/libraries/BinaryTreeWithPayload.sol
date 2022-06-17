@@ -49,6 +49,18 @@ library BinaryTreeWithPayload {
     }
 
     function readInto(Tree memory tree, uint256[] memory arrayA, bytes[] memory arrayB) internal pure { 
+        if (arrayA.length != arrayB.length+1) revert("readInto: arrayA needs idx entry.");
+        if (arrayB.length == 0) revert("readInto: arrayB can't be length 0.");
+        _readInto(tree, arrayA, arrayB);
+    }
+
+    function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) private pure { 
+        if (arrayA.length != arrayB.length+1) revert("readInto: arrayA needs idx entry.");
+        if (arrayB.length == 0) revert("readInto: arrayB can't be length 0.");
+        _readInto(tree, arrayA, arrayB);
+    }
+
+    function _readInto(Tree memory tree, uint256[] memory arrayA, bytes[] memory arrayB) private pure { 
         if (tree.neighbors[0].exists) readInto(tree.neighbors[0], arrayA, arrayB); // left
         // center
         uint256 idx = arrayA[arrayA.length-1];
@@ -58,7 +70,7 @@ library BinaryTreeWithPayload {
         if (tree.neighbors[1].exists) readInto(tree.neighbors[1], arrayA, arrayB); // right
     }
 
-    function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) internal pure { 
+    function _readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) private pure { 
         if (tree.neighbors[0].exists) readInto(tree.neighbors[0], arrayA, arrayB); // left
         // center
         uint256 idx = arrayA[arrayA.length-1];

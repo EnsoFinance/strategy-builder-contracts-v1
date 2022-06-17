@@ -5,7 +5,18 @@
   },
   {
     "contractId": "b3e5dea2190e",
-    "contractName": "Strategy.sol"
+    "contractName": "Strategy.sol",
+    "errorcodes": {
+      "b3e5dea2190e00": "Router only",
+      "b3e5dea2190e01": "finalizeTimelock: timelock is not ready.",
+      "b3e5dea2190e02": "Cannot withdraw debt",
+      "b3e5dea2190e03": "0 amount",
+      "b3e5dea2190e04": "claimAll: caller must be controller or manager.",
+      "b3e5dea2190e05": "Manager already set",
+      "b3e5dea2190e06": "finalizeUpdateTradeData: timelock not ready.",
+      "b3e5dea2190e07": "Only StrategyProxyFactory",
+      "b3e5dea2190e08": "Not approved"
+    }
   },
   {
     "contractId": "ee78cef3375d",
@@ -380,6 +391,10 @@
   {
     "contractId": "d4205fad1c82",
     "contractName": "SafeERC20.sol"
+  },
+  {
+    "contractId": "9bf33f03195f",
+    "contractName": "StrategyClaim.sol"
   },
   {
     "contractId": "804863855eaa",

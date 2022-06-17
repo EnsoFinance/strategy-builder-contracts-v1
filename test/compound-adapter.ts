@@ -1,6 +1,6 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
@@ -19,6 +19,7 @@ import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from 
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 chai.use(solidity)
 
@@ -102,7 +103,13 @@ describe('CompoundAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+    const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, []) // TODO get from deploy
+    await strategyClaim.deployed()
+		const Strategy = await getContractFactory('Strategy', {
+        libraries: {
+          StrategyClaim: strategyClaim.address
+        }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
@@ -184,5 +191,4 @@ describe('CompoundAdapter', function () {
         expect(balanceAfter).to.be.gt(balanceBefore)
         expect(balanceAfter).to.be.equal(900772947)
     })
-  
 })
