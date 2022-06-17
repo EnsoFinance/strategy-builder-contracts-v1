@@ -229,7 +229,7 @@ abstract contract OtherStrategyToken is IStrategyToken, OtherStrategyTokenStorag
     ) internal virtual {
         _validAddress(sender);
         _validAddress(recipient);
-        _handleFees(amount, sender, recipient);
+        //_handleFees(amount, sender, recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
         _resetTokenValue(sender);
@@ -318,5 +318,5 @@ abstract contract OtherStrategyToken is IStrategyToken, OtherStrategyTokenStorag
         require(addr != address(0), "ERC20: No address(0)");
     }
 
-    function _handleFees(uint256 amount, address sender,address recipient) internal virtual;
+    //function _handleFees(uint256 amount, address sender,address recipient) internal virtual;
 }
