@@ -6,7 +6,7 @@ const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
 	deployCompoundAdapter,
@@ -14,7 +14,7 @@ import {
 	deployPlatform,
 	deployLoopRouter
 } from '../lib/deploy'
-import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
+import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 // import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -66,10 +66,18 @@ describe('CompoundAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
+    let tradeData : TradeData = {
+        adapters: [],
+        path: [],
+        cache: '0x'
+    }
+		cToken = tokens.cUSDT
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, cToken, tradeData, true)
+    tradeData.adapters.push(uniswapAdapter.address)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, comp.address, tradeData, false)
 	})
 
 	it('Should deploy strategy', async function () {
-		cToken = tokens.cUSDT
 
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
@@ -189,6 +197,6 @@ describe('CompoundAdapter', function () {
 		    console.log('Gas Used: ', receipt.gasUsed.toString())
         const balanceAfter = await comp.balanceOf(strategy.address)
         expect(balanceAfter).to.be.gt(balanceBefore)
-        expect(balanceAfter).to.be.equal(900772947)
+        expect(balanceAfter).to.be.equal(983459338)
     })
 })
