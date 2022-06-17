@@ -9,6 +9,7 @@ import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
 import UniswapV3Oracle from '../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json'
@@ -364,13 +365,21 @@ export async function deployPlatform(
 	await factoryImplementation.deployed()
 
 	// Strategy Implementation
-  console.log(Strategy.bytecode.length)
-	const strategyImplementation = await waffle.deployContract(owner, Strategy, [
+	const strategyClaim = await waffle.deployContract(owner, StrategyClaim, [])
+	await strategyClaim.deployed()
+	const strategyClaimLink = createLink(StrategyClaim, strategyClaim.address)
+
+  const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
+
+	const strategyImplementation = await waffle.deployContract(
+    owner, 
+    strategyLinked,
+    [
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
-		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
-	])
+		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,]
+  )
 	await strategyImplementation.deployed()
 
 	await platformProxyAdmin

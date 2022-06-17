@@ -3,11 +3,11 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/proxy/Initializable.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./libraries/MemoryMappings.sol";
+import "./libraries/StrategyClaim.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -18,6 +18,7 @@ import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
 import "./helpers/Timelocks.sol";
+import "./helpers/Require.sol";
 import "./StrategyToken.sol";
 
 interface ISynthetixAddressResolver {
@@ -32,7 +33,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable, Timelocks {
+contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -55,7 +56,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     address public immutable override controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
-    event RewardsClaimed(address indexed adapter, address[] indexed tokens);
     event UpdateManager(address manager);
     //event PerformanceFee(address indexed account, uint256 amount);
     //event WithdrawalFee(address indexed account, uint256 amount);
@@ -74,7 +74,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(controller == msg.sender, "Controller only");
+        _require(controller == msg.sender, uint256(0xb3e5dea2190e00) /* error_macro_for("Controller only") */);
         _;
     }
 
@@ -82,7 +82,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @dev Throws if called by any account other than the temporary router.
      */
     modifier onlyRouter() {
-        require(_tempRouter == msg.sender, "Router only");
+        _require(_tempRouter == msg.sender, uint256(0xb3e5dea2190e01) /* error_macro_for("Router only") */);
         _;
     }
 
@@ -139,7 +139,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address account,
         uint256 amount
     ) external override onlyController {
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i; i < tokens.length; ++i) {
             IERC20(tokens[i]).sortaSafeApprove(account, amount);
         }
     }
@@ -155,7 +155,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address account,
         uint256 amount
     ) external override onlyController {
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i; i < tokens.length; ++i) {
             IDebtToken(tokens[i]).approveDelegation(account, amount);
         }
     }
@@ -203,7 +203,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     function finalizeTimelock() external override {
         if (!_timelockIsReady(this.updateTimelock.selector)) {
             TimelockData memory td = _timelockData(this.updateTimelock.selector);
-            require(td.delay == 0, "finalizeTimelock: timelock is not ready.");
+            _require(td.delay == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
         }
         (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(this.updateTimelock.selector), (bytes4, uint256));
         _setTimelock(selector, delay);
@@ -221,8 +221,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function withdrawAll(uint256 amount) external override {
         _setLock();
-        require(_debt.length == 0, "Cannot withdraw debt");
-        require(amount > 0, "0 amount");
+        _require(_debt.length == 0, uint256(0xb3e5dea2190e03) /* error_macro_for("Cannot withdraw debt") */);
+        _require(amount > 0, uint256(0xb3e5dea2190e04) /* error_macro_for("0 amount") */);
         settleSynths();
         uint256 percentage;
         {
@@ -238,7 +238,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
-        for (uint256 i = 0; i < itemsLength; i++) {
+        for (uint256 i; i < itemsLength; ++i) {
             // Should not be possible to have address(0) since the Strategy will check for it
             IERC20 token = IERC20(_items[i]);
             uint256 currentBalance = token.balanceOf(address(this));
@@ -246,7 +246,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             tokens[i] = token;
         }
         if (isSynths) {
-            for (uint256 i = itemsLength; i < numTokens - 2; i ++) {
+            for (uint256 i = itemsLength; i < numTokens - 2; ++i) {
                 IERC20 synth = IERC20(_synths[i - itemsLength]);
                 uint256 currentBalance = synth.balanceOf(address(this));
                 amounts[i] = currentBalance.mul(percentage).div(10**18);
@@ -264,7 +264,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         amounts[numTokens - 1] = wethBalance.mul(percentage).div(10**18);
         tokens[numTokens - 1] = weth;
         // Transfer amounts
-        for (uint256 i = 0; i < numTokens; i++) {
+        for (uint256 i; i < numTokens; ++i) {
             if (amounts[i] > 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
         emit Withdraw(msg.sender, amount, amounts);
@@ -281,10 +281,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _updateTokenValue();
         uint256 fee = uint256(_performanceFee);
         uint256 amount = 0;
-        for (uint256 i = 0; i < holders.length; i++) {
+        for (uint256 i; i < holders.length; ++i) {
             amount = amount.add(_settlePerformanceFee(holders[i], fee));
         }
-        require(amount > 0, "No earnings");
+        _require(amount > 0, uint256(0xb3e5dea2190e05) /* error_macro_for("No earnings") *//*);
         address pool = _pool;
         _issuePerformanceFee(pool, amount);
         _updateStreamingFeeRate(pool);
@@ -378,90 +378,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         model to other rewards tokens, but we always err on the side of
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != controller && msg.sender != factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
-        _claimAll();
+        if (msg.sender != controller && msg.sender != factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e06) /* error_macro_for("claimAll: caller must be controller or manager.") */);
+        StrategyClaim._claimAll();
     }
-
-    function _claimAll() private {
-        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
-        address[] memory tokens;
-        for (uint256 i; i < values.length; ++i) {
-            (tokens) = abi.decode(values[i], (address[]));
-            _delegateClaim(address(uint256(keys[i])), tokens); 
-        }
-    }
-
-    function _getAllToClaim() private returns(uint256[] memory keys, bytes[] memory values) {
-        BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
-        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
-        uint256 numAdded = _toClaim(mm, exists, _items);
-        numAdded += _toClaim(mm, exists, _synths);
-        numAdded += _toClaim(mm, exists, _debt);
-
-        keys = new uint256[](numAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
-        values = new bytes[](numAdded);
-        BinaryTreeWithPayload.readInto(mm, keys, values);
-    }
-
-    function _toClaim(
-      BinaryTreeWithPayload.Tree memory mm,
-      BinaryTreeWithPayload.Tree memory exists,
-      address[] memory positions
-    ) private returns(uint256) {
-        uint256 numAdded;
-        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
-        address position;
-        TradeData memory tradeData;
-        uint256 adaptersLength;
-        address rewardsAdapter;
-        bytes32 key;
-        bool ok;
-        for (uint256 i; i < positions.length; ++i) {
-            position = positions[i];
-            if (!tokenRegistry.isClaimable(position)) continue; 
-            tradeData = _tradeData[position];
-            adaptersLength = tradeData.adapters.length;
-            if (adaptersLength < 1) continue;
-            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
-            key = keccak256(abi.encodePacked(rewardsAdapter, position));
-            (ok, ) = exists.getValue(key);
-            if (ok) continue;
-            exists.add(key, bytes32(0x0)); // second parameter is "any" value
-            ok = mm.append(bytes32(uint256(rewardsAdapter)), bytes32(uint256(position)));
-            // ok means "isNew"
-            if (ok) ++numAdded;
-        }
-        return numAdded;
-    }
-
-    /**
-     * notice Claim rewards using a delegate call to adapter
-     * param adapter The address of the adapter that this function does a delegate call to.
-                      It must support the IRewardsAdapter interface and be whitelisted
-     * param token The address of the token being claimed
-     */
-    /*function claimRewards(address adapter, address token) external {
-        _setLock();
-        _onlyManager();
-        _delegateClaim(adapter, token);
-        _removeLock();
-    }*/
-
-    /**
-     * notice Batch claim rewards using a delegate call to adapters
-     * param adapters The addresses of the adapters that this function does a delegate call to.
-                       Adapters must support the IRewardsAdapter interface and be whitelisted
-     * param tokens The addresses of the tokens being claimed
-     */
-    /*function batchClaimRewards(address[] memory adapters, address[] memory tokens) external {
-        _setLock();
-        _onlyManager();
-        require(adapters.length == tokens.length, "Incorrect parameters");
-        for (uint256 i = 0; i < adapters.length; i++) {
-          _delegateClaim(adapters[i], tokens[i]);
-        }
-        _removeLock();
-    }*/
 
     /**
      * @notice Settle the amount held for each Synth after an exchange has occured and the oracles have resolved a price
@@ -471,7 +390,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             IExchanger exchanger = IExchanger(synthetixResolver.getAddress("Exchanger"));
             IIssuer issuer = IIssuer(synthetixResolver.getAddress("Issuer"));
             exchanger.settle(address(this), "sUSD");
-            for (uint256 i = 0; i < _synths.length; i++) {
+            for (uint256 i; i < _synths.length; ++i) {
                 exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
             }
         }
@@ -516,7 +435,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function updateManager(address newManager) external override {
         _onlyManager();
-        require(newManager != _manager, "Manager already set");
+        _require(newManager != _manager, uint256(0xb3e5dea2190e08) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[_manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
@@ -534,7 +453,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function finalizeUpdateTradeData() external {
-        require(_timelockIsReady(this.updateTradeData.selector), "finalizeUpdateTradeData: timelock not ready.");
+        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e09) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
         _resetTimelock(this.updateTradeData.selector);
@@ -570,7 +489,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        require(msg.sender == factory, "Only StrategyProxyFactory");
+        _require(msg.sender == factory, uint256(0xb3e5dea2190e0a) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
@@ -649,35 +568,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     /**
-     * @notice Claim rewards using a delegate call to an adapter
-     * @param adapter The address of the adapter that this function does a delegate call to.
-                      It must support the IRewardsAdapter interface and be whitelisted
-     * @param tokens The addresses of the tokens being claimed
-     */
-    function _delegateClaim(address adapter, address[] memory tokens) internal {
-        _onlyApproved(adapter);
-        bytes memory data =
-            abi.encodeWithSelector(
-                bytes4(keccak256("claim(address[])")),
-                tokens
-            );
-        uint256 txGas = gasleft();
-        bool success;
-        assembly {
-            success := delegatecall(txGas, adapter, add(data, 0x20), mload(data), 0, 0)
-        }
-        if (!success) {
-            assembly {
-                let ptr := mload(0x40)
-                let size := returndatasize()
-                returndatacopy(ptr, 0, size)
-                revert(ptr, size)
-            }
-        }
-        emit RewardsClaimed(adapter, tokens);
-    }
-
-    /**
      * @notice Set the structure of the strategy
      * @param newItems An array of Item structs that will comprise the strategy
      */
@@ -688,13 +578,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         delete _percentage[weth];
         delete _percentage[susd];
         delete _percentage[address(-1)];
-        for (uint256 i = 0; i < _items.length; i++) {
+        for (uint256 i; i < _items.length; ++i) {
             delete _percentage[_items[i]];
         }
-        for (uint256 i = 0; i < _debt.length; i++) {
+        for (uint256 i; i < _debt.length; ++i) {
             delete _percentage[_debt[i]];
         }
-        for (uint256 i = 0; i < _synths.length; i++) {
+        for (uint256 i; i < _synths.length; ++i) {
             delete _percentage[_synths[i]];
         }
         delete _debt;
@@ -706,7 +596,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         // Set new items
         int256 virtualPercentage = 0;
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
-        for (uint256 i = 0; i < newItems.length; i++) {
+        for (uint256 i; i < newItems.length; ++i) {
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
         }
@@ -745,7 +635,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
 
     function _updateClaimables(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal returns(int256) {
         int256 virtualPercentage; 
-        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
+        (uint256[] memory keys, bytes[] memory values) = StrategyClaim._getAllToClaim();
         address[] memory rewardTokens;
         bool ok;
         StrategyItem memory item;
@@ -975,18 +865,18 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) internal view {
-        require(whitelist().approved(account), "Not approved");
+        _require(whitelist().approved(account), uint256(0xb3e5dea2190e0b) /* error_macro_for("Not approved") */);
     }
 
     function _onlyManager() internal view {
-        require(msg.sender == _manager, "Not manager");
+        _require(msg.sender == _manager, uint256(0xb3e5dea2190e0c) /* error_macro_for("Not manager") */);
     }
 
     /**
      * @notice Sets Reentrancy guard
      */
     function _setLock() internal {
-        require(_locked == 0, "No Reentrancy");
+        _require(_locked == 0, uint256(0xb3e5dea2190e0d) /* error_macro_for("No Reentrancy") */);
         _locked = 1;
     }
 
