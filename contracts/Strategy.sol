@@ -502,7 +502,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
             exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
         }
 
-        virtualPercentage = virtualPercentage.add(_updateClaimables(exists, tokenRegistry));
+        virtualPercentage = virtualPercentage.add(_updateRewards(exists, tokenRegistry));
         
         if (_synths.length > 0) {
             // Add SUSD percentage
@@ -528,21 +528,17 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         return virtualPercentage;
     }
 
-    function _updateClaimables(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal returns(int256) {
+    function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal returns(int256) {
         int256 virtualPercentage; 
-        (uint256[] memory keys, bytes[] memory values) = StrategyClaim._getAllToClaim();
-        address[] memory rewardTokens;
+        address[] memory rewardTokens = StrategyClaim._getAllRewardTokens();
         bool ok;
         StrategyItem memory item;
-        for (uint256 i; i < values.length; ++i) {
-            (rewardTokens) = abi.decode(values[i], (address[]));
-            for (uint256 j; j < rewardTokens.length; ++j) {
-                (ok, ) = exists.getValue(bytes32(uint256(rewardTokens[j])));
-                if (ok) continue;
-                exists.add(bytes32(uint256(rewardTokens[j])), bytes32(0x0)); // second parameter is "any" value
-                item = StrategyItem({item: rewardTokens[j], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[j]).tradeData});
-                virtualPercentage = virtualPercentage.add(_setItem(item, tokenRegistry));
-            }
+        for (uint256 i; i < rewardTokens.length; ++i) {
+            (ok, ) = exists.getValue(bytes32(uint256(rewardTokens[i])));
+            if (ok) continue;
+            exists.add(bytes32(uint256(rewardTokens[i])), bytes32(0x0)); // second parameter is "any" value
+            item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
+            virtualPercentage = virtualPercentage.add(_setItem(item, tokenRegistry));
         }
         return virtualPercentage;
     }
