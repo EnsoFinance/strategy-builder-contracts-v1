@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/IStrategy.sol";
+import "../interfaces/IRewardsAdapter.sol";
 import "../helpers/StrategyTypes.sol";
 import "./MemoryMappings.sol";
 
@@ -20,7 +21,23 @@ library StrategyClaim {
         }
     }
 
-    function _getAllToClaim() public view returns(uint256[] memory keys, bytes[] memory values) {
+    function _getAllRewardTokens() public view returns(address[] memory rewardTokens) {
+        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
+        IRewardsAdapter rewardsAdapter;
+        address[] memory claimableTokens;
+        address[] memory _rewardTokens;
+        for (uint256 i; i < values.length; ++i) {
+            rewardsAdapter = IRewardsAdapter(address(keys[i]));
+            (claimableTokens) = abi.decode(values[i], (address[]));
+            for (uint256 j; j < claimableTokens.length; ++j) {
+                _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[i]); 
+                // FIXME copy _rewardTokens to rewardTokens
+                // TODO
+            }
+        }
+    }
+
+    function _getAllToClaim() private view returns(uint256[] memory keys, bytes[] memory values) {
         BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         IStrategy _this = IStrategy(address(this));
