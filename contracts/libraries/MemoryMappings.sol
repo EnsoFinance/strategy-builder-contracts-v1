@@ -17,13 +17,12 @@ library MemoryMappings {
         }
         (arr) = abi.decode(node.payload, (bytes32[]));
         assembly {
-            let bytesWritten := mload(arr)
-            bytesWritten := add(bytesWritten, 32)
-            mstore(arr, add(arr, and(add(add(bytesWritten, 0x20), 0x1f), not(0x1f))))
+          // FIXME do I need free memory pointer??
             mstore(add(arr, add(mul(mload(arr), 32), 32)), value)
-            mstore(arr, bytesWritten)
+            let len := add(mload(arr), 1)
+            mstore(arr, len)
         }
-        mm.add(uint256(key), abi.encode(arr));
+        mm.replace(uint256(key), abi.encode(arr));
     }
 
     function add(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes32 value) internal pure {

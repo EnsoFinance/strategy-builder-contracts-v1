@@ -39,8 +39,7 @@ describe('CompoundAdapter', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
-		tokens: Tokens,
-		cToken: string
+		tokens: Tokens
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -71,8 +70,8 @@ describe('CompoundAdapter', function () {
         path: [],
         cache: '0x'
     }
-		cToken = tokens.cUSDT
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, cToken, tradeData, true)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
     tradeData.adapters.push(uniswapAdapter.address)
     await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, comp.address, tradeData, false)
 	})
@@ -82,9 +81,14 @@ describe('CompoundAdapter', function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] }
+			{ token: weth.address, percentage: BigNumber.from(200) },
+			{ token: tokens.cUSDT, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] },
+			{ token: tokens.cDAI, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.dai] }
 		]
+    console.log("cDAI", tokens.cDAI)
+    console.log("cUSDT", tokens.cUSDT)
+    console.log("weth", weth.address)
+    console.log("comp", comp.address)
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -96,6 +100,7 @@ describe('CompoundAdapter', function () {
 			set: false
 		}
 
+    console.log("debug before")
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -108,6 +113,8 @@ describe('CompoundAdapter', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
+
+    console.log("debug after")
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -197,6 +204,6 @@ describe('CompoundAdapter', function () {
 		    console.log('Gas Used: ', receipt.gasUsed.toString())
         const balanceAfter = await comp.balanceOf(strategy.address)
         expect(balanceAfter).to.be.gt(balanceBefore)
-        expect(balanceAfter).to.be.equal(983459338)
+        expect(balanceAfter).to.be.equal(4899564278)
     })
 })
