@@ -34,7 +34,6 @@ library StrategyClaim {
         address[] memory _rewardTokens;
         address rewardToken;
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
-        bool debug;
         for (uint256 i; i < values.length; ++i) {
             rewardsAdapter = IRewardsAdapter(address(keys[i]));
             (claimableTokens) = abi.decode(values[i], (address[]));
