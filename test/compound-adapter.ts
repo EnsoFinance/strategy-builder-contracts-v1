@@ -89,6 +89,7 @@ describe('CompoundAdapter', function () {
     console.log("cUSDT", tokens.cUSDT)
     console.log("weth", weth.address)
     console.log("comp", comp.address)
+    console.log("compAdapter", compoundAdapter.address)
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -100,7 +101,6 @@ describe('CompoundAdapter', function () {
 			set: false
 		}
 
-    console.log("debug before")
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -113,8 +113,6 @@ describe('CompoundAdapter', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
-
-    console.log("debug after")
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -204,6 +202,6 @@ describe('CompoundAdapter', function () {
 		    console.log('Gas Used: ', receipt.gasUsed.toString())
         const balanceAfter = await comp.balanceOf(strategy.address)
         expect(balanceAfter).to.be.gt(balanceBefore)
-        expect(balanceAfter).to.be.equal(4899564278)
+        expect(balanceAfter).to.be.equal(1219756064)
     })
 })

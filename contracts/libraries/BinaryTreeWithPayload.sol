@@ -41,23 +41,24 @@ library BinaryTreeWithPayload {
         }
     }
 
-    function replace(Tree memory tree, uint256 value, bytes memory payload) internal pure {
+    function replace(Tree memory tree, uint256 value, bytes memory payload) internal pure returns(bool) {
         if (!tree.exists) {
             tree.exists = true;
             tree.value = value;
             tree.payload = payload;
-            return;
+            return true;
         }
         if (tree.value == value) {
             tree.payload = payload;
-            return;
+            return false;
         }
         uint256 idx = 0;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
-            replace(tree.neighbors[idx], value, payload);
+            return replace(tree.neighbors[idx], value, payload);
         } else {
             tree.neighbors[idx] = newNode(value, payload); 
+            return true;
         }
     }
 
