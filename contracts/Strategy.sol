@@ -324,6 +324,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         }
     }
 
+    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
+        return StrategyClaim._getAllRewardTokens();
+    }
+
     // claim all rewards tokens of claimables
     function claimAll() external override {
         /*
