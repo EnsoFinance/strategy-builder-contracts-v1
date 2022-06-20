@@ -26,15 +26,24 @@ library StrategyClaim {
         IRewardsAdapter rewardsAdapter;
         address[] memory claimableTokens;
         address[] memory _rewardTokens;
+        address rewardToken;
+        BinaryTreeWithPayload.Tree memory mm;
+        uint256 tokensAdded;
+        bytes memory dummyData = abi.encode(tokensAdded);
         for (uint256 i; i < values.length; ++i) {
             rewardsAdapter = IRewardsAdapter(address(keys[i]));
             (claimableTokens) = abi.decode(values[i], (address[]));
             for (uint256 j; j < claimableTokens.length; ++j) {
                 _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[i]); 
-                // FIXME copy _rewardTokens to rewardTokens
-                // TODO
+                for (uint256 k; k < _rewardTokens.length; ++k) {
+                    if (BinaryTreeWithPayload.replace(mm, uint256(_rewardTokens[k]), dummyData)) ++tokensAdded;       
+                }
             }
         }
+        keys = new uint256[](tokensAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        values = new bytes[](tokensAdded);
+        BinaryTreeWithPayload.readInto(mm, keys, values);
+        (rewardTokens) = abi.decode(abi.encode(keys), (address[]));
     }
 
     function _getAllToClaim() private view returns(uint256[] memory keys, bytes[] memory values) {
