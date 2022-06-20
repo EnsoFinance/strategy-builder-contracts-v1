@@ -9,6 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
+	deployCompoundAdapter,
 	deployCurveAdapter,
 	deployCurveLPAdapter,
 	deployCurveGaugeAdapter,
@@ -39,6 +40,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	let	weth: Contract,
 		crv: Contract,
 		dai: Contract,
+    comp: Contract,
 		accounts: SignerWithAddress[],
 		router: Contract,
 		strategyFactory: Contract,
@@ -48,6 +50,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		library: Contract,
 		uniswapV2Adapter: Contract,
 		uniswapV3Adapter: Contract,
+		compoundAdapter: Contract,
 		curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
@@ -65,6 +68,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 		dai = new Contract(tokens.dai, ERC20.abi, accounts[0])
+		comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
 		const uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const uniswapV3Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory.abi, accounts[0])
 		const susd =  new Contract(tokens.sUSD, ERC20.abi, accounts[0])
@@ -79,6 +83,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		await tokens.registerTokens(accounts[0], strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
+
 		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapV2Factory, weth)
@@ -210,13 +215,15 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
           await impersonate(ownershipAdminAddress)
       )['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
     
+      compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
+      await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
 	})
 
-	it('Should deploy strategy', async function () {
+	it('Should deploy "exotic" strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: dai.address, percentage: BigNumber.from(400) },
+			{ token: dai.address, percentage: BigNumber.from(200) },
 			{ token: crv.address, percentage: BigNumber.from(0) },
 			{ token: tokens.crvEURS,
 				percentage: BigNumber.from(200),
@@ -228,10 +235,16 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
 				path: [tokens.link, tokens.crvLINK]
 			},
+      { token: tokens.cUSDT, percentage: BigNumber.from(100), adapters: [uniswapV2Adapter.address, compoundAdapter.address], path: [tokens.usdt] },
+      { token: tokens.cDAI, percentage: BigNumber.from(100), adapters: [uniswapV2Adapter.address, compoundAdapter.address], path: [tokens.dai] },
 			{ token: rewardsToken.address,
 				percentage: BigNumber.from(0),
 				adapters: [uniswapV2Adapter.address]
-      }
+      },
+			{ token: comp.address,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapV2Adapter.address]
+      },
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -297,6 +310,35 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	it('Should deposit more: ETH', async function () {
+		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+    //console.log(DEFAULT_DEPOSIT_SLIPPAGE)
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, BigNumber.from(980), '0x', { value: BigNumber.from('10000000000000000') })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+	})
+
+	it('Should claim rewards', async function() {
+    const rewardsTokens = await curveGaugeAdapter.callStatic.rewardsTokens(crvLINKGauge)
+    const rewardsTokensLength = rewardsTokens.length
+    expect(rewardsTokensLength).to.be.gt(0)
+    //expect(BigNumber.from(rewardsToken.length)).to.be.gt(BigNumber.from(0))
+    /*for (let i = 0; i < rewardsTokens.length; ++i) {
+        const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
+        const balanceBefore = await rewardsToken.balanceOf(strategy.address)
+      
+        const balanceAfter = await rewardsToken.balanceOf(strategy.address)
+        expect(balanceAfter).to.be.gt(balanceBefore)
+    }*/
+    const tx = await strategy.connect(accounts[1]).claimAll()
+    const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+	})
+
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = await dai.balanceOf(accounts[19].address)
@@ -317,21 +359,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-
-	it('Should claim rewards', async function() {
-    const rewardsTokens = await curveGaugeAdapter.callStatic.rewardsTokens(crvLINKGauge)
-    const rewardsTokensLength = rewardsTokens.length
-    expect(rewardsTokensLength).to.be.gt(0)
-    //expect(BigNumber.from(rewardsToken.length)).to.be.gt(BigNumber.from(0))
-    for (let i = 0; i < rewardsTokens.length; ++i) {
-        const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
-        const balanceBefore = await rewardsToken.balanceOf(strategy.address)
-      
-        await strategy.connect(accounts[1]).claimAll()
-        const balanceAfter = await rewardsToken.balanceOf(strategy.address)
-        expect(balanceAfter).to.be.gt(balanceBefore)
-    }
-	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {
 		const name = 'Curve ETHBTC Strategy'
