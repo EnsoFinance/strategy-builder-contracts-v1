@@ -27,16 +27,16 @@ library StrategyClaim {
         address[] memory claimableTokens;
         address[] memory _rewardTokens;
         address rewardToken;
-        bytes memory dummyData = bytes("");
-        BinaryTreeWithPayload.Tree memory exists;
+        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
+        bool debug;
         for (uint256 i; i < values.length; ++i) {
             rewardsAdapter = IRewardsAdapter(address(keys[i]));
             (claimableTokens) = abi.decode(values[i], (address[]));
             for (uint256 j; j < claimableTokens.length; ++j) {
-                _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[i]); 
+                _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[j]); 
                 for (uint256 k; k < _rewardTokens.length; ++k) {
                     rewardToken = _rewardTokens[k];
-                    if (!BinaryTreeWithPayload.replace(exists, uint256(rewardToken), dummyData)) continue;       
+                    if (!BinaryTreeWithPayload.replace(exists, uint256(rewardToken), bytes(""))) continue;       
                     assembly {
                         mstore(add(rewardTokens, add(mul(mload(rewardTokens), 32), 32)), rewardToken)
                         mstore(rewardTokens, add(mload(rewardTokens), 1))
