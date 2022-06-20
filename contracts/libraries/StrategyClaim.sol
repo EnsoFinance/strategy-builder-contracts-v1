@@ -12,12 +12,18 @@ library StrategyClaim {
 
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
 
-    function _claimAll() public {
-        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
+    function _claimAll(bytes[] memory claimables) public {
         address[] memory tokens;
-        for (uint256 i; i < values.length; ++i) {
-            (tokens) = abi.decode(values[i], (address[]));
-            _delegateClaim(address(uint256(keys[i])), tokens); 
+        StrategyTypes.TradeData memory tradeData;
+        uint256 adaptersLength;
+        address rewardsAdapter;
+        for (uint256 i; i < claimables.length; ++i) {
+            (tokens) = abi.decode(claimables[i], (address[]));
+            tradeData = IStrategy(address(this)).getTradeData(tokens[0]); // the tokens are grouped by rewardsAdapter
+            adaptersLength = tradeData.adapters.length;
+            if (adaptersLength < 1) continue;
+            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
+            _delegateClaim(rewardsAdapter, tokens); 
         }
     }
 
@@ -46,7 +52,7 @@ library StrategyClaim {
         }
     }
 
-    function _getAllToClaim() private view returns(uint256[] memory keys, bytes[] memory values) {
+    function _getAllToClaim() public view returns(uint256[] memory keys, bytes[] memory values) {
         BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         IStrategy _this = IStrategy(address(this));
