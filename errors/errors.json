@@ -417,6 +417,22 @@
     "contractName": "WethMock.sol"
   },
   {
+    "contractId": "44602be1de22",
+    "contractName": "IStakingRewards.sol"
+  },
+  {
+    "contractId": "092da99e4402",
+    "contractName": "Owned.sol"
+  },
+  {
+    "contractId": "364659013bd7",
+    "contractName": "RewardsDistributionRecipient.sol"
+  },
+  {
+    "contractId": "f81fb48f908c",
+    "contractName": "StakingRewards.sol"
+  },
+  {
     "contractId": "1c40961e41f2",
     "contractName": "EnsoOracle.sol"
   },
