@@ -48,6 +48,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
     event UpdateTradeData(address item, bool finalized);
+    event ClaimablesUpdated();
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
@@ -531,6 +532,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal returns(int256) {
+        updateClaimables();
         int256 virtualPercentage; 
         address[] memory rewardTokens = StrategyClaim._getAllRewardTokens();
         bool ok;
@@ -543,6 +545,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
             virtualPercentage = virtualPercentage.add(_setItem(item, tokenRegistry));
         }
         return virtualPercentage;
+    }
+
+    function updateClaimables() public {
+        delete _claimables;
+        (, bytes[] memory values) = StrategyClaim._getAllToClaim();
+        for (uint256 i; i < values.length; ++i) {
+            _claimables.push(values[i]); // grouped by rewardsAdapter
+        }
+        emit ClaimablesUpdated();
     }
 
     function _transfer(
