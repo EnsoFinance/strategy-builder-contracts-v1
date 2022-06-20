@@ -27,23 +27,23 @@ library StrategyClaim {
         address[] memory claimableTokens;
         address[] memory _rewardTokens;
         address rewardToken;
-        BinaryTreeWithPayload.Tree memory mm;
-        uint256 tokensAdded;
-        bytes memory dummyData = abi.encode(tokensAdded);
+        bytes memory dummyData = bytes("");
+        BinaryTreeWithPayload.Tree memory exists;
         for (uint256 i; i < values.length; ++i) {
             rewardsAdapter = IRewardsAdapter(address(keys[i]));
             (claimableTokens) = abi.decode(values[i], (address[]));
             for (uint256 j; j < claimableTokens.length; ++j) {
                 _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[i]); 
                 for (uint256 k; k < _rewardTokens.length; ++k) {
-                    if (BinaryTreeWithPayload.replace(mm, uint256(_rewardTokens[k]), dummyData)) ++tokensAdded;       
+                    rewardToken = _rewardTokens[k];
+                    if (!BinaryTreeWithPayload.replace(exists, uint256(rewardToken), dummyData)) continue;       
+                    assembly {
+                        mstore(add(rewardTokens, add(mul(mload(rewardTokens), 32), 32)), rewardToken)
+                        mstore(rewardTokens, add(mload(rewardTokens), 1))
+                    }
                 }
             }
         }
-        keys = new uint256[](tokensAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
-        values = new bytes[](tokensAdded);
-        BinaryTreeWithPayload.readInto(mm, keys, values);
-        (rewardTokens) = abi.decode(abi.encode(keys), (address[]));
     }
 
     function _getAllToClaim() private view returns(uint256[] memory keys, bytes[] memory values) {
