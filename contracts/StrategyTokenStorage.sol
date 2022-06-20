@@ -39,6 +39,8 @@ contract StrategyTokenStorage is StrategyTypes {
     uint256 internal _managementFee;
     uint256 internal _managementFeeRate;
 
+    bytes[] internal _claimables;
+
     // Gap for future storage changes
-    uint256[47] private __gap;
+    uint256[46] private __gap;
 }
