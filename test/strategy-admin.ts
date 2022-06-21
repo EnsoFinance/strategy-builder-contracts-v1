@@ -6,6 +6,7 @@ import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { MaxUint256, WeiPerEther, AddressZero } = constants
+import { isRevertedWith } from '../lib/errors'
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -102,11 +103,16 @@ describe('StrategyProxyAdmin', function () {
 	})
 
 	it('Should fail to upgrade strategy proxy: not manager', async function () {
-		await expect(strategyAdmin.connect(accounts[10]).upgrade(strategy.address)).to.be.revertedWith('Not manager')
+		await expect(
+      strategyAdmin.connect(accounts[10]).upgrade(strategy.address),
+    ).to.be.revertedWith('Not manager')
 	})
 
 	it('Should fail to upgrade Strategy proxy: calling to strategy directly', async function () {
-		await expect(strategy.connect(accounts[10]).updateVersion(await strategyFactory.version())).to.be.revertedWith('Only StrategyProxyFactory')
+		expect(
+      await isRevertedWith(
+      strategy.connect(accounts[10]).updateVersion(await strategyFactory.version()),
+      'Only StrategyProxyFactory', 'Strategy.sol')).to.be.true
 	})
 
 	it('Should upgrade strategy proxy', async function () {

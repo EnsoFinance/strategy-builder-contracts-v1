@@ -1,7 +1,7 @@
 const hre = require('hardhat')
 const { ethers } = hre
 const chai = require('chai')
-const { constants, getContractFactory, getSigners } = ethers
+const { constants, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 const BigNumJs = require('bignumber.js')
 import { solidity } from 'ethereum-waffle'
@@ -9,13 +9,15 @@ import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract, Event } from 'ethers'
 import { preparePermit, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { isRevertedWith } from '../lib/errors'
 
 const NUM_TOKENS = 15
 
 chai.use(solidity)
 describe('StrategyToken', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+    tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -36,7 +38,7 @@ describe('StrategyToken', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -46,7 +48,7 @@ describe('StrategyToken', function () {
 		await whitelist.connect(accounts[10]).approve(adapter.address)
 		router = await deployLoopRouter(accounts[10], controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		const strategyImplementation = await Strategy.connect(accounts[10]).deploy(
 			strategyFactory.address,
 			controller.address,
@@ -101,7 +103,7 @@ describe('StrategyToken', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(strategyAddress)
 		;[total] = await oracle.estimateStrategy(strategy.address)
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
@@ -267,8 +269,11 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
-		await expect(strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
-	})
+		expect(
+      await isRevertedWith(
+        strategy.connect(accounts[1]).withdrawAll(0),
+      '0 amount', 'Strategy.sol')).to.be.true
+  })
 
 	it('Should withdraw', async function () {
 		amount = BigNumber.from('10000000000000')
@@ -360,7 +365,7 @@ describe('StrategyToken', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		const strategyFor = Strategy.attach(strategyAddress)
 
     expect((await strategyFor.manager()).toLowerCase()).to.be.deep.equal(forManager.address.toLowerCase())
