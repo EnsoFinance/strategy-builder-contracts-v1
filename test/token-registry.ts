@@ -10,6 +10,7 @@ import { Tokens } from '../lib/tokens'
 import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES } from '../lib/constants'
 import { prepareStrategy, InitialState } from '../lib/encode'
 import {
+  Platform,
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployLoopRouter,
@@ -21,13 +22,15 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('TokenRegistry', function () {
+  let platform: Platform
+
 	before('Setup Uniswap + Factory', async function () {
 		this.accounts = await getSigners()
 		this.tokens = new Tokens()
 		this.weth = new Contract(this.tokens.weth, WETH9.abi, this.accounts[0])
 		this.uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, this.accounts[0])
 		const susd = new Contract(this.tokens.sUSD, ERC20.abi, this.accounts[0])
-		const platform = await deployPlatform(
+		platform = await deployPlatform(
 			this.accounts[0],
 			this.uniswapFactory,
 			new Contract(AddressZero, [], this.accounts[0]),
@@ -96,7 +99,7 @@ describe('TokenRegistry', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		this.strategy = await Strategy.attach(strategyAddress)
 
 		expect(await this.controller.initialized(strategyAddress)).to.equal(true)

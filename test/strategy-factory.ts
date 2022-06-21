@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { isRevertedWith } from '../lib/errors'
@@ -16,7 +16,8 @@ chai.use(solidity)
 const NUM_TOKENS = 15
 
 describe('StrategyProxyFactory', function () {
-		let tokens: Contract[],
+		let platform: Platform,
+    tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -40,7 +41,7 @@ describe('StrategyProxyFactory', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -80,7 +81,7 @@ describe('StrategyProxyFactory', function () {
 		}
 
 		const amount = ethers.BigNumber.from('10000000000000000')
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
