@@ -88,19 +88,22 @@ export class Platform {
 	oracles: Oracles
 	administration: Administration
 	library: Contract
+  strategyLibraries: any // 
 
 	public constructor(
 		strategyFactory: Contract,
 		controller: Contract,
 		oracles: Oracles,
 		administration: Administration,
-		library: Contract
+		library: Contract,
+    strategyLibraries: any 
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
 		this.oracles = oracles
 		this.administration = administration
 		this.library = library
+    this.strategyLibraries = strategyLibraries
 	}
 
 	print() {
@@ -111,6 +114,10 @@ export class Platform {
 		console.log('  Oracle: ', this.oracles.ensoOracle.address)
 		console.log('  TokenRegistry: ', this.oracles.registries.tokenRegistry.address)
 	}
+
+  public getStrategyContractFactory() : any {
+      return getContractFactory('Strategy', this.strategyLibraries)
+  }
 }
 
 export async function deployTokens(owner: SignerWithAddress, numTokens: number, value: BigNumber): Promise<Contract[]> {
@@ -366,6 +373,7 @@ export async function deployPlatform(
 
 	// Strategy Implementation
 	const strategyClaim = await waffle.deployContract(owner, StrategyClaim, [])
+  const strategyLibraries = { libraries: { StrategyClaim: strategyClaim.address }}
 	await strategyClaim.deployed()
 	const strategyClaimLink = createLink(StrategyClaim, strategyClaim.address)
 
@@ -421,7 +429,7 @@ export async function deployPlatform(
 		platformProxyAdmin,
 	}
 
-	return new Platform(factory, controller, oracles, administration, strategyLibrary)
+	return new Platform(factory, controller, oracles, administration, strategyLibrary, strategyLibraries)
 }
 
 export async function deployUniswapV2Adapter(

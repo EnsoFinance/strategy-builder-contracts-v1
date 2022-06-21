@@ -3,15 +3,13 @@ import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
 
-const { ethers, waffle } = require('hardhat')
+const { ethers } = require('hardhat')
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Event, Contract} from 'ethers'
-
-import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 const NUM_TOKENS = 10
 const STRATEGY_STATE: InitialState = {
@@ -55,6 +53,7 @@ describe('Weird ERC20s', function () {
 		weth: Contract,
 		weirdTokens: WeirdToken[],
 		accounts: SignerWithAddress[],
+    platform: Platform,
 		uniswapFactory: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
@@ -64,7 +63,6 @@ describe('Weird ERC20s', function () {
 		router: Contract,
 		adapter: Contract,
 		strategy: Contract,
-    strategyClaim: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
@@ -115,7 +113,7 @@ describe('Weird ERC20s', function () {
 		const weirdTokenContracts = weirdTokens.map((token) => token.contract)
 
 		uniswapFactory = await deployUniswapV2(accounts[10], weirdTokenContracts)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -129,9 +127,6 @@ describe('Weird ERC20s', function () {
 		// remove weth from weird token list
 		weirdTokens.shift()
 		expect(weirdTokenContracts.length).to.eq(weirdTokens.length + 1)
-
-    strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
-    await strategyClaim.deployed()
 	})
 
 	it('Deploy strategy with ApprovalRaceToken in Strategy', async function () {
@@ -155,11 +150,7 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
+    const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -208,12 +199,8 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -260,12 +247,8 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -312,12 +295,8 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -364,12 +343,8 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -416,11 +391,7 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -468,11 +439,7 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
