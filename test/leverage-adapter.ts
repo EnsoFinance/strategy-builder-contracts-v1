@@ -2,6 +2,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import {
+  Platform,
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
@@ -31,7 +32,8 @@ const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero } = constants
 
 describe('Leverage2XAdapter', function () {
-	let tokens: Tokens,
+	let platform: Platform,
+    tokens: Tokens,
 		weth: Contract,
 		usdc: Contract,
 		accounts: SignerWithAddress[],
@@ -56,7 +58,7 @@ describe('Leverage2XAdapter', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -119,7 +121,7 @@ describe('Leverage2XAdapter', function () {
 			name,
 			symbol
 		)
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')
@@ -204,7 +206,7 @@ describe('Leverage2XAdapter', function () {
 			name,
 			symbol
 		)
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')

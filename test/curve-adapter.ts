@@ -9,6 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
+  Platform,
 	deployCurveAdapter,
 	deployCurveLPAdapter,
 	deployCurveGaugeAdapter,
@@ -26,8 +27,6 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 
-import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
-
 chai.use(solidity)
 
 async function impersonate(address: string) : Promise<SignerWithAddress> {
@@ -39,7 +38,8 @@ async function impersonate(address: string) : Promise<SignerWithAddress> {
 }
 
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
-	let	weth: Contract,
+	let	platform: Platform,
+    weth: Contract,
 		crv: Contract,
 		dai: Contract,
 		accounts: SignerWithAddress[],
@@ -58,7 +58,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		crvLINKGauge: string,
     rewardsToken: Contract,
     stakingRewards: Contract,
-    strategyClaim: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
@@ -75,7 +74,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const uniswapV3Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory.abi, accounts[0])
 		const susd =  new Contract(tokens.sUSD, ERC20.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapV2Factory, uniswapV3Factory, weth, susd)
+		platform = await deployPlatform(accounts[0], uniswapV2Factory, uniswapV3Factory, weth, susd)
 
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
@@ -98,9 +97,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		curveLPAdapter = await deployCurveLPAdapter(accounts[0], addressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
-
-    strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
-    await strategyClaim.deployed()
 
 		curveGaugeAdapter = await deployCurveGaugeAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.CURVE_GAUGE)
 		await whitelist.connect(accounts[0]).approve(curveGaugeAdapter.address)
@@ -290,12 +286,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -384,28 +376,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	/*it('Should fail to claim rewards', async function() {
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([], [rewardToken])).to.be.revertedWith('Incorrect parameters')
-	})
-
-	it('Should fail to claim rewards', async function() {
-			const FailAdapter = await getContractFactory('FailAdapter')
-			failAdapter = await FailAdapter.deploy(weth.address)
-			await failAdapter.deployed()
-
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.revertedWith('Not approved')
-	})
-
-	it('Should fail to claim rewards', async function() {
-			await whitelist.connect(accounts[0]).approve(failAdapter.address)
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.reverted
-	})
-
-
-	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).batchClaimRewards([curveGaugeAdapter.address], [rewardToken])
-	})*/
-
 	it('Should deploy strategy with ETH + BTC', async function () {
 		const name = 'Curve ETHBTC Strategy'
 		const symbol = 'ETHBTC'
@@ -447,12 +417,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -545,12 +511,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy', {
-      libraries: {
-        StrategyClaim: strategyClaim.address 
-      }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
