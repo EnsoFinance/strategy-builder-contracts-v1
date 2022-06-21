@@ -3,13 +3,15 @@ import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
 
-const { ethers } = require('hardhat')
-const { constants, getContractFactory, getSigners} = ethers
+const { ethers, waffle } = require('hardhat')
+const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Event, Contract} from 'ethers'
+
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 const NUM_TOKENS = 10
 const STRATEGY_STATE: InitialState = {
@@ -62,6 +64,7 @@ describe('Weird ERC20s', function () {
 		router: Contract,
 		adapter: Contract,
 		strategy: Contract,
+    strategyClaim: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
@@ -126,6 +129,9 @@ describe('Weird ERC20s', function () {
 		// remove weth from weird token list
 		weirdTokens.shift()
 		expect(weirdTokenContracts.length).to.eq(weirdTokens.length + 1)
+
+    strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
+    await strategyClaim.deployed()
 	})
 
 	it('Deploy strategy with ApprovalRaceToken in Strategy', async function () {
@@ -149,7 +155,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -198,7 +208,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -246,7 +260,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -294,7 +312,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -342,7 +364,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -390,7 +416,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -438,7 +468,11 @@ describe('Weird ERC20s', function () {
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+      libraries: {
+        StrategyClaim: strategyClaim.address 
+      }
+    })
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
