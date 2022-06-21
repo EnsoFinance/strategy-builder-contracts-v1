@@ -6,7 +6,7 @@ const hre = require('hardhat')
 const { ethers } = hre
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { isRevertedWith } from '../lib/errors'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { increaseTime  } from '../lib/utils'
 import {  DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -27,7 +27,8 @@ const STRATEGY_STATE: InitialState = {
 
 
 describe('StrategyController - Social', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+    tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -47,7 +48,7 @@ describe('StrategyController - Social', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -81,7 +82,7 @@ describe('StrategyController - Social', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {

@@ -1,6 +1,6 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers, waffle } from 'hardhat'
+import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
@@ -9,6 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
+  Platform,
 	deployCompoundAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
@@ -19,12 +20,12 @@ import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_C
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 chai.use(solidity)
 
 describe('CompoundAdapter', function () {
-	let	weth: Contract,
+	let	platform: Platform,
+    weth: Contract,
 		usdt: Contract,
 		comp: Contract,
 		accounts: SignerWithAddress[],
@@ -49,7 +50,7 @@ describe('CompoundAdapter', function () {
 		comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
 
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -116,14 +117,8 @@ describe('CompoundAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-    const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, []) // TODO get from deploy
-    await strategyClaim.deployed()
-		const Strategy = await getContractFactory('Strategy', {
-        libraries: {
-          StrategyClaim: strategyClaim.address
-        }
-    })
-		strategy = await Strategy.attach(strategyAddress)
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -202,6 +197,5 @@ describe('CompoundAdapter', function () {
 		    console.log('Gas Used: ', receipt.gasUsed.toString())
         const balanceAfter = await comp.balanceOf(strategy.address)
         expect(balanceAfter).to.be.gt(balanceBefore)
-        expect(balanceAfter).to.be.equal(1219756064)
     })
 })
