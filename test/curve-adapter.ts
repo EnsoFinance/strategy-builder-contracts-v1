@@ -50,6 +50,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		whitelist: Contract,
 		library: Contract,
 		uniswapV2Adapter: Contract,
+		uniswapV2Factory: Contract,
 		uniswapV3Adapter: Contract,
 		compoundAdapter: Contract,
 		curveAdapter: Contract,
@@ -61,7 +62,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
-		tokens: Tokens
+		tokens: Tokens,
+    tradeData: TradeData
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -71,7 +73,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		dai = new Contract(tokens.dai, ERC20.abi, accounts[0])
 		//const usdt = new Contract(tokens.usdt, ERC20.abi, accounts[0])
 		const comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
-		const uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+		uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const uniswapV3Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory.abi, accounts[0])
 		const susd =  new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		platform = await deployPlatform(accounts[0], uniswapV2Factory, uniswapV3Factory, weth, susd)
@@ -103,6 +105,89 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		crvLINKGauge = tokens.crvLINKGauge
     
+    // add rewards to registry
+    tradeData = {
+        adapters: [],
+        path: [],
+        cache: '0x'
+    }
+
+		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
+		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
+    // add claimables
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, tokens.crvLINKGauge, tradeData, true)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
+
+    // add rewards tokens
+    tradeData.adapters.push(uniswapV2Adapter.address)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, comp.address, tradeData, false)
+    tradeData.adapters = [uniswapV2Adapter.address]
+	})
+
+	it('Should deploy "exotic" strategy', async function () {
+		const name = 'Test Strategy'
+		const symbol = 'TEST'
+		const positions = [ // an "exotic" strategy
+			{ token: dai.address, percentage: BigNumber.from(200) },
+			{ token: crv.address, percentage: BigNumber.from(0) },
+			{ token: tokens.crvEURS,
+				percentage: BigNumber.from(200),
+				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
+				path: [tokens.usdc, tokens.eurs]
+			},
+			{ token: tokens.crvLINKGauge,
+				percentage: BigNumber.from(400),
+				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
+				path: [tokens.link, tokens.crvLINK]
+			},
+			{ token: tokens.cUSDT, percentage: BigNumber.from(100), adapters: [uniswapV2Adapter.address, compoundAdapter.address], path: [tokens.usdt] },
+			{ token: tokens.cDAI, percentage: BigNumber.from(100), adapters: [uniswapV2Adapter.address, compoundAdapter.address], path: [tokens.dai] }
+    ]
+		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(50),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
+			performanceFee: BigNumber.from(0),
+			social: false,
+			set: false
+		}
+		const tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(
+				name,
+				symbol,
+				strategyItems,
+				strategyState,
+				router.address,
+				'0x',
+				{ value: ethers.BigNumber.from('10000000000000000') }
+			)
+		const receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await platform.getStrategyContractFactory()
+    strategy = await Strategy.attach(strategyAddress)
+
+		expect(await controller.initialized(strategyAddress)).to.equal(true)
+
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		await wrapper.deployed()
+
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
+
+	it('Should set strategy and updateRewards', async function () {
+		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
     // setting up rewards
     rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
     stakingRewards = await (await getContractFactory("StakingRewards")).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK)//, crvLINKGauge)
@@ -219,27 +304,17 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
       await gaugeAdminProxy.connect(
           await impersonate(ownershipAdminAddress)
       )['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
-    
-      // add rewards to registry
-    //
-    let tradeData : TradeData = {
-        adapters: [],
-        path: [],
-        cache: '0x'
-    }
 
-		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
-		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
-    // add claimables
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, tokens.crvLINKGauge, tradeData, true)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
+      await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, rewardsToken.address, tradeData, false)
 
-    // add rewards tokens
-    tradeData.adapters.push(uniswapV2Adapter.address)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, comp.address, tradeData, false)
-    tradeData.adapters = [uniswapV2Adapter.address]
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, rewardsToken.address, tradeData, false)
+      const oldItems = await strategy.connect(accounts[1]).items()
+      await strategy.connect(accounts[1]).updateRewards()
+      const newItems = await strategy.connect(accounts[1]).items()
+      const oldItemsLength = oldItems.length
+      const newItemsLength = newItems.length
+      expect(newItemsLength).to.be.gt(oldItemsLength)
+      expect(oldItems.indexOf(rewardsToken.address)).to.be.equal(-1)
+      expect(newItems.indexOf(rewardsToken.address)).to.be.gt(-1)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
