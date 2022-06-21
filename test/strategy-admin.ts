@@ -1,7 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
@@ -14,7 +14,8 @@ chai.use(solidity)
 const NUM_TOKENS = 15
 
 describe('StrategyProxyAdmin', function () {
-		let tokens: Contract[],
+		let platform: Platform,
+    tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -34,7 +35,7 @@ describe('StrategyProxyAdmin', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		whitelist = platform.administration.whitelist
@@ -51,7 +52,7 @@ describe('StrategyProxyAdmin', function () {
 	before('Setup new implementation + admin', async function () {
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		newAdmin = await StrategyAdmin.connect(accounts[10]).deploy()
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		newImplementation = await Strategy.deploy(strategyFactory.address, controller.address, AddressZero, AddressZero)
 	})
 
@@ -72,7 +73,7 @@ describe('StrategyProxyAdmin', function () {
 		}
 
 		const amount = ethers.BigNumber.from('10000000000000000')
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 
 		let tx = await strategyFactory
 			.connect(accounts[1])

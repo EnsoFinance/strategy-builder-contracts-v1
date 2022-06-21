@@ -10,7 +10,7 @@ import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract, Event } from 'ethers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { increaseTime } from '../lib/utils'
 import {  DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 
@@ -19,7 +19,8 @@ const YEAR = 331556952
 
 chai.use(solidity)
 describe('StrategyToken Fees', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+    tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		owner: SignerWithAddress,
@@ -53,7 +54,7 @@ describe('StrategyToken Fees', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -101,7 +102,7 @@ describe('StrategyToken Fees', function () {
 		const block = await provider.send('eth_getBlockByNumber', [BigNumber.from(receipt.blockNumber).toHexString(), true])
 	  lastTimestamp = new BigNumJs(block.timestamp.toString())
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(strategyAddress)
 		;[total] = await oracle.estimateStrategy(strategy.address)
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
