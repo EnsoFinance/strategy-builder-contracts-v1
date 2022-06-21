@@ -611,9 +611,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             _items.push(susd);
             exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
         }
-
-        virtualPercentage = virtualPercentage.add(_updateRewards(exists, tokenRegistry));
-        
+        _updateRewards(exists, tokenRegistry);
         if (_synths.length > 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
@@ -638,9 +636,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         return virtualPercentage;
     }
 
-    function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal returns(int256) {
+    function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal {
         updateClaimables();
-        int256 virtualPercentage; 
         address[] memory rewardTokens = StrategyClaim._getAllRewardTokens();
         bool ok;
         StrategyItem memory item;
@@ -649,9 +646,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             if (ok) continue;
             exists.add(bytes32(uint256(rewardTokens[i])), bytes32(0x0)); // second parameter is "any" value
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
-            virtualPercentage = virtualPercentage.add(_setItem(item, tokenRegistry));
+            _setItem(item, tokenRegistry);
         }
-        return virtualPercentage;
     }
 
     function updateClaimables() public {
