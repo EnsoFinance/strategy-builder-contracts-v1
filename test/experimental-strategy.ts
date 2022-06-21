@@ -9,6 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
+  Platform,
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
@@ -26,7 +27,8 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('Experimental Strategy', function () {
-	let	weth: Contract,
+	let	platform: Platform,
+    weth: Contract,
 		crv: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -51,7 +53,7 @@ describe('Experimental Strategy', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, new Contract(tokens.sUSD, ERC20.abi, accounts[0]))
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, new Contract(tokens.sUSD, ERC20.abi, accounts[0]))
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -123,7 +125,7 @@ describe('Experimental Strategy', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
