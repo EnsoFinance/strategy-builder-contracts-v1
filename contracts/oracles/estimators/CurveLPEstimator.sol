@@ -1,15 +1,20 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../helpers/StrategyTypes.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IOracle.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../../interfaces/curve/ICurveCrypto.sol";
 import "../../interfaces/curve/ICurveStableSwap.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
+import "../../interfaces/curve/ICurveDeposit.sol";
+
+import "hardhat/console.sol";
 
 interface IAddressProvider {
     function get_registry() external view returns (address);
@@ -28,15 +33,17 @@ contract CurveLPEstimator is IEstimator {
     uint256 private constant TRICRYPTO2_PRECISION = 10**30; // lpPrice_precision + (lp_precision - usdt_precision) = 18 + (18 - 6) = 30
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token);
+      console.log("-balance");
+        return _estimateItem(balance, token, address(0));
     }
 
     function estimateItem(address user, address token) public view override returns (int256) {
+      console.log("-user");
         uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token);
+        return _estimateItem(balance, token, user);
     }
 
-    function _estimateItem(uint256 balance, address token) private view returns (int256) {
+    function _estimateItem(uint256 balance, address token, address knownStrategy) private view returns (int256) {
         if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
@@ -62,10 +69,27 @@ contract CurveLPEstimator is IEstimator {
                     return IOracle(msg.sender).estimateItem(virtualBalance, SBTC);
                 } else {
                     // Other (Link or Euro)
-                    (uint256 coinsInPool, ) = registry.get_n_coins(pool);
                     address[8] memory coins = registry.get_coins(pool);
-                    for (uint256 i = 0; i < coinsInPool; i++) {
+                    if (knownStrategy != address(0)) {
+                        StrategyTypes.TradeData memory td = IStrategy(knownStrategy).getTradeData(token); 
+                        require(td.path.length != 0, "_estimateItem: tradeData.path == 0.");
+                        address underlyingToken = td.path[td.path.length - 1];
+                        console.log(underlyingToken);
+                        uint256 idx = uint256(-1);
+                        for (uint256 i; coins[i] != address(0); ++i) {
+                            require(coins[i] != address(0), "Token not found in pool");
+                            if(coins[i] == underlyingToken){
+                                idx = i;
+                                break;
+                            }
+                        }
+                        require(idx != uint256(-1), "_estimateItem: cannot find token index.");
+                        // FIXME idx int or uint
+                        return int256(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)));
+                    }
+                    for (uint256 i = 0; coins[i] != address(0); i++) {
                         address underlyingToken = coins[i];
+                        //console.log(underlyingToken);
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
                         uint256 convertedBalance = virtualBalance;
                         if (decimals < 18) {
