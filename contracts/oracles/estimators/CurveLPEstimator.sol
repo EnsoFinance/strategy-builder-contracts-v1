@@ -71,12 +71,15 @@ contract CurveLPEstimator is IEstimator {
                     // Other (Link or Euro)
                     address[8] memory coins = registry.get_coins(pool);
                     if (knownStrategy != address(0)) {
-                        StrategyTypes.TradeData memory td = IStrategy(knownStrategy).getTradeData(token); 
-                        require(td.path.length != 0, "_estimateItem: tradeData.path == 0.");
-                        address underlyingToken = td.path[td.path.length - 1];
+                        address underlyingToken;
+                        {
+                            StrategyTypes.TradeData memory td = IStrategy(knownStrategy).getTradeData(token); 
+                            require(td.path.length != 0, "_estimateItem: tradeData.path == 0.");
+                            underlyingToken = td.path[td.path.length - 1];
+                        }
                         console.log(underlyingToken);
                         uint256 idx = uint256(-1);
-                        for (uint256 i; coins[i] != address(0); ++i) {
+                        for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
                             require(coins[i] != address(0), "Token not found in pool");
                             if(coins[i] == underlyingToken){
                                 idx = i;
@@ -85,9 +88,10 @@ contract CurveLPEstimator is IEstimator {
                         }
                         require(idx != uint256(-1), "_estimateItem: cannot find token index.");
                         // FIXME idx int or uint
-                        return int256(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)));
+                        //console.log(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)));
+                        return IOracle(msg.sender).estimateItem(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)), underlyingToken);
                     }
-                    for (uint256 i = 0; coins[i] != address(0); i++) {
+                    for (uint256 i = 0; coins[i] != address(0) && i < 8; i++) {
                         address underlyingToken = coins[i];
                         //console.log(underlyingToken);
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
@@ -99,6 +103,7 @@ contract CurveLPEstimator is IEstimator {
                         }
                         try IOracle(msg.sender).estimateItem(convertedBalance, underlyingToken) returns (int256 value) {
                             if (value > 0) {
+                              console.log(uint256(value));
                               return value;
                             }
                         } catch (bytes memory) {
