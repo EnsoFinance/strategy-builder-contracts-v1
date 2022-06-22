@@ -195,7 +195,7 @@ export function livePlatform(signer: SignerWithAddress): Platform {
 		platformProxyAdmin
 	}
 
-	return new Platform(factory, controller, oracles, administration, strategyLibrary)
+	return new Platform(factory, controller, oracles, administration, strategyLibrary, {}) // last param, strategyLibraries, currently not deployed on mainnet
 }
 
 export function liveAdapters(signer: SignerWithAddress): LiveAdapters {

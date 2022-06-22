@@ -1,4 +1,4 @@
-import { ethers, network } from 'hardhat'
+import { ethers, network, waffle } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Estimator } from '../lib/estimator'
@@ -8,6 +8,8 @@ import { increaseTime } from '../lib/utils'
 import { deployFullRouter } from '../lib/deploy'
 import { DIVISOR, MAINNET_ADDRESSES } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
@@ -26,7 +28,8 @@ describe('Live Estimates', function () {
 		eYETI: Contract,
 		eYLA: Contract,
 		eNFTP: Contract,
-		eETH2X: Contract
+		eETH2X: Contract,
+    strategyClaim: Contract
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -78,7 +81,12 @@ describe('Live Estimates', function () {
 			yearnV2.address
 		)
 
-		const Strategy = await getContractFactory('Strategy')
+    strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
+    await strategyClaim.deployed()
+
+		const Strategy = await getContractFactory('Strategy', { 
+      libraries: { StrategyClaim: strategyClaim.address }
+    })
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
