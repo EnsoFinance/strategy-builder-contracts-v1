@@ -20,6 +20,12 @@ interface IOracle {
     ) external view returns (int256);
 
     function estimateItem(
+        uint256 balance,
+        address token,
+        address knownStrategy
+    ) external view returns (int256);
+
+    function estimateItem(
         address user,
         address token
     ) external view returns (int256);
