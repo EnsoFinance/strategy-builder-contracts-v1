@@ -337,7 +337,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
         if (msg.sender != _controller && msg.sender != _factory) require(msg.sender == _manager, "claimAll: caller must be controller or manager.");
-        StrategyClaim._claimAll();
+        StrategyClaim._claimAll(_claimables);
     }
 
     /**
