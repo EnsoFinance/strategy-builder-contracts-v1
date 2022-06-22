@@ -14,6 +14,8 @@ import "../../interfaces/curve/ICurveStableSwap.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
 import "../../interfaces/curve/ICurveDeposit.sol";
 
+import "hardhat/console.sol";
+
 interface IAddressProvider {
     function get_registry() external view returns (address);
 }
@@ -34,16 +36,19 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
         return _estimateItem(balance, token, address(0));
     }
 
-    function estimateItem(uint256 balance, address token, address knownStrategy) public view override returns (int256) {
-        return _estimateItem(balance, token, knownStrategy);
+    function estimateItem(uint256 balance, address token, address knownUnderlyingToken) public view override returns (int256) {
+        return _estimateItem(balance, token, knownUnderlyingToken);
     }
 
     function estimateItem(address user, address token) public view override returns (int256) {
         uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token, user);
+        address knownUnderlyingToken;
+        StrategyTypes.TradeData memory td = IStrategy(user).getTradeData(token); 
+        if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
+        return _estimateItem(balance, token, knownUnderlyingToken);
     }
 
-    function _estimateItem(uint256 balance, address token, address knownStrategy) private view returns (int256) {
+    function _estimateItem(uint256 balance, address token, address knownUnderlyingToken) private view returns (int256) {
         if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
@@ -70,26 +75,23 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                 } else {
                     // Other (Link or Euro)
                     address[8] memory coins = registry.get_coins(pool);
-                    if (knownStrategy != address(0)) {
-                        address underlyingToken;
-                        {
-                            StrategyTypes.TradeData memory td = IStrategy(knownStrategy).getTradeData(token); 
-                            if (td.path.length != 0) underlyingToken = td.path[td.path.length - 1];
-                        }
-                        if (underlyingToken != address(0)) {
-                            uint256 idx = uint256(-1);
-                            for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
-                                require(coins[i] != address(0), "Token not found in pool");
-                                if(coins[i] == underlyingToken){
-                                    idx = i;
-                                    break;
-                                }
+                    // more accurate
+                    if (knownUnderlyingToken != address(0)) {
+                        uint256 idx = uint256(-1);
+                        for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
+                            require(coins[i] != address(0), "Token not found in pool");
+                            if(coins[i] == knownUnderlyingToken){
+                                idx = i;
+                                break;
                             }
-                            require(idx != uint256(-1), "_estimateItem: cannot find token index.");
-                            // FIXME idx int or uint
-                            return IOracle(msg.sender).estimateItem(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)), underlyingToken);
+                        }
+                        if (idx != uint256(-1)) {
+                          console.log("accurate");
+                            return IOracle(msg.sender).estimateItem(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)), knownUnderlyingToken);
                         }
                     }
+                    // less accurate
+                    revert("NOT ACCURATE");
                     for (uint256 i = 0; coins[i] != address(0) && i < 8; i++) {
                         address underlyingToken = coins[i];
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());

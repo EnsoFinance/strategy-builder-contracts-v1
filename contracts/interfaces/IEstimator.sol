@@ -17,7 +17,7 @@ interface IEstimatorKnowing {
     function estimateItem(
         uint256 balance,
         address token,
-        address knownStrategy
+        address knownUnderlyingToken
     ) external view returns (int256);
 }
 
