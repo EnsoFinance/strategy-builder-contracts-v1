@@ -1,10 +1,13 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers, network } from 'hardhat'
+import { ethers, network, waffle } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
+import { isRevertedWith } from '../lib/errors'
+
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { MaxUint256, /*WeiPerEther,*/ AddressZero } = constants
@@ -21,6 +24,7 @@ describe('Live Upgrades', function () {
 	let	accounts: SignerWithAddress[],
 		controller: Contract,
     strategyFactory: Contract,
+    strategyClaim: Contract,
 		eDPI: Contract
 
 	before('Setup contracts', async function () {
@@ -30,7 +34,12 @@ describe('Live Upgrades', function () {
 		controller = enso.platform.controller
     strategyFactory = enso.platform.strategyFactory
 
-		const Strategy = await getContractFactory('Strategy')
+    strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
+    await strategyClaim.deployed()
+
+		const Strategy = await getContractFactory('Strategy', { 
+      libraries: { StrategyClaim: strategyClaim.address }
+    })
     // example live strategy
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 
@@ -70,7 +79,10 @@ describe('Live Upgrades', function () {
       cache: '0x'
     })
     // sanity check
-    await expect(eDPI.connect(accounts[1]).finalizeUpdateTradeData()).to.be.revertedWith('finalizeUpdateTradeData: timelock not ready.')
+    expect(
+      await isRevertedWith(
+        eDPI.connect(accounts[1]).finalizeUpdateTradeData(),
+      'finalizeUpdateTradeData: timelock not ready.', 'Strategy.sol')).to.be.true
     await increaseTime(5*60)
     await eDPI.connect(accounts[1]).finalizeUpdateTradeData()
 
