@@ -6,7 +6,7 @@ const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import { isRevertedWith } from '../lib/errors'
 import {
@@ -20,13 +20,18 @@ import {
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY} from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
+
+// FIXME will claimables be recognized for debtTokens?
+//
+
+const runAll = false
 
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
@@ -61,7 +66,8 @@ describe('AaveAdapter', function () {
 		wrapper: Contract,
 		tokens: Tokens,
 		collateralToken: string,
-		collateralToken2: string
+		collateralToken2: string,
+    stkAAVE: Contract 
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -69,6 +75,7 @@ describe('AaveAdapter', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
+    stkAAVE = new Contract('0x4da27a545c0c5B758a6BA100e3a049001de870f5', ERC20.abi, accounts[0])
 
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, susd)
@@ -98,6 +105,19 @@ describe('AaveAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(synthetixAdapter.address)
 		curveAdapter = await deployCurveAdapter(accounts[0], curveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
+
+    
+    let tradeData : TradeData = {
+        adapters: [],
+        path: [],
+        cache: '0x'
+    }
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, collateralToken, tradeData, true)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, collateralToken2, tradeData, true)
+    
+
+    tradeData.adapters.push(uniswapAdapter.address)
+    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, stkAAVE.address, tradeData, false)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -180,6 +200,11 @@ describe('AaveAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
+	/*it('Should getAllRewardTokens', async function () {
+		const rewardTokens = await strategy.connect(accounts[1]).callStatic.getAllRewardTokens()
+    expect(rewardTokens[0]).to.be.equal(stkAAVE.address)
+	})*/
+
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
@@ -201,12 +226,14 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '30000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
+
+  if (runAll) {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
@@ -302,6 +329,15 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
+	})
+
+	it('Should claim stkAAVE', async function () {
+        const balanceBefore = await stkAAVE.balanceOf(strategy.address)
+        const tx = await strategy.connect(accounts[1]).claimAll()
+        const receipt = await tx.wait()
+		    console.log('Gas Used: ', receipt.gasUsed.toString())
+        const balanceAfter = await stkAAVE.balanceOf(strategy.address)
+        expect(balanceAfter).to.be.gt(balanceBefore)
 	})
 
 	it('Should deploy new strategy', async function () {
@@ -711,5 +747,5 @@ describe('AaveAdapter', function () {
           ),
           'No synths and debt', 'StrategyController.sol')).to.be.true
 	})
-
+  }
 })

@@ -13,6 +13,8 @@ import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
@@ -179,25 +181,40 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         bytes memory data
     ) external override {
+      console.log("rebalance");
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyApproved(address(router));
         _onlyManager(strategy);
+
+      console.log("rebalance 0");
         strategy.settleSynths();
+
+      console.log("rebalance 1");
         strategy.claimAll();
+
+      console.log("rebalance 2");
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+
+      console.log("rebalance 3");
         _require(!balancedBefore, uint256(0x1bb63a90056c03) /* error_macro_for("Balanced") */);
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
         _useRouter(strategy, router, Action.REBALANCE, strategy.items(), strategy.debt(), data);
+
+      console.log("rebalance 4");
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+
+      console.log("rebalance 5");
         _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
+
+      console.log("end rebalance");
     }
 
     function claimAll(

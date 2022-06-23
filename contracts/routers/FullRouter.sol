@@ -11,6 +11,8 @@ import "../libraries/BinaryTreeWithPayload.sol";
 import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
 
+import "hardhat/console.sol";
+
 struct LeverageItem {
   address token;
   uint16 percentage;
@@ -103,6 +105,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
         // Deleverage debt
+        console.log("fr 0");
         for (uint256 i; i < strategyDebt.length; ++i) {
             _repayToken(
                 strategy,
@@ -112,6 +115,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 mm
             );
         }
+
+        console.log("fr 1");
         // Sell loop
         int256[] memory buy = new int256[](strategyItems.length);
         address strategyItem;
@@ -133,6 +138,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             ) buy[i] = expected;
             // semantic overloading to cache `expected` since it will be used in next loop.
         }
+
+        console.log("fr 2");
         // Buy loop
         for (uint256 i; i < strategyItems.length; ++i) {
             if (buy[i] != 0) {
@@ -147,8 +154,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
+
+        console.log("fr 3");
         if (IStrategy(strategy).supportsSynths()) _batchBuySynths(strategy, total);
         // Leverage debt
+
+        console.log("fr 4");
         for (uint256 i; i < strategyDebt.length; ++i) {
             _borrowToken(
                 strategy,
@@ -405,15 +416,24 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256 estimatedValue,
         BinaryTreeWithPayload.Tree memory mm
     ) internal {
+      console.log("rpt 0");
         int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, token);
+
+      console.log("rpt 1");
         int256 rebalanceRange =
             StrategyLibrary.getRange(
                 expectedValue,
                 IStrategy(strategy).rebalanceThreshold()
             );
+
+      console.log("rpt 2");
         TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
         // We still call _repayPath even if amountInWeth == 0 because we need to check if leveraged tokens need to be deleveraged
+
+      console.log("rpt 3");
         uint256 amountInWeth = estimatedValue < expectedValue.add(rebalanceRange) ? uint256(-estimatedValue.sub(expectedValue)) : 0;
+
+      console.log("rpt 4");
         _repayPath(
             tradeData,
             amountInWeth,
@@ -465,6 +485,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address strategy,
         BinaryTreeWithPayload.Tree memory mm
     ) internal {
+      console.log("rp 0");
         if (amount == 0 && (data.path[data.path.length-1] != weth || data.cache.length == 0)) return; // Debt doesn't need to change and no leverage tokens to deleverage so return
         // Debt trade paths should have path.length == adapters.length,
         // since final token can differ from the debt token defined in the strategy
@@ -473,11 +494,16 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
 
+      console.log("rp 1");
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
+
+      console.log("rp 2");
             amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
+
+      console.log("rp 3");
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
             if (amount == 0) {
@@ -486,16 +512,25 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false, mm);
                     amount = amount.add(leverageLiquidity[i]);
                 }
+
+      console.log("rp 4");
             } else {
+
+      console.log("rp 5");
                 uint256 leverageAmount = amount; // amount is denominated in weth here
+      console.log(leverageAmount);
                 address token;
                 for (uint256 i; i < leverageItems.length; ++i) {
                     token = leverageItems[i].token;
                     if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
+                      console.log("rp 5.5");
                         uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false, mm);
+                      console.log("rp 5.6");
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
                     } else {
                         leverageLiquidity[i] = leverageAmount;
+
+      console.log("rp 6");
                         _setTempEstimate(
                           mm, 
                           strategy, 
@@ -508,10 +543,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     }
                     leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
                 }
+                console.log(leverageAmount);
                 assert(leverageAmount == 0);
             }
         }
 
+      console.log("rp 7");
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         while (amount > 0) {
             if (leverageItems.length > 0) {
@@ -539,6 +576,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
+
+      console.log("rp 8");
             for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
                 _tokenIn = data.path[uint256(i)];
                 if (uint256(i) == data.adapters.length-1) {
