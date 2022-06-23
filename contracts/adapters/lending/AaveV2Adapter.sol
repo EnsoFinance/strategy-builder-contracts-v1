@@ -7,10 +7,11 @@ import "../../interfaces/aave/ILendingPool.sol";
 import "../../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IStrategyController.sol";
+import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../ProtocolAdapter.sol";
 
-contract AaveV2Adapter is ProtocolAdapter {
+contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
@@ -62,5 +63,26 @@ contract AaveV2Adapter is ProtocolAdapter {
         }
         uint256 received = IERC20(tokenOut).balanceOf(to);
         require(received >= expected, "Insufficient tokenOut amount");
+    }
+
+    // Intended to be called via delegateCall
+    function claim(address[] memory tokens) external override {
+        IAaveIncentivesController ic;
+        address[] memory tokens_ = new address[](1);
+        uint256 amount;
+        for (uint256 i; i < tokens.length; ++i) {
+            // unfortunately have to do loop since claimables are grouped by
+            // adapter not by rewards token
+            tokens_[0] = tokens[i];
+            ic = IAToken(tokens_[0]).getIncentivesController();
+            amount = ic.getRewardsBalance(tokens_, address(this));
+            ic.claimRewards(tokens_, amount, address(this));
+        }
+    }
+
+    function rewardsTokens(address token) external view override returns(address[] memory) {
+        address[] memory ret = new address[](1);
+        ret[0] = IAToken(token).getIncentivesController().REWARD_TOKEN();
+        return ret;
     }
 }
