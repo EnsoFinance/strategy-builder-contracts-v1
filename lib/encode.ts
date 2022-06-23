@@ -56,7 +56,7 @@ export type InitialState = {
 	rebalanceThreshold: BigNumber
 	rebalanceSlippage: BigNumber
 	restructureSlippage: BigNumber
-	performanceFee: BigNumber
+	managementFee: BigNumber
 	social: boolean
 	set: boolean
 }

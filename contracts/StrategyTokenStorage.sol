@@ -36,6 +36,9 @@ contract StrategyTokenStorage is StrategyTypes {
     mapping(address => TradeData) internal _tradeData;
     mapping(bytes4 => TimelockData) internal __timelockData;
 
+    uint256 internal _managementFee;
+    uint256 internal _managementFeeRate;
+
     // Gap for future storage changes
-    uint256[49] private __gap;
+    uint256[47] private __gap;
 }

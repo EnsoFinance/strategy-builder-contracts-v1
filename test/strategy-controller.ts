@@ -78,7 +78,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: BigNumber.from(1001),
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -108,7 +108,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: BigNumber.from(1001),
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -138,7 +138,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: BigNumber.from(1001),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -168,7 +168,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(1001),
+			managementFee: BigNumber.from(201),
 			social: true,
 			set: false
 		}
@@ -193,7 +193,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(10), //1% fee
+			managementFee: BigNumber.from(10), //1% fee
 			social: true, // social
 			set: false
 		}
@@ -217,7 +217,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(10), //1% fee
+			managementFee: BigNumber.from(10), //1% fee
 			social: true, // social
 			set: false
 		}
@@ -239,7 +239,7 @@ describe('StrategyController', function () {
 		const emptyStrategy = await Strategy.attach(strategyAddress)
 		expect((await emptyStrategy.items()).length).to.equal(0)
 		expect((await controller.strategyState(emptyStrategy.address)).social).to.equal(true)
-		expect(BigNumber.from(await emptyStrategy.performanceFee()).eq(strategyState.performanceFee)).to.equal(true)
+		expect(BigNumber.from(await emptyStrategy.managementFee()).eq(strategyState.managementFee)).to.equal(true)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -267,7 +267,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: REBALANCE_THRESHOLD,
 			rebalanceSlippage: REBALANCE_SLIPPAGE,
 			restructureSlippage: RESTRUCTURE_SLIPPAGE,
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -335,7 +335,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: BigNumber.from(0),
 			rebalanceSlippage: BigNumber.from(0),
 			restructureSlippage: BigNumber.from(0),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -360,7 +360,7 @@ describe('StrategyController', function () {
 			rebalanceThreshold: BigNumber.from(0),
 			rebalanceSlippage: BigNumber.from(0),
 			restructureSlippage: BigNumber.from(0),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -408,26 +408,26 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to update value: option out of bounds', async function () {
-		await expect(controller.connect(accounts[1]).updateValue(strategy.address, 6, 0)).to.be.revertedWith('')
+		await expect(controller.connect(accounts[1]).updateValue(strategy.address, 7, 0)).to.be.revertedWith('')
 	})
 
 	it('Should fail to update threshold: not manager', async function () {
 		expect(
         await isRevertedWith(
-			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1),
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_THRESHOLD, 1),
 		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update threshold: value too large', async function () {
 		expect(
       await isRevertedWith(
-			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, 1001),
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_THRESHOLD, 1001),
           'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update threshold', async function () {
 		newThreshold = BigNumber.from(15)
-		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.THRESHOLD, newThreshold)
+		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_THRESHOLD, newThreshold)
 	})
 
 	it('Should fail to finalize restructure: timelock not set for restructure', async function () {
@@ -491,22 +491,22 @@ describe('StrategyController', function () {
 	it('Should fail to update performance fee: not manager', async function () {
 		expect(
         await isRevertedWith(
-			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1),
+			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, 1),
 		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to update performance fee: value too large', async function () {
 		expect(
       await isRevertedWith(
-			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, 1001),
+			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, 201),
           'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update performance fee', async function () {
 		const fee = 10 // 1% fee
-		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.PERFORMANCE, fee)
+		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, fee)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await strategy.performanceFee()).eq(fee)).to.equal(true)
+		expect(BigNumber.from(await strategy.managementFee()).eq(fee)).to.equal(true)
 	})
 
 	it('Should fail to update timelock: not manager', async function () {

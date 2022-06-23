@@ -229,10 +229,8 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     ) internal virtual {
         _validAddress(sender);
         _validAddress(recipient);
-        _handleFees(amount, sender, recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
-        _resetTokenValue(sender);
         emit Transfer(sender, recipient, amount);
     }
 
@@ -267,7 +265,6 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         _validAddress(account);
         _balances[account] = _balances[account].sub(amount, BALANCE_LOW);
         _totalSupply = _totalSupply.sub(amount);
-        _resetTokenValue(account);
         emit Transfer(account, address(0), amount);
     }
 
@@ -310,13 +307,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         );
     }
 
-    function _resetTokenValue(address account) internal {
-        if (_balances[account] == 0) _paidTokenValues[account] = 0;
-    }
-
     function _validAddress(address addr) internal pure {
         require(addr != address(0), "ERC20: No address(0)");
     }
-
-    function _handleFees(uint256 amount, address sender,address recipient) internal virtual;
 }

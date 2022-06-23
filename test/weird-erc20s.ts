@@ -17,7 +17,7 @@ const STRATEGY_STATE: InitialState = {
 	rebalanceThreshold: BigNumber.from(10),
 	rebalanceSlippage: BigNumber.from(997),
 	restructureSlippage: BigNumber.from(995),
-	performanceFee: BigNumber.from(50),
+	managementFee: BigNumber.from(0),
 	social: true,
 	set: false
 }

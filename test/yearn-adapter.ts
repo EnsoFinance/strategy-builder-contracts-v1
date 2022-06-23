@@ -100,7 +100,7 @@ describe('YEarnV2Adapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(995),
 			restructureSlippage: BigNumber.from(985),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
