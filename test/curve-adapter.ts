@@ -308,6 +308,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should deploy "exotic" strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
+    console.log("crv", crv.address);
+    console.log("crvEURS", tokens.crvEURS);
+    console.log("dai", dai.address)
+    console.log("rewardToken crvLINKGauge", rewardToken)
+    console.log("crvLINK", tokens.crvLINK)
+    console.log("link", tokens.link)
+    // rewardToken FIXME is the sticker
 		const positions = [
 			// an "exotic" strategy
 			{ token: dai.address, percentage: BigNumber.from(200) },
@@ -358,6 +365,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
+    console.log("strategy address", strategy.address)
+    console.log(oracle.address)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -792,8 +801,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(995),
-			managementFee: BigNumber.from(0),
+			restructureSlippage: BigNumber.from(980),
+			performanceFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}

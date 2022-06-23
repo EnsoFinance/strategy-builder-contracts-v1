@@ -15,14 +15,15 @@ contract CurveGaugeEstimator is IEstimator {
 
     function estimateItem(address user, address token) public view override returns (int256) { 
         uint256 balance = IERC20(token).balanceOf(address(user));
-        address knownUnderlyingToken;
-        StrategyTypes.TradeData memory td = IStrategy(user).getTradeData(token); 
-        if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
-        return _estimateItem(balance, token, knownUnderlyingToken);
+        return _estimateItem(balance, token, user);
     }
 
-    function _estimateItem(uint256 balance, address token, address knownUnderlyingToken) private view returns (int256) {
+    function _estimateItem(uint256 balance, address token, address user) private view returns (int256) {
         address underlyingToken = ICurveGauge(token).lp_token();
+        address knownUnderlyingToken;
+        try IStrategy(user).getTradeData(token) returns(StrategyTypes.TradeData memory td) { 
+            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
+        } catch {}
         return IOracle(msg.sender).estimateItem(balance, underlyingToken, knownUnderlyingToken);
     }
 }
