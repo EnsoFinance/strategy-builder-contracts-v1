@@ -574,7 +574,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                     if (poolBalance > 0) {
                         // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
                         uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
-                        if (feePercentage > LOWER_BOUND && feePercentage < FEE_UPPER_BOUND) {
+                        if (feePercentage > FEE_LOWER_BOUND && feePercentage < FEE_UPPER_BOUND) {
                             strategy.burn(pool, poolBalance); // Burn pool tokens since they will be getting traded
                             poolWethAmount = totalBefore.mul(poolBalance).div(totalSupply);
                             amount = amount.add(poolBalance); // Add pool balance to amount to determine percentage that will be passed to router
