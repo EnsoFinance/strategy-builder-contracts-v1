@@ -31,8 +31,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     uint256 private constant DIVISOR = 1000;
     uint256 private constant PRECISION = 10**18;
-    uint256 private constant UPPER_BOUND = 10**17; // Upper condition for including pool's tokens as part of burn during withdraw
-    uint256 private constant LOWER_BOUND = 10**16; // Lower condition for including pool's tokens as part of burn during withdraw
+    uint256 private constant FEE_UPPER_BOUND = 10**17; // Upper condition for including pool's tokens as part of burn during withdraw
+    uint256 private constant FEE_LOWER_BOUND = 10**16; // Lower condition for including pool's tokens as part of burn during withdraw
     uint256 private constant FEE_BOUND = 200; // Max fee of 20%
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
@@ -574,7 +574,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                     if (poolBalance > 0) {
                         // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
                         uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
-                        if (feePercentage > LOWER_BOUND && feePercentage < UPPER_BOUND) {
+                        if (feePercentage > LOWER_BOUND && feePercentage < FEE_UPPER_BOUND) {
                             strategy.burn(pool, poolBalance); // Burn pool tokens since they will be getting traded
                             poolWethAmount = totalBefore.mul(poolBalance).div(totalSupply);
                             amount = amount.add(poolBalance); // Add pool balance to amount to determine percentage that will be passed to router
