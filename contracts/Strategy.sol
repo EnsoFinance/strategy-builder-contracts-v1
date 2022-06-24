@@ -2,10 +2,12 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/proxy/Initializable.sol";
+
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
@@ -727,7 +729,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
-        if (supply > 0) _lastTokenValue = uint128(total.mul(PRECISION).div(supply));
+        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION).div(supply));
     }
 
     function _transfer(
