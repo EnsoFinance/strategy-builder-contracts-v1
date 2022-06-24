@@ -28,10 +28,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
 
-// FIXME will claimables be recognized for debtTokens?
-//
-
-const runAll = false
+// FIXME will claimables be recognized for debtTokens? doesn't appear so
 
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
@@ -232,8 +229,6 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
-
-  if (runAll) {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
@@ -747,5 +742,4 @@ describe('AaveAdapter', function () {
           ),
           'No synths and debt', 'StrategyController.sol')).to.be.true
 	})
-  }
 })
