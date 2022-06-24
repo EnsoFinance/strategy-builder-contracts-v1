@@ -632,18 +632,18 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Get strategy value
         IOracle o = oracle();
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
-        // Get current items
-        address[] memory currentItems = strategy.items();
-        address[] memory currentDebt = strategy.debt();
+        // Get current items, which will be "former" when used
+        address[] memory formerItems = strategy.items();
+        address[] memory formerDebt = strategy.debt();
         // Conditionally set data
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
+            data = abi.encode(totalBefore, estimates, formerItems, formerDebt);
         // Set new structure
         strategy.setStructure(newItems);
         // Liquidate unused tokens
-        _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
-        // Check balance
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+        _useRouter(strategy, router, Action.RESTRUCTURE, formerItems, formerDebt, data);
+        // Check balance, ensuring former debt was settled in router
+        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalanceConsideringFormerDebt(address(strategy), _oracle, formerDebt);
         _require(balancedAfter, uint256(0x1bb63a90056c1f) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());

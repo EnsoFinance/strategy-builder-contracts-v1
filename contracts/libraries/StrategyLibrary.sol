@@ -32,6 +32,18 @@ library StrategyLibrary {
      *         before and after a rebalance to ensure nothing fishy happened
      */
     function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
+        return _verifyBalance(strategy, oracle, new address[](0));
+    }
+
+    /**
+     * @notice This function has same functionality as `verifyBalance`
+     *    with the added consideration to former debt in the calculation.
+    */
+    function verifyBalanceConsideringFormerDebt(address strategy, address oracle, address[] memory formerDebt) public view returns (bool, uint256, int256[] memory) {
+        return _verifyBalance(strategy, oracle, formerDebt);
+    }
+
+    function _verifyBalance(address strategy, address oracle, address[] memory formerDebt) private view returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
         uint256 threshold = IStrategy(strategy).rebalanceThreshold();
@@ -76,9 +88,25 @@ library StrategyLibrary {
                    break;
                }
             }
+            for (uint256 i = 0; i < formerDebt.length; i++) {
+              int256 expectedValue = getExpectedTokenValue(total, strategy, formerDebt[i]);
+              int256 rebalanceRange = getRange(expectedValue, threshold);
+              uint256 index = strategyItems.length + i;
+               // Former Debt
+               // TODO
+               /*if (estimates[index] < expectedValue.add(rebalanceRange)) {
+                   balanced = false;
+                   break;
+               }
+               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
+                   balanced = false;
+                   break;
+               }*/
+            }
         }
         return (balanced, total, estimates);
     }
+
 
     /**
      * @notice This function gets the strategy value from the oracle and determines
