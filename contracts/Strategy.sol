@@ -102,6 +102,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _version = version_;
         _lastTokenValue = uint128(PRECISION);
         _lastStreamTimestamp = uint96(block.timestamp);
+        _paidTokenValues[manager_] = uint256(-1);
         _setDomainSeperator();
         updateAddresses();
         // Set structure
@@ -226,7 +227,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         {
             // Deduct withdrawal fee, burn tokens, and calculate percentage
             uint256 totalSupplyBefore = _totalSupply; // Need to get total supply before burn to properly calculate percentage
-            _issueStreamingFeeAndBurn(_pool, msg.sender, amount);
+            _issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount);
             percentage = amount.mul(PRECISION).div(totalSupplyBefore);
         }
         // Withdraw funds
@@ -287,9 +288,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         // Normally we would expect to call _issueStreamingFee here, but since an accurate totalSupply
         // is needed to determine the mint amount, it is called earlier in StrategyController.deposit()
         // so it unnecessary to call here.
-        _updatePaidTokenValue(account, amount, _lastTokenValue);
+        address pool = _pool;
+        address manager = _manager;
+        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
         _mint(account, amount);
-        _updateStreamingFeeRate(_pool, _manager);
+        _updateStreamingFeeRate(pool, manager);
     }
 
     /**
@@ -299,11 +302,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
      */
     function burn(address account, uint256 amount) external override onlyController returns (uint256) {
         address pool = _pool;
-        if (pool == account) {
+        if (account == pool) {
           _burn(account, amount);
         } else {
-          _removePaidTokenValue(account, amount);
-          _issueStreamingFeeAndBurn(pool, account, amount);
+          address manager = _manager;
+          if (account != manager) _removePaidTokenValue(account, amount);
+          _issueStreamingFeeAndBurn(pool, manager, account, amount);
         }
         return amount;
     }
@@ -446,6 +450,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         _issueStreamingFee(pool, manager);
         _manager = newManager;
         _updateStreamingFeeRate(pool, newManager);
+        _paidTokenValues[manager] = _lastTokenValue;
+        _paidTokenValues[newManager] = uint256(-1);
         emit UpdateManager(newManager);
     }
 
@@ -477,8 +483,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
             // If pool has been initialized but is now changing update paidTokenValue
             if (currentPool != address(0)) {
                 address manager = _manager;
-                _issueStreamingFee(_pool, manager);
+                _issueStreamingFee(currentPool, manager);
                 _updateStreamingFeeRate(newPool, manager);
+                _paidTokenValues[currentPool] = _lastTokenValue;
             }
             _paidTokenValues[newPool] = uint256(-1);
             _pool = newPool;
@@ -667,8 +674,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     /**
      * @notice Issue streaming fee and burn remaining tokens. Returns the updated fee pool balance
      */
-    function _issueStreamingFeeAndBurn(address pool, address account, uint256 amount) internal {
-        address manager = _manager;
+    function _issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) internal {
         _issueStreamingFee(pool, manager);
         _burn(account, amount);
         _updateStreamingFeeRate(pool, manager);
@@ -715,14 +721,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         }
     }
 
-    function _updatePaidTokenValues(address sender, address recipient, uint256 amount) internal {
-        // We're not currently supporting performance fees but don't want to exclude it in the future.
-        // So users are getting grandfathered in by setting their paid token value to the avg token
-        // value they bought into
-        _removePaidTokenValue(sender, amount);
-        _updatePaidTokenValue(recipient, amount, _lastTokenValue);
-    }
-
     /**
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */
@@ -735,10 +733,22 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address recipient,
         uint256 amount
     ) internal override {
-        _updatePaidTokenValues(sender, recipient, amount);
         address pool = _pool;
         address manager = _manager;
-        bool rateChange = sender == pool || recipient == pool || sender == manager || recipient == manager;
+        bool rateChange;
+        // We're not currently supporting performance fees but don't want to exclude it in the future.
+        // So users are getting grandfathered in by setting their paid token value to the avg token
+        // value they bought into
+        if (sender != manager && sender != pool) {
+            _removePaidTokenValue(sender, amount);
+        } else {
+            rateChange = true;
+        }
+        if (recipient != manager && recipient != pool) {
+            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
+        } else {
+            rateChange = true;
+        }
         if (rateChange) _issueStreamingFee(pool, manager);
         super._transfer(sender, recipient, amount);
         if (rateChange) _updateStreamingFeeRate(pool, manager);
