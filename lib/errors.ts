@@ -49,9 +49,6 @@ export function getErrorCodes(contractFileName: string, errMsg : string) : strin
         anyErrorcodes[k] === errMsg
     )
     if (codes.length === 0) return ["getErrorCode: errorcode does not exist."]
-    for (var i=0; i<codes.length; ++i) { // format
-        codes[i] = parseInt(codes[i]).toString()
-    }
     return codes
 }
 
