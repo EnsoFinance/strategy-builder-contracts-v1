@@ -401,7 +401,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     }
 
     function updatePerformanceFee(uint16 fee) external override onlyController {
-        _performanceFee = fee;
+        revert("This strategy does not support performance fees");
     }
 
     function updateManagementFee(uint16 fee) external override onlyController {
