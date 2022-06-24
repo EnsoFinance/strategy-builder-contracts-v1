@@ -56,8 +56,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event RewardsClaimed(address indexed adapter, address indexed token);
     event UpdateManager(address manager);
-    event PerformanceFee(address indexed account, uint256 amount);
-    event WithdrawalFee(address indexed account, uint256 amount);
     event StreamingFee(uint256 amount);
     event ManagementFee(uint256 amount);
     event UpdateTradeData(address item, bool finalized);
