@@ -79,6 +79,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
+            // No need to issue streaming fees on initial setup
             _deposit(
                 strategy,
                 IStrategyRouter(router_),
