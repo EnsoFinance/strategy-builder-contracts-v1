@@ -4,10 +4,12 @@ pragma solidity 0.6.12;
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IStrategy.sol";
+import "../libraries/MemoryMappings.sol";
 
 library StrategyLibrary {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
+    using MemoryMappings for BinaryTreeWithPayload.Tree;
 
     int256 private constant DIVISOR = 1000;
 
@@ -74,34 +76,32 @@ library StrategyLibrary {
         }
         if (balanced) {
             address[] memory strategyDebt = IStrategy(strategy).debt();
+            BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
             for (uint256 i = 0; i < strategyDebt.length; i++) {
               int256 expectedValue = getExpectedTokenValue(total, strategy, strategyDebt[i]);
               int256 rebalanceRange = getRange(expectedValue, threshold);
               uint256 index = strategyItems.length + i;
                // Debt
-               if (estimates[index] < expectedValue.add(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
-               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
+              if (estimates[index] < expectedValue.add(rebalanceRange)) {
+                  balanced = false;
+                  break;
+              }
+              if (estimates[index] > expectedValue.sub(rebalanceRange)) {
+                  balanced = false;
+                  break;
+              }
+              exists.add(bytes32(uint256(strategyDebt[i])), bytes32(0x0)); // second parameter is "any" value
             }
+            bool ok;
+            int256 estimate;
             for (uint256 i = 0; i < formerDebt.length; i++) {
-              int256 expectedValue = getExpectedTokenValue(total, strategy, formerDebt[i]);
-              int256 rebalanceRange = getRange(expectedValue, threshold);
-              uint256 index = strategyItems.length + i;
-               // Former Debt
-               // TODO
-               /*if (estimates[index] < expectedValue.add(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
-               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }*/
+                (ok, ) = exists.getValue(bytes32(uint256(formerDebt[i])));
+                if (ok) continue; // debt accounted for in strategyDebt loop
+                estimate = IOracle(oracle).estimateItem(strategy, formerDebt[i]);
+                if (estimate != 0) {
+                    balanced = false;    
+                    break;
+                }
             }
         }
         return (balanced, total, estimates);
