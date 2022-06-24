@@ -488,21 +488,21 @@ describe('StrategyController', function () {
 	})
 
 
-	it('Should fail to update performance fee: not manager', async function () {
+	it('Should fail to update management fee: not manager', async function () {
 		expect(
         await isRevertedWith(
 			      controller.connect(owner).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, 1),
 		        'Not manager', 'StrategyController.sol')).to.be.true
 	})
 
-	it('Should fail to update performance fee: value too large', async function () {
+	it('Should fail to update management fee: value too large', async function () {
 		expect(
       await isRevertedWith(
 			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, 201),
           'Out of bounds', 'StrategyController.sol')).to.be.true
 	})
 
-	it('Should update performance fee', async function () {
+	it('Should update management fee', async function () {
 		const fee = 10 // 1% fee
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, fee)
 		await controller.finalizeValue(strategy.address)

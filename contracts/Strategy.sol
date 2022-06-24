@@ -408,7 +408,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
         address pool = _pool;
         address manager = _manager;
         _issueStreamingFee(pool, manager);
-        _managementFee = PRECISION.mul(DIVISOR).div(DIVISOR.sub(uint256(fee))).sub(PRECISION);
+        _managementFee = PRECISION.mul(fee).div(DIVISOR.sub(fee));
         _updateStreamingFeeRate(pool, manager);
     }
 
