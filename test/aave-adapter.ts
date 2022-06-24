@@ -28,8 +28,6 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
 
-// FIXME will claimables be recognized for debtTokens? doesn't appear so
-
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
