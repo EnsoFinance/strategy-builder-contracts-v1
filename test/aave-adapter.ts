@@ -16,6 +16,8 @@ import {
 	deployMetaStrategyAdapter,
 	deploySynthetixAdapter,
 	deployCurveAdapter,
+	deployCurveLPAdapter,
+	deployYEarnAdapter,
 	deployPlatform,
 	deployFullRouter
 } from '../lib/deploy'
@@ -37,10 +39,13 @@ const STRATEGY_STATE: InitialState = {
 	set: false
 }
 
+const runAll = false
+
 describe('AaveAdapter', function () {
 	let	weth: Contract,
 		susd: Contract,
 		usdc: Contract,
+		crv: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
@@ -54,6 +59,8 @@ describe('AaveAdapter', function () {
 		aaveV2DebtAdapter: Contract,
 		synthetixAdapter: Contract,
 		curveAdapter: Contract,
+		curveLPAdapter: Contract,
+		yearnAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
@@ -67,6 +74,7 @@ describe('AaveAdapter', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
+		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, susd)
@@ -96,6 +104,12 @@ describe('AaveAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(synthetixAdapter.address)
 		curveAdapter = await deployCurveAdapter(accounts[0], curveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
+
+		yearnAdapter = await deployYEarnAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.YEARN_V2)
+		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
+
+		curveLPAdapter = await deployCurveLPAdapter(accounts[0], curveAddressProvider, curveDepositZapRegistry, weth)
+		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -134,7 +148,6 @@ describe('AaveAdapter', function () {
 	      ),
 			}
 		]
-
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -177,6 +190,8 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
+
+  //if (runAll) {
 
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
@@ -233,6 +248,23 @@ describe('AaveAdapter', function () {
 
 	it('Should restructure', async function () {
 		const positions = [
+			{ token: tokens.aCRV,
+				percentage: BigNumber.from(1000),
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
+				path: [crv.address],
+			},
+			{ token: tokens.debtWETH,
+				percentage: BigNumber.from(-400),
+				adapters: [aaveV2DebtAdapter.address, curveLPAdapter.address, yearnAdapter.address],
+				path: [tokens.weth, tokens.crvTriCrypto2, tokens.ycrvTriCrypto2]
+			},
+			{ token: tokens.ycrvTriCrypto2,
+				percentage: BigNumber.from(400),
+				adapters: [],
+				path: [],
+			},
+		]
+		/*const positions = [
 			{ token: collateralToken,
 				percentage: BigNumber.from(2000),
 				adapters: [aaveV2Adapter.address],
@@ -254,7 +286,7 @@ describe('AaveAdapter', function () {
 					]] //Need to keep collateralToken2 in the cache in order to deleverage it
 	      ),
 			}
-		]
+		]*/
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
@@ -267,6 +299,8 @@ describe('AaveAdapter', function () {
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
+
+    if (runAll) {
 
 	it('Should deposit', async function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
@@ -707,4 +741,5 @@ describe('AaveAdapter', function () {
           'No synths and debt', 'StrategyController.sol')).to.be.true
 	})
 
+  }
 })
