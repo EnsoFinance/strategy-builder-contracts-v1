@@ -52,8 +52,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function settleSynths() external;
 
-    function updateTokenValue(uint256 total, uint256 supply) external;
-
     function updateRebalanceThreshold(uint16 threshold) external;
 
     function updateTradeData(address item, TradeData memory data) external;

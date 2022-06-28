@@ -433,7 +433,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      * @param total The current total value of the strategy in WETH
      * @param supply The new supply of the token (updateTokenValue needs to be called before mint, so the new supply has to be passed in)
      */
-    function updateTokenValue(uint256 total, uint256 supply) external override onlyController {
+    function updateTokenValue(uint256 total, uint256 supply) external onlyController {
         _setTokenValue(total, supply);
     }
 

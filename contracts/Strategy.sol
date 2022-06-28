@@ -12,7 +12,6 @@ import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
-import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
 import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
@@ -42,7 +41,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
-    address public immutable factory;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event RewardsClaimed(address indexed adapter, address indexed token);
@@ -50,8 +48,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     event UpdateTradeData(address item, bool finalized);
 
     // Initialize constructor to disable implementation
-    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(controller_) {
-        factory = factory_;
+    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
     }
@@ -373,25 +370,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     /**
-     * @notice Update the per token value based on the most recent strategy value. Only callable by controller
-     * @param total The current total value of the strategy in WETH
-     * @param supply The new supply of the token (updateTokenValue needs to be called before mint, so the new supply has to be passed in)
-     */
-    function updateTokenValue(uint256 total, uint256 supply) external override onlyController {
-        _setTokenValue(total, supply);
-    }
-
-    /**
-     * @notice Update the per token value based on the most recent strategy value.
-     */
-    function updateTokenValue() external {
-        _setLock();
-        _onlyManager();
-        _updateTokenValue();
-        _removeLock();
-    }
-
-    /**
         @notice Update the manager of this Strategy
      */
     function updateManager(address newManager) external override {
@@ -425,37 +403,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     /**
-        @notice Refresh Strategy's addresses
-     */
-    function updateAddresses() public {
-        IStrategyProxyFactory f = IStrategyProxyFactory(factory);
-        address newPool = f.pool();
-        address currentPool = _pool;
-        if (newPool != currentPool) {
-            // If pool has been initialized but is now changing update paidTokenValue
-            if (currentPool != address(0)) {
-                address manager = _manager;
-                _issueStreamingFee(currentPool, manager);
-                _updateStreamingFeeRate(newPool, manager);
-                _paidTokenValues[currentPool] = _lastTokenValue;
-            }
-            _paidTokenValues[newPool] = uint256(-1);
-            _pool = newPool;
-        }
-        address o = f.oracle();
-        if (o != _oracle) {
-            IOracle ensoOracle = IOracle(o);
-            _oracle = o;
-            _weth = ensoOracle.weth();
-            _susd = ensoOracle.susd();
-        }
-    }
-
-    /**
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        require(msg.sender == factory, "Only StrategyProxyFactory");
+        require(msg.sender == _factory, "Only StrategyProxyFactory");
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
@@ -509,8 +460,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         return _controller;
     }
 
+    function factory() public view returns (address) {
+        return _factory;
+    }
+
     function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(IStrategyProxyFactory(factory).whitelist());
+        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
     }
 
     function supportsSynths() public view override returns (bool) {
@@ -602,42 +557,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         }
     }
 
-    /**
-     * @notice Update the per token value based on the most recent strategy value.
-     */
-    function _updateTokenValue() internal {
-        if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
-        (uint256 total, ) = oracle().estimateStrategy(this);
-        _setTokenValue(total, _totalSupply);
-    }
-
-    function _updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
-        uint256 balance = _balances[account];
-        if (balance == 0) {
-            // If account doesn't have a balance, set paid token value to current token value
-            _paidTokenValues[account] = tokenValue;
-        } else {
-            // Otherwise, calculate avg token value
-            uint256 oldValue = balance.mul(_paidTokenValues[account]);
-            uint256 newValue = amount.mul(tokenValue);
-            _paidTokenValues[account] = oldValue.add(newValue).div(balance.add(amount));
-        }
-    }
-
-    function _removePaidTokenValue(address account, uint256 amount) internal {
-        if (_balances[account] <= amount) {
-            // If user is exiting their position, reset paid token value
-            delete _paidTokenValues[account];
-        }
-    }
-
-    /**
-     * @notice Sets the new _lastTokenValue based on the total price and token supply
-     */
-    function _setTokenValue(uint256 total, uint256 supply) internal {
-        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION).div(supply));
-    }
-
     function _transfer(
         address sender,
         address recipient,
@@ -669,10 +588,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
      */
     function _onlyApproved(address account) internal view {
         require(whitelist().approved(account), "Not approved");
-    }
-
-    function _onlyManager() internal view {
-        require(msg.sender == _manager, "Not manager");
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {

@@ -194,7 +194,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
     }
@@ -536,7 +536,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         require(relativeTokens > 0, "Insuffient tokens");
-        strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
     }
@@ -616,7 +616,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
         }
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, strategy.totalSupply());
         // Approve weth
         strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
         if (poolWethAmount > 0) {
@@ -676,7 +676,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c20) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, strategy.totalSupply());
     }
 
     /**
