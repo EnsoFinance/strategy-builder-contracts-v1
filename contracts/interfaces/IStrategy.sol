@@ -52,13 +52,7 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function settleSynths() external;
 
-    function issueStreamingFee() external;
-
     function updateTokenValue(uint256 total, uint256 supply) external;
-
-    function updatePerformanceFee(uint16 fee) external;
-
-    function updateManagementFee(uint16 fee) external;
 
     function updateRebalanceThreshold(uint16 threshold) external;
 

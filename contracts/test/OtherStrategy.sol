@@ -414,7 +414,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
-    function issueStreamingFee() external override onlyController {
+    function issueStreamingFee() external onlyController {
         _issueStreamingFee(_pool);
     }
 
@@ -437,11 +437,11 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         _setTokenValue(total, supply);
     }
 
-    function updatePerformanceFee(uint16 fee) external override onlyController {
+    function updatePerformanceFee(uint16 fee) external onlyController {
         _performanceFee = fee;
     }
 
-    function updateManagementFee(uint16 fee) external override onlyController {
+    function updateManagementFee(uint16 fee) external onlyController {
         _managementFee = uint256(10**18).mul(DIVISOR).div(DIVISOR.sub(uint256(fee))).sub(10**18);
     }
 

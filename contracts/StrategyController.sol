@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategyController.sol";
+import "./interfaces/IStrategyFees.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
@@ -116,7 +117,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           uint256(0x1bb63a90056c01) /* error_macro_for("Strategy restructuring") */
         );
         strategy.settleSynths();
-        strategy.issueStreamingFee();
+        IStrategyFees(address(strategy)).issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
@@ -367,9 +368,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         } else if (lock.category == TimelockCategory.REBALANCE_THRESHOLD) {
             strategy.updateRebalanceThreshold(uint16(newValue));
         } else if (lock.category == TimelockCategory.PERFORMANCE_FEE) {
-            strategy.updatePerformanceFee(uint16(newValue));
+            IStrategyFees(address(strategy)).updatePerformanceFee(uint16(newValue));
         } else { // lock.category == TimelockCategory.MANAGEMENT_FEE
-            strategy.updateManagementFee(uint16(newValue));
+            IStrategyFees(address(strategy)).updateManagementFee(uint16(newValue));
         }
         emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
@@ -638,7 +639,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           state.social,
           state.set
         );
-        IStrategy(strategy).updateManagementFee(state.managementFee);
+        IStrategyFees(strategy).updateManagementFee(state.managementFee);
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
         if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);
