@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategyController.sol";
-import "./interfaces/IStrategyFees.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
@@ -117,7 +116,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           uint256(0x1bb63a90056c01) /* error_macro_for("Strategy restructuring") */
         );
         strategy.settleSynths();
-        IStrategyFees(address(strategy)).issueStreamingFee();
+        strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
@@ -194,7 +193,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, strategy.totalSupply());
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
     }
@@ -368,9 +367,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         } else if (lock.category == TimelockCategory.REBALANCE_THRESHOLD) {
             strategy.updateRebalanceThreshold(uint16(newValue));
         } else if (lock.category == TimelockCategory.PERFORMANCE_FEE) {
-            IStrategyFees(address(strategy)).updatePerformanceFee(uint16(newValue));
+            strategy.updatePerformanceFee(uint16(newValue));
         } else { // lock.category == TimelockCategory.MANAGEMENT_FEE
-            IStrategyFees(address(strategy)).updateManagementFee(uint16(newValue));
+            strategy.updateManagementFee(uint16(newValue));
         }
         emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
@@ -536,7 +535,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         require(relativeTokens > 0, "Insuffient tokens");
-        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+        strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         strategy.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
     }
@@ -616,7 +615,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
         }
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
-        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, strategy.totalSupply());
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         // Approve weth
         strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
         if (poolWethAmount > 0) {
@@ -639,7 +638,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           state.social,
           state.set
         );
-        IStrategyFees(strategy).updateManagementFee(state.managementFee);
+        IStrategy(strategy).updateManagementFee(state.managementFee);
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
         if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);
@@ -676,7 +675,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c20) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
-        IStrategyFees(address(strategy)).updateTokenValue(totalAfter, strategy.totalSupply());
+        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
     }
 
     /**

@@ -414,7 +414,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
-    function issueStreamingFee() external onlyController {
+    function issueStreamingFee() external override onlyController {
         _issueStreamingFee(_pool);
     }
 
@@ -433,15 +433,15 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      * @param total The current total value of the strategy in WETH
      * @param supply The new supply of the token (updateTokenValue needs to be called before mint, so the new supply has to be passed in)
      */
-    function updateTokenValue(uint256 total, uint256 supply) external onlyController {
+    function updateTokenValue(uint256 total, uint256 supply) external override onlyController {
         _setTokenValue(total, supply);
     }
 
-    function updatePerformanceFee(uint16 fee) external onlyController {
+    function updatePerformanceFee(uint16 fee) external override onlyController {
         _performanceFee = fee;
     }
 
-    function updateManagementFee(uint16 fee) external onlyController {
+    function updateManagementFee(uint16 fee) external override onlyController {
         _managementFee = uint256(10**18).mul(DIVISOR).div(DIVISOR.sub(uint256(fee))).sub(10**18);
     }
 
