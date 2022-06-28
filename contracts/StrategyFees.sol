@@ -30,7 +30,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
         _updateAddresses(callbacks);
     }
 
-
     function managementFee() external view returns (uint256) {
         uint256 managementFee = _managementFee;
         return managementFee.div(managementFee.add(PRECISION).div(DIVISOR));
@@ -54,7 +53,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
         _updateTokenValue();
         _removeLock();
     }
-
 
     /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
@@ -154,7 +152,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
         }
     }
 
-    
     /**
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */

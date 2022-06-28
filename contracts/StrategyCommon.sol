@@ -27,10 +27,8 @@ contract StrategyCommon is StrategyToken {
             // If pool has been initialized but is now changing update paidTokenValue
             if (currentPool != address(0)) {
                 address manager = _manager;
-                //_issueStreamingFee(currentPool, manager);
-                //_updateStreamingFeeRate(newPool, manager);
-                callbacks[0](currentPool, manager);
-                callbacks[1](newPool, manager);
+                callbacks[0](currentPool, manager); // perhaps .. _issueStreamingFee
+                callbacks[1](newPool, manager); // and _updateStreamingFeeRate
                 _paidTokenValues[currentPool] = _lastTokenValue;
             }
             _paidTokenValues[newPool] = uint256(-1);
