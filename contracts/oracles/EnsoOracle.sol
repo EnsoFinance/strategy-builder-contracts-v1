@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
 import "../helpers/StrategyTypes.sol";
 
+import "hardhat/console.sol";
+
 contract EnsoOracle is IOracle, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -38,6 +40,12 @@ contract EnsoOracle is IOracle, StrategyTypes {
                 address(strategy),
                 strategyItems[i]
             );
+            // debug
+            if (estimate < 0) {
+              console.log("estimate %s -%d", strategyItems[i], uint256(-estimate));
+            } else {
+              console.log("estimate %s %d", strategyItems[i], uint256(estimate));
+            }
             total = total.add(estimate);
             estimates[i] = estimate;
         }

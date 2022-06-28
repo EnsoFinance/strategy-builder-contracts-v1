@@ -11,6 +11,8 @@ import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../BaseAdapter.sol";
 
+import "hardhat/console.sol";
+
 contract AaveV2DebtAdapter is BaseAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -41,8 +43,20 @@ contract AaveV2DebtAdapter is BaseAdapter {
                 require(afterBalance > beforeBalance, "No tokens transferred to adapter");
                 amount = afterBalance - beforeBalance;
             }
+            // debugging
+            console.log(tokenIn);
+            console.log(amount);
+
+            // debugging
+            (,uint256 totalDebtETH,,, ,) = ILendingPool(lendingPool).getUserAccountData(to);
+            console.log("totalDebtETH %d ", totalDebtETH);
+
             IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
+
+            // debugging
+            (, totalDebtETH,,, ,) = ILendingPool(lendingPool).getUserAccountData(to);
+            console.log("totalDebtETH %d ", totalDebtETH);
         } else if (tokenIn == address(0)) {
             // tokenIn is collateral pool meaning we are taking out loan
             uint256 received = _convert(amount, weth, tokenOut); // lendingPool is valued in weth

@@ -11,6 +11,8 @@ import "../libraries/BinaryTreeWithPayload.sol";
 import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
 
+import "hardhat/console.sol";
+
 struct LeverageItem {
   address token;
   uint16 percentage;
@@ -193,6 +195,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
+              console.log("a");
+              // debug
+              if (estimate < 0) {
+                console.log("isNegative");
+              } else {
+                console.log("isNonNegative");
+              }
+              console.log("strategyDebt[i] %s", strategyDebt[i]);
                 _repayPath(
                     IStrategy(strategy).getTradeData(strategyDebt[i]),
                     uint256(-estimate),
@@ -211,6 +221,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
+        console.log("then items");
         address strategyItem;
         for (uint256 i; i < strategyItems.length; ++i) {
             // Convert funds into Ether
@@ -473,6 +484,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
 
+        console.log("amount %d", amount);
+
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
             amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
@@ -514,31 +527,44 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         while (amount > 0) {
+                console.log("li.length %d ", leverageItems.length);
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
+                console.log("av..B..ETH %d ", availableBorrowsETH);
                 bool isLiquidityRemaining = false;
                 uint256 leverageAmount;
                 for (uint256 i; i < leverageItems.length; ++i) {
                     if (leverageLiquidity[i] > 0 && availableBorrowsETH > 0) {
                         // Only deleverage token when there is a disparity between the expected value and the estimated value
+
+                        console.log("leverageLiquidity[i] %d ", leverageLiquidity[i]);
+                        uint256 bal = IERC20(leverageItems[i].token).balanceOf(address(strategy));
+                        console.log("bal %d", bal);
                         leverageAmount = _deleverage(oracle, strategy, leverageItems[i].token, leverageLiquidity[i], availableBorrowsETH, mm);
                         leverageLiquidity[i] = leverageLiquidity[i].sub(leverageAmount);
                         availableBorrowsETH = availableBorrowsETH.sub(leverageAmount);
                         if (leverageLiquidity[i] > 0) isLiquidityRemaining = true; // Liquidity still remaining
+                        
+                        // debugging
+                        bal = IERC20(leverageItems[i].token).balanceOf(address(strategy));
+                        console.log("bal2 %d", bal); // FIXME still balance remaining!!
                     }
                 }
                 if (!isLiquidityRemaining) {
+                  console.log("!isLiquidityRemaining");
                     // In case of deleveraging slippage, once we've fully deleveraged we just want use the weth the we've received even if its less than original amount
                     uint256 balance = IERC20(weth).balanceOf(strategy);
                     if (amount > balance) amount = balance;
                 }
             }
+            console.log("while 2");
             uint256 _amount;
             address _tokenIn;
             address _tokenOut;
             address _from;
             address _to;
+            console.log(data.adapters.length);
             for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
                 _tokenIn = data.path[uint256(i)];
                 if (uint256(i) == data.adapters.length-1) {
@@ -551,6 +577,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     _from = address(this);
                     _amount = IERC20(_tokenIn).balanceOf(_from);
                 }
+                console.log(_amount);
                 if (_amount > 0) {
                     if (uint256(i) == 0) {
                         _tokenOut = address(0); //Since we're repaying to the lending pool we'll set tokenOut to zero, however amount is valued in weth
@@ -751,6 +778,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 leverageAmount = leverageLiquidity > available ? available : leverageLiquidity;
         uint256 leverageEstimate = uint256(_getTempEstimate(mm, strategy, leverageItem)); //Set in _getLeverageRemaining
         require(leverageEstimate > 0, "Insufficient collateral");
+        console.log("_deleverage %s", leverageItem);
         _sellPath(
             IStrategy(strategy).getTradeData(leverageItem),
             _estimateSellAmount(strategy, leverageItem, leverageAmount, leverageEstimate),

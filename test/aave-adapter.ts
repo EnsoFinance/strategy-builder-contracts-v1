@@ -25,8 +25,10 @@ import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-  
+
 chai.use(solidity)
+
+const runAll = false
 
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
@@ -256,9 +258,29 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should restructure', async function () {
-		const positions = [
-			{
-				token: collateralToken,
+   /*
+    const value = WeiPerEther.mul(10)
+		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
+		await uniswapAdapter
+			.connect(accounts[19])
+			.swap(value, 0, weth.address, usdc.address, accounts[19].address, accounts[19].address)
+    console.log(await usdc.callStatic.balanceOf(accounts[19].address))
+    await usdc.connect(accounts[19]).transfer(strategy.address, await usdc.callStatic.balanceOf(accounts[19].address));
+   */
+
+
+    console.log("aaveV2DebtAdapter", aaveV2DebtAdapter.address)
+    console.log("aaveV2Adapter", aaveV2Adapter.address)
+    console.log("uniswapAdapter", uniswapAdapter.address)
+    const positions = [
+			{ token: tokens.tusd,
+				percentage: BigNumber.from(1000),
+				adapters: [uniswapAdapter.address],
+			},
+		]
+		/*const positions = [
+			{ token: collateralToken,
 				percentage: BigNumber.from(2000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
@@ -274,15 +296,13 @@ describe('AaveAdapter', function () {
 				path: [tokens.usdc, tokens.weth],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
-					[
-						[
-							{ token: collateralToken, percentage: 500 },
-							{ token: collateralToken2, percentage: 0 },
-						],
-					] //Need to keep collateralToken2 in the cache in order to deleverage it
-				),
-			},
-		]
+	        [[
+						{ token: collateralToken, percentage: 500 },
+						{ token: collateralToken2, percentage: 0 }
+					]] //Need to keep collateralToken2 in the cache in order to deleverage it
+	      ),
+			}
+		]*/
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
@@ -295,6 +315,8 @@ describe('AaveAdapter', function () {
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
+
+  if (runAll) {
 
 	it('Should deposit', async function () {
 		const tx = await controller
@@ -710,4 +732,5 @@ describe('AaveAdapter', function () {
 			)
 		).to.be.true
 	})
+  }
 })
