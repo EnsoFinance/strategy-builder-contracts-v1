@@ -322,7 +322,7 @@ describe('AaveAdapter', function () {
 
   //if (runAll) {
 
-	/*it('Should restructure - debt positions', async function () {
+	it('Should restructure - debt positions', async function () {
     // FIXME reverting with borrower allowance not enough
 		const positions = [
 			{ token: collateralToken,
@@ -352,14 +352,14 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should finalize structure - debt positions', async function () {
+    // FIXME reverting with borrower allowance not enough
 		const tx = await controller
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-	})*/
-
+	})
 
   if (runAll) {
 
