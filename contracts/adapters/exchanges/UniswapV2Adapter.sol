@@ -8,8 +8,6 @@ import "../../libraries/SafeERC20.sol";
 import "../../libraries/UniswapV2Library.sol";
 import "../BaseAdapter.sol";
 
-import "hardhat/console.sol";
-
 contract UniswapV2Adapter is BaseAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -34,7 +32,6 @@ contract UniswapV2Adapter is BaseAdapter {
         address from,
         address to
     ) public override {
-      console.log("uniswap swap %s", tokenIn, tokenOut);
         require(tokenIn != tokenOut, "Tokens cannot match");
 
         address pair = IUniswapV2Factory(factory).getPair(tokenIn, tokenOut);

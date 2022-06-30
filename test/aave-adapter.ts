@@ -28,8 +28,6 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
 chai.use(solidity)
 
-const runAll = false
-
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(10),
@@ -257,29 +255,29 @@ describe('AaveAdapter', function () {
 		).to.be.true
 	})
 
-	it('Should restructure', async function () {
-   /*
-    const value = WeiPerEther.mul(10)
-		await weth.connect(accounts[19]).deposit({value: value})
-		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
-		await uniswapAdapter
-			.connect(accounts[19])
-			.swap(value, 0, weth.address, usdc.address, accounts[19].address, accounts[19].address)
-    console.log(await usdc.callStatic.balanceOf(accounts[19].address))
-    await usdc.connect(accounts[19]).transfer(strategy.address, await usdc.callStatic.balanceOf(accounts[19].address));
-   */
-
-
-    console.log("aaveV2DebtAdapter", aaveV2DebtAdapter.address)
-    console.log("aaveV2Adapter", aaveV2Adapter.address)
-    console.log("uniswapAdapter", uniswapAdapter.address)
+	it('Should restructure - basic', async function () {
     const positions = [
 			{ token: tokens.tusd,
 				percentage: BigNumber.from(1000),
 				adapters: [uniswapAdapter.address],
 			},
 		]
-		/*const positions = [
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
+
+	it('Should finalize structure - basic', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
+
+	/*it('Should restructure - debt positions', async function () {
+    // FIXME reverting with borrower allowance not enough
+		const positions = [
 			{ token: collateralToken,
 				percentage: BigNumber.from(2000),
 				adapters: [aaveV2Adapter.address],
@@ -297,26 +295,23 @@ describe('AaveAdapter', function () {
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 	        [[
-						{ token: collateralToken, percentage: 500 },
-						{ token: collateralToken2, percentage: 0 }
-					]] //Need to keep collateralToken2 in the cache in order to deleverage it
+						{ token: collateralToken, percentage: 500 }
+					]]
 	      ),
 			}
-		]*/
+		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
-	it('Should finalize structure', async function () {
+	it('Should finalize structure - debt positions', async function () {
 		const tx = await controller
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-	})
-
-  if (runAll) {
+	})*/
 
 	it('Should deposit', async function () {
 		const tx = await controller
@@ -732,5 +727,4 @@ describe('AaveAdapter', function () {
 			)
 		).to.be.true
 	})
-  }
 })

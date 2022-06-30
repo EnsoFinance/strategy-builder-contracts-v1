@@ -11,7 +11,6 @@ import "../libraries/BinaryTreeWithPayload.sol";
 import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
 
-import "hardhat/console.sol";
 import "../interfaces/aave/IAToken.sol";
 
 struct LeverageItem {
@@ -205,9 +204,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     strategy,
                     mm
                 );
-                console.log("usdc in router", IERC20(IAToken(strategyDebt[i]).UNDERLYING_ASSET_ADDRESS()).balanceOf(address(this)));
                 _returnRemainderToStrategy(td, strategy);
-                console.log("usdc in router", IERC20(IAToken(strategyDebt[i]).UNDERLYING_ASSET_ADDRESS()).balanceOf(address(this)));
             } else {
                 //Only repay if above rebalance threshold
                 _repayToken(
@@ -219,7 +216,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 );
             }
         }
-        console.log("then items");
         address strategyItem;
         for (uint256 i; i < strategyItems.length; ++i) {
             // Convert funds into Ether
@@ -604,8 +600,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             _tokenIn = data.path[uint256(i)];
             _from = address(this);
             _amount = IERC20(_tokenIn).balanceOf(_from);
-            console.log(i);
-            console.log(_amount);
             if (_amount > 0) {
                 _tokenOut = data.path[uint256(i+1)];
                 if (i == data.path.length-2) {

@@ -10,8 +10,6 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IBaseAdapter.sol";
 import "../helpers/StrategyTypes.sol";
 
-import "hardhat/console.sol";
-
 abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -55,7 +53,6 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address from,
         address to
     ) internal {
-                console.log("adapter %s tokenIn %s", adapter, tokenIn);
         require(controller.whitelist().approved(adapter), "Not approved");
         bytes memory swapData =
             abi.encodeWithSelector(
@@ -89,7 +86,6 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address strategy
     ) internal {
         if (amount > 0) {
-          console.log(data.adapters.length);
             for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
                 uint256 _amount;
                 address _tokenIn;

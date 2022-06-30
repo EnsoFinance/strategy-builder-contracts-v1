@@ -11,8 +11,6 @@ import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../BaseAdapter.sol";
 
-import "hardhat/console.sol";
-
 contract AaveV2DebtAdapter is BaseAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -33,7 +31,6 @@ contract AaveV2DebtAdapter is BaseAdapter {
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
         address lendingPool = addressesProvider.getLendingPool();
-        console.log(tokenIn);
         // use zero address to represent strategy's collateral pool reserve which is valued in weth (doesn't matter that it isn't an erc20, since no erc20 functions are used)
         if (tokenOut == address(0)) {
             // since tokenOut is collateral pool, we are paying back loan
@@ -44,20 +41,8 @@ contract AaveV2DebtAdapter is BaseAdapter {
                 require(afterBalance > beforeBalance, "No tokens transferred to adapter");
                 amount = afterBalance - beforeBalance;
             }
-            // debugging
-            console.log(tokenIn);
-            console.log(amount);
-
-            // debugging
-            (,uint256 totalDebtETH,,, ,) = ILendingPool(lendingPool).getUserAccountData(to);
-            console.log("totalDebtETH %d ", totalDebtETH);
-
             IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
-
-            // debugging
-            (, totalDebtETH,,, ,) = ILendingPool(lendingPool).getUserAccountData(to);
-            console.log("totalDebtETH %d ", totalDebtETH);
         } else if (tokenIn == address(0)) {
             // tokenIn is collateral pool meaning we are taking out loan
             uint256 received = _convert(amount, weth, tokenOut); // lendingPool is valued in weth
