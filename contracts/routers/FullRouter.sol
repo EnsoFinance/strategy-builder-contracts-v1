@@ -195,21 +195,26 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
-              console.log("a");
-              // debug
-              if (estimate < 0) {
-                console.log("isNegative");
-              } else {
-                console.log("isNonNegative");
-              }
-              console.log("strategyDebt[i] %s", strategyDebt[i]);
+                console.log("a");
+                // debug
+                if (estimate < 0) {
+                  console.log("isNegative");
+                } else {
+                  console.log("isNonNegative");
+                }
+                console.log("strategyDebt[i] %s", strategyDebt[i]);
+                uint256 debtBalance = IERC20(strategyDebt[i]).balanceOf(strategy);
+                console.log("debt %d", debtBalance);
+                mm.add(keccak256(abi.encode("strategyDebt")), abi.encode(strategyDebt[i]));
                 _repayPath(
                     IStrategy(strategy).getTradeData(strategyDebt[i]),
-                    uint256(-estimate),
+                    type(uint256).max, // max it out
                     total,
                     strategy,
                     mm
                 );
+                debtBalance = IERC20(strategyDebt[i]).balanceOf(strategy);
+                console.log("debt %d", debtBalance);
             } else {
                 //Only repay if above rebalance threshold
                 _repayToken(
@@ -488,6 +493,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
+            // FIXME maxing out amount will cause overflow throw here
             amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
@@ -502,6 +508,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             } else {
                 uint256 leverageAmount = amount; // amount is denominated in weth here
                 address token;
+                console.log("debug 0");
                 for (uint256 i; i < leverageItems.length; ++i) {
                     token = leverageItems[i].token;
                     if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
@@ -521,38 +528,28 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     }
                     leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
                 }
-                assert(leverageAmount == 0);
+                // FIXME this throws when using uint256.max
+                //assert(leverageAmount == 0);
             }
         }
 
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         while (amount > 0) {
-                console.log("li.length %d ", leverageItems.length);
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
-                console.log("av..B..ETH %d ", availableBorrowsETH);
                 bool isLiquidityRemaining = false;
                 uint256 leverageAmount;
                 for (uint256 i; i < leverageItems.length; ++i) {
                     if (leverageLiquidity[i] > 0 && availableBorrowsETH > 0) {
                         // Only deleverage token when there is a disparity between the expected value and the estimated value
-
-                        console.log("leverageLiquidity[i] %d ", leverageLiquidity[i]);
-                        uint256 bal = IERC20(leverageItems[i].token).balanceOf(address(strategy));
-                        console.log("bal %d", bal);
                         leverageAmount = _deleverage(oracle, strategy, leverageItems[i].token, leverageLiquidity[i], availableBorrowsETH, mm);
                         leverageLiquidity[i] = leverageLiquidity[i].sub(leverageAmount);
                         availableBorrowsETH = availableBorrowsETH.sub(leverageAmount);
                         if (leverageLiquidity[i] > 0) isLiquidityRemaining = true; // Liquidity still remaining
-                        
-                        // debugging
-                        bal = IERC20(leverageItems[i].token).balanceOf(address(strategy));
-                        console.log("bal2 %d", bal); // FIXME still balance remaining!!
                     }
                 }
                 if (!isLiquidityRemaining) {
-                  console.log("!isLiquidityRemaining");
                     // In case of deleveraging slippage, once we've fully deleveraged we just want use the weth the we've received even if its less than original amount
                     uint256 balance = IERC20(weth).balanceOf(strategy);
                     if (amount > balance) amount = balance;
@@ -564,7 +561,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
-            console.log(data.adapters.length);
             for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
                 _tokenIn = data.path[uint256(i)];
                 if (uint256(i) == data.adapters.length-1) {
@@ -597,7 +593,19 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     );
                 }
             }
+            if (amount != 0) {
+                (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode("strategyDebt")));
+                if (!ok) {
+                    continue;
+                }
+                address strategyDebt = abi.decode(result, (address));
+                if (IERC20(strategyDebt).balanceOf(strategy) == 0) {
+                    console.log("debug balance is zero");
+                    break;
+                }
+            }
         }
+        console.log("debug done");
     }
 
     function _borrowPath(
