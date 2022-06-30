@@ -67,7 +67,7 @@ export function prepareStrategy(positions: Position[], defaultAdapter: string): 
 			.sort((a, b) => {
 				const aNum = BigNumber.from(a.token)
 				const bNum = BigNumber.from(b.token)
-        if (aNum.eq(bNum)) throw Error("prepareStrategy: repeated position.")
+				if (aNum.eq(bNum)) throw Error("prepareStrategy: repeated position.")
 				return aNum.gt(bNum) ? 1 : -1
 			})
 			.forEach((position: Position) => {
