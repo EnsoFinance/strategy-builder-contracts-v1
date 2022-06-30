@@ -11,20 +11,13 @@ import "./StrategyCommon.sol";
 abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
 
     uint256 private constant YEAR = 331556952; //365.2425 days
-    uint256 internal constant PRECISION = 10**18;
     uint256 internal constant DIVISOR = 1000;
-
-    // Streaming fee: The streaming fee streams 0.1% of the strategy's value over
-    // a year via inflation. The multiplier (0.001001001) is used to calculate
-    // the amount of tokens that need to be minted over a year to give the fee
-    // pool 0.1% of the tokens (STREAM_FEE*totalSupply)
-    uint256 public constant STREAM_FEE = uint256(1001001001001001);
 
     event StreamingFee(uint256 amount);
     event ManagementFee(uint256 amount);
 
     function updateAddresses() public {
-        function(address, address)[2] memory callbacks; 
+        function(address, address)[2] memory callbacks;
         callbacks[0] = _issueStreamingFee;
         callbacks[1] = _updateStreamingFeeRate;
         _updateAddresses(callbacks);
@@ -55,22 +48,28 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     }
 
     /**
-     * @notice Issues the streaming fee to the fee pool. Only callable by controller
+     * @notice Update the performance fee. Only callable by controller
      */
-    function issueStreamingFee() external override onlyController {
-        _issueStreamingFee(_pool, _manager);
-    }
-
     function updatePerformanceFee(uint16 fee) external override onlyController {
         revert("This strategy does not support performance fees");
     }
 
+    /**
+     * @notice Update the management fee. Only callable by controller
+     */
     function updateManagementFee(uint16 fee) external override onlyController {
         address pool = _pool;
         address manager = _manager;
         _issueStreamingFee(pool, manager);
         _managementFee = PRECISION.mul(fee).div(DIVISOR.sub(fee));
         _updateStreamingFeeRate(pool, manager);
+    }
+
+    /**
+     * @notice Issues the streaming fee to the fee pool. Only callable by controller
+     */
+    function issueStreamingFee() external override onlyController {
+        _issueStreamingFee(_pool, _manager);
     }
 
     /**
@@ -95,8 +94,9 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
      * @notice Sets the new _streamingFeeRate (and _managementFeeRate) which is the per year amount owed in streaming fees based on the current totalSupply (not counting supply held by the fee pool)
      */
     function _updateStreamingFeeRate(address pool, address manager) internal {
+        uint256 streamingFee = IStrategyProxyFactory(_factory).streamingFee();
         uint256 poolBalance = _balances[pool];
-        _streamingFeeRate = uint224(_totalSupply.sub(poolBalance).mul(STREAM_FEE));
+        _streamingFeeRate = uint224(_totalSupply.sub(poolBalance).mul(streamingFee));
         uint256 managementFee = _managementFee;
         if (_managementFee > 0) {
            _managementFeeRate = _totalSupply.sub(poolBalance).sub(_balances[manager]).mul(managementFee);

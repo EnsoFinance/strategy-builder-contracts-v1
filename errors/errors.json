@@ -184,6 +184,10 @@
     "contractName": "IStrategyController.sol"
   },
   {
+    "contractId": "f4d7cc0cbd2a",
+    "contractName": "IStrategyFees.sol"
+  },
+  {
     "contractId": "6096fda362bb",
     "contractName": "IStrategyManagement.sol"
   },
@@ -396,6 +400,10 @@
     "contractName": "StrategyRouter.sol"
   },
   {
+    "contractId": "ee78cef3375d",
+    "contractName": "StrategyCommon.sol"
+  },
+  {
     "contractId": "1bb63a90056c",
     "contractName": "StrategyController.sol",
     "errorcodes": {
@@ -448,6 +456,10 @@
   {
     "contractId": "dbc2b7686bf5",
     "contractName": "StrategyControllerStorage.sol"
+  },
+  {
+    "contractId": "4d8f0d4f3d94",
+    "contractName": "StrategyFees.sol"
   },
   {
     "contractId": "f19f85f5ead4",

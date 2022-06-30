@@ -8,6 +8,8 @@ import "./StrategyToken.sol";
 
 contract StrategyCommon is StrategyToken {
 
+    uint256 internal constant PRECISION = 10**18;
+    
     address internal immutable _factory;
     address internal immutable _controller;
 
