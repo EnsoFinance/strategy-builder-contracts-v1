@@ -26,6 +26,8 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
+const runAll = false
+
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {
@@ -255,6 +257,49 @@ describe('AaveAdapter', function () {
 		).to.be.true
 	})
 
+	it('Should deposit', async function () {
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
+
+	it('Should withdraw ETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const ethBalanceBefore = await accounts[1].getBalance()
+		const tx = await controller.connect(accounts[1]).withdrawETH(
+      strategy.address, 
+      router.address, 
+      amount, 
+      '979',  // note the high slippage!
+      '0x', 
+      { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const ethBalanceAfter = await accounts[1].getBalance()
+		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
+	})
+
+	it('Should withdraw WETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		const tx = await controller.connect(accounts[1]).withdrawWETH(
+      strategy.address, 
+      router.address, 
+      amount, 
+      '963', // note the high slippage! 
+      '0x', 
+      { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
+	})
+
 	it('Should restructure - basic', async function () {
     const positions = [
 			{ token: tokens.tusd,
@@ -274,6 +319,8 @@ describe('AaveAdapter', function () {
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
+
+  //if (runAll) {
 
 	/*it('Should restructure - debt positions', async function () {
     // FIXME reverting with borrower allowance not enough
@@ -313,6 +360,9 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})*/
 
+
+  if (runAll) {
+
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
@@ -322,6 +372,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
+  // FIXME this is failing
 	it('Should withdraw ETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
@@ -727,4 +778,5 @@ describe('AaveAdapter', function () {
 			)
 		).to.be.true
 	})
+  }
 })

@@ -24,6 +24,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
+    bytes32 private constant STRATEGY_DEBT_KEY = keccak256(abi.encode("strategyDebt"));
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
@@ -88,9 +89,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
             (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
             _sellPath(
-                tradeData,
+                IStrategy(strategy).getTradeData(strategyItem),
                 _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
                 strategyItem,
                 strategy
@@ -195,7 +195,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
-                mm.add(keccak256(abi.encode("strategyDebt")), abi.encode(strategyDebt[i]));
+                mm.add(STRATEGY_DEBT_KEY, abi.encode(strategyDebt[i]));
                 TradeData memory td = IStrategy(strategy).getTradeData(strategyDebt[i]);
                 _repayPath(
                     td,
@@ -204,6 +204,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     strategy,
                     mm
                 );
+                mm.add(STRATEGY_DEBT_KEY, bytes32(0));
                 _returnRemainderToStrategy(td, strategy);
             } else {
                 //Only repay if above rebalance threshold
@@ -578,7 +579,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 }
             }
             if (amount != 0) {
-                (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode("strategyDebt")));
+                (bool ok, bytes memory result) = mm.getValue(STRATEGY_DEBT_KEY);
                 if (!ok) {
                     continue;
                 }
