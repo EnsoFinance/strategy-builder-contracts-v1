@@ -13,6 +13,8 @@ import "./libraries/ControllerLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
@@ -503,6 +505,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c11) /* error_macro_for("Not balanced") */);
+        console.log("totalAfter %d", uint256(totalAfter));
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
     }

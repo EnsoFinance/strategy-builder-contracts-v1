@@ -33,6 +33,7 @@ contract AaveV2DebtAdapter is BaseAdapter {
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
         address lendingPool = addressesProvider.getLendingPool();
+        console.log(tokenIn);
         // use zero address to represent strategy's collateral pool reserve which is valued in weth (doesn't matter that it isn't an erc20, since no erc20 functions are used)
         if (tokenOut == address(0)) {
             // since tokenOut is collateral pool, we are paying back loan

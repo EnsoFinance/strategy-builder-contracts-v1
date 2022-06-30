@@ -12,6 +12,7 @@ import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
 
 import "hardhat/console.sol";
+import "../interfaces/aave/IAToken.sol";
 
 struct LeverageItem {
   address token;
@@ -195,26 +196,18 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
-                console.log("a");
-                // debug
-                if (estimate < 0) {
-                  console.log("isNegative");
-                } else {
-                  console.log("isNonNegative");
-                }
-                console.log("strategyDebt[i] %s", strategyDebt[i]);
-                uint256 debtBalance = IERC20(strategyDebt[i]).balanceOf(strategy);
-                console.log("debt %d", debtBalance);
                 mm.add(keccak256(abi.encode("strategyDebt")), abi.encode(strategyDebt[i]));
+                TradeData memory td = IStrategy(strategy).getTradeData(strategyDebt[i]);
                 _repayPath(
-                    IStrategy(strategy).getTradeData(strategyDebt[i]),
+                    td,
                     type(uint256).max, // max it out
                     total,
                     strategy,
                     mm
                 );
-                debtBalance = IERC20(strategyDebt[i]).balanceOf(strategy);
-                console.log("debt %d", debtBalance);
+                console.log("usdc in router", IERC20(IAToken(strategyDebt[i]).UNDERLYING_ASSET_ADDRESS()).balanceOf(address(this)));
+                _returnRemainderToStrategy(td, strategy);
+                console.log("usdc in router", IERC20(IAToken(strategyDebt[i]).UNDERLYING_ASSET_ADDRESS()).balanceOf(address(this)));
             } else {
                 //Only repay if above rebalance threshold
                 _repayToken(
@@ -489,8 +482,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
 
-        console.log("amount %d", amount);
-
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
             // FIXME maxing out amount will cause overflow throw here
@@ -508,7 +499,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             } else {
                 uint256 leverageAmount = amount; // amount is denominated in weth here
                 address token;
-                console.log("debug 0");
                 for (uint256 i; i < leverageItems.length; ++i) {
                     token = leverageItems[i].token;
                     if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
@@ -555,7 +545,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     if (amount > balance) amount = balance;
                 }
             }
-            console.log("while 2");
             uint256 _amount;
             address _tokenIn;
             address _tokenOut;
@@ -573,7 +562,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     _from = address(this);
                     _amount = IERC20(_tokenIn).balanceOf(_from);
                 }
-                console.log(_amount);
                 if (_amount > 0) {
                     if (uint256(i) == 0) {
                         _tokenOut = address(0); //Since we're repaying to the lending pool we'll set tokenOut to zero, however amount is valued in weth
@@ -599,13 +587,43 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     continue;
                 }
                 address strategyDebt = abi.decode(result, (address));
-                if (IERC20(strategyDebt).balanceOf(strategy) == 0) {
-                    console.log("debug balance is zero");
-                    break;
-                }
+                if (IERC20(strategyDebt).balanceOf(strategy) == 0) break;
             }
         }
-        console.log("debug done");
+    }
+
+    function _returnRemainderToStrategy(TradeData memory data, address strategy) private {
+        if (data.path.length < 2 || data.path[data.path.length-1] != weth || IERC20(data.path[0]).balanceOf(address(this)) == 0) return;
+        uint256 _amount;
+        address _tokenIn;
+        address _tokenOut;
+        address _from;
+        address _to;
+        for (uint256 i; i < data.path.length-1; ++i) {
+        //for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
+            _tokenIn = data.path[uint256(i)];
+            _from = address(this);
+            _amount = IERC20(_tokenIn).balanceOf(_from);
+            console.log(i);
+            console.log(_amount);
+            if (_amount > 0) {
+                _tokenOut = data.path[uint256(i+1)];
+                if (i == data.path.length-2) {
+                    _to = strategy;
+                } else {
+                    _to = address(this);
+                }
+                _delegateSwap(
+                    data.adapters[uint256(i+1)],
+                    _amount,
+                    1,
+                    _tokenIn,
+                    _tokenOut,
+                    _from,
+                    _to
+                );
+            }
+        }
     }
 
     function _borrowPath(
@@ -786,7 +804,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 leverageAmount = leverageLiquidity > available ? available : leverageLiquidity;
         uint256 leverageEstimate = uint256(_getTempEstimate(mm, strategy, leverageItem)); //Set in _getLeverageRemaining
         require(leverageEstimate > 0, "Insufficient collateral");
-        console.log("_deleverage %s", leverageItem);
         _sellPath(
             IStrategy(strategy).getTradeData(leverageItem),
             _estimateSellAmount(strategy, leverageItem, leverageAmount, leverageEstimate),
