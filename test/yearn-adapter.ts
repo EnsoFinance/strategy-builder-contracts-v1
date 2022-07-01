@@ -26,7 +26,6 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 
 chai.use(solidity)
 
-
 describe('YEarnV2Adapter', function () {
 	let	weth: Contract,
 		crv: Contract,

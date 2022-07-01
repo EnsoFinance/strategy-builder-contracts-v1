@@ -198,7 +198,9 @@ describe('StrategyController', function () {
 			set: false
 		}
 
-		expect(await isRevertedWith( strategyFactory
+		expect(
+      await isRevertedWith( 
+        strategyFactory
 			.connect(accounts[2])
 			.createStrategy(
 				'Timelock is too long',
