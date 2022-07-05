@@ -165,6 +165,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         override
         onlyController
     {
+        StrategyClaim._claimAll(_claimables);
         _setStructure(newItems);
     }
 
