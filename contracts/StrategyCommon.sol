@@ -49,18 +49,18 @@ contract StrategyCommon is StrategyToken {
      * @dev Throws if called by any account other than the controller.
      */
     function _onlyController() internal {
-        require(msg.sender == _controller, "Controller only");
+        if (msg.sender != _controller) revert("Controller only");
     }
 
     function _onlyManager() internal view {
-        require(msg.sender == _manager, "Not manager");
+        if (msg.sender == _manager) revert("Not manager");
     }
 
     /**
      * @notice Sets Reentrancy guard
      */
     function _setLock() internal {
-        require(_locked == 0, "No Reentrancy");
+        if (_locked % 2 == 1) revert("No Reentrancy");
         _locked = 1;
     }
 
@@ -68,6 +68,6 @@ contract StrategyCommon is StrategyToken {
      * @notice Removes reentrancy guard.
      */
     function _removeLock() internal {
-        _locked = 0;
+        _locked = 2;
     }
 }

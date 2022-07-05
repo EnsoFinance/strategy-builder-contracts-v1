@@ -57,14 +57,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     /**
-     * @dev Throws if called by any account other than the temporary router.
-     */
-    modifier onlyRouter() {
-        _require(_tempRouter == msg.sender, uint256(0xb3e5dea2190e00) /* error_macro_for("Router only") */);
-        _;
-    }
-
-    /**
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
@@ -187,7 +179,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     function finalizeTimelock() external override {
         if (!_timelockIsReady(this.updateTimelock.selector)) {
             TimelockData memory td = _timelockData(this.updateTimelock.selector);
-            _require(td.delay == 0, uint256(0xb3e5dea2190e01) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
+            _require(td.delay == 0, uint256(0xb3e5dea2190e00) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
         }
         (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(this.updateTimelock.selector), (bytes4, uint256));
         _setTimelock(selector, delay);
@@ -195,7 +187,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         emit UpdateTimelock(delay, true);
     }
 
-    function setCollateral(address token) external override onlyRouter {
+    function setCollateral(address token) external override {
+        _require(msg.sender == _tempRouter, uint256(0xb3e5dea2190e01) /* error_macro_for("Router only") */);
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
@@ -422,7 +415,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     function locked() external view override returns (bool) {
-        return _locked != 0;
+        return _locked % 2 == 1;
     }
 
     function items() external view override returns (address[] memory) {
