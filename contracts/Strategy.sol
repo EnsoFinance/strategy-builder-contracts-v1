@@ -305,7 +305,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     ) external override {
         _onlyController();
         // Note: No reentrancy lock since only callable by repositionSynths function in controller which already locks
-        _onlyApproved(adapter);
+        _require(whitelist().approved(adapter), uint256(0xb3e5dea2190e04) /* error_macro_for("Not approved") */);
         bytes memory swapData =
             abi.encodeWithSelector(
                 IBaseAdapter.swap.selector,
@@ -342,7 +342,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         model to other rewards tokens, but we always err on the side of
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e04) /* error_macro_for("claimAll: caller must be controller or manager.") */);
+        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e05) /* error_macro_for("claimAll: caller must be controller or manager.") */);
         StrategyClaim._claimAll(_claimables);
     }
 
@@ -373,7 +373,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         address manager = _manager;
         address pool = _pool;
         _issueStreamingFee(pool, manager);
-        _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
+        _require(newManager != manager, uint256(0xb3e5dea2190e06) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
@@ -394,7 +394,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     function finalizeUpdateTradeData() external {
-        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
+        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e07) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
         _resetTimelock(this.updateTradeData.selector);
@@ -405,7 +405,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
+        _require(msg.sender == _factory, uint256(0xb3e5dea2190e08) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
@@ -489,7 +489,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
      * @notice Set the structure of the strategy
      * @param newItems An array of Item structs that will comprise the strategy
      */
-    function _setStructure(StrategyItem[] memory newItems) internal {
+    function _setStructure(StrategyItem[] memory newItems) private {
         address weth = _weth;
         address susd = _susd;
         // Remove old percentages
@@ -506,7 +506,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         // Set new items
-        int256 virtualPercentage = 0;
+        int256 virtualPercentage;
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         for (uint256 i; i < newItems.length; ++i) {
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
@@ -547,7 +547,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         return virtualPercentage;
     }
 
-    function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) internal {
+    function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) private {
         updateClaimables();
         address[] memory rewardTokens = StrategyClaim._getAllRewardTokens();
         bool ok;
@@ -594,13 +594,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         if (rateChange) _issueStreamingFee(pool, manager);
         super._transfer(sender, recipient, amount);
         if (rateChange) _updateStreamingFeeRate(pool, manager);
-    }
-
-    /**
-     * @notice Checks that router is whitelisted
-     */
-    function _onlyApproved(address account) internal view {
-        _require(whitelist().approved(account), uint256(0xb3e5dea2190e08) /* error_macro_for("Not approved") */);
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
