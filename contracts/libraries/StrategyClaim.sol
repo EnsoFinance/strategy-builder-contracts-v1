@@ -105,7 +105,7 @@ library StrategyClaim {
         // unchecked: adapter is approved since this is from the tokenRegistry
         bytes memory data =
             abi.encodeWithSelector(
-                bytes4(keccak256("claim(address[])")),
+                IRewardsAdapter.claim.selector,
                 tokens
             );
         uint256 txGas = gasleft();

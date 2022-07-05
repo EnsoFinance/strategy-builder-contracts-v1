@@ -56,9 +56,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         require(controller.whitelist().approved(adapter), "Not approved");
         bytes memory swapData =
             abi.encodeWithSelector(
-                bytes4(
-                    keccak256("swap(uint256,uint256,address,address,address,address)")
-                ),
+                IBaseAdapter.swap.selector,
                 amount,
                 expected,
                 tokenIn,
