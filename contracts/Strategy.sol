@@ -219,26 +219,26 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
             // Should not be possible to have address(0) since the Strategy will check for it
             IERC20 token = IERC20(_items[i]);
             uint256 currentBalance = token.balanceOf(address(this));
-            amounts[i] = currentBalance.mul(percentage).div(PRECISION);
+            amounts[i] = currentBalance.mul(percentage) / PRECISION;
             tokens[i] = token;
         }
         if (isSynths) {
             for (uint256 i = itemsLength; i < numTokens - 2; ++i) {
                 IERC20 synth = IERC20(_synths[i - itemsLength]);
                 uint256 currentBalance = synth.balanceOf(address(this));
-                amounts[i] = currentBalance.mul(percentage).div(PRECISION);
+                amounts[i] = currentBalance.mul(percentage) / PRECISION;
                 tokens[i] = synth;
             }
             // Include SUSD
             IERC20 susd = IERC20(_susd);
             uint256 susdBalance = susd.balanceOf(address(this));
-            amounts[numTokens - 2] = susdBalance.mul(percentage).div(PRECISION);
+            amounts[numTokens - 2] = susdBalance.mul(percentage) / PRECISION;
             tokens[numTokens - 2] = susd;
         }
         // Include WETH
         IERC20 weth = IERC20(_weth);
         uint256 wethBalance = weth.balanceOf(address(this));
-        amounts[numTokens - 1] = wethBalance.mul(percentage).div(PRECISION);
+        amounts[numTokens - 1] = wethBalance.mul(percentage) / PRECISION;
         tokens[numTokens - 1] = weth;
         // Transfer amounts
         for (uint256 i; i < numTokens; ++i) {
