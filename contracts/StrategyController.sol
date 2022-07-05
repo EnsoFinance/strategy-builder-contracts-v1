@@ -30,6 +30,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     uint256 private constant DIVISOR = 1000;
+    uint256 private constant PRECISION = 10**18;
+    uint256 private constant WITHDRAW_UPPER_BOUND = 10**17; // Upper condition for including pool's tokens as part of burn during withdraw
+    uint256 private constant WITHDRAW_LOWER_BOUND = 10**16; // Lower condition for including pool's tokens as part of burn during withdraw
+    uint256 private constant FEE_BOUND = 200; // Max fee of 20%
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     address public immutable factory;
@@ -75,6 +79,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setInitialState(strategy_, state_);
         // Deposit
         if (msg.value > 0)
+            // No need to issue streaming fees on initial setup
             _deposit(
                 strategy,
                 IStrategyRouter(router_),
@@ -359,10 +364,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             strategyState.rebalanceSlippage = uint16(newValue);
         } else if (lock.category == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
             strategyState.restructureSlippage = uint16(newValue);
-        } else if (lock.category == TimelockCategory.THRESHOLD) {
+        } else if (lock.category == TimelockCategory.REBALANCE_THRESHOLD) {
             strategy.updateRebalanceThreshold(uint16(newValue));
-        } else { // lock.category == TimelockCategory.PERFORMANCE
+        } else if (lock.category == TimelockCategory.PERFORMANCE_FEE) {
             strategy.updatePerformanceFee(uint16(newValue));
+        } else { // lock.category == TimelockCategory.MANAGEMENT_FEE
+            strategy.updateManagementFee(uint16(newValue));
         }
         emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
@@ -465,6 +472,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function updateAddresses() public {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         _whitelist = f.whitelist();
+        _pool = f.pool();
         address o = f.oracle();
         if (o != _oracle) {
           IOracle ensoOracle = IOracle(o);
@@ -547,33 +555,50 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(amount > 0, uint256(0x1bb63a90056c1d) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);
         strategy.settleSynths();
-        strategy.issueStreamingFee();
-        IOracle o = oracle();
-        (uint256 totalBefore, int256[] memory estimatesBefore) = o.estimateStrategy(strategy);
-        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
+        address pool = _pool;
+        uint256 poolWethAmount;
+        uint256 totalBefore;
+        uint256 balanceBefore;
         {
+            int256[] memory estimatesBefore;
+            (totalBefore, estimatesBefore) = oracle().estimateStrategy(strategy);
+            balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
+
             uint256 totalSupply = strategy.totalSupply();
-            // Deduct fee and burn strategy tokens
-            amount = strategy.burn(msg.sender, amount);
+            // Handle fees and burn strategy tokens
+            amount = strategy.burn(msg.sender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
             wethAmount = totalBefore.mul(amount).div(totalSupply);
             // Setup data
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
-                uint256 percentage = amount.mul(10**18).div(totalSupply);
+                {
+                    uint256 poolBalance = strategy.balanceOf(pool);
+                    if (poolBalance > 0) {
+                        // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
+                        uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
+                        if (feePercentage > WITHDRAW_LOWER_BOUND && feePercentage < WITHDRAW_UPPER_BOUND) {
+                            strategy.burn(pool, poolBalance); // Burn pool tokens since they will be getting traded
+                            poolWethAmount = totalBefore.mul(poolBalance).div(totalSupply);
+                            amount = amount.add(poolBalance); // Add pool balance to amount to determine percentage that will be passed to router
+                        }
+                    }
+                }
+                uint256 percentage = amount.mul(PRECISION).div(totalSupply);
                 data = abi.encode(percentage, totalBefore, estimatesBefore);
             }
         }
         // Withdraw
         _useRouter(strategy, router, Action.WITHDRAW, strategy.items(), strategy.debt(), data);
         // Check value and balance
-        (uint256 totalAfter, int256[] memory estimatesAfter) = o.estimateStrategy(strategy);
+        (uint256 totalAfter, int256[] memory estimatesAfter) = oracle().estimateStrategy(strategy);
         {
             // Calculate weth amount
             weth = _weth;
             uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
+            wethBalance = wethBalance.sub(poolWethAmount); // Get balance after weth fees have been removed
             uint256 wethAfterSlippage;
             if (totalBefore > totalAfter) {
               uint256 slippageAmount = totalBefore.sub(totalAfter);
-              if (slippageAmount > wethAmount) revert("Too much slippage");
+              _require(slippageAmount < wethAmount, uint256(0x1bb63a90056c1e) /* error_macro_for("Too much slippage") */);
               wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
             } else {
               // Value has increased, no slippage to subtract
@@ -587,20 +612,24 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 _checkSlippage(wethAfterSlippage, wethAmount, slippage);
                 wethAmount = wethAfterSlippage;
             }
+            totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
         }
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter.sub(wethAmount), estimatesAfter);
+        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
-        // Approve weth amount
-        strategy.approveToken(weth, address(this), wethAmount);
+        // Approve weth
+        strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
+        if (poolWethAmount > 0) {
+            IERC20(weth).transferFrom(address(strategy), pool, poolWethAmount);
+        }
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
-        _checkAndEmit(strategy, TimelockCategory.PERFORMANCE, uint256(state.performanceFee), true);
-        _checkAndEmit(strategy, TimelockCategory.THRESHOLD, uint256(state.rebalanceThreshold), true);
+        _checkAndEmit(strategy, TimelockCategory.MANAGEMENT_FEE, uint256(state.managementFee), true);
+        _checkAndEmit(strategy, TimelockCategory.REBALANCE_THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
-        _require(state.timelock <= 30 days, uint256(0x1bb63a90056c1e) /* error_macro_for("Timelock is too long") */);
+        _require(state.timelock <= 30 days, uint256(0x1bb63a90056c1f) /* error_macro_for("Timelock is too long") */);
         _initialized[strategy] = 1;
         _strategyStates[strategy] = StrategyState(
           state.timelock,
@@ -609,7 +638,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           state.social,
           state.set
         );
-        IStrategy(strategy).updatePerformanceFee(state.performanceFee);
+        IStrategy(strategy).updateManagementFee(state.managementFee);
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
         if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);
@@ -644,7 +673,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        _require(balancedAfter, uint256(0x1bb63a90056c1f) /* error_macro_for("Not balanced") */);
+        _require(balancedAfter, uint256(0x1bb63a90056c20) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
     }
@@ -722,8 +751,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
-        _require(address(strategy) != test, uint256(0x1bb63a90056c20) /* error_macro_for("Cyclic dependency") */);
-        _require(!strategy.supportsSynths(), uint256(0x1bb63a90056c21) /* error_macro_for("Synths not supported") */);
+        _require(address(strategy) != test, uint256(0x1bb63a90056c21) /* error_macro_for("Cyclic dependency") */);
+        _require(!strategy.supportsSynths(), uint256(0x1bb63a90056c22) /* error_macro_for("Synths not supported") */);
         address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
@@ -734,16 +763,24 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
       _require(
           slippedValue >= referenceValue.mul(slippage).div(DIVISOR),
-          uint256(0x1bb63a90056c22) /* error_macro_for("Too much slippage") */
+          uint256(0x1bb63a90056c23) /* error_macro_for("Too much slippage") */
       );
     }
 
     function _checkDivisor(uint256 value) private pure {
-        _require(value <= DIVISOR, uint256(0x1bb63a90056c23) /* error_macro_for("Out of bounds") */);
+        _require(value <= DIVISOR, uint256(0x1bb63a90056c24) /* error_macro_for("Out of bounds") */);
+    }
+
+    function _checkFee(uint256 value) private pure {
+        _require(value <= FEE_BOUND, uint256(0x1bb63a90056c25) /* error_macro_for("Fee too high") */);
     }
 
     function _checkAndEmit(address strategy, TimelockCategory category, uint256 value, bool finalized) private {
-        _checkDivisor(value);
+        if (uint256(category) > 4) {
+            _checkFee(value);
+        } else {
+            _checkDivisor(value);
+        }
         emit NewValue(strategy, category, value, finalized);
     }
 
@@ -751,21 +788,21 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Checks that strategy is initialized
      */
     function _isInitialized(address strategy) private view {
-        _require(initialized(strategy), uint256(0x1bb63a90056c24) /* error_macro_for("Not initialized") */);
+        _require(initialized(strategy), uint256(0x1bb63a90056c26) /* error_macro_for("Not initialized") */);
     }
 
     /**
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) private view {
-        _require(whitelist().approved(account), uint256(0x1bb63a90056c25) /* error_macro_for("Not approved") */);
+        _require(whitelist().approved(account), uint256(0x1bb63a90056c27) /* error_macro_for("Not approved") */);
     }
 
     /**
      * @notice Checks if msg.sender is manager
      */
     function _onlyManager(IStrategy strategy) private view {
-        _require(msg.sender == strategy.manager(), uint256(0x1bb63a90056c26) /* error_macro_for("Not manager") */);
+        _require(msg.sender == strategy.manager(), uint256(0x1bb63a90056c28) /* error_macro_for("Not manager") */);
     }
 
     /**
@@ -774,12 +811,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function _socialOrManager(IStrategy strategy) private view {
         _require(
             msg.sender == strategy.manager() || _strategyStates[address(strategy)].social,
-            uint256(0x1bb63a90056c27) /* error_macro_for("Not manager") */
+            uint256(0x1bb63a90056c29) /* error_macro_for("Not manager") */
         );
     }
 
     function _notSet(address strategy) private view {
-        _require(!_strategyStates[strategy].set, uint256(0x1bb63a90056c28) /* error_macro_for("Strategy cannot change") */);
+        _require(!_strategyStates[strategy].set, uint256(0x1bb63a90056c2a) /* error_macro_for("Strategy cannot change") */);
     }
 
     /**
@@ -797,6 +834,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     receive() external payable {
-        _require(msg.sender == _weth, uint256(0x1bb63a90056c29) /* error_macro_for("Not WETH") */);
+        _require(msg.sender == _weth, uint256(0x1bb63a90056c2b) /* error_macro_for("Not WETH") */);
     }
 }

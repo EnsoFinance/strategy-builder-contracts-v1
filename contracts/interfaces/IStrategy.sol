@@ -2,12 +2,13 @@
 pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
+import "./IStrategyFees.sol";
 import "./IStrategyToken.sol";
 import "./IOracle.sol";
 import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
-interface IStrategy is IStrategyToken, StrategyTypes {
+interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
     function approveToken(
         address token,
         address account,
@@ -52,12 +53,6 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function settleSynths() external;
 
-    function issueStreamingFee() external;
-
-    function updateTokenValue(uint256 total, uint256 supply) external;
-
-    function updatePerformanceFee(uint16 fee) external;
-
     function updateRebalanceThreshold(uint16 threshold) external;
 
     function updateTradeData(address item, TradeData memory data) external;
@@ -76,13 +71,9 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function rebalanceThreshold() external view returns (uint256);
 
-    function performanceFee() external view returns (uint256);
-
     function getPercentage(address item) external view returns (int256);
 
     function getTradeData(address item) external view returns (TradeData memory);
-
-    function getPerformanceFeeOwed(address account) external view returns (uint256);
 
     function controller() external view returns (address);
 

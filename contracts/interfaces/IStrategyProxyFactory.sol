@@ -38,6 +38,8 @@ interface IStrategyProxyFactory is StrategyTypes{
 
     function pool() external view returns (address);
 
+    function streamingFee() external view returns (uint256);
+
     function version() external view returns (string memory);
 
     function getManager(address proxy) external view returns (address);

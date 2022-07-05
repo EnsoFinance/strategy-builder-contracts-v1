@@ -20,7 +20,7 @@ const STRATEGY_STATE: InitialState = {
 	rebalanceThreshold: BigNumber.from(10),
 	rebalanceSlippage: BigNumber.from(997),
 	restructureSlippage: BigNumber.from(995),
-	performanceFee: BigNumber.from(50),
+	managementFee: BigNumber.from(5),
 	social: true,
 	set: false
 }
@@ -95,12 +95,6 @@ describe('StrategyController - Social', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should fail to withdraw performance fee: no earnings', async function () {
-		await expect(strategy.connect(accounts[1]).withdrawPerformanceFee(accounts.map((account) => account.address))).to.be.revertedWith(
-			'No earnings'
-		)
-	})
-
 	it('Should deposit more', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[2].address)
 		const tx = await controller
@@ -135,19 +129,6 @@ describe('StrategyController - Social', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
-
-	it('Should fail to withdraw performance fee: not manager', async function () {
-		await expect(strategy.connect(accounts[2]).withdrawPerformanceFee(accounts.map((account) => account.address))).to.be.revertedWith(
-			'Not manager'
-		)
-	})
-
-	it('Should withdraw performance fee', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		await strategy.connect(accounts[1]).withdrawPerformanceFee(accounts.map((account) => account.address))
-		const balanceAfter = await strategy.balanceOf(accounts[1].address)
-		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
 	it('Should withdraw', async function () {

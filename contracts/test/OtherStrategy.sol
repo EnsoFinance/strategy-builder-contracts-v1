@@ -441,6 +441,10 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         _performanceFee = fee;
     }
 
+    function updateManagementFee(uint16 fee) external override onlyController {
+        _managementFee = uint256(10**18).mul(DIVISOR).div(DIVISOR.sub(uint256(fee))).sub(10**18);
+    }
+
     function updateRebalanceThreshold(uint16 threshold) external override onlyController {
         _rebalanceThreshold = threshold;
     }
@@ -538,7 +542,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return uint256(_rebalanceThreshold);
     }
 
-    function performanceFee() external view override returns (uint256) {
+    function performanceFee() external view returns (uint256) {
         return uint256(_performanceFee);
     }
 
@@ -550,7 +554,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _tradeData[item];
     }
 
-    function getPerformanceFeeOwed(address account) external view override returns (uint256) {
+    function getPerformanceFeeOwed(address account) external view returns (uint256) {
         return _getPerformanceFee(account, uint256(_performanceFee));
     }
 

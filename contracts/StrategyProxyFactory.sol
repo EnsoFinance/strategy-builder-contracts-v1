@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./StrategyProxyFactoryStorage.sol";
 import "./StrategyProxyAdmin.sol";
 import "./helpers/StrategyTypes.sol";
@@ -21,6 +22,11 @@ import "./interfaces/registries/ITokenRegistry.sol";
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
 contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils, EIP712 {
+    using SafeMath for uint256;
+
+    uint256 internal constant PRECISION = 10**18;
+    uint256 internal constant DIVISOR = 1000;
+
     address public immutable override controller;
 
     /**
@@ -55,11 +61,16 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     event NewPool(address newPool);
 
     /**
+     * @notice New streaming fee percentage
+     */
+    event NewStreamingFee(uint256 newStreamingFee);
+
+    /**
      * @notice Log ownership transfer
      */
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
-    bytes32 private constant _CREATE_TYPEHASH = 
+    bytes32 private constant _CREATE_TYPEHASH =
       keccak256("Create(string name,string symbol)");
 
     /**
@@ -93,11 +104,13 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _registry = registry_;
         _whitelist = whitelist_;
         _pool = pool_;
+        _streamingFee = uint256(1001001001001001); // 0.1% inflation
         _version = "1";
         emit Update(_implementation, _version);
         emit NewOracle(_oracle);
         emit NewWhitelist(_whitelist);
         emit NewPool(_pool);
+        emit NewStreamingFee(uint256(1));
         emit OwnershipTransferred(address(0), owner);
         return true;
     }
@@ -160,6 +173,18 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function updatePool(address newPool) external noZeroAddress(newPool) onlyOwner {
         _pool = newPool;
         emit NewPool(newPool);
+    }
+
+    /*
+     * @param fee The percentage of the total supply that gets minted for the platform over a year
+     */
+    function updateStreamingFee(uint16 fee) external onlyOwner {
+        // The streaming fee mints a percentage of tokens over the course of a year.
+        // Due to this inflation, we calculate the _streamingFee multiplier such that
+        // when multiplied by the totalSupply equals the amount of tokens to be minted
+        // in order to get the correct percentage of the new total supply
+        _streamingFee = PRECISION.mul(fee).div(DIVISOR.sub(fee));
+        emit NewStreamingFee(uint256(fee));
     }
 
     /*
@@ -227,6 +252,10 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     function pool() external view override returns (address) {
         return _pool;
+    }
+
+    function streamingFee() external view override returns (uint256) {
+        return _streamingFee;
     }
 
     /*

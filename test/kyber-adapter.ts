@@ -89,7 +89,7 @@ describe('KyberSwapAdapter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(995),
 			restructureSlippage: BigNumber.from(990),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}

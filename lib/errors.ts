@@ -32,7 +32,7 @@ export function readError(err : string) : string {
     const errorcodes = errorContract?.errorcodes
     const errorKeys = Object.keys(errorcodes as any)
     const hasKey = errorKeys.find((elt: string) => elt === err)
-    if (hasKey === "") return "readError: errorcode does not on file for the contract." 
+    if (hasKey === "") return "readError: errorcode does not on file for the contract."
     const anyErrorcodes = errorcodes as any
     return anyErrorcodes[err]
 }
@@ -44,8 +44,8 @@ export function getErrorCodes(contractFileName: string, errMsg : string) : strin
     if (hasErrorcodes === "") return ["getErrorCode: errorcodes not listed for contract."]
     const errorcodes = errorContract?.errorcodes
     const anyErrorcodes = errorcodes as any
-    keys = Object.keys(errorcodes as any) 
-    const codes = keys.filter((k: string) => 
+    keys = Object.keys(errorcodes as any)
+    const codes = keys.filter((k: string) =>
         anyErrorcodes[k] === errMsg
     )
     if (codes.length === 0) return ["getErrorCode: errorcode does not exist."]
@@ -73,8 +73,8 @@ export async function isRevertedWith(p: Promise<any>, errMsg: string, contractFi
             let revertString = err.replace(/.*reverted with reason string '/g, "")
             revertString = revertString.slice(0, -1) // trim last '
             isInErrCodes = errCodes.test(revertString)
+            if (!isInErrCodes) console.log(`Unexpected revert string: ${revertString}`)
         }
     }
     return isRevert && isInErrCodes
 }
-

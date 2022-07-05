@@ -13,11 +13,12 @@ interface StrategyTypes {
 
     enum TimelockCategory {
       RESTRUCTURE,
-      THRESHOLD,
+      REBALANCE_THRESHOLD,
       REBALANCE_SLIPPAGE,
       RESTRUCTURE_SLIPPAGE,
       TIMELOCK,
-      PERFORMANCE
+      PERFORMANCE_FEE,
+      MANAGEMENT_FEE
     }
 
     struct StrategyItem {
@@ -37,7 +38,7 @@ interface StrategyTypes {
         uint16 rebalanceThreshold;
         uint16 rebalanceSlippage;
         uint16 restructureSlippage;
-        uint16 performanceFee;
+        uint16 managementFee;
         bool social;
         bool set;
     }

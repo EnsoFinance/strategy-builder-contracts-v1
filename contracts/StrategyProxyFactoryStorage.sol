@@ -13,6 +13,8 @@ contract StrategyProxyFactoryStorage {
     string internal _version;
     mapping(bytes32 => bool) internal _proxyExists;
 
+    uint256 _streamingFee;
+
     // Gap for future storage changes
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }

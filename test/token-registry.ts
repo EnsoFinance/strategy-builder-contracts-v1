@@ -77,7 +77,7 @@ describe('TokenRegistry', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(995),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}

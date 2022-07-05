@@ -108,7 +108,7 @@ describe('Leverage2XAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(990),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}
@@ -193,7 +193,7 @@ describe('Leverage2XAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(990),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false
 		}

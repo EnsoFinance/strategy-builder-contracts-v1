@@ -184,6 +184,10 @@
     "contractName": "IStrategyController.sol"
   },
   {
+    "contractId": "f4d7cc0cbd2a",
+    "contractName": "IStrategyFees.sol"
+  },
+  {
     "contractId": "6096fda362bb",
     "contractName": "IStrategyManagement.sol"
   },
@@ -396,6 +400,10 @@
     "contractName": "StrategyRouter.sol"
   },
   {
+    "contractId": "ee78cef3375d",
+    "contractName": "StrategyCommon.sol"
+  },
+  {
     "contractId": "1bb63a90056c",
     "contractName": "StrategyController.sol",
     "errorcodes": {
@@ -429,23 +437,29 @@
       "1bb63a90056c1b": "Ambiguous amount",
       "1bb63a90056c1c": "Lost value",
       "1bb63a90056c1d": "0 amount",
-      "1bb63a90056c1e": "Timelock is too long",
-      "1bb63a90056c1f": "Not balanced",
-      "1bb63a90056c20": "Cyclic dependency",
-      "1bb63a90056c21": "Synths not supported",
-      "1bb63a90056c22": "Too much slippage",
-      "1bb63a90056c23": "Out of bounds",
-      "1bb63a90056c24": "Not initialized",
-      "1bb63a90056c25": "Not approved",
-      "1bb63a90056c26": "Not manager",
-      "1bb63a90056c27": "Not manager",
-      "1bb63a90056c28": "Strategy cannot change",
-      "1bb63a90056c29": "Not WETH"
+      "1bb63a90056c1e": "Too much slippage",
+      "1bb63a90056c1f": "Timelock is too long",
+      "1bb63a90056c20": "Not balanced",
+      "1bb63a90056c21": "Cyclic dependency",
+      "1bb63a90056c22": "Synths not supported",
+      "1bb63a90056c23": "Too much slippage",
+      "1bb63a90056c24": "Out of bounds",
+      "1bb63a90056c25": "Fee too high",
+      "1bb63a90056c26": "Not initialized",
+      "1bb63a90056c27": "Not approved",
+      "1bb63a90056c28": "Not manager",
+      "1bb63a90056c29": "Not manager",
+      "1bb63a90056c2a": "Strategy cannot change",
+      "1bb63a90056c2b": "Not WETH"
     }
   },
   {
     "contractId": "dbc2b7686bf5",
     "contractName": "StrategyControllerStorage.sol"
+  },
+  {
+    "contractId": "4d8f0d4f3d94",
+    "contractName": "StrategyFees.sol"
   },
   {
     "contractId": "f19f85f5ead4",
