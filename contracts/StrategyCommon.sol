@@ -48,9 +48,8 @@ contract StrategyCommon is StrategyToken {
     /**
      * @dev Throws if called by any account other than the controller.
      */
-    modifier onlyController() {
-        require(_controller == msg.sender, "Controller only");
-        _;
+    function _onlyController() internal {
+        require(msg.sender == _controller, "Controller only");
     }
 
     function _onlyManager() internal view {

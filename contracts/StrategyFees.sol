@@ -33,7 +33,8 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
      * @param total The current total value of the strategy in WETH
      * @param supply The new supply of the token (updateTokenValue needs to be called before mint, so the new supply has to be passed in)
      */
-    function updateTokenValue(uint256 total, uint256 supply) external override onlyController {
+    function updateTokenValue(uint256 total, uint256 supply) external override {
+        _onlyController();
         _setTokenValue(total, supply);
     }
 
@@ -50,14 +51,16 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     /**
      * @notice Update the performance fee. Only callable by controller
      */
-    function updatePerformanceFee(uint16 fee) external override onlyController {
+    function updatePerformanceFee(uint16 fee) external override {
+        _onlyController();
         revert("This strategy does not support performance fees");
     }
 
     /**
      * @notice Update the management fee. Only callable by controller
      */
-    function updateManagementFee(uint16 fee) external override onlyController {
+    function updateManagementFee(uint16 fee) external override {
+        _onlyController();
         address pool = _pool;
         address manager = _manager;
         _issueStreamingFee(pool, manager);
@@ -68,7 +71,8 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
-    function issueStreamingFee() external override onlyController {
+    function issueStreamingFee() external override {
+        _onlyController();
         _issueStreamingFee(_pool, _manager);
     }
 

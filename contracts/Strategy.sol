@@ -63,7 +63,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         _;
     }
 
-
     /**
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
@@ -102,7 +101,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         address token,
         address account,
         uint256 amount
-    ) external override onlyController {
+    ) external override {
+        _onlyController();
         IERC20(token).sortaSafeApprove(account, amount);
     }
 
@@ -116,7 +116,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         address[] memory tokens,
         address account,
         uint256 amount
-    ) external override onlyController {
+    ) external override {
+        _onlyController();
         for (uint256 i; i < tokens.length; ++i) {
             IERC20(tokens[i]).sortaSafeApprove(account, amount);
         }
@@ -132,7 +133,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         address[] memory tokens,
         address account,
         uint256 amount
-    ) external override onlyController {
+    ) external override {
+        _onlyController();
         for (uint256 i; i < tokens.length; ++i) {
             IDebtToken(tokens[i]).approveDelegation(account, amount);
         }
@@ -146,7 +148,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     function approveSynths(
         address account,
         uint256 amount
-    ) external override onlyController {
+    ) external override {
+        _onlyController();
         IERC20(_susd).sortaSafeApprove(account, amount);
         IDelegateApprovals delegateApprovals = IDelegateApprovals(synthetixResolver.getAddress("DelegateApprovals"));
         if (amount == 0) {
@@ -163,13 +166,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     function setStructure(StrategyItem[] memory newItems)
         external
         override
-        onlyController
     {
+        _onlyController();
         StrategyClaim._claimAll(_claimables);
         _setStructure(newItems);
     }
 
-    function setRouter(address router) external override onlyController {
+    function setRouter(address router) external override {
+        _onlyController();
         _tempRouter = router;
     }
 
@@ -255,7 +259,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
      * @param account The address of the account getting new tokens
      * @param amount The amount of tokens being minted
      */
-    function mint(address account, uint256 amount) external override onlyController {
+    function mint(address account, uint256 amount) external override {
+        _onlyController();
         // Normally we would expect to call _issueStreamingFee here, but since an accurate totalSupply
         // is needed to determine the mint amount, it is called earlier in StrategyController.deposit()
         // so it unnecessary to call here.
@@ -271,7 +276,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
      * @param account The address of the account getting tokens removed
      * @param amount The amount of tokens being burned
      */
-    function burn(address account, uint256 amount) external override onlyController returns (uint256) {
+    function burn(address account, uint256 amount) external override returns (uint256) {
+        _onlyController();
         address pool = _pool;
         if (account == pool) {
           _burn(account, amount);
@@ -295,7 +301,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         uint256 amount,
         address tokenIn,
         address tokenOut
-    ) external override onlyController {
+    ) external override {
+        _onlyController();
         // Note: No reentrancy lock since only callable by repositionSynths function in controller which already locks
         _onlyApproved(adapter);
         bytes memory swapData =
@@ -354,7 +361,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         }
     }
 
-    function updateRebalanceThreshold(uint16 threshold) external override onlyController {
+    function updateRebalanceThreshold(uint16 threshold) external override {
+        _onlyController();
         _rebalanceThreshold = threshold;
     }
 
@@ -404,11 +412,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         updateAddresses();
     }
 
-    function lock() external override onlyController {
+    function lock() external override {
+        _onlyController();
         _setLock();
     }
 
-    function unlock() external override onlyController {
+    function unlock() external override {
+        _onlyController();
         _removeLock();
     }
 
