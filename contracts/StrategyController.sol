@@ -23,12 +23,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
 
-    enum Action {
-        WITHDRAW,
-        REBALANCE,
-        RESTRUCTURE
-    }
-
     uint256 private constant DIVISOR = 1000;
     uint256 private constant PRECISION = 10**18;
     uint256 private constant WITHDRAW_UPPER_BOUND = 10**17; // Upper condition for including pool's tokens as part of burn during withdraw
@@ -190,7 +184,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
-        _useRouter(strategy, router, Action.REBALANCE, strategy.items(), strategy.debt(), data);
+        _useRouter(strategy, router, router.rebalance, data);
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
@@ -225,7 +219,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         address susd = _susd;
         if (token == susd) {
             address[] memory synths = strategy.synths();
-            for (uint256 i = 0; i < synths.length; i++) {
+            for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount > 0) {
                     strategy.delegateSwap(
@@ -240,7 +234,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
-            for (uint256 i = 0; i < synths.length; i++) {
+            for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
                 if (amount > 0) {
                     strategy.delegateSwap(
@@ -452,7 +446,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bool supportsDebt;
 
         int256 total = 0;
-        for (uint256 i = 0; i < newItems.length; i++) {
+        for (uint256 i; i < newItems.length; ++i) {
             address item = newItems[i].item;
             _require(i == 0 || newItems[i].item > newItems[i - 1].item, uint256(0x1bb63a90056c13) /* error_macro_for("Item ordering") */);
             int256 percentage = newItems[i].percentage;
@@ -600,7 +594,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             }
         }
         // Withdraw
-        _useRouter(strategy, router, Action.WITHDRAW, strategy.items(), strategy.debt(), data);
+        _useRouter(strategy, router, router.withdraw, data);
         // Check value and balance
         (uint256 totalAfter, int256[] memory estimatesAfter) = oracle().estimateStrategy(strategy);
         {
@@ -685,7 +679,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.setStructure(newItems);
         strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
-        _useRouter(strategy, router, Action.RESTRUCTURE, currentItems, currentDebt, data);
+        _useRouter(strategy, router, router.restructure, currentItems, currentDebt, data);
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c20) /* error_macro_for("Not balanced") */);
@@ -697,7 +691,23 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Wrap router function with approve and unapprove
      * @param strategy The strategy contract
      * @param router The router that will be used
-     * @param action The action that the router will perform
+     * @param routerAction The function pointer action that the router will perform
+     * @param data The data that will be sent to the router
+     */
+    function _useRouter(
+        IStrategy strategy,
+        IStrategyRouter router,
+        function(address, bytes memory) external routerAction,
+        bytes memory data
+    ) internal {
+        _useRouter(strategy, router, routerAction, strategy.items(), strategy.debt(), data);
+    }
+
+    /**
+     * @notice Wrap router function with approve and unapprove
+     * @param strategy The strategy contract
+     * @param router The router that will be used
+     * @param routerAction The function pointer action that the router will perform
      * @param strategyItems An array of tokens
      * @param strategyDebt An array of debt tokens
      * @param data The data that will be sent to the router
@@ -705,19 +715,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function _useRouter(
         IStrategy strategy,
         IStrategyRouter router,
-        Action action,
+        function(address, bytes memory) external routerAction,
         address[] memory strategyItems,
         address[] memory strategyDebt,
         bytes memory data
     ) internal {
         _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(-1));
-        if (action == Action.WITHDRAW) {
-            router.withdraw(address(strategy), data);
-        } else if (action == Action.REBALANCE) {
-            router.rebalance(address(strategy), data);
-        } else if (action == Action.RESTRUCTURE) {
-            router.restructure(address(strategy), data);
-        }
+        routerAction(address(strategy), data);
         _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(0));
     }
 
@@ -769,7 +773,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(address(strategy) != test, uint256(0x1bb63a90056c21) /* error_macro_for("Cyclic dependency") */);
         _require(!strategy.supportsSynths(), uint256(0x1bb63a90056c22) /* error_macro_for("Synths not supported") */);
         address[] memory strategyItems = strategy.items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i; i < strategyItems.length; ++i) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
               _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
         }
