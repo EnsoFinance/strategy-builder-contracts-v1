@@ -478,6 +478,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         return _debt.length > 0;
     }
 
+    function _deletePercentages(address[] storage assets) private {
+        address[] memory _assets = assets;
+        uint256 assetsLength = _assets.length;
+        for (uint256 i; i < assetsLength; ++i) {
+            delete _percentage[_assets[i]];
+        }
+    }
+
     /**
      * @notice Set the structure of the strategy
      * @param newItems An array of Item structs that will comprise the strategy
@@ -489,17 +497,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         delete _percentage[weth];
         delete _percentage[susd];
         delete _percentage[address(-1)];
-        for (uint256 i; i < _items.length; ++i) {
-            delete _percentage[_items[i]];
-        }
-        for (uint256 i; i < _debt.length; ++i) {
-            delete _percentage[_debt[i]];
-        }
-        for (uint256 i; i < _synths.length; ++i) {
-            delete _percentage[_synths[i]];
-        }
-        delete _debt;
+        _deletePercentages(_items);
+        _deletePercentages(_debt);
+        _deletePercentages(_synths);
         delete _items;
+        delete _debt;
         delete _synths;
 
         if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
