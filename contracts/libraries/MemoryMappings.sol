@@ -17,7 +17,6 @@ library MemoryMappings {
         }
         (arr) = abi.decode(node.payload, (bytes32[]));
         assembly {
-          // FIXME do I need free memory pointer??
             mstore(add(arr, add(mul(mload(arr), 32), 32)), value)
             let len := add(mload(arr), 1)
             mstore(arr, len)

@@ -7,8 +7,8 @@
     "contractId": "b3e5dea2190e",
     "contractName": "Strategy.sol",
     "errorcodes": {
-      "b3e5dea2190e00": "Router only",
-      "b3e5dea2190e01": "finalizeTimelock: timelock is not ready.",
+      "b3e5dea2190e00": "finalizeTimelock: timelock is not ready.",
+      "b3e5dea2190e01": "Router only",
       "b3e5dea2190e02": "Cannot withdraw debt",
       "b3e5dea2190e03": "0 amount",
       "b3e5dea2190e04": "Not approved",

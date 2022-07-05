@@ -123,7 +123,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
                 emit ManagementFee(amountToMint);
             }
             _lastStreamTimestamp = uint96(block.timestamp);
-
         }
     }
 
