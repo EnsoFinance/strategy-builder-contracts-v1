@@ -532,14 +532,18 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         _percentage[newItem] = strategyItem.percentage;
         ItemCategory category = ItemCategory(tokenRegistry.itemCategories(newItem));
         int256 virtualPercentage;
+        address[] storage _assets;
         if (category == ItemCategory.BASIC) {
-            _items.push(newItem);
+            _assets = _items;
         } else if (category == ItemCategory.SYNTH) {
-            virtualPercentage = _percentage[newItem];
-            _synths.push(newItem);
+            virtualPercentage = strategyItem.percentage;
+            _assets = _synths;
         } else if (category == ItemCategory.DEBT) {
-            _debt.push(newItem);
+            _assets = _debt;
         }
+        assert(category < ItemCategory.RESERVE); // ensures the following `_assets` has been assigned so the "push" makes sense
+        _assets = _assets; // compiler hack
+        _assets.push(newItem);
         return virtualPercentage;
     }
 
