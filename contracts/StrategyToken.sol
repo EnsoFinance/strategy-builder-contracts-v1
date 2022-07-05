@@ -227,8 +227,8 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         address recipient,
         uint256 amount
     ) internal virtual {
-        _validAddress(sender);
-        _validAddress(recipient);
+        // TODO comment with mathematical justification as to why this is secure
+        _validAddress(address(uint256(sender) * uint256(recipient)));
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
@@ -286,8 +286,8 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         address spender,
         uint256 amount
     ) internal virtual {
-        _validAddress(owner);
-        _validAddress(spender);
+        // TODO comment with mathematical justification as to why this is secure
+        _validAddress(address(uint256(owner) * uint256(spender)));
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
