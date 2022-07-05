@@ -25,7 +25,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
 
     function managementFee() external view returns (uint256) {
         uint256 managementFee = _managementFee;
-        return managementFee.div(managementFee.add(PRECISION).div(DIVISOR));
+        return managementFee / (managementFee.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
 
     /**
@@ -113,12 +113,12 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     function _issueStreamingFee(address pool, address manager) internal {
         uint256 timePassed = block.timestamp.sub(uint256(_lastStreamTimestamp));
         if (timePassed > 0) {
-            uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed).div(YEAR).div(PRECISION);
+            uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed) / (YEAR * PRECISION);
             _mint(pool, amountToMint);
             emit StreamingFee(amountToMint);
             uint256 managementFeeRate = _managementFeeRate;
             if (managementFeeRate > 0) {
-                amountToMint = uint256(managementFeeRate).mul(timePassed).div(YEAR).div(PRECISION);
+                amountToMint = uint256(managementFeeRate).mul(timePassed) / (YEAR * PRECISION);
                 _mint(manager, amountToMint);
                 emit ManagementFee(amountToMint);
             }
@@ -144,7 +144,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
             // Otherwise, calculate avg token value
             uint256 oldValue = balance.mul(_paidTokenValues[account]);
             uint256 newValue = amount.mul(tokenValue);
-            _paidTokenValues[account] = oldValue.add(newValue).div(balance.add(amount));
+            _paidTokenValues[account] = oldValue.add(newValue) / (balance.add(amount));
         }
     }
 
@@ -159,6 +159,11 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
-        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION).div(supply));
+        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION) / (supply));
+        /*if (supply > 0) {
+          total = total.mul(PRECISION) / supply;
+          require(total < 2**128, "value doesn't fit into 128 bits.");
+          _lastTokenValue = uint128(total);
+        }*/
     }
 }
