@@ -581,15 +581,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         // We're not currently supporting performance fees but don't want to exclude it in the future.
         // So users are getting grandfathered in by setting their paid token value to the avg token
         // value they bought into
-        if (sender != manager && sender != pool) {
+        if (sender == manager || sender == pool) {
+            rateChange = true;
+        } else {
             _removePaidTokenValue(sender, amount);
-        } else {
-            rateChange = true;
         }
-        if (recipient != manager && recipient != pool) {
-            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
-        } else {
+        if (recipient == manager || recipient == pool) {
             rateChange = true;
+        } else {
+            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
         }
         if (rateChange) _issueStreamingFee(pool, manager);
         super._transfer(sender, recipient, amount);
