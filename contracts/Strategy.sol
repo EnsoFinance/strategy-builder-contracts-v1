@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./libraries/SafeERC20.sol";
 import "./libraries/MemoryMappings.sol";
 import "./libraries/StrategyClaim.sol";
+import "./interfaces/IBaseAdapter.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
@@ -307,9 +308,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         _onlyApproved(adapter);
         bytes memory swapData =
             abi.encodeWithSelector(
-                bytes4(
-                    keccak256("swap(uint256,uint256,address,address,address,address)")
-                ),
+                IBaseAdapter.swap.selector,
                 amount,
                 1,
                 tokenIn,
