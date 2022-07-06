@@ -21,7 +21,7 @@ contract StrategyEstimator is IEstimator {
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
         require(!IStrategy(token).locked(), "Strategy locked"); // Prevents inflating value of child strategy temporarily
-        uint256 totalSupply = IStrategy(token).totalSupply();
+        uint256 totalSupply = IStrategy(token).token().totalSupply();
         (uint256 totalValue, ) = IOracle(msg.sender).estimateStrategy(IStrategy(token));
         return int256(totalValue.mul(balance).div(totalSupply));
     }

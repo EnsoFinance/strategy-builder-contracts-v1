@@ -4,6 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "../libraries/SafeERC20.sol";
 import "../interfaces/IStrategy.sol";
+import "../interfaces/IStrategyToken.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../interfaces/IStrategyController.sol";
 import "../helpers/Multicall.sol";
@@ -31,6 +32,7 @@ contract MulticallWrapper is Multicall {
         bytes memory data = abi.encode(calls);
         token.safeTransferFrom(msg.sender, address(multicallRouter), amount);
         controller.deposit(strategy, multicallRouter, 0, 0, data);
-        strategy.transfer(msg.sender, strategy.balanceOf(address(this)));
+        IStrategyToken strategyToken = strategy.token();
+        strategyToken.transfer(msg.sender, strategyToken.balanceOf(address(this)));
     }
 }

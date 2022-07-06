@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyFees.sol";
-import "./StrategyToken.sol";
+import "./StrategyTokenBase.sol";
 import "./StrategyCommon.sol";
 
-abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
+abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyCommon { 
 
     uint256 private constant YEAR = 331556952; //365.2425 days
     uint256 internal constant DIVISOR = 1000;

@@ -1,313 +1,105 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./interfaces/IStrategyToken.sol";
+
 import "./StrategyTokenStorage.sol";
+import "./StrategyTokenBase.sol";
+import "./StrategyFees.sol";
 
-abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
-    using SafeMath for uint256;
+contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBase, StrategyFees, Initializable {
 
-    bytes32 public constant PERMIT_TYPEHASH = keccak256(
-        "Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)"
-    );
-    string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";
-    uint8 public constant override decimals = 18;
+    address public immutable strategy;
+
+    constructor(address factory_, address controller_) public StrategyCommon(factory_, controller_) {
+        strategy = msg.sender; 
+    }
 
     /**
-     * @dev See {IERC20-transfer}.
-     *
-     * Requirements:
-     *
-     * - `recipient` cannot be the zero address.
-     * - the caller must have a balance of at least `amount`.
+     * @notice Initializes new Strategy
+     * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
-    function transfer(address recipient, uint256 amount) external virtual override returns (bool) {
-        _transfer(msg.sender, recipient, amount);
+    function initialize( // FIXME review thoroughly
+        string memory name_,
+        string memory symbol_,
+        string memory version_,
+        address manager_,
+    ) external override initializer returns (bool) {
+        _manager = manager_;
+        _name = name_;
+        _symbol = symbol_;
+        _version = version_;
+        _lastTokenValue = uint128(PRECISION);
+        _lastStreamTimestamp = uint96(block.timestamp);
+        _paidTokenValues[manager_] = uint256(-1);
+        _setDomainSeperator();
+        updateAddresses();
         return true;
     }
 
     /**
-     * @dev See {IERC20-approve}.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
+     * notice Mint new tokens. Only callable by controller
+     * param account The address of the account getting new tokens
+     * param amount The amount of tokens being minted
      */
-    function approve(address spender, uint256 amount) external virtual override returns (bool) {
-        _approve(msg.sender, spender, amount);
-        return true;
+    function mint(address account, uint256 amount) external override {
+        _onlyController();
+        // Normally we would expect to call _issueStreamingFee here, but since an accurate totalSupply
+        // is needed to determine the mint amount, it is called earlier in StrategyController.deposit()
+        // so it unnecessary to call here.
+        address pool = _pool;
+        address manager = _manager;
+        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
+        _mint(account, amount);
+        _updateStreamingFeeRate(pool, manager);
     }
 
     /**
-     * @dev See {IERC20-transferFrom}.
-     *
-     * Emits an {Approval} event indicating the updated allowance. This is not
-     * required by the EIP. See the note at the beginning of {ERC20}.
-     *
-     * Requirements:
-     *
-     * - `sender` and `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
-     * - the caller must have allowance for ``sender``'s tokens of at least
-     * `amount`.
+     * notice Burn tokens. Only callable by controller
+     * param account The address of the account getting tokens removed
+     * param amount The amount of tokens being burned
      */
-    function transferFrom(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) external virtual override returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount, "ERC20: allowance too low")
-        );
-        return true;
-    }
-
-    /**
-     * @dev Atomically increases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     */
-    function increaseAllowance(address spender, uint256 addedValue) external virtual override returns (bool) {
-        _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
-        return true;
-    }
-
-    /**
-     * @dev Atomically decreases the allowance granted to `spender` by the caller.
-     *
-     * This is an alternative to {approve} that can be used as a mitigation for
-     * problems described in {IERC20-approve}.
-     *
-     * Emits an {Approval} event indicating the updated allowance.
-     *
-     * Requirements:
-     *
-     * - `spender` cannot be the zero address.
-     * - `spender` must have allowance for the caller of at least
-     * `subtractedValue`.
-     */
-    function decreaseAllowance(address spender, uint256 subtractedValue) external virtual override returns (bool) {
-        uint256 currentAllowance = _allowances[msg.sender][spender];
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        _approve(msg.sender, spender, currentAllowance.sub(subtractedValue));
-
-        return true;
-    }
-
-    function permit(
-        address owner,
-        address spender,
-        uint256 value,
-        uint256 deadline,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) public override {
-        require(block.timestamp <= deadline, "Expired deadline");
-
-        bytes32 digest =
-            keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    DOMAIN_SEPARATOR,
-                    keccak256(
-                        abi.encode(
-                            PERMIT_TYPEHASH,
-                            owner,
-                            spender,
-                            value,
-                            _nonces[owner],
-                            deadline
-                        )
-                    )
-                )
-            );
-
-        address signer = ecrecover(digest, v, r, s);
-        require(signer != address(0) && signer == owner, "Invalid signature");
-
-        _nonces[owner]++;
-        _approve(owner, spender, value);
-    }
-
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() external view override returns (string memory) {
-        return _name;
-    }
-
-    /**
-     * @dev Returns the symbol of the token, usually a shorter version of the
-     * name.
-     */
-    function symbol() external view override returns (string memory) {
-        return _symbol;
-    }
-
-    /**
-     * @dev Returns the nonce of the token holder.
-     */
-    function nonces(address owner) external view override returns (uint256) {
-        return _nonces[owner];
-    }
-
-    /**
-     * @dev Returns the token implementation version
-     */
-     function version() external view returns (string memory) {
-         return _version;
-     }
-
-    /**
-     * @dev See {IERC20-totalSupply}.
-     */
-    function totalSupply() external view override returns (uint256) {
-        return _totalSupply;
-    }
-
-    /**
-     * @dev See {IERC20-allowance}.
-     */
-    function allowance(address owner, address spender)
-        external
-        view
-        virtual
-        override
-        returns (uint256)
-    {
-        return _allowances[owner][spender];
-    }
-
-    /**
-     * @dev See {IERC20-balanceOf}.
-     */
-    function balanceOf(address account)
-        external
-        view
-        override
-        returns (uint256)
-    {
-        return _balances[account];
-    }
-
-    function chainId() public pure returns (uint256 id) {
-        assembly {
-            id := chainid()
+    function burn(address account, uint256 amount) external override returns (uint256) {
+        _onlyController();
+        address pool = _pool;
+        if (account == pool) {
+          _burn(account, amount);
+        } else {
+          address manager = _manager;
+          if (account != manager) _removePaidTokenValue(account, amount);
+          _issueStreamingFeeAndBurn(pool, manager, account, amount);
         }
+        return amount;
     }
 
-    /**
-     * @dev Moves tokens `amount` from `sender` to `recipient`.
-     *
-     * This is internal function is equivalent to {transfer}, and can be used to
-     * e.g. implement automatic token fees, slashing mechanisms, etc.
-     *
-     * Emits a {Transfer} event.
-     *
-     * Requirements:
-     *
-     * - `sender` cannot be the zero address.
-     * - `recipient` cannot be the zero address.
-     * - `sender` must have a balance of at least `amount`.
-     */
+    function _onlyStrategy() internal override {
+        if (msg.sender != strategy) revert("_onlyStrategy: msg.sender != strategy."); 
+    }
+
     function _transfer(
         address sender,
         address recipient,
         uint256 amount
-    ) internal virtual {
-        // TODO comment with mathematical justification as to why this is secure
-        _validAddress(address(uint256(sender) * uint256(recipient)));
-        _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-    }
-
-    /** @dev Creates `amount` tokens and assigns them to `account`, increasing
-     * the total supply.
-     *
-     * Emits a {Transfer} event with `from` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `to` cannot be the zero address.
-     */
-    function _mint(address account, uint256 amount) internal virtual {
-        _validAddress(account);
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, amount);
-    }
-
-    /**
-     * @dev Destroys `amount` tokens from `account`, reducing the
-     * total supply.
-     *
-     * Emits a {Transfer} event with `to` set to the zero address.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     * - `account` must have at least `amount` tokens.
-     */
-    function _burn(address account, uint256 amount) internal virtual {
-        _validAddress(account);
-        _balances[account] = _balances[account].sub(amount, BALANCE_LOW);
-        _totalSupply = _totalSupply.sub(amount);
-        emit Transfer(account, address(0), amount);
-    }
-
-    /**
-     * @dev Sets `amount` as the allowance of `spender` over the `owner` s tokens.
-     *
-     * This internal function is equivalent to `approve`, and can be used to
-     * e.g. set automatic allowances for certain subsystems, etc.
-     *
-     * Emits an {Approval} event.
-     *
-     * Requirements:
-     *
-     * - `owner` cannot be the zero address.
-     * - `spender` cannot be the zero address.
-     */
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
-        // TODO comment with mathematical justification as to why this is secure
-        _validAddress(address(uint256(owner) * uint256(spender)));
-
-        _allowances[owner][spender] = amount;
-        emit Approval(owner, spender, amount);
-    }
-
-    function _setDomainSeperator() internal {
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                keccak256(
-                    "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-                ),
-                keccak256(bytes(_name)),
-                keccak256(bytes(_version)),
-                chainId(),
-                address(this)
-            )
-        );
-    }
-
-    function _validAddress(address addr) internal pure {
-        require(addr != address(0), "ERC20: No address(0)");
+    ) internal override {
+        address pool = _pool;
+        address manager = _manager;
+        bool rateChange;
+        // We're not currently supporting performance fees but don't want to exclude it in the future.
+        // So users are getting grandfathered in by setting their paid token value to the avg token
+        // value they bought into
+        if (sender == manager || sender == pool) {
+            rateChange = true;
+        } else {
+            _removePaidTokenValue(sender, amount);
+        }
+        if (recipient == manager || recipient == pool) {
+            rateChange = true;
+        } else {
+            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
+        }
+        if (rateChange) _issueStreamingFee(pool, manager);
+        super._transfer(sender, recipient, amount);
+        if (rateChange) _updateStreamingFeeRate(pool, manager);
     }
 }

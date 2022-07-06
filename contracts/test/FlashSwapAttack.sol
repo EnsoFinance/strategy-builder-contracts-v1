@@ -31,7 +31,7 @@ contract FlashSwapAttack is IUniswapV2Callee, Multicall {
     }
 
     function withdrawWETH(IStrategy strategy) external {
-        controller.withdrawWETH(strategy, loopRouter, strategy.balanceOf(address(this)), DEFAULT_SLIPPAGE, new bytes(0));
+        controller.withdrawWETH(strategy, loopRouter, strategy.token().balanceOf(address(this)), DEFAULT_SLIPPAGE, new bytes(0));
         uint256 balance = IERC20(weth).balanceOf(address(this));
         require(balance > 0, "Failed to withdraw weth");
         IERC20(weth).transfer(msg.sender, balance);
@@ -68,7 +68,7 @@ contract FlashSwapAttack is IUniswapV2Callee, Multicall {
         );
         bytes memory callsData = abi.encode(calls);
         controller.deposit(strategy, genericRouter, 0, DEFAULT_SLIPPAGE, callsData);
-        uint256 balance = strategy.balanceOf(address(this));
+        uint256 balance = strategy.token().balanceOf(address(this));
         require(balance > 0, "Failed to mint tokens");
     }
 }

@@ -22,7 +22,7 @@ import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
 import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
-import "./StrategyFees.sol";
+//import "./StrategyFees.sol";
 
 interface ISynthetixAddressResolver {
     function getAddress(bytes32 name) external returns (address);
@@ -36,12 +36,13 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyCommon, StrategyFees, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*StrategyToken,*/ StrategyCommon, /*StrategyFees,*/ Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
     using MemoryMappings for BinaryTreeWithPayload.Tree;
 
+    IStrategyToken public immutable _token;
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
 
@@ -51,16 +52,24 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     event ClaimablesUpdated();
 
     // Initialize constructor to disable implementation
-    constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
+    constructor(address token_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
+      // FIXME decide how to use `StrategyCommon` between the `Strategy` and `StrategyToken`
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
+        IStrategyToken t;
+        if (token_ != address(0)) {
+            t = IStrategyToken(token_);
+        } else {
+            t = new StrategyToken(factory_, controller_);
+        }
+        _token = t;
     }
 
     /**
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
-    function initialize(
+    function initialize( // FIXME thoroughly compare against init of StrategyToken
         string memory name_,
         string memory symbol_,
         string memory version_,
@@ -71,17 +80,18 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         _name = name_;
         _symbol = symbol_;
         _version = version_;
-        _lastTokenValue = uint128(PRECISION);
-        _lastStreamTimestamp = uint96(block.timestamp);
-        _paidTokenValues[manager_] = uint256(-1);
-        _setDomainSeperator();
-        updateAddresses();
+        _token.initialize(name_, symbol_, version_, manager_);
+        // updateAddresses(); // FIXME
         // Set structure
         if (strategyItems_.length > 0) {
             IStrategyController(_controller).verifyStructure(address(this), strategyItems_);
             _setStructure(strategyItems_);
         }
         return true;
+    }
+
+    function token() external view override returns(IStrategyToken) {
+        return _token;
     }
 
     /**
@@ -205,7 +215,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         {
             // Deduct withdrawal fee, burn tokens, and calculate percentage
             uint256 totalSupplyBefore = _totalSupply; // Need to get total supply before burn to properly calculate percentage
-            _issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount);
+            //_issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount); FIXME
             percentage = amount.mul(PRECISION).div(totalSupplyBefore);
         }
         // Withdraw funds
@@ -246,41 +256,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         }
         emit Withdraw(msg.sender, amount, amounts);
         _removeLock();
-    }
-
-    /**
-     * @notice Mint new tokens. Only callable by controller
-     * @param account The address of the account getting new tokens
-     * @param amount The amount of tokens being minted
-     */
-    function mint(address account, uint256 amount) external override {
-        _onlyController();
-        // Normally we would expect to call _issueStreamingFee here, but since an accurate totalSupply
-        // is needed to determine the mint amount, it is called earlier in StrategyController.deposit()
-        // so it unnecessary to call here.
-        address pool = _pool;
-        address manager = _manager;
-        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
-        _mint(account, amount);
-        _updateStreamingFeeRate(pool, manager);
-    }
-
-    /**
-     * @notice Burn tokens. Only callable by controller
-     * @param account The address of the account getting tokens removed
-     * @param amount The amount of tokens being burned
-     */
-    function burn(address account, uint256 amount) external override returns (uint256) {
-        _onlyController();
-        address pool = _pool;
-        if (account == pool) {
-          _burn(account, amount);
-        } else {
-          address manager = _manager;
-          if (account != manager) _removePaidTokenValue(account, amount);
-          _issueStreamingFeeAndBurn(pool, manager, account, amount);
-        }
-        return amount;
     }
 
     /**
@@ -365,13 +340,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         _onlyManager();
         address manager = _manager;
         address pool = _pool;
-        _issueStreamingFee(pool, manager);
+        //_issueStreamingFee(pool, manager); // FIXME
         _require(newManager != manager, uint256(0xb3e5dea2190e06) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
         _manager = newManager;
-        _updateStreamingFeeRate(pool, newManager);
+        //_updateStreamingFeeRate(pool, newManager); FIXME
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
         emit UpdateManager(newManager);
@@ -400,8 +375,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     function updateVersion(string memory newVersion) external override {
         _require(msg.sender == _factory, uint256(0xb3e5dea2190e08) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
-        _setDomainSeperator();
-        updateAddresses();
+        //_setDomainSeperator(); FIXME
+        //updateAddresses(); FIXME
     }
 
     function lock() external override {
@@ -496,7 +471,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         delete _debt;
         delete _synths;
 
-        if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
+        // FIXME if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         // Set new items
         int256 virtualPercentage;
@@ -561,32 +536,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
         emit ClaimablesUpdated();
-    }
-
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal override {
-        address pool = _pool;
-        address manager = _manager;
-        bool rateChange;
-        // We're not currently supporting performance fees but don't want to exclude it in the future.
-        // So users are getting grandfathered in by setting their paid token value to the avg token
-        // value they bought into
-        if (sender == manager || sender == pool) {
-            rateChange = true;
-        } else {
-            _removePaidTokenValue(sender, amount);
-        }
-        if (recipient == manager || recipient == pool) {
-            rateChange = true;
-        } else {
-            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
-        }
-        if (rateChange) _issueStreamingFee(pool, manager);
-        super._transfer(sender, recipient, amount);
-        if (rateChange) _updateStreamingFeeRate(pool, manager);
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {

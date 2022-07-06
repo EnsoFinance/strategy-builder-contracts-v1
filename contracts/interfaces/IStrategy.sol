@@ -8,7 +8,9 @@ import "./IOracle.sol";
 import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
-interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
+interface IStrategy is /*IStrategyFees, IStrategyToken,*/ StrategyTypes {
+    function token() external view returns(IStrategyToken);
+
     function approveToken(
         address token,
         address account,
@@ -42,9 +44,9 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function withdrawAll(uint256 amount) external;
 
-    function mint(address account, uint256 amount) external;
+    //function mint(address account, uint256 amount) external;
 
-    function burn(address account, uint256 amount) external returns (uint256);
+    //function burn(address account, uint256 amount) external returns (uint256);
 
     function delegateSwap(
         address adapter,

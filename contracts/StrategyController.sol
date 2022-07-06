@@ -189,7 +189,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        IStrategyToken t = strategy.token();
+        t.updateTokenValue(totalAfter, t.totalSupply());
         emit Balanced(address(strategy), totalBefore, totalAfter);
         _removeStrategyLock(strategy);
     }
@@ -373,9 +374,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         } else if (lock.category == TimelockCategory.REBALANCE_THRESHOLD) {
             strategy.updateRebalanceThreshold(uint16(newValue));
         } else if (lock.category == TimelockCategory.PERFORMANCE_FEE) {
-            strategy.updatePerformanceFee(uint16(newValue));
+            strategy.token().updatePerformanceFee(uint16(newValue));
         } else { // lock.category == TimelockCategory.MANAGEMENT_FEE
-            strategy.updateManagementFee(uint16(newValue));
+            strategy.token().updateManagementFee(uint16(newValue));
         }
         emit NewValue(address(strategy), lock.category, newValue, true);
         delete lock.category;
@@ -537,12 +538,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
-        uint256 totalSupply = strategy.totalSupply();
+        IStrategyToken t = strategy.token();
+        uint256 totalSupply = t.totalSupply();
         uint256 relativeTokens =
             totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
         require(relativeTokens > 0, "Insuffient tokens");
-        strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
-        strategy.mint(account, relativeTokens);
+        t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+        t.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
     }
 
@@ -570,20 +572,23 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             int256[] memory estimatesBefore;
             (totalBefore, estimatesBefore) = oracle().estimateStrategy(strategy);
             balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
-
-            uint256 totalSupply = strategy.totalSupply();
-            // Handle fees and burn strategy tokens
-            amount = strategy.burn(msg.sender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
+            uint256 totalSupply;
+            {
+                IStrategyToken t = strategy.token();
+                totalSupply = t.totalSupply();
+                // Handle fees and burn strategy tokens
+                amount = t.burn(msg.sender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
+            }
             wethAmount = totalBefore.mul(amount).div(totalSupply);
             // Setup data
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
                 {
-                    uint256 poolBalance = strategy.balanceOf(pool);
+                    uint256 poolBalance = strategy.token().balanceOf(pool);
                     if (poolBalance > 0) {
                         // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
                         uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
                         if (feePercentage > WITHDRAW_LOWER_BOUND && feePercentage < WITHDRAW_UPPER_BOUND) {
-                            strategy.burn(pool, poolBalance); // Burn pool tokens since they will be getting traded
+                            strategy.token().burn(pool, poolBalance); // Burn pool tokens since they will be getting traded
                             poolWethAmount = totalBefore.mul(poolBalance).div(totalSupply);
                             amount = amount.add(poolBalance); // Add pool balance to amount to determine percentage that will be passed to router
                         }
@@ -622,7 +627,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
         }
         StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        IStrategyToken t = strategy.token();
+        t.updateTokenValue(totalAfter, t.totalSupply());
         // Approve weth
         strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
         if (poolWethAmount > 0) {
@@ -645,7 +651,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           state.social,
           state.set
         );
-        IStrategy(strategy).updateManagementFee(state.managementFee);
+        IStrategy(strategy).token().updateManagementFee(state.managementFee);
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
         if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);
@@ -684,7 +690,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c20) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
-        strategy.updateTokenValue(totalAfter, strategy.totalSupply());
+        IStrategyToken t = strategy.token();
+        t.updateTokenValue(totalAfter, t.totalSupply());
     }
 
     /**

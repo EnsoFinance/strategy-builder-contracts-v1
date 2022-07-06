@@ -10,5 +10,4 @@ interface IStrategyFees {
     function updateManagementFee(uint16 fee) external;
 
     function updateTokenValue(uint256 total, uint256 supply) external;
-
 }
