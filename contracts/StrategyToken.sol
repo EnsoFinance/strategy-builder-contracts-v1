@@ -12,6 +12,8 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
 
     address public immutable strategy;
 
+    // FIXME review and update all access controls
+
     constructor(address factory_, address controller_) public StrategyCommon(factory_, controller_) {
         strategy = msg.sender; 
     }
@@ -24,7 +26,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         string memory name_,
         string memory symbol_,
         string memory version_,
-        address manager_,
+        address manager_
     ) external override initializer returns (bool) {
         _manager = manager_;
         _name = name_;
@@ -50,7 +52,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         // so it unnecessary to call here.
         address pool = _pool;
         address manager = _manager;
-        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
+        if (account != manager && account != pool) updatePaidTokenValue(account, amount, _lastTokenValue);
         _mint(account, amount);
         _updateStreamingFeeRate(pool, manager);
     }
@@ -68,7 +70,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         } else {
           address manager = _manager;
           if (account != manager) _removePaidTokenValue(account, amount);
-          _issueStreamingFeeAndBurn(pool, manager, account, amount);
+          issueStreamingFeeAndBurn(pool, manager, account, amount);
         }
         return amount;
     }
@@ -96,7 +98,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         if (recipient == manager || recipient == pool) {
             rateChange = true;
         } else {
-            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
+            updatePaidTokenValue(recipient, amount, _lastTokenValue);
         }
         if (rateChange) _issueStreamingFee(pool, manager);
         super._transfer(sender, recipient, amount);

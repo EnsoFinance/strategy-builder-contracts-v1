@@ -14,6 +14,8 @@ abstract contract StrategyTokenBase is IStrategyTokenBase, StrategyTokenStorage 
     string public constant BALANCE_LOW = "ERC20: Amount exceeds balance";
     uint8 public constant override decimals = 18;
 
+    // FIXME review and update all access controls
+
     /**
      * @dev See {IERC20-transfer}.
      *

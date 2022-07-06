@@ -21,7 +21,7 @@ contract StrategyCommon is StrategyTokenStorage {
     /**
         @notice Refresh Strategy's addresses
      */
-    function _updateAddresses(function(address, address)[2] memory callbacks) internal {
+    function _updateAddresses(function(address, address)[] memory callbacks) internal {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
         address newPool = f.pool();
         address currentPool = _pool;
@@ -29,8 +29,10 @@ contract StrategyCommon is StrategyTokenStorage {
             // If pool has been initialized but is now changing update paidTokenValue
             if (currentPool != address(0)) {
                 address manager = _manager;
-                callbacks[0](currentPool, manager); // perhaps .. _issueStreamingFee
-                callbacks[1](newPool, manager); // and _updateStreamingFeeRate
+                if (callbacks.length == 2) {
+                    callbacks[0](currentPool, manager); // perhaps .. _issueStreamingFee
+                    callbacks[1](newPool, manager); // and _updateStreamingFeeRate
+                }
                 _paidTokenValues[currentPool] = _lastTokenValue;
             }
             _paidTokenValues[newPool] = uint256(-1);

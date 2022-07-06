@@ -81,7 +81,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*Str
         _symbol = symbol_;
         _version = version_;
         _token.initialize(name_, symbol_, version_, manager_);
-        // updateAddresses(); // FIXME
+        updateAddresses();
         // Set structure
         if (strategyItems_.length > 0) {
             IStrategyController(_controller).verifyStructure(address(this), strategyItems_);
@@ -92,6 +92,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*Str
 
     function token() external view override returns(IStrategyToken) {
         return _token;
+    }
+
+    function updateAddresses() public {
+        function(address, address)[] memory callbacks;
+        _updateAddresses(callbacks);
+    }
+
+    function noop(address, address) public {
+        // no-op
     }
 
     /**
@@ -215,7 +224,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*Str
         {
             // Deduct withdrawal fee, burn tokens, and calculate percentage
             uint256 totalSupplyBefore = _totalSupply; // Need to get total supply before burn to properly calculate percentage
-            //_issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount); FIXME
+            _token.issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount);
             percentage = amount.mul(PRECISION).div(totalSupplyBefore);
         }
         // Withdraw funds
@@ -340,13 +349,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*Str
         _onlyManager();
         address manager = _manager;
         address pool = _pool;
-        //_issueStreamingFee(pool, manager); // FIXME
+        _token.issueStreamingFee(pool, manager);
         _require(newManager != manager, uint256(0xb3e5dea2190e06) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
         _manager = newManager;
-        //_updateStreamingFeeRate(pool, newManager); FIXME
+        _token.updateStreamingFeeRate(pool, newManager);
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
         emit UpdateManager(newManager);
@@ -375,8 +384,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*Str
     function updateVersion(string memory newVersion) external override {
         _require(msg.sender == _factory, uint256(0xb3e5dea2190e08) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
-        //_setDomainSeperator(); FIXME
-        //updateAddresses(); FIXME
+        updateAddresses();
     }
 
     function lock() external override {
@@ -471,7 +479,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*Str
         delete _debt;
         delete _synths;
 
-        // FIXME if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
+        if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         // Set new items
         int256 virtualPercentage;

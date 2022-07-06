@@ -17,7 +17,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     event ManagementFee(uint256 amount);
 
     function updateAddresses() public {
-        function(address, address)[2] memory callbacks;
+        function(address, address)[] memory callbacks = new function(address, address)[](2);
         callbacks[0] = _issueStreamingFee;
         callbacks[1] = _updateStreamingFeeRate;
         _updateAddresses(callbacks);
@@ -27,6 +27,8 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         uint256 managementFee = _managementFee;
         return managementFee / (managementFee.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
+
+    // FIXME review and update all access controls
 
     /**
      * @notice Update the per token value based on the most recent strategy value. Only callable by controller
@@ -88,10 +90,15 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     /**
      * @notice Issue streaming fee and burn remaining tokens. Returns the updated fee pool balance
      */
-    function _issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) internal {
+    function issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) public override {
         _issueStreamingFee(pool, manager);
         _burn(account, amount);
         _updateStreamingFeeRate(pool, manager);
+    }
+
+    function updateStreamingFeeRate(address pool, address manager) external override {
+      // FIXME be sure to put proper access control 
+        return _updateStreamingFeeRate(pool, manager);
     }
 
     /**
@@ -105,6 +112,11 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         if (_managementFee > 0) {
            _managementFeeRate = _totalSupply.sub(poolBalance).sub(_balances[manager]).mul(managementFee);
         }
+    }
+
+    function issueStreamingFee(address pool, address manager) external override {
+      // FIXME be sure to put proper access control
+        return _issueStreamingFee(pool, manager);
     }
 
     /**
@@ -135,7 +147,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         _setTokenValue(total, _totalSupply);
     }
 
-    function _updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
+    function updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
         uint256 balance = _balances[account];
         if (balance == 0) {
             // If account doesn't have a balance, set paid token value to current token value
@@ -160,10 +172,5 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
         if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION) / (supply));
-        /*if (supply > 0) {
-          total = total.mul(PRECISION) / supply;
-          require(total < 2**128, "value doesn't fit into 128 bits.");
-          _lastTokenValue = uint128(total);
-        }*/
     }
 }
