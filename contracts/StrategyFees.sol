@@ -87,17 +87,22 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         _removeLock();
     }
 
+    function issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) public override {
+        _onlyStrategy();
+        return _issueStreamingFeeAndBurn(pool, manager, account, amount);
+    }
+
     /**
      * @notice Issue streaming fee and burn remaining tokens. Returns the updated fee pool balance
      */
-    function issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) public override {
+    function _issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) internal {
         _issueStreamingFee(pool, manager);
         _burn(account, amount);
         _updateStreamingFeeRate(pool, manager);
     }
 
     function updateStreamingFeeRate(address pool, address manager) external override {
-      // FIXME be sure to put proper access control 
+        _onlyStrategy();
         return _updateStreamingFeeRate(pool, manager);
     }
 
@@ -115,7 +120,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     }
 
     function issueStreamingFee(address pool, address manager) external override {
-      // FIXME be sure to put proper access control
+        _onlyControllerOrStrategy();
         return _issueStreamingFee(pool, manager);
     }
 
@@ -147,7 +152,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         _setTokenValue(total, _totalSupply);
     }
 
-    function updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
+    function _updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
         uint256 balance = _balances[account];
         if (balance == 0) {
             // If account doesn't have a balance, set paid token value to current token value

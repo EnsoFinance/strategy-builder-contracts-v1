@@ -52,7 +52,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         // so it unnecessary to call here.
         address pool = _pool;
         address manager = _manager;
-        if (account != manager && account != pool) updatePaidTokenValue(account, amount, _lastTokenValue);
+        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
         _mint(account, amount);
         _updateStreamingFeeRate(pool, manager);
     }
@@ -70,13 +70,9 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         } else {
           address manager = _manager;
           if (account != manager) _removePaidTokenValue(account, amount);
-          issueStreamingFeeAndBurn(pool, manager, account, amount);
+          _issueStreamingFeeAndBurn(pool, manager, account, amount);
         }
         return amount;
-    }
-
-    function _onlyStrategy() internal override {
-        if (msg.sender != strategy) revert("_onlyStrategy: msg.sender != strategy."); 
     }
 
     function _transfer(
@@ -98,10 +94,18 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         if (recipient == manager || recipient == pool) {
             rateChange = true;
         } else {
-            updatePaidTokenValue(recipient, amount, _lastTokenValue);
+            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
         }
         if (rateChange) _issueStreamingFee(pool, manager);
         super._transfer(sender, recipient, amount);
         if (rateChange) _updateStreamingFeeRate(pool, manager);
     }
+
+    function _onlyStrategy() internal override {
+        if (msg.sender != strategy) revert("_onlyStrategy.");
+    }
+
+    function _onlyControllerOrStrategy() internal override {
+        if (!(msg.sender == _controller || msg.sender == strategy)) revert("_onlyControllerOrStrategy.");
+    } 
 }

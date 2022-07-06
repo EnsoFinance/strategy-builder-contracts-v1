@@ -314,4 +314,6 @@ abstract contract StrategyTokenBase is IStrategyTokenBase, StrategyTokenStorage 
     }
 
     function _onlyStrategy() internal virtual;
+
+    function _onlyControllerOrStrategy() internal virtual;
 }
