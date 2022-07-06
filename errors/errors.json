@@ -97,6 +97,10 @@
     "contractName": "StrategyToken.sol"
   },
   {
+    "contractId": "eccf87608e52",
+    "contractName": "StrategyTokenBase.sol"
+  },
+  {
     "contractId": "3d55eff30f48",
     "contractName": "StrategyTokenStorage.sol"
   },
@@ -237,6 +241,10 @@
     "contractName": "IStrategy.sol"
   },
   {
+    "contractId": "3c6e822ef473",
+    "contractName": "IStrategyApprovals.sol"
+  },
+  {
     "contractId": "4d75d9fd2891",
     "contractName": "IStrategyController.sol"
   },
@@ -259,6 +267,10 @@
   {
     "contractId": "763d337fbb62",
     "contractName": "IStrategyToken.sol"
+  },
+  {
+    "contractId": "ef71e3cc2131",
+    "contractName": "IStrategyTokenBase.sol"
   },
   {
     "contractId": "0902058bce5a",
@@ -561,8 +573,8 @@
     "contractName": "NonfungibleTokenPositionDescriptor.sol"
   },
   {
-    "contractId": "5ad92c6b7990",
-    "contractName": "OtherStrategy.sol"
+    "contractId": "597ad7904a6e",
+    "contractName": "OtherStrategy.solll"
   },
   {
     "contractId": "6552d16b6572",

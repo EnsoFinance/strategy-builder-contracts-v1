@@ -132,10 +132,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-        _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
-        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
-        IERC20(weth).safeTransferFrom(address(strategy), address(this), wethAmount);
+        (address weth, uint256 wethAmount) = _withdrawWETH(strategy, router, amount, slippage, data);
         IWETH(weth).withdraw(wethAmount);
         (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
         _require(success, uint256(0x1bb63a90056c02) /* error_macro_for("withdrawETH: call failed.") */);
@@ -156,10 +153,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-        _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
-        (address weth, uint256 wethAmount) = _withdraw(strategy, router, amount, slippage, data);
-        IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
+        _withdrawWETH(strategy, router, amount, slippage, data);
         _removeStrategyLock(strategy);
     }
 
@@ -438,7 +432,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         returns (bool)
     {
         _require(newItems.length > 0, uint256(0x1bb63a90056c10) /* error_macro_for("Cannot set empty structure") */);
-        _require(newItems[0].item != address(0), uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will caught by the ordering _requirement below
+        _require(newItems[0].item != address(0), uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will be caught by the ordering _requirement below
         _require(newItems[newItems.length-1].item != address(-1), uint256(0x1bb63a90056c12) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
 
         ITokenRegistry registry = oracle().tokenRegistry();
@@ -446,9 +440,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bool supportsSynths;
         bool supportsDebt;
 
-        int256 total = 0;
+        int256 total;
+        address item;
         for (uint256 i; i < newItems.length; ++i) {
-            address item = newItems[i].item;
+            item = newItems[i].item;
             _require(i == 0 || newItems[i].item > newItems[i - 1].item, uint256(0x1bb63a90056c13) /* error_macro_for("Item ordering") */);
             int256 percentage = newItems[i].percentage;
             uint256 itemCategory = registry.itemCategories(item);
@@ -546,6 +541,19 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         t.mint(account, relativeTokens);
         emit Deposit(address(strategy), account, amount, relativeTokens);
+    }
+
+    function _withdrawWETH(
+        IStrategy strategy,
+        IStrategyRouter router,
+        uint256 amount,
+        uint256 slippage,
+        bytes memory data
+    ) private returns(address weth, uint256 wethAmount) {
+        _isInitialized(address(strategy));
+        _setStrategyLock(strategy);
+        (weth, wethAmount) = _withdraw(strategy, router, amount, slippage, data);
+        IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
     }
 
     /**

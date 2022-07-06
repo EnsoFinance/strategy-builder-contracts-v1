@@ -5,7 +5,6 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./libraries/SafeERC20.sol";
 import "./libraries/MemoryMappings.sol";
 import "./libraries/StrategyClaim.sol";
@@ -22,7 +21,6 @@ import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
 import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
-//import "./StrategyFees.sol";
 
 interface ISynthetixAddressResolver {
     function getAddress(bytes32 name) external returns (address);
@@ -36,7 +34,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, /*StrategyToken,*/ StrategyCommon, /*StrategyFees,*/ Initializable, Timelocks, Require {
+contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, StrategyCommon, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
