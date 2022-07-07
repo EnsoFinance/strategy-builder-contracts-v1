@@ -10,6 +10,8 @@ import "../interfaces/IStrategyRouter.sol";
 import "../helpers/StrategyTypes.sol";
 import "./SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 library StrategyLibrary {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -426,11 +428,6 @@ library StrategyLibrary {
         return true;
     }
 
-    struct SlippageAndMsgSender {
-        uint256 slippage;
-        address msgSender;
-    }
-
     /**
      * @notice Trade tokens for weth
      * @dev Calldata is only needed for the GenericRouter
@@ -439,13 +436,13 @@ library StrategyLibrary {
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
-        SlippageAndMsgSender memory s, // working around stack-too-deep!
+        uint256 slippage,
         bytes memory data
     ) public returns (address weth, uint256 wethAmount) {
         _onlyController();
         _onlyApproved(address(router));
         require(amount > 0, "0 amount");
-        _checkDivisor(s.slippage);
+        _checkDivisor(slippage);
         strategy.claimAll();
         strategy.settleSynths();
         address pool = controller.pool();
@@ -461,7 +458,8 @@ library StrategyLibrary {
                 IStrategyToken t = strategy.token();
                 totalSupply = t.totalSupply();
                 // Handle fees and burn strategy tokens
-                amount = t.burn(s.msgSender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
+                // since _onlyController, then msg.sender is the correct entity
+                amount = t.burn(msg.sender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
             }
             wethAmount = totalBefore.mul(amount).div(totalSupply);
             // Setup data
@@ -502,10 +500,10 @@ library StrategyLibrary {
             }
             if (wethAfterSlippage > wethBalance) {
                 // If strategy's weth balance is less than weth owed, use balance as weth owed
-                _checkSlippage(wethBalance, wethAmount, s.slippage);
+                _checkSlippage(wethBalance, wethAmount, slippage);
                 wethAmount = wethBalance;
             } else {
-                _checkSlippage(wethAfterSlippage, wethAmount, s.slippage);
+                _checkSlippage(wethAfterSlippage, wethAmount, slippage);
                 wethAmount = wethAfterSlippage;
             }
             totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
@@ -518,7 +516,7 @@ library StrategyLibrary {
         if (poolWethAmount > 0) {
             IERC20(weth).transferFrom(address(strategy), pool, poolWethAmount);
         }
-        emit Withdraw(address(strategy), s.msgSender, wethAmount, amount);
+        emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
@@ -536,6 +534,7 @@ library StrategyLibrary {
     }
 
     function _onlyController() private {
-        require(msg.sender == address(controller), "_onlyController.");
+        // checking address(this) since Library
+        require(address(this) == address(controller), "_onlyController.");
     }
 }
