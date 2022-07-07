@@ -20,6 +20,11 @@ const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
 const REBALANCE_SLIPPAGE = BigNumber.from(997) // 995/1000 = 99.7%
 const RESTRUCTURE_SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
 const TIMELOCK = BigNumber.from(2592000) // 30 days
+// debug
+import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 
 chai.use(solidity)
 
@@ -39,17 +44,26 @@ describe('StrategyController', function () {
 		adapter: Contract,
 		failAdapter: Contract,
 		strategy: Contract,
+		strategyToken: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		newThreshold: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
+    // debug
+    console.log("strategy size", Strategy.bytecode.length);
+    console.log("strategyToken size", StrategyToken.bytecode.length);
+    console.log("strategyProxyFactory size", StrategyProxyFactory.bytecode.length);
+    console.log("strategyLibrary size", StrategyLibrary.bytecode.length);
+    // debug
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(owner, tokens)
+    console.log("debug before deploy platform")
 		platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
+    console.log("debug before after platform")
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
@@ -184,7 +198,7 @@ describe('StrategyController', function () {
               router.address,
               '0x'
             ),
-            'Out of bounds', 'StrategyController.sol')).to.be.true
+            'Fee too high', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deploy strategy: timelock too high', async function() {
@@ -241,7 +255,8 @@ describe('StrategyController', function () {
 		const emptyStrategy = await Strategy.attach(strategyAddress)
 		expect((await emptyStrategy.items()).length).to.equal(0)
 		expect((await controller.strategyState(emptyStrategy.address)).social).to.equal(true)
-		expect(BigNumber.from(await emptyStrategy.managementFee()).eq(strategyState.managementFee)).to.equal(true)
+    strategyToken = new Contract(await emptyStrategy.token(), StrategyToken.abi, owner)
+		expect(BigNumber.from(await strategyToken.managementFee()).eq(strategyState.managementFee)).to.equal(true)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -273,6 +288,7 @@ describe('StrategyController', function () {
 			social: false,
 			set: false
 		}
+    console.log("debug before")
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -284,6 +300,7 @@ describe('StrategyController', function () {
 				'0x',
 				{ value: BigNumber.from('10000000000000000') }
 			)
+    console.log("debug after")
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -308,7 +325,11 @@ describe('StrategyController', function () {
 		let platformProxyAdmin = platform.administration.platformProxyAdmin
 		let controllerImplementation = await platformProxyAdmin.controllerImplementation()
 
-		let StrategyControllerPaused = await getContractFactory('StrategyControllerPaused')
+		let StrategyControllerPaused = await getContractFactory('StrategyControllerPaused', {
+			libraries: {
+				StrategyLibrary: library.address
+			}
+    })
 		let strategyControllerPaused = await StrategyControllerPaused.deploy(strategyFactory.address)
 		await strategyControllerPaused.deployed()
 
@@ -501,7 +522,7 @@ describe('StrategyController', function () {
 		expect(
       await isRevertedWith(
 			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, 201),
-          'Out of bounds', 'StrategyController.sol')).to.be.true
+          'Fee too high', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update management fee', async function () {
@@ -628,8 +649,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to withdrawAll: no amount passed', async function () {
-		await expect(
-        strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
+    expect(
+		await isRevertedWith(
+        strategy.connect(accounts[1]).withdrawAll(0), 
+        '0 amount', 'Strategy.sol')).to.be.true
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {

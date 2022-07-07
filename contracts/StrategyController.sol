@@ -13,8 +13,6 @@ import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
@@ -78,7 +76,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(msg.sender == factory, uint256(0x1bb63a90056c00) /* error_macro_for("Not factory") */);
         _setInitialState(strategy_, state_);
         // Deposit
-        console.log("setupstrat 0");
         if (msg.value > 0)
             // No need to issue streaming fees on initial setup
             _deposit(
@@ -91,8 +88,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 uint256(-1),
                 data_
             );
-
-        console.log("setupstrat 1");
         _removeStrategyLock(strategy);
     }
 
@@ -144,7 +139,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             weth = _weth;
             IWETH(weth).deposit{value: amount}();
         }
-        console.log("deposit 0");
         StrategyLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
     }
 

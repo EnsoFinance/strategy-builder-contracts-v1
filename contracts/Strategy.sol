@@ -23,8 +23,6 @@ import "./helpers/Clones.sol";
 import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
 
-import "hardhat/console.sol";
-
 interface ISynthetixAddressResolver {
     function getAddress(bytes32 name) external returns (address);
 }
@@ -482,10 +480,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
             _items.push(susd);
             exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
         }
-        console.log("debug setStruct 0");
         _updateRewards(exists, tokenRegistry);
-
-        console.log("debug setStruct 1");
         if (_synths.length > 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
