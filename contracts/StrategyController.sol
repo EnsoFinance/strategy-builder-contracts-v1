@@ -169,23 +169,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        _onlyApproved(address(router));
-        _onlyManager(strategy);
-        strategy.settleSynths();
-        strategy.claimAll();
-        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        _require(!balancedBefore, uint256(0x1bb63a90056c03) /* error_macro_for("Balanced") */);
-        if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates);
-        // Rebalance
-        StrategyLibrary.useRouter(strategy, router, router.rebalance, _weth, data);
-        // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
-        _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
-        _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].rebalanceSlippage);
-        IStrategyToken t = strategy.token();
-        t.updateTokenValue(totalAfter, t.totalSupply());
-        emit Balanced(address(strategy), totalBefore, totalAfter);
+        StrategyLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
         _removeStrategyLock(strategy);
     }
 

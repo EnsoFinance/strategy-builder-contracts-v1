@@ -12,6 +12,8 @@ library StrategyLibrary {
 
     int256 private constant DIVISOR = 1000;
 
+    event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
+
     function getExpectedTokenValue(
         uint256 total,
         address strategy,
@@ -32,7 +34,7 @@ library StrategyLibrary {
      *         whether the strategy is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
      */
-    function verifyBalance(address strategy, address oracle) external view returns (bool, uint256, int256[] memory) {
+    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
         uint256 threshold = IStrategy(strategy).rebalanceThreshold();
@@ -131,7 +133,7 @@ library StrategyLibrary {
         bytes memory data
     ) public {
       // FIXME double check if this needs onlyController modifier
-        _useRouter(strategy, router, routerAction, weth, strategy.items(), strategy.debt(), data);
+        _useRouter(strategy, router, routerAction, weth, data);
     }
 
     /**
@@ -154,6 +156,16 @@ library StrategyLibrary {
     ) public {
       // FIXME double check if this needs onlyController modifier
         _useRouter(strategy, router, routerAction, weth, strategyItems, strategyDebt, data);
+    }
+
+    function _useRouter(
+        IStrategy strategy,
+        IStrategyRouter router,
+        function(address, bytes memory) external routerAction,
+        address weth,
+        bytes memory data
+    ) private {
+        _useRouter(strategy, router, routerAction, weth, strategy.items(), strategy.debt(), data);
     }
 
     function _useRouter(
@@ -231,5 +243,55 @@ library StrategyLibrary {
             }
         }
         if (strategy.supportsSynths()) strategy.approveSynths(router, amount);
+    }
+
+
+    function rebalance(
+        IStrategy strategy,
+        IStrategyRouter router,
+        address oracle,
+        address weth,
+        uint256 rebalanceSlippage,
+        bytes memory data
+    ) external {
+      // FIXME double check if this needs onlyController modifier
+        _onlyApproved(address(router));
+        _onlyManager(strategy);
+        strategy.settleSynths();
+        strategy.claimAll();
+        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle);
+        require(!balancedBefore, "FIXME");//uint256(0x1bb63a90056c03) /* error_macro_for("Balanced") */);
+        if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+            data = abi.encode(totalBefore, estimates);
+        // Rebalance
+        _useRouter(strategy, router, router.rebalance, weth, data);
+        // Recheck total
+        (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(address(strategy), oracle);
+        require(balancedAfter, "FIXME");//uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
+        _checkSlippage(totalAfter, totalBefore, rebalanceSlippage);
+        IStrategyToken t = strategy.token();
+        t.updateTokenValue(totalAfter, t.totalSupply());
+        emit Balanced(address(strategy), totalBefore, totalAfter);
+    }
+
+    /**
+     * @notice Checks that router is whitelisted
+     */
+    function _onlyApproved(address account) private view {
+        require(IStrategyController(address(this)).whitelist().approved(account), "FIXME");//uint256(0x1bb63a90056c27) /* error_macro_for("Not approved") */);
+    }
+
+    /**
+     * @notice Checks if msg.sender is manager
+     */
+    function _onlyManager(IStrategy strategy) private view {
+        require(msg.sender == strategy.manager(), "FIXME");//uint256(0x1bb63a90056c28) /* error_macro_for("Not manager") */);
+    }
+
+    function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
+      require(
+          slippedValue >= referenceValue.mul(slippage) / uint256(DIVISOR),
+          "FIXME"//uint256(0x1bb63a90056c23) /* error_macro_for("Too much slippage") */
+      );
     }
 }
