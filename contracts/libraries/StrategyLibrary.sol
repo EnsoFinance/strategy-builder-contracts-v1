@@ -1,14 +1,17 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
+import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrategyRouter.sol";
+import "./SafeERC20.sol";
 
 library StrategyLibrary {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
+    using SafeERC20 for IERC20;
 
     int256 private constant DIVISOR = 1000;
 
@@ -293,5 +296,60 @@ library StrategyLibrary {
           slippedValue >= referenceValue.mul(slippage) / uint256(DIVISOR),
           "FIXME"//uint256(0x1bb63a90056c23) /* error_macro_for("Too much slippage") */
       );
+    }
+
+    /**
+     * @notice Deposit eth or weth into strategy
+     * @dev Calldata is only needed for the GenericRouter
+     */
+    function deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        address account,
+        uint256 amount,
+        uint256 slippage,
+        uint256 totalBefore,
+        uint256 balanceBefore,
+        address weth,
+        bytes memory data
+    ) public {
+      // FIXME double check if this needs onlyController modifier
+        _onlyApproved(address(router));
+        _checkDivisor(slippage);
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+        IOracle o = IStrategyController(address(this)).oracle();
+        if (msg.value > 0) {
+            require(amount == 0, "FIXME");//uint256(0x1bb63a90056c1b) /* error_macro_for("Ambiguous amount") */);
+            amount = msg.value;
+            IWETH(weth).deposit{value: amount}();
+            IERC20(weth).safeApprove(address(router), amount);
+            if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+                data = abi.encode(address(this), amount);
+            router.deposit(address(strategy), data);
+            IERC20(weth).safeApprove(address(router), 0);
+        } else {
+            if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
+                data = abi.encode(account, amount);
+            router.deposit(address(strategy), data);
+        }
+        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
+        // Recheck total
+        (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
+        require(totalAfter > totalBefore, "FIXME");//uint256(0x1bb63a90056c1c) /* error_macro_for("Lost value") */);
+        checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
+        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
+        _checkSlippage(valueAdded, amount, slippage);
+        IStrategyToken t = strategy.token();
+        uint256 totalSupply = t.totalSupply();
+        uint256 relativeTokens =
+            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+        require(relativeTokens > 0, "Insuffient tokens");
+        t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+        t.mint(account, relativeTokens);
+        // FIXME put event here emit Deposit
+    }
+
+    function _checkDivisor(uint256 value) private pure {
+        require(value <= uint256(DIVISOR), "FIXME");//uint256(0x1bb63a90056c24) /* error_macro_for("Out of bounds") */);
     }
 }

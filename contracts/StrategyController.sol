@@ -33,7 +33,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     address public immutable factory;
 
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-    event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    //event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
@@ -74,7 +74,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Deposit
         if (msg.value > 0)
             // No need to issue streaming fees on initial setup
-            _deposit(
+            StrategyLibrary.deposit(
                 strategy,
                 IStrategyRouter(router_),
                 manager_,
@@ -82,6 +82,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 state_.restructureSlippage,
                 0,
                 uint256(-1),
+                _weth,
                 data_
             );
         _removeStrategyLock(strategy);
@@ -114,7 +115,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         //strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
-        _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
+        StrategyLibrary.deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, _weth, data);
         _removeStrategyLock(strategy);
     }
 
@@ -474,57 +475,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     function whitelist() public view override returns (IWhitelist) {
         return IWhitelist(_whitelist);
-    }
-
-    // Internal Strategy Functions
-    /**
-     * @notice Deposit eth or weth into strategy
-     * @dev Calldata is only needed for the GenericRouter
-     */
-    function _deposit(
-        IStrategy strategy,
-        IStrategyRouter router,
-        address account,
-        uint256 amount,
-        uint256 slippage,
-        uint256 totalBefore,
-        uint256 balanceBefore,
-        bytes memory data
-    ) internal {
-        _onlyApproved(address(router));
-        _checkDivisor(slippage);
-        StrategyLibrary.approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
-        IOracle o = oracle();
-        if (msg.value > 0) {
-            _require(amount == 0, uint256(0x1bb63a90056c1b) /* error_macro_for("Ambiguous amount") */);
-            amount = msg.value;
-            address weth = _weth;
-            IWETH(weth).deposit{value: amount}();
-            IERC20(weth).safeApprove(address(router), amount);
-            if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-                data = abi.encode(address(this), amount);
-            router.deposit(address(strategy), data);
-            IERC20(weth).safeApprove(address(router), 0);
-        } else {
-            if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-                data = abi.encode(account, amount);
-            router.deposit(address(strategy), data);
-        }
-        StrategyLibrary.approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
-        // Recheck total
-        (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
-        _require(totalAfter > totalBefore, uint256(0x1bb63a90056c1c) /* error_macro_for("Lost value") */);
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
-        uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
-        _checkSlippage(valueAdded, amount, slippage);
-        IStrategyToken t = strategy.token();
-        uint256 totalSupply = t.totalSupply();
-        uint256 relativeTokens =
-            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
-        require(relativeTokens > 0, "Insuffient tokens");
-        t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
-        t.mint(account, relativeTokens);
-        emit Deposit(address(strategy), account, amount, relativeTokens);
     }
 
     function _withdrawWETH(
