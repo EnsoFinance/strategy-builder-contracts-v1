@@ -218,7 +218,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
             uint256(0x1bb63a90056c05) /* error_macro_for("Timelock active") */
         );
-        _require(verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c06) /* error_macro_for("Invalid structure") */);
+        _require(StrategyLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c06) /* error_macro_for("Invalid structure") */);
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems);
@@ -254,13 +254,22 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(lock.category == TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c08) /* error_macro_for("Wrong category") */);
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
-        _require(verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c09) /* error_macro_for("Invalid structure") */);
+        _require(StrategyLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c09) /* error_macro_for("Invalid structure") */);
         _finalizeStructure(strategy, router, strategyItems, data);
         delete lock.category;
         delete lock.timestamp;
         delete lock.data;
         emit NewStructure(address(strategy), strategyItems, true);
         _removeStrategyLock(strategy);
+    }
+
+    function verifyStructure(address strategy, StrategyItem[] memory newItems)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return StrategyLibrary.verifyStructure(strategy, newItems);
     }
 
     /**
@@ -369,56 +378,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     // @notice StrategyState getter
     function strategyState(address strategy) external view override returns (StrategyState memory) {
       return _strategyStates[strategy];
-    }
-
-    /**
-     * @notice This function verifies that the structure passed in parameters is valid
-     * @dev We check that the array lengths match, that the percentages add 100%,
-     *      no zero addresses, and no duplicates
-     * @dev Token addresses must be passed in, according to increasing byte value
-     */
-    function verifyStructure(address strategy, StrategyItem[] memory newItems)
-        public
-        view
-        override
-        returns (bool)
-    {
-      // FIXME can probably put in library
-        _require(newItems.length > 0, uint256(0x1bb63a90056c10) /* error_macro_for("Cannot set empty structure") */);
-        _require(newItems[0].item != address(0), uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will be caught by the ordering _requirement below
-        _require(newItems[newItems.length-1].item != address(-1), uint256(0x1bb63a90056c12) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
-
-        ITokenRegistry registry = oracle().tokenRegistry();
-
-        bool supportsSynths;
-        bool supportsDebt;
-
-        int256 total;
-        address item;
-        for (uint256 i; i < newItems.length; ++i) {
-            item = newItems[i].item;
-            _require(i == 0 || newItems[i].item > newItems[i - 1].item, uint256(0x1bb63a90056c13) /* error_macro_for("Item ordering") */);
-            int256 percentage = newItems[i].percentage;
-            uint256 itemCategory = registry.itemCategories(item);
-            if (itemCategory == uint256(ItemCategory.DEBT)) {
-              supportsDebt = true;
-              _require(percentage <= 0, uint256(0x1bb63a90056c14) /* error_macro_for("Debt cannot be positive") */);
-              _require(percentage >= -PERCENTAGE_BOUND, uint256(0x1bb63a90056c15) /* error_macro_for("Out of bounds") */);
-            } else {
-              if (itemCategory == uint256(ItemCategory.SYNTH))
-                  supportsSynths = true;
-              _require(percentage >= 0, uint256(0x1bb63a90056c16) /* error_macro_for("Token cannot be negative") */);
-              _require(percentage <= PERCENTAGE_BOUND, uint256(0x1bb63a90056c17) /* error_macro_for("Out of bounds") */);
-            }
-            uint256 estimatorCategory = registry.estimatorCategories(item);
-            _require(estimatorCategory != uint256(EstimatorCategory.BLOCKED), uint256(0x1bb63a90056c18) /* error_macro_for("Token blocked") */);
-            if (estimatorCategory == uint256(EstimatorCategory.STRATEGY))
-                _checkCyclicDependency(strategy, IStrategy(item), registry);
-            total = total.add(percentage);
-        }
-        _require(!(supportsSynths && supportsDebt), uint256(0x1bb63a90056c19) /* error_macro_for("No synths and debt") */);
-        _require(total == int256(DIVISOR), uint256(0x1bb63a90056c1a) /* error_macro_for("Total percentage wrong") */);
-        return true;
     }
 
     /**
@@ -603,16 +562,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         IStrategyToken t = strategy.token();
         t.updateTokenValue(totalAfter, t.totalSupply());
-    }
-
-    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
-        _require(address(strategy) != test, uint256(0x1bb63a90056c21) /* error_macro_for("Cyclic dependency") */);
-        _require(!strategy.supportsSynths(), uint256(0x1bb63a90056c22) /* error_macro_for("Synths not supported") */);
-        address[] memory strategyItems = strategy.items();
-        for (uint256 i; i < strategyItems.length; ++i) {
-          if (registry.estimatorCategories(strategyItems[i]) == uint256(EstimatorCategory.STRATEGY))
-              _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
-        }
     }
 
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {

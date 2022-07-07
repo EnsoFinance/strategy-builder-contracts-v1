@@ -1,11 +1,13 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrategyRouter.sol";
+import "../helpers/StrategyTypes.sol";
 import "./SafeERC20.sol";
 
 library StrategyLibrary {
@@ -14,6 +16,8 @@ library StrategyLibrary {
     using SafeERC20 for IERC20;
 
     int256 private constant DIVISOR = 1000;
+
+    int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
 
@@ -384,6 +388,58 @@ library StrategyLibrary {
         t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
         t.mint(account, relativeTokens);
         // FIXME put event here emit Deposit
+    }
+
+    function verifyStructure(address strategy, StrategyTypes.StrategyItem[] memory newItems)
+        public
+        view
+        returns (bool)
+    {
+        require(newItems.length > 0, "FIXME");//uint256(0x1bb63a90056c10) /* error_macro_for("Cannot set empty structure") */);
+        require(newItems[0].item != address(0), "FIXME");//uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will be caught by the ordering _requirement below
+        require(newItems[newItems.length-1].item != address(-1), "FIXME");//uint256(0x1bb63a90056c12) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
+
+        ITokenRegistry registry = IStrategyController(address(this)).oracle().tokenRegistry();
+
+        bool supportsSynths;
+        bool supportsDebt;
+
+        int256 total;
+        address item;
+        for (uint256 i; i < newItems.length; ++i) {
+            item = newItems[i].item;
+            require(i == 0 || newItems[i].item > newItems[i - 1].item, "FIXME");//uint256(0x1bb63a90056c13) /* error_macro_for("Item ordering") */);
+            int256 percentage = newItems[i].percentage;
+            uint256 itemCategory = registry.itemCategories(item);
+            if (itemCategory == uint256(StrategyTypes.ItemCategory.DEBT)) {
+              supportsDebt = true;
+              require(percentage <= 0, "FIXME");//uint256(0x1bb63a90056c14) /* error_macro_for("Debt cannot be positive") */);
+              require(percentage >= -PERCENTAGE_BOUND, "FIXME");//uint256(0x1bb63a90056c15) /* error_macro_for("Out of bounds") */);
+            } else {
+              if (itemCategory == uint256(StrategyTypes.ItemCategory.SYNTH))
+                  supportsSynths = true;
+              require(percentage >= 0, "FIXME");//uint256(0x1bb63a90056c16) /* error_macro_for("Token cannot be negative") */);
+              require(percentage <= PERCENTAGE_BOUND, "FIXME");//uint256(0x1bb63a90056c17) /* error_macro_for("Out of bounds") */);
+            }
+            uint256 estimatorCategory = registry.estimatorCategories(item);
+            require(estimatorCategory != uint256(StrategyTypes.EstimatorCategory.BLOCKED), "FIXME");//uint256(0x1bb63a90056c18) /* error_macro_for("Token blocked") */);
+            if (estimatorCategory == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
+                _checkCyclicDependency(strategy, IStrategy(item), registry);
+            total = total.add(percentage);
+        }
+        require(!(supportsSynths && supportsDebt), "FIXME");//uint256(0x1bb63a90056c19) /* error_macro_for("No synths and debt") */);
+        require(total == int256(DIVISOR), "FIXME");//uint256(0x1bb63a90056c1a) /* error_macro_for("Total percentage wrong") */);
+        return true;
+    }
+
+    function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
+        require(address(strategy) != test, "FIXME");//uint256(0x1bb63a90056c21) /* error_macro_for("Cyclic dependency") */);
+        require(!strategy.supportsSynths(), "FIXME");//uint256(0x1bb63a90056c22) /* error_macro_for("Synths not supported") */);
+        address[] memory strategyItems = strategy.items();
+        for (uint256 i; i < strategyItems.length; ++i) {
+          if (registry.estimatorCategories(strategyItems[i]) == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
+              _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
+        }
     }
 
     function _checkDivisor(uint256 value) private pure {
