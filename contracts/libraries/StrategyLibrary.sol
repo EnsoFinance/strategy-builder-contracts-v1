@@ -341,16 +341,13 @@ library StrategyLibrary {
         uint256 balanceBefore,
         address weth,
         bytes memory data
-    ) internal { // internal because msg.value
-        require(address(this) == address(controller), "context must be controller.");
+    ) public { 
+        _onlyController();
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = controller.oracle();
-        if (msg.value > 0) {
-            require(amount == 0, "FIXME");//uint256(0x1bb63a90056c1b) /* error_macro_for("Ambiguous amount") */);
-            amount = msg.value;
-            IWETH(weth).deposit{value: amount}();
+        if (weth != address(0)) {
             IERC20(weth).safeApprove(address(router), amount);
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
                 data = abi.encode(address(controller), amount);

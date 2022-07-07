@@ -77,7 +77,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Deposit
         if (msg.value > 0)
             // No need to issue streaming fees on initial setup
-            StrategyLibrary.deposit(
+            _deposit(
                 strategy,
                 IStrategyRouter(router_),
                 manager_,
@@ -85,7 +85,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 state_.restructureSlippage,
                 0,
                 uint256(-1),
-                _weth,
                 data_
             );
         _removeStrategyLock(strategy);
@@ -118,8 +117,28 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         //strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
-        StrategyLibrary.deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, _weth, data);
+        _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
         _removeStrategyLock(strategy);
+    }
+
+    function _deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        address account,
+        uint256 amount,
+        uint256 slippage,
+        uint256 totalBefore,
+        uint256 balanceBefore,
+        bytes memory data
+    ) private {
+        address weth;
+        if (msg.value > 0) {
+            require(amount == 0, "FIXME");//uint256(0x1bb63a90056c1b) /* error_macro_for("Ambiguous amount") */);
+            amount = msg.value;
+            weth = _weth;
+            IWETH(weth).deposit{value: amount}();
+        }
+        StrategyLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
     }
 
     /**
