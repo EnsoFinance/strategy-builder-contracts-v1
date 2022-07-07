@@ -54,7 +54,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
       // FIXME decide how to use `StrategyCommon` between the `Strategy` and `StrategyToken`
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
-        _token = IStrategyToken(token_);
+        _token = IStrategyToken(token_); // FIXME construct token in factory
     }
 
     /**

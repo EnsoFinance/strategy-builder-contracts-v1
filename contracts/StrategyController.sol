@@ -136,7 +136,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IWETH(weth).withdraw(wethAmount);
         (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
         _require(success, uint256(0x1bb63a90056c02) /* error_macro_for("withdrawETH: call failed.") */);
-        _removeStrategyLock(strategy);
+        _removeStrategyLock(strategy); // locked in _withdrawWETH
     }
 
     /**
@@ -154,7 +154,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) external override {
         _withdrawWETH(strategy, router, amount, slippage, data);
-        _removeStrategyLock(strategy);
+        _removeStrategyLock(strategy); // locked in _withdrawWETH
     }
 
     /**
@@ -178,7 +178,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
-        _useRouter(strategy, router, router.rebalance, data);
+        StrategyLibrary.useRouter(strategy, router, router.rebalance, _weth, data);
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
@@ -509,7 +509,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal {
         _onlyApproved(address(router));
         _checkDivisor(slippage);
-        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+        StrategyLibrary.approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = oracle();
         if (msg.value > 0) {
             _require(amount == 0, uint256(0x1bb63a90056c1b) /* error_macro_for("Ambiguous amount") */);
@@ -526,7 +526,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 data = abi.encode(account, amount);
             router.deposit(address(strategy), data);
         }
-        _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
+        StrategyLibrary.approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
         (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
         _require(totalAfter > totalBefore, uint256(0x1bb63a90056c1c) /* error_macro_for("Lost value") */);
@@ -607,7 +607,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             }
         }
         // Withdraw
-        _useRouter(strategy, router, router.withdraw, data);
+        StrategyLibrary.useRouter(strategy, router, router.withdraw, _weth, data);
         // Check value and balance
         (uint256 totalAfter, int256[] memory estimatesAfter) = oracle().estimateStrategy(strategy);
         {
@@ -693,95 +693,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.setStructure(newItems);
         strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
-        _useRouter(strategy, router, router.restructure, currentItems, currentDebt, data);
+        StrategyLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, currentDebt, data);
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c20) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         IStrategyToken t = strategy.token();
         t.updateTokenValue(totalAfter, t.totalSupply());
-    }
-
-    /**
-     * @notice Wrap router function with approve and unapprove
-     * @param strategy The strategy contract
-     * @param router The router that will be used
-     * @param routerAction The function pointer action that the router will perform
-     * @param data The data that will be sent to the router
-     */
-    function _useRouter(
-        IStrategy strategy,
-        IStrategyRouter router,
-        function(address, bytes memory) external routerAction,
-        bytes memory data
-    ) internal {
-        _useRouter(strategy, router, routerAction, strategy.items(), strategy.debt(), data);
-    }
-
-    /**
-     * @notice Wrap router function with approve and unapprove
-     * @param strategy The strategy contract
-     * @param router The router that will be used
-     * @param routerAction The function pointer action that the router will perform
-     * @param strategyItems An array of tokens
-     * @param strategyDebt An array of debt tokens
-     * @param data The data that will be sent to the router
-     */
-    function _useRouter(
-        IStrategy strategy,
-        IStrategyRouter router,
-        function(address, bytes memory) external routerAction,
-        address[] memory strategyItems,
-        address[] memory strategyDebt,
-        bytes memory data
-    ) internal {
-        _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(-1));
-        routerAction(address(strategy), data);
-        _approveItems(strategy, strategyItems, strategyDebt, address(router), uint256(0));
-    }
-
-    /**
-     * @notice Batch approve items
-     * @param strategy The strategy contract
-     * @param strategyItems An array of tokens
-     * @param strategyDebt An array of debt tokens
-     * @param router The router that will be approved to spend tokens
-     * @param amount The amount the each token will be approved for
-     */
-    function _approveItems(
-        IStrategy strategy,
-        address[] memory strategyItems,
-        address[] memory strategyDebt,
-        address router,
-        uint256 amount
-    ) internal {
-        strategy.approveToken(_weth, router, amount);
-        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, router, amount);
-        _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
-    }
-
-    /**
-     * @notice Batch approve synths and debt
-     * @param strategy The strategy contract
-     * @param strategyDebt An array of debt tokens
-     * @param router The router that will be approved to spend tokens
-     * @param amount The amount the each token will be approved for
-     */
-    function _approveSynthsAndDebt(
-        IStrategy strategy,
-        address[] memory strategyDebt,
-        address router,
-        uint256 amount
-    ) internal {
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
-        if (strategy.supportsDebt()) {
-            if (amount == 0) {
-                strategy.setRouter(address(0));
-            } else {
-                strategy.setRouter(router);
-            }
-        }
-        if (strategy.supportsSynths()) strategy.approveSynths(router, amount);
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
