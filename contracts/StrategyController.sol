@@ -194,40 +194,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function repositionSynths(IStrategy strategy, address adapter, address token) external {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        _onlyManager(strategy);
-        strategy.settleSynths();
-        address susd = _susd;
-        if (token == susd) {
-            address[] memory synths = strategy.synths();
-            for (uint256 i; i < synths.length; ++i) {
-                uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
-                if (amount > 0) {
-                    strategy.delegateSwap(
-                        adapter,
-                        amount,
-                        synths[i],
-                        susd
-                    );
-                }
-            }
-        } else if (token == address(-1)) {
-            uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
-            int256 percentTotal = strategy.getPercentage(address(-1));
-            address[] memory synths = strategy.synths();
-            for (uint256 i; i < synths.length; ++i) {
-                uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
-                if (amount > 0) {
-                    strategy.delegateSwap(
-                        adapter,
-                        amount,
-                        susd,
-                        synths[i]
-                    );
-                }
-            }
-        } else {
-            revert("Unsupported token");
-        }
+        StrategyLibrary.repositionSynths(strategy, adapter, token, _susd);
         _removeStrategyLock(strategy);
     }
 
@@ -277,7 +244,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
-        StrategyState storage strategyState = _strategyStates[address(strategy)];
+        StrategyState memory strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
         _require(
             !strategyState.social ||
@@ -416,6 +383,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         override
         returns (bool)
     {
+      // FIXME can probably put in library
         _require(newItems.length > 0, uint256(0x1bb63a90056c10) /* error_macro_for("Cannot set empty structure") */);
         _require(newItems[0].item != address(0), uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will be caught by the ordering _requirement below
         _require(newItems[newItems.length-1].item != address(-1), uint256(0x1bb63a90056c12) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
@@ -501,6 +469,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
+      // FIXME can put in library
         _onlyApproved(address(router));
         _require(amount > 0, uint256(0x1bb63a90056c1d) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);

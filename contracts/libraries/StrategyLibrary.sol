@@ -277,6 +277,43 @@ library StrategyLibrary {
         emit Balanced(address(strategy), totalBefore, totalAfter);
     }
 
+    function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
+      // FIXME double check if this needs onlyController modifier
+        _onlyManager(strategy);
+        strategy.settleSynths();
+        if (token == susd) {
+            address[] memory synths = strategy.synths();
+            for (uint256 i; i < synths.length; ++i) {
+                uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
+                if (amount > 0) {
+                    strategy.delegateSwap(
+                        adapter,
+                        amount,
+                        synths[i],
+                        susd
+                    );
+                }
+            }
+        } else if (token == address(-1)) {
+            uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
+            int256 percentTotal = strategy.getPercentage(address(-1));
+            address[] memory synths = strategy.synths();
+            for (uint256 i; i < synths.length; ++i) {
+                uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
+                if (amount > 0) {
+                    strategy.delegateSwap(
+                        adapter,
+                        amount,
+                        susd,
+                        synths[i]
+                    );
+                }
+            }
+        } else {
+            revert("Unsupported token");
+        }
+    }
+
     /**
      * @notice Checks that router is whitelisted
      */
