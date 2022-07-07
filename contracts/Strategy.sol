@@ -86,13 +86,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         return _token;
     }
 
+    // FIXME need migration function for backwards compatibility
+
     function updateAddresses() public {
         function(address, address)[] memory callbacks;
         _updateAddresses(callbacks);
-    }
-
-    function noop(address, address) public {
-        // no-op
     }
 
     /**

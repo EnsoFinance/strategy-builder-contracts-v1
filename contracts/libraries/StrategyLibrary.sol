@@ -439,7 +439,7 @@ library StrategyLibrary {
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
-        SlippageAndMsgSender memory s,
+        SlippageAndMsgSender memory s, // working around stack-too-deep!
         bytes memory data
     ) public returns (address weth, uint256 wethAmount) {
         _onlyController();
