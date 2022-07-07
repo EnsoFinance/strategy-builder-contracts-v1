@@ -503,9 +503,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         } else if (category == ItemCategory.DEBT) {
             _assets = _debt;
         }
-        assert(category < ItemCategory.RESERVE); // ensures the following `_assets` has been assigned so the "push" makes sense
-        _assets = _assets; // compiler hack
-        _assets.push(newItem);
+        if (category < ItemCategory.RESERVE) {
+            _assets = _assets; // compiler hack
+            _assets.push(newItem);
+        }
         return virtualPercentage;
     }
 
