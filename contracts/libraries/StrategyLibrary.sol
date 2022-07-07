@@ -272,14 +272,14 @@ library StrategyLibrary {
         strategy.settleSynths();
         strategy.claimAll();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle);
-        require(!balancedBefore, "FIXME");//uint256(0x1bb63a90056c03) /* error_macro_for("Balanced") */);
+        require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
         _useRouter(strategy, router, router.rebalance, weth, data);
         // Recheck total
         (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(address(strategy), oracle);
-        require(balancedAfter, "FIXME");//uint256(0x1bb63a90056c04) /* error_macro_for("Not balanced") */);
+        require(balancedAfter, "Not balanced");
         _checkSlippage(totalAfter, totalBefore, rebalanceSlippage);
         IStrategyToken t = strategy.token();
         t.updateTokenValue(totalAfter, t.totalSupply());
@@ -326,13 +326,13 @@ library StrategyLibrary {
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) private view {
-        require(controller.whitelist().approved(account), "FIXME");//uint256(0x1bb63a90056c27) /* error_macro_for("Not approved") */);
+        require(controller.whitelist().approved(account), "Not approved");
     }
 
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
       require(
           slippedValue >= referenceValue.mul(slippage) / uint256(DIVISOR),
-          "FIXME"//uint256(0x1bb63a90056c23) /* error_macro_for("Too much slippage") */
+          "Too much slippage"
       );
     }
 
@@ -370,7 +370,7 @@ library StrategyLibrary {
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
         (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
-        require(totalAfter > totalBefore, "FIXME");//uint256(0x1bb63a90056c1c) /* error_macro_for("Lost value") */);
+        require(totalAfter > totalBefore, "Lost value");
         checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
@@ -389,9 +389,9 @@ library StrategyLibrary {
         view
         returns (bool)
     {
-        require(newItems.length > 0, "FIXME");//uint256(0x1bb63a90056c10) /* error_macro_for("Cannot set empty structure") */);
-        require(newItems[0].item != address(0), "FIXME");//uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will be caught by the ordering _requirement below
-        require(newItems[newItems.length-1].item != address(-1), "FIXME");//uint256(0x1bb63a90056c12) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
+        require(newItems.length > 0, "Cannot set empty structure");
+        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
+        require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
 
         ITokenRegistry registry = controller.oracle().tokenRegistry();
 
@@ -402,27 +402,27 @@ library StrategyLibrary {
         address item;
         for (uint256 i; i < newItems.length; ++i) {
             item = newItems[i].item;
-            require(i == 0 || newItems[i].item > newItems[i - 1].item, "FIXME");//uint256(0x1bb63a90056c13) /* error_macro_for("Item ordering") */);
+            require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
             int256 percentage = newItems[i].percentage;
             uint256 itemCategory = registry.itemCategories(item);
             if (itemCategory == uint256(StrategyTypes.ItemCategory.DEBT)) {
               supportsDebt = true;
-              require(percentage <= 0, "FIXME");//uint256(0x1bb63a90056c14) /* error_macro_for("Debt cannot be positive") */);
-              require(percentage >= -PERCENTAGE_BOUND, "FIXME");//uint256(0x1bb63a90056c15) /* error_macro_for("Out of bounds") */);
+              require(percentage <= 0, "Debt cannot be positive");
+              require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
             } else {
               if (itemCategory == uint256(StrategyTypes.ItemCategory.SYNTH))
                   supportsSynths = true;
-              require(percentage >= 0, "FIXME");//uint256(0x1bb63a90056c16) /* error_macro_for("Token cannot be negative") */);
-              require(percentage <= PERCENTAGE_BOUND, "FIXME");//uint256(0x1bb63a90056c17) /* error_macro_for("Out of bounds") */);
+              require(percentage >= 0, "Token cannot be negative");
+              require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
             }
             uint256 estimatorCategory = registry.estimatorCategories(item);
-            require(estimatorCategory != uint256(StrategyTypes.EstimatorCategory.BLOCKED), "FIXME");//uint256(0x1bb63a90056c18) /* error_macro_for("Token blocked") */);
+            require(estimatorCategory != uint256(StrategyTypes.EstimatorCategory.BLOCKED), "Token blocked");
             if (estimatorCategory == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
                 _checkCyclicDependency(strategy, IStrategy(item), registry);
             total = total.add(percentage);
         }
-        require(!(supportsSynths && supportsDebt), "FIXME");//uint256(0x1bb63a90056c19) /* error_macro_for("No synths and debt") */);
-        require(total == int256(DIVISOR), "FIXME");//uint256(0x1bb63a90056c1a) /* error_macro_for("Total percentage wrong") */);
+        require(!(supportsSynths && supportsDebt), "No synths and debt");
+        require(total == int256(DIVISOR), "Total percentage wrong");
         return true;
     }
 
@@ -444,7 +444,7 @@ library StrategyLibrary {
     ) public returns (address weth, uint256 wethAmount) {
         _onlyController();
         _onlyApproved(address(router));
-        require(amount > 0, "FIXME");//uint256(0x1bb63a90056c1d)  error_macro_for("0 amount") );
+        require(amount > 0, "0 amount");
         _checkDivisor(s.slippage);
         strategy.claimAll();
         strategy.settleSynths();
@@ -494,7 +494,7 @@ library StrategyLibrary {
             uint256 wethAfterSlippage;
             if (totalBefore > totalAfter) {
               uint256 slippageAmount = totalBefore.sub(totalAfter);
-              require(slippageAmount < wethAmount, "FIXME");//uint256(0x1bb63a90056c1e)  error_macro_for("Too much slippage") );
+              require(slippageAmount < wethAmount, "Too much slippage");
               wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
             } else {
               // Value has increased, no slippage to subtract
@@ -522,8 +522,8 @@ library StrategyLibrary {
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
-        require(address(strategy) != test, "FIXME");//uint256(0x1bb63a90056c21) /* error_macro_for("Cyclic dependency") */);
-        require(!strategy.supportsSynths(), "FIXME");//uint256(0x1bb63a90056c22) /* error_macro_for("Synths not supported") */);
+        require(address(strategy) != test, "Cyclic dependency");
+        require(!strategy.supportsSynths(), "Synths not supported");
         address[] memory strategyItems = strategy.items();
         for (uint256 i; i < strategyItems.length; ++i) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
@@ -532,7 +532,7 @@ library StrategyLibrary {
     }
 
     function _checkDivisor(uint256 value) private pure {
-        require(value <= uint256(DIVISOR), "FIXME");//uint256(0x1bb63a90056c24) /* error_macro_for("Out of bounds") */);
+        require(value <= uint256(DIVISOR), "Out of bounds");
     }
 
     function _onlyController() private {

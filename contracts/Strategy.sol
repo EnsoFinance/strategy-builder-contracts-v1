@@ -19,6 +19,7 @@ import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
 import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
+import "./helpers/Clones.sol";
 import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
 
@@ -39,8 +40,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
     using MemoryMappings for BinaryTreeWithPayload.Tree;
-
-    IStrategyToken public immutable _token;
+    IStrategyToken private immutable _tokenImplementation;
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
 
@@ -54,7 +54,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
       // FIXME decide how to use `StrategyCommon` between the `Strategy` and `StrategyToken`
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
-        _token = IStrategyToken(token_); // FIXME construct token in factory
+        _tokenImplementation = IStrategyToken(token_);
     }
 
     /**
@@ -72,6 +72,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _name = name_;
         _symbol = symbol_;
         _version = version_;
+        bytes32 salt = keccak256(abi.encode(address(this)));
+        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
         _token.initialize(name_, symbol_, version_, manager_);
         updateAddresses();
         // Set structure
@@ -334,7 +336,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         address manager = _manager;
         address pool = _pool;
         _token.issueStreamingFee(pool, manager);
-        _require(newManager != manager, uint256(0xb3e5dea2190e06) /* error_macro_for("Manager already set") */);
+        _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
@@ -355,7 +357,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     }
 
     function finalizeUpdateTradeData() external {
-        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e07) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
+        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
         _resetTimelock(this.updateTradeData.selector);
@@ -366,7 +368,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        _require(msg.sender == _factory, uint256(0xb3e5dea2190e08) /* error_macro_for("Only StrategyProxyFactory") */);
+        _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         updateAddresses();
     }

@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
+import "../interfaces/IStrategyToken.sol";
 import "../helpers/StrategyTypes.sol";
 
 contract OtherStrategyTokenStorage is StrategyTypes {
@@ -41,8 +42,10 @@ contract OtherStrategyTokenStorage is StrategyTypes {
 
     bytes[] internal _claimables;
 
+    IStrategyToken internal _token;
+
     // New storage slots
     uint256[2] public OTHERVARIABLES;
     // Gap for future storage changes
-    uint256[44] private __gap;
+    uint256[43] private __gap;
 }
