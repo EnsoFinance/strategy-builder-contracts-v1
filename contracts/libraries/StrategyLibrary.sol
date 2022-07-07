@@ -24,9 +24,9 @@ library StrategyLibrary {
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     // mainnet
-    IStrategyController private constant controller = IStrategyController(0x173cAe63801B32752271E32147D0d2e3a77BEbE8);
-    // FIXME figure out testnet.. plz be deterministic..
-    // IStrategyController private constant controller = IStrategyController(address(0x0));
+    //IStrategyController private constant controller = IStrategyController(0x173cAe63801B32752271E32147D0d2e3a77BEbE8);
+    // local testnet
+    IStrategyController private constant controller = IStrategyController(0xb5DBe2b03dCbf9498cA3FEE34CE3169871BFab42);
 
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);

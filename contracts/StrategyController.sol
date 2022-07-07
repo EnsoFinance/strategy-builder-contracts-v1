@@ -31,7 +31,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     address public immutable factory;
-    address public override immutable strategyLibrary; 
 
     //event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     //event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
@@ -42,10 +41,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event StrategySet(address indexed strategy);
 
     // Initialize constructor to disable implementation
-    constructor(address factory_, address strategyLibrary_) public initializer {
+    constructor(address factory_) public initializer {
         factory = factory_;
-        require(strategyLibrary_ == StrategyLibrary.self(), "wrong strategy library.");
-        strategyLibrary = strategyLibrary_;
     }
 
     /**
@@ -53,6 +50,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function initialize() external initializer {
         updateAddresses();
+    }
+
+    function strategyLibrary() external view override returns(address) {
+        return StrategyLibrary.self();
     }
 
     /**
