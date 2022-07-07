@@ -33,7 +33,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     address public immutable factory;
     address public override immutable strategyLibrary; 
 
-    event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    //event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     //event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
@@ -428,6 +428,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         return IWhitelist(_whitelist);
     }
 
+    function weth() external view override returns(address) {
+        return _weth;
+    }
+
+    function pool() external view override returns(address) {
+        return _pool;
+    }
+
     function _withdrawWETH(
         IStrategy strategy,
         IStrategyRouter router,
@@ -437,97 +445,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) private returns(address weth, uint256 wethAmount) {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        (weth, wethAmount) = _withdraw(strategy, router, amount, slippage, data);
+        (weth, wethAmount) = StrategyLibrary.withdraw(strategy, router, amount, StrategyLibrary.SlippageAndMsgSender(slippage, msg.sender), data);
         IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
-    }
-
-    /**
-     * @notice Trade tokens for weth
-     * @dev Calldata is only needed for the GenericRouter
-     */
-    function _withdraw(
-        IStrategy strategy,
-        IStrategyRouter router,
-        uint256 amount,
-        uint256 slippage,
-        bytes memory data
-    ) internal returns (address weth, uint256 wethAmount) {
-        _onlyApproved(address(router));
-        _require(amount > 0, uint256(0x1bb63a90056c1d) /* error_macro_for("0 amount") */);
-        _checkDivisor(slippage);
-        strategy.claimAll();
-        strategy.settleSynths();
-        address pool = _pool;
-        uint256 poolWethAmount;
-        uint256 totalBefore;
-        uint256 balanceBefore;
-        {
-            int256[] memory estimatesBefore;
-            (totalBefore, estimatesBefore) = oracle().estimateStrategy(strategy);
-            balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
-            uint256 totalSupply;
-            {
-                IStrategyToken t = strategy.token();
-                totalSupply = t.totalSupply();
-                // Handle fees and burn strategy tokens
-                amount = t.burn(msg.sender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
-            }
-            wethAmount = totalBefore.mul(amount).div(totalSupply);
-            // Setup data
-            if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
-                {
-                    uint256 poolBalance = strategy.token().balanceOf(pool);
-                    if (poolBalance > 0) {
-                        // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
-                        uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
-                        if (feePercentage > WITHDRAW_LOWER_BOUND && feePercentage < WITHDRAW_UPPER_BOUND) {
-                            strategy.token().burn(pool, poolBalance); // Burn pool tokens since they will be getting traded
-                            poolWethAmount = totalBefore.mul(poolBalance).div(totalSupply);
-                            amount = amount.add(poolBalance); // Add pool balance to amount to determine percentage that will be passed to router
-                        }
-                    }
-                }
-                uint256 percentage = amount.mul(PRECISION).div(totalSupply);
-                data = abi.encode(percentage, totalBefore, estimatesBefore);
-            }
-        }
-        // Withdraw
-        StrategyLibrary.useRouter(strategy, router, router.withdraw, _weth, data);
-        // Check value and balance
-        (uint256 totalAfter, int256[] memory estimatesAfter) = oracle().estimateStrategy(strategy);
-        {
-            // Calculate weth amount
-            weth = _weth;
-            uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
-            wethBalance = wethBalance.sub(poolWethAmount); // Get balance after weth fees have been removed
-            uint256 wethAfterSlippage;
-            if (totalBefore > totalAfter) {
-              uint256 slippageAmount = totalBefore.sub(totalAfter);
-              _require(slippageAmount < wethAmount, uint256(0x1bb63a90056c1e) /* error_macro_for("Too much slippage") */);
-              wethAfterSlippage = wethAmount - slippageAmount; // Subtract value loss from weth owed
-            } else {
-              // Value has increased, no slippage to subtract
-              wethAfterSlippage = wethAmount;
-            }
-            if (wethAfterSlippage > wethBalance) {
-                // If strategy's weth balance is less than weth owed, use balance as weth owed
-                _checkSlippage(wethBalance, wethAmount, slippage);
-                wethAmount = wethBalance;
-            } else {
-                _checkSlippage(wethAfterSlippage, wethAmount, slippage);
-                wethAmount = wethAfterSlippage;
-            }
-            totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
-        }
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
-        IStrategyToken t = strategy.token();
-        t.updateTokenValue(totalAfter, t.totalSupply());
-        // Approve weth
-        strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
-        if (poolWethAmount > 0) {
-            IERC20(weth).transferFrom(address(strategy), pool, poolWethAmount);
-        }
-        emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {

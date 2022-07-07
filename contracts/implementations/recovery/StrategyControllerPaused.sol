@@ -282,6 +282,14 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     function whitelist() public view override returns (IWhitelist) {
         return IWhitelist(_whitelist);
     }
+    
+    function weth() external view override returns(address) {
+        return _weth;
+    }
+
+    function pool() external view override returns(address) {
+        return _pool;
+    }
 
     // Internal Strategy Functions
     /**
