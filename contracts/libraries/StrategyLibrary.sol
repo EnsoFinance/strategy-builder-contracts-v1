@@ -16,10 +16,15 @@ library StrategyLibrary {
     using SafeERC20 for IERC20;
 
     int256 private constant DIVISOR = 1000;
-
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
+    IStrategyController private constant controller = IStrategyController(address(0x0)); // FIXME SET ADDRESS
+
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
+
+    function self() external view returns(address) {
+        return address(this);
+    }
 
     function getExpectedTokenValue(
         uint256 total,
@@ -139,7 +144,7 @@ library StrategyLibrary {
         address weth,
         bytes memory data
     ) public {
-      // FIXME double check if this needs onlyController modifier
+        _onlyController();
         _useRouter(strategy, router, routerAction, weth, data);
     }
 
@@ -161,7 +166,7 @@ library StrategyLibrary {
         address[] memory strategyDebt,
         bytes memory data
     ) public {
-      // FIXME double check if this needs onlyController modifier
+        _onlyController();
         _useRouter(strategy, router, routerAction, weth, strategyItems, strategyDebt, data);
     }
 
@@ -205,7 +210,7 @@ library StrategyLibrary {
         address router,
         uint256 amount
     ) private {
-        strategy.approveToken(weth, router, amount);
+        strategy.approveToken(weth, router, amount); // FIXME context
         if (strategyItems.length > 0) strategy.approveTokens(strategyItems, router, amount);
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
@@ -223,16 +228,8 @@ library StrategyLibrary {
         address router,
         uint256 amount
     ) public {
-      // FIXME double check if this needs onlyController modifier
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
-        if (strategy.supportsDebt()) {
-            if (amount == 0) {
-                strategy.setRouter(address(0));
-            } else {
-                strategy.setRouter(router);
-            }
-        }
-        if (strategy.supportsSynths()) strategy.approveSynths(router, amount);
+        _onlyController();
+        _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
     function _approveSynthsAndDebt(
@@ -241,10 +238,10 @@ library StrategyLibrary {
         address router,
         uint256 amount
     ) private {
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
+        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount); // FIXME context
         if (strategy.supportsDebt()) {
             if (amount == 0) {
-                strategy.setRouter(address(0));
+                strategy.setRouter(address(0)); // FIXME context
             } else {
                 strategy.setRouter(router);
             }
@@ -260,10 +257,9 @@ library StrategyLibrary {
         address weth,
         uint256 rebalanceSlippage,
         bytes memory data
-    ) external {
-      // FIXME double check if this needs onlyController modifier
+    ) public {
+        _onlyController();
         _onlyApproved(address(router));
-        _onlyManager(strategy);
         strategy.settleSynths();
         strategy.claimAll();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle);
@@ -282,15 +278,14 @@ library StrategyLibrary {
     }
 
     function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
-      // FIXME double check if this needs onlyController modifier
-        _onlyManager(strategy);
+        _onlyController();
         strategy.settleSynths();
         if (token == susd) {
             address[] memory synths = strategy.synths();
             for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount > 0) {
-                    strategy.delegateSwap(
+                    strategy.delegateSwap( // FIXME context
                         adapter,
                         amount,
                         synths[i],
@@ -322,14 +317,7 @@ library StrategyLibrary {
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) private view {
-        require(IStrategyController(address(this)).whitelist().approved(account), "FIXME");//uint256(0x1bb63a90056c27) /* error_macro_for("Not approved") */);
-    }
-
-    /**
-     * @notice Checks if msg.sender is manager
-     */
-    function _onlyManager(IStrategy strategy) private view {
-        require(msg.sender == strategy.manager(), "FIXME");//uint256(0x1bb63a90056c28) /* error_macro_for("Not manager") */);
+        require(controller.whitelist().approved(account), "FIXME");//uint256(0x1bb63a90056c27) /* error_macro_for("Not approved") */);
     }
 
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
@@ -353,19 +341,19 @@ library StrategyLibrary {
         uint256 balanceBefore,
         address weth,
         bytes memory data
-    ) public {
-      // FIXME double check if this needs onlyController modifier
+    ) internal { // internal because msg.value
+        require(address(this) == address(controller), "context must be controller.");
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
-        IOracle o = IStrategyController(address(this)).oracle();
+        IOracle o = controller.oracle();
         if (msg.value > 0) {
             require(amount == 0, "FIXME");//uint256(0x1bb63a90056c1b) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
             IWETH(weth).deposit{value: amount}();
             IERC20(weth).safeApprove(address(router), amount);
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-                data = abi.encode(address(this), amount);
+                data = abi.encode(address(controller), amount);
             router.deposit(address(strategy), data);
             IERC20(weth).safeApprove(address(router), 0);
         } else {
@@ -399,7 +387,7 @@ library StrategyLibrary {
         require(newItems[0].item != address(0), "FIXME");//uint256(0x1bb63a90056c11) /* error_macro_for("Invalid item addr") */); //Everything else will be caught by the ordering _requirement below
         require(newItems[newItems.length-1].item != address(-1), "FIXME");//uint256(0x1bb63a90056c12) /* error_macro_for("Invalid item addr") */); //Reserved space for virtual item
 
-        ITokenRegistry registry = IStrategyController(address(this)).oracle().tokenRegistry();
+        ITokenRegistry registry = controller.oracle().tokenRegistry();
 
         bool supportsSynths;
         bool supportsDebt;
@@ -444,5 +432,9 @@ library StrategyLibrary {
 
     function _checkDivisor(uint256 value) private pure {
         require(value <= uint256(DIVISOR), "FIXME");//uint256(0x1bb63a90056c24) /* error_macro_for("Out of bounds") */);
+    }
+
+    function _onlyController() private {
+        require(msg.sender == address(controller), "_onlyController.");
     }
 }

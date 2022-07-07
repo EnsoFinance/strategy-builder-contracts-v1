@@ -31,7 +31,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
      * @dev Throws if called by any account other than the controller.
      */
     modifier onlyController() {
-        require(address(controller) == msg.sender, "Only controller");
+        require(msg.sender == address(controller) || msg.sender == controller.strategyLibrary(), "Only controller");
         _;
     }
 

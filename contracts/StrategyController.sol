@@ -31,6 +31,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     address public immutable factory;
+    address public override immutable strategyLibrary; 
 
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     //event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
@@ -41,8 +42,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event StrategySet(address indexed strategy);
 
     // Initialize constructor to disable implementation
-    constructor(address factory_) public initializer {
+    constructor(address factory_, address strategyLibrary_) public initializer {
         factory = factory_;
+        require(strategyLibrary_ == StrategyLibrary.self(), "wrong strategy library.");
+        strategyLibrary = strategyLibrary_;
     }
 
     /**
@@ -170,6 +173,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
+        _onlyManager(strategy);
         StrategyLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
         _removeStrategyLock(strategy);
     }
@@ -194,6 +198,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function repositionSynths(IStrategy strategy, address adapter, address token) external {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
+        _onlyManager(strategy);
         StrategyLibrary.repositionSynths(strategy, adapter, token, _susd);
         _removeStrategyLock(strategy);
     }
@@ -428,7 +433,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) internal returns (address weth, uint256 wethAmount) {
-      // FIXME can put in library
         _onlyApproved(address(router));
         _require(amount > 0, uint256(0x1bb63a90056c1d) /* error_macro_for("0 amount") */);
         _checkDivisor(slippage);

@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../interfaces/IStrategyController.sol";
 import "../../interfaces/IStrategyProxyFactory.sol";
+import "../../libraries/StrategyLibrary.sol";
 import "../../StrategyControllerStorage.sol";
 
 /**
@@ -18,10 +19,13 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
     address public immutable factory;
+    address public override immutable strategyLibrary; 
 
     // Initialize constructor to disable implementation
-    constructor(address factory_) public initializer {
+    constructor(address factory_, address strategyLibrary_) public initializer {
         factory = factory_;
+        require(strategyLibrary_ == StrategyLibrary.self(), "wrong strategy library.");
+        strategyLibrary = strategyLibrary_;
     }
 
     /**

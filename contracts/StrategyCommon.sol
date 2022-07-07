@@ -3,6 +3,7 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IOracle.sol";
+import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./StrategyTokenStorage.sol";
 
@@ -51,7 +52,7 @@ contract StrategyCommon is StrategyTokenStorage {
      * @dev Throws if called by any account other than the controller.
      */
     function _onlyController() internal {
-        if (msg.sender != _controller) revert("Controller only");
+        if (msg.sender != _controller || msg.sender != IStrategyController(_controller).strategyLibrary()) revert("Controller only");
     }
 
     function _onlyManager() internal view {

@@ -306,12 +306,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
 
     // claim all rewards tokens of claimables
     function claimAll() external override {
-        /*
-        indeed, COMP is claimable by anyone, so it would make sense to extend this
-        model to other rewards tokens, but we always err on the side of
-        the "principle of least privelege" so that flaws in such mechanics are siloed.
-        **/
-        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e05) /* error_macro_for("claimAll: caller must be controller or manager.") */);
         StrategyClaim._claimAll(_claimables);
     }
 
