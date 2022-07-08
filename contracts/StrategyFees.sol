@@ -152,6 +152,11 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         _setTokenValue(total, _totalSupply);
     }
 
+    function setPaidTokenValue(address account, uint256 amount) external override {
+        _onlyStrategy();
+        _paidTokenValues[account] = amount;
+    }
+
     function _updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
         uint256 balance = _balances[account];
         if (balance == 0) {

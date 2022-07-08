@@ -29,6 +29,7 @@ library StrategyLibrary {
     IStrategyController private constant controller = IStrategyController(0xb5DBe2b03dCbf9498cA3FEE34CE3169871BFab42);
 
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
+    event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
 
     function self() external view returns(address) {
@@ -219,7 +220,7 @@ library StrategyLibrary {
         address router,
         uint256 amount
     ) private {
-        strategy.approveToken(weth, router, amount); // FIXME context
+        strategy.approveToken(weth, router, amount);
         if (strategyItems.length > 0) strategy.approveTokens(strategyItems, router, amount);
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
@@ -247,10 +248,10 @@ library StrategyLibrary {
         address router,
         uint256 amount
     ) private {
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount); // FIXME context
+        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
         if (strategy.supportsDebt()) {
             if (amount == 0) {
-                strategy.setRouter(address(0)); // FIXME context
+                strategy.setRouter(address(0));
             } else {
                 strategy.setRouter(router);
             }
@@ -294,7 +295,7 @@ library StrategyLibrary {
             for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount > 0) {
-                    strategy.delegateSwap( // FIXME context
+                    strategy.delegateSwap(
                         adapter,
                         amount,
                         synths[i],
@@ -374,14 +375,17 @@ library StrategyLibrary {
         checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
-        IStrategyToken t = strategy.token();
-        uint256 totalSupply = t.totalSupply();
-        uint256 relativeTokens =
-            totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
-        require(relativeTokens > 0, "Insuffient tokens");
-        t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
-        t.mint(account, relativeTokens);
-        // FIXME put event here emit Deposit
+        uint256 relativeTokens;
+        {
+            IStrategyToken t = strategy.token();
+            uint256 totalSupply = t.totalSupply();
+            relativeTokens =
+                totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+            require(relativeTokens > 0, "Insuffient tokens");
+            t.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
+            t.mint(account, relativeTokens);
+        }
+        emit Deposit(address(strategy), account, amount, relativeTokens);
     }
 
     function verifyStructure(address strategy, StrategyTypes.StrategyItem[] memory newItems)

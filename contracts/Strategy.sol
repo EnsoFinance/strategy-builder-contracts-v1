@@ -237,11 +237,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         uint256 percentage;
         {
             // Deduct withdrawal fee, burn tokens, and calculate percentage
-            uint256 totalSupplyBefore = _totalSupply; // Need to get total supply before burn to properly calculate percentage
+            uint256 totalSupplyBefore = _token.totalSupply(); // Need to get total supply before burn to properly calculate percentage
             _token.issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount);
             percentage = amount.mul(PRECISION).div(totalSupplyBefore);
         }
-
         // Withdraw funds
         uint256 itemsLength = _items.length;
         uint256 synthsLength = _synths.length;
@@ -361,12 +360,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _token.issueStreamingFee(pool, manager);
         _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
         // Reset paid token values
-        _paidTokenValues[manager] = _lastTokenValue;
-        _paidTokenValues[newManager] = uint256(-1);
+        _token.setPaidTokenValue(manager, _lastTokenValue);
+        _token.setPaidTokenValue(newManager, uint256(-1));
+
         _manager = newManager;
         _token.updateStreamingFeeRate(pool, newManager);
-        _paidTokenValues[manager] = _lastTokenValue;
-        _paidTokenValues[newManager] = uint256(-1);
+
+        _token.setPaidTokenValue(manager, _lastTokenValue);
+        _token.setPaidTokenValue(newManager, uint256(-1));
         emit UpdateManager(newManager);
     }
 

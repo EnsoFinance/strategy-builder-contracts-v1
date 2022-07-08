@@ -16,4 +16,6 @@ interface IStrategyFees {
     function updateTokenValue(uint256 total, uint256 supply) external;
 
     function updateStreamingFeeRate(address pool, address manager) external; 
+
+    function setPaidTokenValue(address account, uint256 amount) external;
 }

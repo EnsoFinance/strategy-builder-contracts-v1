@@ -32,9 +32,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     address public immutable factory;
 
-    //event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-    //event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-    event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
     event StrategyOpen(address indexed strategy);
@@ -143,7 +140,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) private {
         address weth;
         if (msg.value > 0) {
-            require(amount == 0, "FIXME");//uint256(0x1bb63a90056c02) /* error_macro_for("Ambiguous amount") */);
+            _require(amount == 0, uint256(0x1bb63a90056c02) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
             weth = _weth;
             IWETH(weth).deposit{value: amount}();
