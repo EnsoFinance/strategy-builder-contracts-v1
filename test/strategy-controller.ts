@@ -20,11 +20,12 @@ const REBALANCE_THRESHOLD = BigNumber.from(10) // 10/1000 = 1%
 const REBALANCE_SLIPPAGE = BigNumber.from(997) // 995/1000 = 99.7%
 const RESTRUCTURE_SLIPPAGE = BigNumber.from(995) // 995/1000 = 99.5%
 const TIMELOCK = BigNumber.from(2592000) // 30 days
-// debug
+// to view bytecode size
+import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
-import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 
 chai.use(solidity)
 
@@ -50,20 +51,18 @@ describe('StrategyController', function () {
 		newThreshold: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
-    // debug
+    console.log("size in bytes")
+    console.log("strategyController size", StrategyController.bytecode.length);
+    console.log("strategyLibrary size", StrategyLibrary.bytecode.length);
     console.log("strategy size", Strategy.bytecode.length);
     console.log("strategyToken size", StrategyToken.bytecode.length);
     console.log("strategyProxyFactory size", StrategyProxyFactory.bytecode.length);
-    console.log("strategyLibrary size", StrategyLibrary.bytecode.length);
-    // debug
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(owner, tokens)
-    console.log("debug before deploy platform")
 		platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
-    console.log("debug before after platform")
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
@@ -288,7 +287,6 @@ describe('StrategyController', function () {
 			social: false,
 			set: false
 		}
-    console.log("debug before")
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -300,7 +298,6 @@ describe('StrategyController', function () {
 				'0x',
 				{ value: BigNumber.from('10000000000000000') }
 			)
-    console.log("debug after")
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -529,7 +526,8 @@ describe('StrategyController', function () {
 		const fee = 10 // 1% fee
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, fee)
 		await controller.finalizeValue(strategy.address)
-		expect(BigNumber.from(await strategy.managementFee()).eq(fee)).to.equal(true)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, owner)
+		expect(BigNumber.from(await strategyToken.managementFee()).eq(fee)).to.equal(true)
 	})
 
 	it('Should fail to update timelock: not manager', async function () {
@@ -620,11 +618,12 @@ describe('StrategyController', function () {
 	})
 
 	it('Should deposit more: ETH', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, owner)
+		const balanceBefore = await strategyToken.balanceOf(accounts[1].address)
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		const balanceAfter = await strategyToken.balanceOf(accounts[1].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
@@ -634,11 +633,11 @@ describe('StrategyController', function () {
 		const amount = BigNumber.from('10000000000000000')
 		await weth.connect(accounts[1]).deposit({value: amount})
 		await weth.connect(accounts[1]).approve(router.address, amount)
-		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+		const balanceBefore = await strategyToken.balanceOf(accounts[1].address)
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		const balanceAfter = await strategyToken.balanceOf(accounts[1].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)

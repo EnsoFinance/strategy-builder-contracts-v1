@@ -6,6 +6,7 @@ import { createLink, linkBytecode } from './link'
 
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
@@ -379,10 +380,13 @@ export async function deployPlatform(
 
   const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
 
+  const strategyToken = await waffle.deployContract(owner, StrategyToken, [factoryAddress, controllerAddress])
+
 	const strategyImplementation = await waffle.deployContract(
     owner, 
     strategyLinked,
     [
+    strategyToken.address,
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
