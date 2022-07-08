@@ -73,7 +73,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _name = name_;
         _symbol = symbol_;
         _version = version_;
-        updateToken();
+        _updateToken();
         updateAddresses();
         // Set structure
         if (strategyItems_.length > 0) {
@@ -87,8 +87,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         return _token;
     }
 
-    function updateToken() public override {
+    function updateToken() external override {
         _onlyController();
+        _updateToken();
+    }
+
+    function _updateToken() private {
         bytes32 salt = keccak256(abi.encode(address(this)));
         _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
         _token.initialize(_name, _symbol, _version, _manager);
