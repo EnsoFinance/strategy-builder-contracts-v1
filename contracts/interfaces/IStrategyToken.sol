@@ -6,6 +6,9 @@ import "./IStrategyTokenBase.sol";
 
 interface IStrategyToken is IStrategyFees, IStrategyTokenBase {
     function initialize(string memory name, string memory symbol, string memory version, address manager) external returns(bool);
+
+    function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external;
+
     // protected by _onlyStrategy
     function mint(address account, uint256 amount) external;
 

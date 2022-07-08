@@ -2,14 +2,17 @@
 pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
-import "./IStrategyFees.sol";
 import "./IStrategyToken.sol";
 import "./IOracle.sol";
 import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
-interface IStrategy is /*IStrategyFees, IStrategyToken,*/ StrategyTypes {
+interface IStrategy is StrategyTypes {
     function token() external view returns(IStrategyToken);
+
+    function updateToken() external;
+
+    function migrateAccount(address account) external;
 
     function approveToken(
         address token,

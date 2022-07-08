@@ -55,6 +55,11 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         revert("StrategyControllerPaused.");
     }
 
+    function migrateStrategy(IStrategy strategy, address[] calldata accounts) external override {
+        (strategy, accounts); // shh compiler
+        revert("StrategyControllerPaused.");
+    }
+
     /**
      * @notice Deposit ETH, which is traded for the underlying assets, and mint strategy tokens
      * @param strategy The address of the strategy being deposited into

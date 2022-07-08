@@ -19,6 +19,8 @@ interface IStrategyController is StrategyTypes {
         bytes memory data_
     ) external payable;
 
+    function migrateStrategy(IStrategy strategy, address[] calldata accounts) external;
+
     function deposit(
         IStrategy strategy,
         IStrategyRouter router,

@@ -10,8 +10,6 @@ import "../interfaces/IStrategyRouter.sol";
 import "../helpers/StrategyTypes.sol";
 import "./SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 library StrategyLibrary {
     using SafeMath for uint256;
     using SignedSafeMath for int256;

@@ -48,6 +48,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     event UpdateManager(address manager);
     event UpdateTradeData(address item, bool finalized);
     event ClaimablesUpdated();
+    event AccountMigrated(address indexed account, uint256 indexed balance);
 
     // Initialize constructor to disable implementation
     constructor(address token_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
@@ -72,9 +73,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _name = name_;
         _symbol = symbol_;
         _version = version_;
-        bytes32 salt = keccak256(abi.encode(address(this)));
-        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
-        _token.initialize(name_, symbol_, version_, manager_);
+        updateToken();
         updateAddresses();
         // Set structure
         if (strategyItems_.length > 0) {
@@ -88,7 +87,26 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         return _token;
     }
 
-    // FIXME need migration function for backwards compatibility
+    function updateToken() public override {
+        _onlyController();
+        bytes32 salt = keccak256(abi.encode(address(this)));
+        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
+        _token.initialize(_name, _symbol, _version, _manager);
+    }
+
+    function migrateAccount(address account) external override {
+        _onlyController();
+        uint256 balance = _balances[account];
+        require(balance != type(uint256).max, "migrateAccount: account already migrated.");
+        // controller called `updateToken` already
+        _token.migrateAccount(account, balance, _nonces[account], _paidTokenValues[account]);
+        _totalSupply -= balance;
+        _balances[account] = type(uint256).max; // shameless semantic overloading
+        _nonces[account] = 0;
+        _paidTokenValues[account] = 0;
+        emit AccountMigrated(account, balance);
+        // note: allowances would need to be updated by the user
+    }
 
     function updateAddresses() public {
         function(address, address)[] memory callbacks;

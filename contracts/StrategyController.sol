@@ -91,6 +91,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
+    function migrateStrategy(IStrategy strategy, address[] calldata accounts) external override {
+        if (address(strategy.token()) == address(0)) strategy.updateToken();
+        uint256 accountsLength;
+        IStrategyToken token = strategy.token();
+        for (uint256 i; i < accountsLength; ++i) {
+            strategy.migrateAccount(accounts[i]); 
+        }
+    }
+
     /**
      * @notice Deposit ETH, which is traded for the underlying assets, and mint strategy tokens
      * @param strategy The address of the strategy being deposited into

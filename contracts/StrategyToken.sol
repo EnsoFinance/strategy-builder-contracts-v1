@@ -40,6 +40,15 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         return true;
     }
 
+    function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external override {
+        _onlyStrategy();
+        // strategy checks this only happens once
+        _balances[account] = balance;
+        _nonces[account] = nonce;
+        _paidTokenValues[account] = paidTokenValue;
+        _totalSupply += balance; // the overflow check already happened in Strategy
+    }
+
     /**
      * notice Mint new tokens. Only callable by controller
      * param account The address of the account getting new tokens
