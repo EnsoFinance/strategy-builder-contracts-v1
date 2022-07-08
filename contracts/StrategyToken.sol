@@ -113,6 +113,6 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
     }
 
     function _onlyControllerOrStrategy() internal override {
-        if (!(msg.sender == _controller || msg.sender == _strategy || msg.sender == IStrategyController(_controller).strategyLibrary())) revert("_onlyControllerOrStrategy.");
+        if (!(msg.sender == _controller || msg.sender == _strategy)) revert("_onlyControllerOrStrategy.");
     } 
 }

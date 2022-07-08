@@ -9,8 +9,6 @@ import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
 interface IStrategyController is StrategyTypes {
-    function strategyLibrary() external view returns(address);
-
     function setupStrategy(
         address manager_,
         address strategy_,

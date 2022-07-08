@@ -322,11 +322,7 @@ describe('StrategyController', function () {
 		let platformProxyAdmin = platform.administration.platformProxyAdmin
 		let controllerImplementation = await platformProxyAdmin.controllerImplementation()
 
-		let StrategyControllerPaused = await getContractFactory('StrategyControllerPaused', {
-			libraries: {
-				StrategyLibrary: library.address
-			}
-    })
+		let StrategyControllerPaused = await getContractFactory('StrategyControllerPaused')
 		let strategyControllerPaused = await StrategyControllerPaused.deploy(strategyFactory.address)
 		await strategyControllerPaused.deployed()
 

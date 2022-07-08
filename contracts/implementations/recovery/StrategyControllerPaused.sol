@@ -32,10 +32,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         revert("StrategyControllerPaused.");
     }
 
-    function strategyLibrary() external view override returns(address) {
-        return StrategyLibrary.self();
-    }
-
     /**
      * @dev Called during the creation of a new Strategy proxy (see: StrategyProxyFactory.createStrategy())
      * @param manager_ The address that is set as manager

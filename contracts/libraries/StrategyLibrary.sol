@@ -23,16 +23,12 @@ library StrategyLibrary {
     uint256 private constant FEE_BOUND = 200; // Max fee of 20%
     int256 private constant PERCENTAGE_BOUND = 10000; // Max 10x leverage
 
-    // mainnet
-    //IStrategyController private constant controller = IStrategyController(0x173cAe63801B32752271E32147D0d2e3a77BEbE8);
-    // local testnet
-    IStrategyController private constant controller = IStrategyController(0xb5DBe2b03dCbf9498cA3FEE34CE3169871BFab42);
-
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
 
     function self() external view returns(address) {
+        // for sanity checks.. see controller init
         return address(this);
     }
 
@@ -154,7 +150,6 @@ library StrategyLibrary {
         address weth,
         bytes memory data
     ) public {
-        _onlyController();
         _useRouter(strategy, router, routerAction, weth, data);
     }
 
@@ -176,7 +171,6 @@ library StrategyLibrary {
         address[] memory strategyDebt,
         bytes memory data
     ) public {
-        _onlyController();
         _useRouter(strategy, router, routerAction, weth, strategyItems, strategyDebt, data);
     }
 
@@ -238,7 +232,6 @@ library StrategyLibrary {
         address router,
         uint256 amount
     ) public {
-        _onlyController();
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
@@ -268,7 +261,6 @@ library StrategyLibrary {
         uint256 rebalanceSlippage,
         bytes memory data
     ) public {
-        _onlyController();
         _onlyApproved(address(router));
         strategy.settleSynths();
         strategy.claimAll();
@@ -288,7 +280,6 @@ library StrategyLibrary {
     }
 
     function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
-        _onlyController();
         strategy.settleSynths();
         if (token == susd) {
             address[] memory synths = strategy.synths();
@@ -327,7 +318,7 @@ library StrategyLibrary {
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) private view {
-        require(controller.whitelist().approved(account), "Not approved");
+        require(IStrategyController(address(this)).whitelist().approved(account), "Not approved");
     }
 
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
@@ -352,15 +343,14 @@ library StrategyLibrary {
         address weth,
         bytes memory data
     ) public { 
-        _onlyController();
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
-        IOracle o = controller.oracle();
+        IOracle o = IStrategyController(address(this)).oracle();
         if (weth != address(0)) {
             IERC20(weth).safeApprove(address(router), amount);
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-                data = abi.encode(address(controller), amount);
+                data = abi.encode(address(this), amount);
             router.deposit(address(strategy), data);
             IERC20(weth).safeApprove(address(router), 0);
         } else {
@@ -397,7 +387,7 @@ library StrategyLibrary {
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
         require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
 
-        ITokenRegistry registry = controller.oracle().tokenRegistry();
+        ITokenRegistry registry = IStrategyController(address(this)).oracle().tokenRegistry();
 
         bool supportsSynths;
         bool supportsDebt;
@@ -441,26 +431,26 @@ library StrategyLibrary {
         uint256 slippage,
         bytes memory data
     ) public returns (address weth, uint256 wethAmount) {
-        _onlyController();
         _onlyApproved(address(router));
         require(amount > 0, "0 amount");
         _checkDivisor(slippage);
         strategy.claimAll();
         strategy.settleSynths();
-        address pool = controller.pool();
+        address pool = IStrategyController(address(this)).pool();
         uint256 poolWethAmount;
         uint256 totalBefore;
         uint256 balanceBefore;
         {
             int256[] memory estimatesBefore;
-            (totalBefore, estimatesBefore) = controller.oracle().estimateStrategy(strategy);
+            (totalBefore, estimatesBefore) = IStrategyController(address(this)).oracle().estimateStrategy(strategy);
             balanceBefore = amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
             uint256 totalSupply;
             {
                 IStrategyToken t = strategy.token();
                 totalSupply = t.totalSupply();
                 // Handle fees and burn strategy tokens
-                // since _onlyController, then msg.sender is the correct entity
+                // since "this" is controller, then msg.sender is the correct entity
+                // and burn is `onlyController`
                 amount = t.burn(msg.sender, amount); // Old stategies will have a withdrawal fee, so amount needs to get updated
             }
             wethAmount = totalBefore.mul(amount).div(totalSupply);
@@ -483,10 +473,10 @@ library StrategyLibrary {
             }
         }
         // Withdraw
-        weth = controller.weth();
+        weth = IStrategyController(address(this)).weth();
         _useRouter(strategy, router, router.withdraw, weth, data);
         // Check value and balance
-        (uint256 totalAfter, int256[] memory estimatesAfter) = controller.oracle().estimateStrategy(strategy);
+        (uint256 totalAfter, int256[] memory estimatesAfter) = IStrategyController(address(this)).oracle().estimateStrategy(strategy);
         {
             // Calculate weth amount
             uint256 wethBalance = IERC20(weth).balanceOf(address(strategy));
@@ -533,10 +523,5 @@ library StrategyLibrary {
 
     function _checkDivisor(uint256 value) private pure {
         require(value <= uint256(DIVISOR), "Out of bounds");
-    }
-
-    function _onlyController() private {
-        // checking address(this) since Library
-        require(address(this) == address(controller), "_onlyController.");
     }
 }
