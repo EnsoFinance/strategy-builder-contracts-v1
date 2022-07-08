@@ -43,9 +43,10 @@ contract OtherStrategyTokenStorage is StrategyTypes {
     bytes[] internal _claimables;
 
     IStrategyToken internal _token;
+    address internal _strategy;
 
     // New storage slots
     uint256[2] public OTHERVARIABLES;
     // Gap for future storage changes
-    uint256[43] private __gap;
+    uint256[42] private __gap;
 }

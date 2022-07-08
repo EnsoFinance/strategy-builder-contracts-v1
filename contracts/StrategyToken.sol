@@ -10,12 +10,9 @@ import "./StrategyFees.sol";
 
 contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBase, StrategyFees, Initializable {
 
-    address public immutable strategy;
-
     // FIXME review and update all access controls
 
     constructor(address factory_, address controller_) public StrategyCommon(factory_, controller_) {
-        strategy = msg.sender; 
     }
 
     /**
@@ -28,6 +25,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         string memory version_,
         address manager_
     ) external override initializer returns (bool) {
+        _strategy = msg.sender; 
         _manager = manager_;
         _name = name_;
         _symbol = symbol_;
@@ -111,10 +109,10 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
     }
 
     function _onlyStrategy() internal override {
-        if (msg.sender != strategy) revert("_onlyStrategy.");
+        if (msg.sender != _strategy) revert("_onlyStrategy.");
     }
 
     function _onlyControllerOrStrategy() internal override {
-        if (!(msg.sender == _controller || msg.sender == strategy || msg.sender == IStrategyController(_controller).strategyLibrary())) revert("_onlyControllerOrStrategy.");
+        if (!(msg.sender == _controller || msg.sender == _strategy || msg.sender == IStrategyController(_controller).strategyLibrary())) revert("_onlyControllerOrStrategy.");
     } 
 }

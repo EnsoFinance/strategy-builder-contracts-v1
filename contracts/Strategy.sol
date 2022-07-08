@@ -241,6 +241,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
             _token.issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount);
             percentage = amount.mul(PRECISION).div(totalSupplyBefore);
         }
+
         // Withdraw funds
         uint256 itemsLength = _items.length;
         uint256 synthsLength = _synths.length;
