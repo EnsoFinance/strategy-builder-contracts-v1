@@ -27,6 +27,8 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 chai.use(solidity)
 
 describe('SynthetixAdapter', function () {
@@ -222,7 +224,8 @@ describe('SynthetixAdapter', function () {
 
 	it('Should withdrawAll on a portion of tokens', async function () {
 		await increaseTime(600);
-		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const amount = (await strategyToken.balanceOf(accounts[1].address)).div(2)
 		const tokenBalanceBefore = await seur.balanceOf(strategy.address)
 		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
 		const receipt = await tx.wait()
