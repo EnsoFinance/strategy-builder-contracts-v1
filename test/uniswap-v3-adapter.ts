@@ -16,7 +16,7 @@ import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
-
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 const NUM_TOKENS = 3
 
@@ -140,10 +140,13 @@ describe('UniswapV3Adapter', function() {
     strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
     await strategyClaim.deployed()
 
-		const Strategy = await getContractFactory('Strategy', { 
+		const StrategyContractFactory = await getContractFactory('Strategy', { 
       libraries: { StrategyClaim: strategyClaim.address }
     })
-		const strategyImplementation = await Strategy.connect(owner).deploy(
+
+    const strategyToken = await waffle.deployContract(owner, StrategyToken, [factoryAddress, controllerAddress])
+		const strategyImplementation = await StrategyContractFactory.connect(owner).deploy(
+      strategyToken.address,
 			factoryAddress,
 			controllerAddress,
 			AddressZero,
