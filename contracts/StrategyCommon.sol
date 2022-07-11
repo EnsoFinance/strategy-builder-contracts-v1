@@ -56,7 +56,7 @@ contract StrategyCommon is StrategyTokenStorage {
     }
 
     function _onlyManager() internal view {
-        if (msg.sender == _manager) revert("Not manager");
+        if (msg.sender != _manager) revert("Not manager");
     }
 
     /**
