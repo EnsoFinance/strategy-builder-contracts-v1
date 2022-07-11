@@ -14,6 +14,8 @@ import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 const NUM_TOKENS = 15
 const STRATEGY_STATE: InitialState = {
 	timelock: BigNumber.from(60),
@@ -97,13 +99,14 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should deposit more', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[2].address)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const balanceBefore = await strategyToken.balanceOf(accounts[2].address)
 		const tx = await controller
 			.connect(accounts[2])
 			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[2].address)
+		const balanceAfter = await strategyToken.balanceOf(accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
