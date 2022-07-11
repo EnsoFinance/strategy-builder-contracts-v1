@@ -12,6 +12,9 @@ import { preparePermit, prepareStrategy, Position, StrategyItem, InitialState } 
 import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { isRevertedWith } from '../lib/errors'
 
+import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 const NUM_TOKENS = 15
 
 chai.use(solidity)
@@ -29,6 +32,7 @@ describe('StrategyToken', function () {
 		library: Contract,
 		adapter: Contract,
 		strategy: Contract,
+		strategyToken: Contract,
 		strategyItems: StrategyItem[],
 		amount: BigNumber,
 		total: BigNumber
@@ -48,8 +52,10 @@ describe('StrategyToken', function () {
 		await whitelist.connect(accounts[10]).approve(adapter.address)
 		router = await deployLoopRouter(accounts[10], controller, library)
 		await whitelist.connect(accounts[10]).approve(router.address)
-		const Strategy = await platform.getStrategyContractFactory()
-		const strategyImplementation = await Strategy.connect(accounts[10]).deploy(
+		const StrategyFactory = await platform.getStrategyContractFactory()
+
+		const strategyImplementation = await StrategyFactory.connect(accounts[10]).deploy(
+      await (new Contract(await strategyFactory.implementation(), Strategy.abi, accounts[0])).tokenImplementation(),
 			strategyFactory.address,
 			controller.address,
 			AddressZero,
@@ -106,70 +112,73 @@ describe('StrategyToken', function () {
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(strategyAddress)
 		;[total] = await oracle.estimateStrategy(strategy.address)
-		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		expect(BigNumber.from(await strategyToken.totalSupply()).eq(total)).to.equal(true)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
 	})
 
 	it('Should get name', async function () {
-		expect(await strategy.name()).to.equal('Test Strategy')
+		expect(await strategyToken.name()).to.equal('Test Strategy')
 	})
 
 	it('Should get symbol', async function () {
-		expect(await strategy.symbol()).to.equal('TEST')
+		expect(await strategyToken.symbol()).to.equal('TEST')
 	})
 
 	it('Should get decimals', async function () {
-		expect(BigNumber.from(await strategy.decimals()).toString()).to.equal('18')
+		expect(BigNumber.from(await strategyToken.decimals()).toString()).to.equal('18')
 	})
 
 	it('Should fail to transfer tokens: insufficient funds', async function () {
 		const tooMuch = total.mul(2)
-		await expect(strategy.connect(accounts[1]).transfer(accounts[2].address, tooMuch)).to.be.revertedWith('')
+		await expect(strategyToken.connect(accounts[1]).transfer(accounts[2].address, tooMuch)).to.be.revertedWith('')
 	})
 
 	it('Should fail to transfer tokens: zero recipient', async function () {
-		await expect(strategy.connect(accounts[1]).transfer(AddressZero, amount)).to.be.revertedWith('')
+		await expect(strategyToken.connect(accounts[1]).transfer(AddressZero, amount)).to.be.revertedWith('')
 	})
 
 	it('Should transfer tokens', async function () {
 		amount = total.div(2)
-		await strategy.connect(accounts[1]).transfer(accounts[2].address, amount)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(amount)).to.equal(true)
+		await strategyToken.connect(accounts[1]).transfer(accounts[2].address, amount)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[2].address)).eq(amount)).to.equal(true)
 	})
 
 	it('Should fail to approve tokens: zero spender', async function () {
-		await expect(strategy.connect(accounts[1]).approve(AddressZero, amount)).to.be.revertedWith('')
+		await expect(strategyToken.connect(accounts[1]).approve(AddressZero, amount)).to.be.revertedWith('')
 	})
 
 	it('Should approve tokens', async function () {
-		await strategy.connect(accounts[1]).approve(accounts[2].address, amount)
-		expect(BigNumber.from(await strategy.allowance(accounts[1].address, accounts[2].address)).eq(amount)).to.equal(
+		await strategyToken.connect(accounts[1]).approve(accounts[2].address, amount)
+		expect(BigNumber.from(await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(amount)).to.equal(
 			true
 		)
 	})
 
 	it('Should fail to transferFrom tokens: zero spender', async function () {
 		await expect(
-			strategy.connect(accounts[2]).transferFrom(AddressZero, accounts[2].address, amount)
+			strategyToken.connect(accounts[2]).transferFrom(AddressZero, accounts[2].address, amount)
 		).to.be.revertedWith('')
 	})
 
 	it('Should fail to transferFrom tokens: zero recipient', async function () {
 		await expect(
-			strategy.connect(accounts[2]).transferFrom(accounts[1].address, AddressZero, amount)
+			strategyToken.connect(accounts[2]).transferFrom(accounts[1].address, AddressZero, amount)
 		).to.be.revertedWith('')
 	})
 
 	it('Should transferFrom tokens', async function () {
-		expect(await strategy.balanceOf(accounts[1].address)).to.eq(amount)
-		expect(await strategy.allowance(accounts[1].address, accounts[2].address)).to.eq(amount)
-		await strategy.connect(accounts[2]).transferFrom(accounts[1].address, accounts[2].address, amount)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(amount.mul(2))).to.equal(true)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
+		expect(await strategyToken.balanceOf(accounts[1].address)).to.eq(amount)
+		expect(await strategyToken.allowance(accounts[1].address, accounts[2].address)).to.eq(amount)
+		await strategyToken.connect(accounts[2]).transferFrom(accounts[1].address, accounts[2].address, amount)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[2].address)).eq(amount.mul(2))).to.equal(true)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
 	})
 
 	it('Should fail to update manager: not manager', async function () {
-		await expect(strategy.connect(accounts[2]).updateManager(accounts[2].address)).to.be.revertedWith('')
+		await expect(
+      strategy.connect(accounts[2]).updateManager(accounts[2].address)
+    ).to.be.revertedWith('')
 	})
 
 	it('Should update manager', async function () {
@@ -193,9 +202,9 @@ describe('StrategyToken', function () {
 		const deadline = constants.MaxUint256
 
 		const [name, chainId, nonce] = await Promise.all([
-			strategy.name(),
-			strategy.chainId(),
-			strategy.nonces(owner.address),
+			strategyToken.name(),
+			strategyToken.chainId(),
+			strategyToken.nonces(owner.address),
 		])
 		const typedData = {
 			types: {
@@ -218,7 +227,7 @@ describe('StrategyToken', function () {
 				name: name,
 				version: 1,
 				chainId: chainId.toString(),
-				verifyingContract: strategy.address,
+				verifyingContract: strategyToken.address,
 			},
 			message: {
 				owner: owner.address,
@@ -234,34 +243,34 @@ describe('StrategyToken', function () {
 		)
 
 		await expect(
-			strategy.connect(spender).permit(owner.address, spender.address, 1, deadline, v, r, s)
+			strategyToken.connect(spender).permit(owner.address, spender.address, 1, deadline, v, r, s)
 		).to.be.revertedWith('Invalid signature')
 	})
 
 	it('Should fail to permit: past deadline', async function () {
 		const owner = accounts[2]
 		const spender = accounts[1]
-		const { v, r, s } = await preparePermit(strategy, owner, spender, BigNumber.from(1), BigNumber.from(0))
-		await expect(strategy.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)).to.be.revertedWith(
+		const { v, r, s } = await preparePermit(strategyToken, owner, spender, BigNumber.from(1), BigNumber.from(0))
+		await expect(strategyToken.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)).to.be.revertedWith(
 			'Expired deadline'
 		)
 	})
 
 	it('Should permit', async function () {
-		amount = BigNumber.from(await strategy.balanceOf(accounts[2].address))
+		amount = BigNumber.from(await strategyToken.balanceOf(accounts[2].address))
 		const owner = accounts[2]
 		const spender = accounts[1]
 		const deadline = BigNumber.from(constants.MaxUint256)
-		expect(await strategy.balanceOf(owner.address)).to.be.gte(amount);
-		const { v, r, s } = await preparePermit(strategy, owner, spender, amount, deadline)
-		await strategy.connect(owner).permit(owner.address, spender.address, amount, deadline, v, r, s)
-		expect(amount.eq(await strategy.allowance(owner.address, spender.address))).to.equal(true)
+		expect(await strategyToken.balanceOf(owner.address)).to.be.gte(amount);
+		const { v, r, s } = await preparePermit(strategyToken, owner, spender, amount, deadline)
+		await strategyToken.connect(owner).permit(owner.address, spender.address, amount, deadline, v, r, s)
+		expect(amount.eq(await strategyToken.allowance(owner.address, spender.address))).to.equal(true)
 	})
 
 	it('Should transferFrom tokens', async function () {
-		strategy.connect(accounts[1]).transferFrom(accounts[2].address, accounts[1].address, amount)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(amount)).to.equal(true)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(0)).to.equal(true)
+		await strategyToken.connect(accounts[1]).transferFrom(accounts[2].address, accounts[1].address, amount)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[1].address)).eq(amount)).to.equal(true)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[2].address)).eq(0)).to.equal(true)
 	})
 
 	it('Should fail to withdraw: no strategy tokens', async function () {
@@ -286,17 +295,17 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to decrease allowance: more than allowed', async function() {
-		await expect(strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith('ERC20: decreased allowance below zero')
+		await expect(strategyToken.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith('ERC20: decreased allowance below zero')
 	})
 
 	it('Should increase allowance', async function() {
-		await strategy.connect(accounts[1]).increaseAllowance(accounts[2].address, 1)
-		expect((await strategy.allowance(accounts[1].address, accounts[2].address)).eq(1)).to.equal(true)
+		await strategyToken.connect(accounts[1]).increaseAllowance(accounts[2].address, 1)
+		expect((await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(1)).to.equal(true)
 	})
 
 	it('Should decrease allowance', async function() {
-		await strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)
-		expect((await strategy.allowance(accounts[1].address, accounts[2].address)).eq(0)).to.equal(true)
+		await strategyToken.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)
+		expect((await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(0)).to.equal(true)
 	})
 
 	it('Should deploy strategy for', async function () {
@@ -371,7 +380,8 @@ describe('StrategyToken', function () {
     expect((await strategyFor.manager()).toLowerCase()).to.be.deep.equal(forManager.address.toLowerCase())
 
 		;[total] = await oracle.estimateStrategy(strategyFor.address)
-		expect(BigNumber.from(await strategyFor.totalSupply()).eq(total)).to.equal(true)
-		expect(BigNumber.from(await strategyFor.balanceOf(forManager.address)).eq(total)).to.equal(true)
+    strategyToken = new Contract(await strategyFor.token(), StrategyToken.abi, accounts[0])
+		expect(BigNumber.from(await strategyToken.totalSupply()).eq(total)).to.equal(true)
+		expect(BigNumber.from(await strategyToken.balanceOf(forManager.address)).eq(total)).to.equal(true)
 	})
 })
