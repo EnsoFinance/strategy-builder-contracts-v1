@@ -73,7 +73,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _name = name_;
         _symbol = symbol_;
         _version = version_;
-        _updateToken();
+        _updateToken(_version);
         updateAddresses();
         // Set structure
         if (strategyItems_.length > 0) {
@@ -89,11 +89,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
 
     function updateToken() external override {
         _onlyController();
-        _updateToken();
+        _updateToken(_version);
     }
 
-    function _updateToken() private {
-        bytes32 salt = keccak256(abi.encode(address(this)));
+    function _updateToken(string memory version) private {
+        bytes32 salt = keccak256(abi.encode(address(this), version));
         _token = IStrategyToken(Clones.cloneDeterministic(address(tokenImplementation), salt));
         _token.initialize(_name, _symbol, _version, _manager);
     }
@@ -394,7 +394,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     function updateVersion(string memory newVersion) external override {
         _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
-        updateAddresses();
+        _updateToken(newVersion);
     }
 
     function lock() external override {
@@ -409,6 +409,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
 
     function locked() external view override returns (bool) {
         return _locked % 2 == 1;
+    }
+
+    function version() external view override returns(string memory) {
+        return _version;
     }
 
     function items() external view override returns (address[] memory) {

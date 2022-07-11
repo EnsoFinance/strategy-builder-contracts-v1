@@ -70,6 +70,8 @@ interface IStrategy is StrategyTypes {
 
     function locked() external view returns (bool);
 
+    function version() external view returns(string memory);
+
     function items() external view returns (address[] memory);
 
     function synths() external view returns (address[] memory);

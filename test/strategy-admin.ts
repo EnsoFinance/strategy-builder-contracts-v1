@@ -8,6 +8,9 @@ const { constants, getContractFactory, getSigners } = ethers
 const { MaxUint256, WeiPerEther, AddressZero } = constants
 import { isRevertedWith } from '../lib/errors'
 
+import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
 chai.use(solidity)
@@ -29,6 +32,7 @@ describe('StrategyProxyAdmin', function () {
 		whitelist: Contract,
 		adapter: Contract,
 		strategy: Contract,
+		strategyToken: Contract,
 		strategyItems: StrategyItem[]
 
 	before('Setup Uniswap + Factory', async function () {
@@ -53,9 +57,16 @@ describe('StrategyProxyAdmin', function () {
 	before('Setup new implementation + admin', async function () {
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		newAdmin = await StrategyAdmin.connect(accounts[10]).deploy()
-		const Strategy = await platform.getStrategyContractFactory()
-		newImplementation = await Strategy.deploy(strategyFactory.address, controller.address, AddressZero, AddressZero)
+		const StrategyFactory = await platform.getStrategyContractFactory()
+
+		newImplementation = await StrategyFactory.deploy(
+      await (new Contract(await strategyFactory.implementation(), Strategy.abi, accounts[0])).tokenImplementation(),
+      strategyFactory.address, 
+      controller.address, 
+      AddressZero, 
+      AddressZero)
 	})
+
 
 	before('Should deploy strategy', async function () {
 		const positions = [
@@ -90,11 +101,13 @@ describe('StrategyProxyAdmin', function () {
 		let receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		strategy = Strategy.attach(strategyAddress)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
 	})
 
 	it('Should update implementation to version uint256.max()', async function () {
 		const version = await strategyFactory.version();
 		expect(await strategy.version()).to.eq(version);
+    expect(await strategyToken.version()).to.eq(version);
 
 		await strategyFactory.connect(accounts[10]).updateImplementation(newImplementation.address, MaxUint256.toString())
 		expect(await strategyFactory.implementation()).to.equal(newImplementation.address)
@@ -118,9 +131,15 @@ describe('StrategyProxyAdmin', function () {
 	it('Should upgrade strategy proxy', async function () {
 		const factoryVersion = await strategyFactory.version();
 		expect(await strategy.version()).to.not.eq(factoryVersion);
+		expect(await strategyToken.version()).to.not.eq(factoryVersion);
+		expect(await strategy.version()).to.eq(await strategyToken.version());
+
 		await strategyAdmin.connect(accounts[1]).upgrade(strategy.address)
 		expect(await strategyAdmin.getProxyImplementation(strategy.address)).to.equal(newImplementation.address)
+
 		expect(await strategy.version()).to.eq(factoryVersion)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		expect(await strategyToken.version()).to.eq(factoryVersion)
 	})
 
 	it('Should fail to get implementation: not proxy admin', async function () {
