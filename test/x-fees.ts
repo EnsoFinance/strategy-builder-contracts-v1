@@ -14,6 +14,8 @@ import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deploy
 import { increaseTime } from '../lib/utils'
 import {  DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 const NUM_TOKENS = 15
 const YEAR = 331556952
 
@@ -34,6 +36,7 @@ describe('StrategyToken Fees', function () {
 		library: Contract,
 		adapter: Contract,
 		strategy: Contract,
+		strategyToken: Contract,
 		wrapper: Contract,
 		strategyItems: StrategyItem[],
 		amount: BigNumber,
@@ -42,8 +45,8 @@ describe('StrategyToken Fees', function () {
 
 	async function estimateValue(account: string): Promise<BigNumber> {
 		const [total, ] = await oracle.estimateStrategy(strategy.address);
-		const totalSupply = await strategy.totalSupply()
-		const balance = await strategy.balanceOf(account)
+		const totalSupply = await strategyToken.totalSupply()
+		const balance = await strategyToken.balanceOf(account)
 		return BigNumber.from(total).mul(balance).div(totalSupply)
 	}
 
@@ -104,9 +107,10 @@ describe('StrategyToken Fees', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(strategyAddress)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
 		;[total] = await oracle.estimateStrategy(strategy.address)
-		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
+		expect(BigNumber.from(await strategyToken.totalSupply()).eq(total)).to.equal(true)
+		expect(BigNumber.from(await strategyToken.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -122,7 +126,7 @@ describe('StrategyToken Fees', function () {
 
 		await increaseTime(YEAR)
 
-		const tx = await strategy.connect(accounts[1]).withdrawStreamingFee()
+		const tx = await strategyToken.connect(accounts[1]).withdrawStreamingFee()
 		const receipt = await tx.wait()
 		const block = await provider.send('eth_getBlockByNumber', [BigNumber.from(receipt.blockNumber).toHexString(), true])
 	  const currentTimestamp = new BigNumJs(block.timestamp)
@@ -132,7 +136,7 @@ describe('StrategyToken Fees', function () {
 		const actualRatio = account1ValueAfter.dividedBy(account1ValueBefore)
 		const expectedRatio = new BigNumJs(Math.pow(0.999, currentTimestamp.minus(lastTimestamp).dividedBy(YEAR).toNumber()))
 		console.log("Actual ratio: ", actualRatio.dp(5).toString())
-		console.log("Expeced ratio: ", expectedRatio.dp(5).toString())
+		console.log("Expected ratio: ", expectedRatio.dp(5).toString())
 
 		expect(actualRatio.dp(5).isEqualTo(expectedRatio.dp(5))).to.equal(true)
 		lastTimestamp = currentTimestamp
@@ -168,11 +172,11 @@ describe('StrategyToken Fees', function () {
 	})
 
 	it('Should deposit', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[10].address)
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
+		const balanceBefore = await strategyToken.balanceOf(accounts[10].address)
+		const tx = await controller.connect(accounts[10]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[10].address)
+		const balanceAfter = await strategyToken.balanceOf(accounts[10].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
@@ -181,16 +185,16 @@ describe('StrategyToken Fees', function () {
 		const userA = accounts[2]
 		const userB = accounts[11]
 
-		const managerBalanceBefore = await strategy.balanceOf(manager.address)
-		const ownerBalanceBefore = await strategy.balanceOf(owner.address)
+		const managerBalanceBefore = await strategyToken.balanceOf(manager.address)
+		const ownerBalanceBefore = await strategyToken.balanceOf(owner.address)
 
-		expect((await strategy.balanceOf(userB.address)).eq(0)).to.equal(true)
-		const tx = await strategy.connect(userA).transfer(userB.address, amount)
+		expect((await strategyToken.balanceOf(userB.address)).eq(0)).to.equal(true)
+		const tx = await strategyToken.connect(userA).transfer(userB.address, amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 
-		const managerBalanceAfter = await strategy.balanceOf(manager.address)
-		const ownerBalanceAfter = await strategy.balanceOf(owner.address)
+		const managerBalanceAfter = await strategyToken.balanceOf(manager.address)
+		const ownerBalanceAfter = await strategyToken.balanceOf(owner.address)
 
 		const ownerMint = ownerBalanceAfter.sub(ownerBalanceBefore)
 		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
@@ -203,15 +207,15 @@ describe('StrategyToken Fees', function () {
 		const userA = accounts[3]
 		const userB = accounts[4]
 
-		const managerBalanceBefore = await strategy.balanceOf(manager.address)
-		const ownerBalanceBefore = await strategy.balanceOf(owner.address)
+		const managerBalanceBefore = await strategyToken.balanceOf(manager.address)
+		const ownerBalanceBefore = await strategyToken.balanceOf(owner.address)
 
-		const tx = await strategy.connect(userA).transfer(userB.address, amount)
+		const tx = await strategyToken.connect(userA).transfer(userB.address, amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 
-		const managerBalanceAfter = await strategy.balanceOf(manager.address)
-		const ownerBalanceAfter = await strategy.balanceOf(owner.address)
+		const managerBalanceAfter = await strategyToken.balanceOf(manager.address)
+		const ownerBalanceAfter = await strategyToken.balanceOf(owner.address)
 
 		const ownerMint = ownerBalanceAfter.sub(ownerBalanceBefore)
 		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
@@ -223,15 +227,15 @@ describe('StrategyToken Fees', function () {
 		const amount = BigNumber.from('2500000000000000')
 		const user = accounts[3]
 
-		const managerBalanceBefore = await strategy.balanceOf(manager.address)
-		const ownerBalanceBefore = await strategy.balanceOf(owner.address)
+		const managerBalanceBefore = await strategyToken.balanceOf(manager.address)
+		const ownerBalanceBefore = await strategyToken.balanceOf(owner.address)
 
-		const tx = await strategy.connect(user).transfer(manager.address, amount)
+		const tx = await strategyToken.connect(user).transfer(manager.address, amount)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 
-		const managerBalanceAfter = await strategy.balanceOf(manager.address)
-		const ownerBalanceAfter = await strategy.balanceOf(owner.address)
+		const managerBalanceAfter = await strategyToken.balanceOf(manager.address)
+		const ownerBalanceAfter = await strategyToken.balanceOf(owner.address)
 
 		const ownerMint = ownerBalanceAfter.sub(ownerBalanceBefore)
 		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
@@ -242,7 +246,7 @@ describe('StrategyToken Fees', function () {
 	it('Should withdraw tokens (including pool tokens)', async function () {
 		const user = accounts[4]
 		
-		const ownerBalance =  await strategy.balanceOf(owner.address)
+		const ownerBalance =  await strategyToken.balanceOf(owner.address)
 		const amount = ownerBalance.mul(10)
 
 		const userBalanceBefore = await weth.balanceOf(user.address)
@@ -254,7 +258,6 @@ describe('StrategyToken Fees', function () {
 
 		const userBalanceAfter = await weth.balanceOf(user.address)
 		const ownerBalanceAfter = await weth.balanceOf(owner.address)
-
 
 		const ownerWithdraw = ownerBalanceAfter.sub(ownerBalanceBefore)
 		const userWithdraw = userBalanceAfter.sub(userBalanceBefore)
