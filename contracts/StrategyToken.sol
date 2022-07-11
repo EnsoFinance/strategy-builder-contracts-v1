@@ -2,6 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyToken.sol";
 
 import "./StrategyTokenStorage.sol";
@@ -36,6 +37,10 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         _setDomainSeperator();
         updateAddresses();
         return true;
+    }
+
+    function strategy() external override returns(IStrategy) {
+        return IStrategy(_strategy);
     }
 
     function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external override {
