@@ -9,6 +9,8 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
 
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
 chai.use(solidity)
@@ -125,7 +127,8 @@ describe('StrategyProxyFactory', function () {
 	})
 
 	it('Should update whitelist', async function () {
-		const oldBalance = await strategy.balanceOf(accounts[1].address)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const oldBalance = await strategyToken.balanceOf(accounts[1].address)
 		expect(
         await isRevertedWith(
             controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
@@ -138,7 +141,7 @@ describe('StrategyProxyFactory', function () {
 		await controller
 			.connect(accounts[1])
 			.deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
-		const newBalance = await strategy.balanceOf(accounts[1].address)
+		const newBalance = await strategyToken.balanceOf(accounts[1].address)
 		expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
 	})
 
