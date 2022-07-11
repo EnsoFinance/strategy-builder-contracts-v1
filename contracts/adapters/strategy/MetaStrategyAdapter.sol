@@ -8,7 +8,6 @@ import "../../interfaces/IStrategyController.sol";
 import "../../interfaces/IStrategyRouter.sol";
 import "../BaseAdapter.sol";
 
-
 contract MetaStrategyAdapter is BaseAdapter {
     using SafeERC20 for IERC20;
 
@@ -44,14 +43,14 @@ contract MetaStrategyAdapter is BaseAdapter {
             if(address(router) != address(this))
                 IERC20(tokenIn).safeApprove(address(router), amount);
             //Assumes the use of LoopRouter when depositing tokens
-            controller.deposit(IStrategyToken(tokenOut).strategy(), router, amount, DEFAULT_SLIPPAGE, "0x");
+            controller.deposit(IStrategy(tokenOut), router, amount, DEFAULT_SLIPPAGE, "0x");
             if(address(router) != address(this))
                 IERC20(tokenIn).safeApprove(address(router), 0);
+            tokenOut = address(IStrategy(tokenOut).token());
         }
 
         if (tokenOut == weth)
-            controller.withdrawWETH(IStrategyToken(tokenIn).strategy(), router, amount, DEFAULT_SLIPPAGE, "0x");
-
+            controller.withdrawWETH(IStrategy(tokenIn), router, amount, DEFAULT_SLIPPAGE, "0x");
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
 
