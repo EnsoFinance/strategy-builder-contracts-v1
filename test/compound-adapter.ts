@@ -20,6 +20,7 @@ import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_C
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 chai.use(solidity)
 
@@ -184,7 +185,8 @@ describe('CompoundAdapter', function () {
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+    const strategyToken = new Contract(await emptyStrategy.token(), StrategyToken.abi, owner)
+		const balanceAfter = await strategyToken.balanceOf(accounts[1].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
