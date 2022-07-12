@@ -181,11 +181,11 @@ describe('CompoundAdapter', function () {
 	})*/
 
 	it('Should deposit more: ETH', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const balanceBefore = await strategyToken.balanceOf(accounts[1].address)
 		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-    const strategyToken = new Contract(await emptyStrategy.token(), StrategyToken.abi, owner)
 		const balanceAfter = await strategyToken.balanceOf(accounts[1].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)

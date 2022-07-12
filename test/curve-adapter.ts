@@ -26,6 +26,7 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 chai.use(solidity)
 
@@ -325,12 +326,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
   it('Should deposit more: ETH', async function () {
-    const balanceBefore = await strategy.balanceOf(accounts[1].address)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+    const balanceBefore = await strategyToken.balanceOf(accounts[1].address)
     //console.log(DEFAULT_DEPOSIT_SLIPPAGE)
     const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, BigNumber.from(980), '0x', { value: BigNumber.from('10000000000000000') })
     const receipt = await tx.wait()
     console.log('Gas Used: ', receipt.gasUsed.toString())
-    const balanceAfter = await strategy.balanceOf(accounts[1].address)
+    const balanceAfter = await strategyToken.balanceOf(accounts[1].address)
     //await displayBalances(wrapper, strategyItems, weth)
     expect(await wrapper.isBalanced()).to.equal(true)
     expect(balanceAfter.gt(balanceBefore)).to.equal(true)
