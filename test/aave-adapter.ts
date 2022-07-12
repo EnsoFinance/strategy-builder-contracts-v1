@@ -25,6 +25,7 @@ import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 chai.use(solidity)
 
@@ -591,6 +592,7 @@ describe('AaveAdapter', function () {
 		let strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
 		const basicStrategy = await Strategy.attach(strategyAddress)
+    const basicStrategyToken = new Contract(await basicStrategy.token(), StrategyToken.abi, accounts[0])
 
 		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, router, weth)
 		await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
@@ -598,7 +600,7 @@ describe('AaveAdapter', function () {
 		name = 'Debt Meta Strategy'
 		symbol = 'DMETA'
 		let positions2 = [
-			{ token: basicStrategy.address,
+			{ token: basicStrategyToken.address,
         percentage: BigNumber.from(400),
         adapters: [metaStrategyAdapter.address],
         path: []
@@ -711,5 +713,4 @@ describe('AaveAdapter', function () {
           ),
           'No synths and debt', 'StrategyController.sol')).to.be.true
 	})
-
 })
