@@ -40,7 +40,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
     using MemoryMappings for BinaryTreeWithPayload.Tree;
-    IStrategyToken public immutable tokenImplementation;
+    IStrategyToken public immutable _tokenImplementation;
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
 
@@ -55,7 +55,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
       // FIXME decide how to use `StrategyCommon` between the `Strategy` and `StrategyToken`
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
-        tokenImplementation = IStrategyToken(token_);
+        _tokenImplementation = IStrategyToken(token_);
     }
 
     /**
@@ -83,6 +83,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         return true;
     }
 
+    function tokenImplementation() external view override returns(IStrategyToken) {
+        return _tokenImplementation;
+    }
+
     function token() external view override returns(IStrategyToken) {
         return _token;
     }
@@ -92,9 +96,14 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _updateToken(_version);
     }
 
+    function predictTokenAddress(string memory version) external override returns(address) {
+        bytes32 salt = keccak256(abi.encode(address(this), version));
+        return Clones.predictDeterministicAddress(address(_tokenImplementation), salt, address(this));
+    }
+
     function _updateToken(string memory version) private {
         bytes32 salt = keccak256(abi.encode(address(this), version));
-        _token = IStrategyToken(Clones.cloneDeterministic(address(tokenImplementation), salt));
+        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
         _token.initialize(_name, _symbol, _version, _manager);
     }
 

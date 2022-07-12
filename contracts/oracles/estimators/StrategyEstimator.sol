@@ -2,6 +2,7 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IOracle.sol";
 import "../../interfaces/IStrategy.sol";
@@ -15,15 +16,15 @@ contract StrategyEstimator is IEstimator {
     }
 
     function estimateItem(address user, address token) public view override returns (int256) { 
-        uint256 balance = IStrategy(token).token().balanceOf(address(user));
+        uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance, token);
     }
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
-        require(!IStrategy(token).locked(), "Strategy locked"); // Prevents inflating value of child strategy temporarily
-        IStrategyToken strategyToken = IStrategy(token).token();
-        uint256 totalSupply = strategyToken.totalSupply();
-        (uint256 totalValue, ) = IOracle(msg.sender).estimateStrategy(IStrategy(token));
+        IStrategy strategy = IStrategyToken(token).strategy();
+        require(!strategy.locked(), "Strategy locked"); // Prevents inflating value of child strategy temporarily
+        uint256 totalSupply = IERC20(token).totalSupply();
+        (uint256 totalValue, ) = IOracle(msg.sender).estimateStrategy(strategy);
         return int256(totalValue.mul(balance).div(totalSupply));
     }
 

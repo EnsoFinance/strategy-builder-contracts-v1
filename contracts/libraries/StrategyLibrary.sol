@@ -412,7 +412,7 @@ library StrategyLibrary {
             uint256 estimatorCategory = registry.estimatorCategories(item);
             require(estimatorCategory != uint256(StrategyTypes.EstimatorCategory.BLOCKED), "Token blocked");
             if (estimatorCategory == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
-                _checkCyclicDependency(strategy, IStrategy(item), registry);
+                _checkCyclicDependency(strategy, IStrategyToken(item).strategy(), registry);
             total = total.add(percentage);
         }
         require(!(supportsSynths && supportsDebt), "No synths and debt");
@@ -517,7 +517,7 @@ library StrategyLibrary {
         address[] memory strategyItems = strategy.items();
         for (uint256 i; i < strategyItems.length; ++i) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
-              _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
+              _checkCyclicDependency(test, IStrategyToken(strategyItems[i]).strategy(), registry);
         }
     }
 

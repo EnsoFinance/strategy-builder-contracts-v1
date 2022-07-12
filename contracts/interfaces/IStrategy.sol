@@ -8,6 +8,8 @@ import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
 interface IStrategy is StrategyTypes {
+    function tokenImplementation() external view returns(IStrategyToken); // FIXME ??
+    function predictTokenAddress(string memory version) external returns(address);
     function token() external view returns(IStrategyToken);
 
     function updateToken() external;

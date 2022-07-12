@@ -299,6 +299,18 @@ export async function calculateAddress(
 	return ethers.utils.getCreate2Address(strategyFactory.address, salt, ethers.utils.keccak256(deployTx.data))
 }
 
+export async function calculateTokenAddress(
+	strategyFactory: Contract,
+  deployerAddress: string
+) {
+  const AddressPredictor = await getContractFactory('AddressPredictor')
+  const addressPredictor = await AddressPredictor.deploy()
+  await addressPredictor.deployed()
+  return await addressPredictor.callStatic.predictTokenDeterministicAddress(strategyFactory.address, deployerAddress)
+}
+
+
+
 export async function getExpectedTokenValue(total: BigNumber, token: string, strategy: Contract) {
 	const percentage = await strategy.getPercentage(token)
 	return ethers.BigNumber.from(total).mul(percentage).div(DIVISOR)

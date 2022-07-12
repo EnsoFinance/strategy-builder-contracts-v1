@@ -13,8 +13,6 @@ import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
-import "hardhat/console.sol";
-
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount

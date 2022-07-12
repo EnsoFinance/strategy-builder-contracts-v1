@@ -39,7 +39,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         return true;
     }
 
-    function strategy() external override returns(IStrategy) {
+    function strategy() external view override returns(IStrategy) {
         return IStrategy(_strategy);
     }
 

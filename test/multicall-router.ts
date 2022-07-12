@@ -27,6 +27,8 @@ import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 const NUM_TOKENS = 15
 
 export type BuyLoop = {
@@ -341,7 +343,8 @@ describe('MulticallRouter', function () {
 	})
 
 	it('Should fail to withdraw: too much slippage', async function () {
-		const amount = await strategy.balanceOf(accounts[1].address)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const amount = await strategyToken.balanceOf(accounts[1].address)
 		const calls = (await Promise.all(tokens.map(async (token) => {
 			const balance = await token.balanceOf(strategy.address)
 			if (balance.gt(0)) {

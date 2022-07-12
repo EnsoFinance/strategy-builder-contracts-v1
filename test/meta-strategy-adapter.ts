@@ -9,6 +9,7 @@ import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import {
 	calculateAddress,
+	calculateTokenAddress,
 	encodeTransfer,
 	encodeTransferFrom,
 	encodeSettleTransfer,
@@ -31,6 +32,7 @@ import {
 } from '../lib/deploy'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 const NUM_TOKENS = 15
 const STRATEGY_STATE: InitialState = {
@@ -61,7 +63,9 @@ describe('MetaStrategyAdapter', function () {
 		uniswapAdapter: Contract,
 		metaStrategyAdapter: Contract,
 		basicStrategy: Contract,
+		basicStrategyToken: Contract,
 		metaStrategy: Contract,
+		metaStrategyToken: Contract,
 		metaMetaStrategy: Contract,
 		basicStrategyItems: StrategyItem[],
 		metaStrategyItems: StrategyItem[],
@@ -92,6 +96,7 @@ describe('MetaStrategyAdapter', function () {
 	})
 
 	it('Should deploy basic strategy', async function () {
+    console.log(controller.address);
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
@@ -117,6 +122,7 @@ describe('MetaStrategyAdapter', function () {
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
 		basicStrategy = await Strategy.attach(strategyAddress)
+    basicStrategyToken = new Contract(await basicStrategy.token(), StrategyToken.abi, accounts[0])
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -138,7 +144,7 @@ describe('MetaStrategyAdapter', function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(400) },
 			{ token: tokens[4].address, percentage: BigNumber.from(200) },
-			{ token: basicStrategy.address, percentage: BigNumber.from(400), adapters: [metaStrategyAdapter.address], path: [] }
+			{ token: basicStrategyToken.address, percentage: BigNumber.from(400), adapters: [metaStrategyAdapter.address], path: [] }
 		]
 		metaStrategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const tx = await strategyFactory
@@ -153,11 +159,13 @@ describe('MetaStrategyAdapter', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
+    console.log("debug after createStrategy")
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
 		metaStrategy = await Strategy.attach(strategyAddress)
+    metaStrategyToken = new Contract(await metaStrategy.token(), StrategyToken.abi, accounts[0])
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -176,20 +184,24 @@ describe('MetaStrategyAdapter', function () {
 	it('Should fail to deploy meta strategy: reentry', async function () {
 		const name = 'Fail strategy'
 		const symbol = 'FAIL'
-		const create2Address = await calculateAddress(
+		const create2StrategyAddress = await calculateAddress(
 			strategyFactory,
 			accounts[1].address,
 			name,
 			symbol
 		)
+    const predictedTokenAddress = await calculateTokenAddress(
+      strategyFactory,
+      create2StrategyAddress
+    )
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: create2Address, percentage: BigNumber.from(500), adapters: [metaStrategyAdapter.address], path: [] }
+			{ token: predictedTokenAddress, percentage: BigNumber.from(500), adapters: [metaStrategyAdapter.address], path: [] }
 		]
 		const failItems = prepareStrategy(positions, uniswapAdapter.address)
 		expect(
       await isRevertedWith(
-          strategyFactory
+        strategyFactory
             .connect(accounts[1])
             .createStrategy(
               name,
@@ -252,11 +264,11 @@ describe('MetaStrategyAdapter', function () {
 
 	it('Should rebalance strategy: selling basic strategy tokens', async function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
-		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
+		const balanceBefore = await basicStrategyToken.balanceOf(metaStrategy.address)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await basicStrategy.balanceOf(metaStrategy.address)
+		const balanceAfter = await basicStrategyToken.balanceOf(metaStrategy.address)
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.lt(balanceBefore)).to.equal(true)
@@ -265,11 +277,11 @@ describe('MetaStrategyAdapter', function () {
 	it('Should rebalance strategy: selling meta strategy tokens', async function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
-		const balanceBefore = await metaStrategy.balanceOf(metaMetaStrategy.address)
+		const balanceBefore = await metaStrategyToken.balanceOf(metaMetaStrategy.address)
 		const tx = await controller.connect(accounts[1]).rebalance(metaMetaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await metaStrategy.balanceOf(metaMetaStrategy.address)
+		const balanceAfter = await metaStrategyToken.balanceOf(metaMetaStrategy.address)
 		////await displayBalances(wrapper, strategyTokens, weth)
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
@@ -289,11 +301,11 @@ describe('MetaStrategyAdapter', function () {
 	})
 
 	it('Should rebalance strategy: buying basic strategy tokens', async function () {
-		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
+		const balanceBefore = await basicStrategyToken.balanceOf(metaStrategy.address)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await basicStrategy.balanceOf(metaStrategy.address)
+		const balanceAfter = await basicStrategyToken.balanceOf(metaStrategy.address)
 		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
@@ -357,7 +369,7 @@ describe('MetaStrategyAdapter', function () {
 
 	it('Should swap for meta token using MetaStrategyAdapter', async function () {
 		// Approve the user to use the adapter
-		const balanceBefore = await metaStrategy.balanceOf(accounts[2].address)
+		const balanceBefore = await metaStrategyToken.balanceOf(accounts[2].address)
 		const value = WeiPerEther
 		await weth.connect(accounts[2]).deposit({value: value})
 		await weth.connect(accounts[2]).approve(metaStrategyAdapter.address, value)
@@ -365,7 +377,7 @@ describe('MetaStrategyAdapter', function () {
 			.connect(accounts[2])
 			.swap(value, 0, weth.address, metaStrategy.address, accounts[2].address, accounts[2].address)
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
-		const balanceAfter = await metaStrategy.balanceOf(accounts[2].address)
+		const balanceAfter = await metaStrategyToken.balanceOf(accounts[2].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
@@ -378,7 +390,7 @@ describe('MetaStrategyAdapter', function () {
 			.connect(accounts[2])
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 
-		//const balanceBefore = await metaStrategy.balanceOf(accounts[1].address)
+		//const balanceBefore = await metaStrategyToken.balanceOf(accounts[1].address)
 
 		const depositAmount = WeiPerEther.mul(10)
 
@@ -415,7 +427,7 @@ describe('MetaStrategyAdapter', function () {
 		const rebalanceData = await multicallRouter.encodeCalls([...maliciousCalls, ...rebalanceCalls])
 		await expect(controller.connect(accounts[1]).rebalance(basicStrategy.address, multicallRouter.address, rebalanceData)).to.be.revertedWith('')
 		/*
-		const balanceAfter = await metaStrategy.balanceOf(accounts[1].address)
+		const balanceAfter = await metaStrategyToken.balanceOf(accounts[1].address)
 		const totalSupply = await metaStrategy.totalSupply()
 		const [total, ] = await oracle.estimateStrategy(metaStrategy.address)
 		const addedValue = total.mul(balanceAfter.sub(balanceBefore)).div(totalSupply)
