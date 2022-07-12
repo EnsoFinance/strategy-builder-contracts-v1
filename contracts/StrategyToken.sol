@@ -24,13 +24,15 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         string memory name_,
         string memory symbol_,
         string memory version_,
-        address manager_
+        address manager_,
+        uint256 totalSupply
     ) external override initializer returns (bool) {
         _strategy = msg.sender; 
         _manager = manager_;
         _name = name_;
         _symbol = symbol_;
         _version = version_;
+        _totalSupply = totalSupply; // inherits total supply from `Strategy` for first migration. future token->token migrations will need updated "migrate" function
         _lastTokenValue = uint128(PRECISION);
         _lastStreamTimestamp = uint96(block.timestamp);
         _paidTokenValues[manager_] = uint256(-1);
@@ -49,7 +51,6 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         _balances[account] = balance;
         _nonces[account] = nonce;
         _paidTokenValues[account] = paidTokenValue;
-        _totalSupply += balance; // the overflow check already happened in Strategy
     }
 
     /**

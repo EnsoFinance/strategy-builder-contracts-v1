@@ -104,7 +104,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     function _updateToken(string memory version) private {
         bytes32 salt = keccak256(abi.encode(address(this), version));
         _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
-        _token.initialize(_name, _symbol, _version, _manager);
+        _token.initialize(_name, _symbol, _version, _manager, _totalSupply);
     }
 
     function migrateAccount(address account) external override {
