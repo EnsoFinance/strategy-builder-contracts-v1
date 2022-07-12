@@ -49,7 +49,7 @@ contract MetaStrategyAdapter is BaseAdapter {
         }
 
         if (tokenOut == weth)
-            controller.withdrawWETH(IStrategy(tokenIn), router, amount, DEFAULT_SLIPPAGE, "0x");
+            controller.withdrawWETH(IStrategyToken(tokenIn).strategy(), router, amount, DEFAULT_SLIPPAGE, "0x");
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
 
