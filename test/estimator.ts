@@ -10,8 +10,10 @@ import { increaseTime } from '../lib/utils'
 import {  DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
-const { constants, getSigners, getContractFactory } = hre.ethers
+const { constants, getSigners } = hre.ethers
 const { AddressZero } = constants
+
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 const strategyState: InitialState = {
   timelock: BigNumber.from(60),
@@ -30,6 +32,7 @@ describe('Estimator', function() {
       weth: Contract,
       estimator: Estimator,
       strategy: Contract,
+      strategyToken: Contract,
       metaStrategy: Contract,
       routerAddress: string,
       aaveV2AdapterAddress: string,
@@ -151,8 +154,8 @@ describe('Estimator', function() {
 			)
 		const receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
-		strategy = await Strategy.attach(strategyAddress)
+		const StrategyFactory = await enso.platform.getStrategyContractFactory()
+		strategy = await StrategyFactory.attach(strategyAddress)
 
 		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
 
@@ -220,8 +223,8 @@ describe('Estimator', function() {
 			)
 		const receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
-		strategy = await Strategy.attach(strategyAddress)
+		const StrategyFactory = await enso.platform.getStrategyContractFactory()
+		strategy = await StrategyFactory.attach(strategyAddress)
 
 		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
 
@@ -230,9 +233,10 @@ describe('Estimator', function() {
   })
 
   it('Should estimate withdraw', async function() {
-    const withdrawAmount = (await strategy.balanceOf(accounts[1].address)).div(2)
+    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+    const withdrawAmount = (await strategyToken.balanceOf(accounts[1].address)).div(2)
     const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-    const totalSupply = await strategy.totalSupply()
+    const totalSupply = await strategyToken.totalSupply()
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
     const wethBefore = await weth.balanceOf(accounts[1].address)
     const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
@@ -249,7 +253,7 @@ describe('Estimator', function() {
     const name = 'Meta Strategy'
 		const symbol = 'META'
 		const positions = [
-			{ token: strategy.address,
+			{ token: strategyToken.address,
         percentage: BigNumber.from(500),
         adapters: [
           metaStrategyAdapterAddress
@@ -272,11 +276,9 @@ describe('Estimator', function() {
       }
 		]
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
-
     const depositAmount = BigNumber.from('10000000000000000')
     const estimatedDepositValue = await estimator.create(strategyItems, strategyState.rebalanceThreshold, depositAmount)
     console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-
 		const tx = await enso.platform.strategyFactory
 			.connect(accounts[1])
 			.createStrategy(
@@ -290,19 +292,20 @@ describe('Estimator', function() {
 			)
 		const receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
-		metaStrategy = await Strategy.attach(strategyAddress)
+		const StrategyFactory = await enso.platform.getStrategyContractFactory()
+		metaStrategy = await StrategyFactory.attach(strategyAddress)
 
-		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
+		expect(await enso.platform.controller.initialized(metaStrategy.address)).to.equal(true)
 
     const [ total ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
     console.log('Actual deposit value: ', total.toString())
   })
 
   it('Should estimate withdraw', async function() {
-    const withdrawAmount = (await metaStrategy.balanceOf(accounts[1].address)).div(2)
+    const metaStrategyToken = new Contract(await metaStrategy.token(), StrategyToken.abi, accounts[0])
+    const withdrawAmount = (await metaStrategyToken.balanceOf(accounts[1].address)).div(2)
     const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-    const totalSupply = await metaStrategy.totalSupply()
+    const totalSupply = await metaStrategyToken.totalSupply()
     const [ totalBefore, ] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
     const wethBefore = await weth.balanceOf(accounts[1].address)
     const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)

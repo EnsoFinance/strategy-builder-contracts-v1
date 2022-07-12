@@ -16,6 +16,7 @@ import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES } from './constants'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils
@@ -170,7 +171,6 @@ export class Estimator {
         percentage: BigNumber.from('0'),
         data: NULL_TRADE_DATA
       }
-
       return this.estimateBatchBuy(
         items,
         synths,
@@ -217,7 +217,7 @@ export class Estimator {
   ) {
       const [ items, totalSupply, strategyEstimate ] = await Promise.all([
         strategy.items(),
-        strategy.totalSupply(),
+        (new Contract(await strategy.token(), StrategyToken.abi, this.signer)).totalSupply(),
         this.oracle.estimateStrategy(strategy.address)
       ])
       const [ totalBefore, estimates ] = strategyEstimate
@@ -575,13 +575,18 @@ export class Estimator {
   async estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string) {
       if (tokenIn.toLowerCase() === WETH.toLowerCase()) {
         // Deposit
-        const strategy = new Contract(tokenOut, IStrategy.abi, this.signer)
-        return this.deposit(strategy, amount)
+        //
+        let strategyToken = new Contract(tokenOut, StrategyToken.abi, this.signer)
+        return this.deposit(
+          new Contract(await strategyToken.strategy(), IStrategy.abi, this.signer),
+          amount)
       } else if (tokenOut.toLowerCase() === WETH.toLowerCase()) {
         // Withdraw
-        const strategy = new Contract(tokenIn, IStrategy.abi, this.signer)
+        let strategyToken = new Contract(tokenIn, StrategyToken.abi, this.signer)
         amount = amount.sub(amount.mul(2).div(DIVISOR))
-        return this.withdraw(strategy, amount)
+        return this.withdraw(
+          new Contract(await strategyToken.strategy(), IStrategy.abi, this.signer), 
+          amount)
       } else {
         // Meta strategies always have weth as an input or output
         return BigNumber.from('0')
