@@ -96,7 +96,6 @@ describe('MetaStrategyAdapter', function () {
 	})
 
 	it('Should deploy basic strategy', async function () {
-    console.log(controller.address);
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
@@ -159,7 +158,6 @@ describe('MetaStrategyAdapter', function () {
 				{ value: ethers.BigNumber.from('10000000000000000') }
 			)
 		const receipt = await tx.wait()
-    console.log("debug after createStrategy")
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -217,7 +215,7 @@ describe('MetaStrategyAdapter', function () {
 	it('Should deploy a meta meta strategy', async function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: metaStrategy.address, percentage: BigNumber.from(500), adapters: [metaStrategyAdapter.address], path: [] }
+			{ token: metaStrategyToken.address, percentage: BigNumber.from(500), adapters: [metaStrategyAdapter.address], path: [] }
 		]
 		mmStrategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const tx = await strategyFactory
@@ -363,7 +361,7 @@ describe('MetaStrategyAdapter', function () {
 		await expect(
 			metaStrategyAdapter
 				.connect(accounts[2])
-				.swap(value, MaxUint256, weth.address, basicStrategy.address, accounts[2].address, accounts[2].address)
+				.swap(value, MaxUint256, weth.address, basicStrategyToken.address, accounts[2].address, accounts[2].address)
 		).to.be.revertedWith('Insufficient tokenOut amount')
 	})
 
@@ -375,7 +373,7 @@ describe('MetaStrategyAdapter', function () {
 		await weth.connect(accounts[2]).approve(metaStrategyAdapter.address, value)
 		await metaStrategyAdapter
 			.connect(accounts[2])
-			.swap(value, 0, weth.address, metaStrategy.address, accounts[2].address, accounts[2].address)
+			.swap(value, 0, weth.address, metaStrategyToken.address, accounts[2].address, accounts[2].address)
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		const balanceAfter = await metaStrategyToken.balanceOf(accounts[2].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
