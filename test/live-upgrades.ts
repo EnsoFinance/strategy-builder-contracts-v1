@@ -8,6 +8,7 @@ import { increaseTime } from '../lib/utils'
 import { isRevertedWith } from '../lib/errors'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { MaxUint256, /*WeiPerEther,*/ AddressZero } = constants
@@ -44,7 +45,8 @@ describe('Live Upgrades', function () {
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 
     // update to latest `Strategy`
-		const newImplementation = await Strategy.deploy(strategyFactory.address, controller.address, AddressZero, AddressZero)
+    const strategyToken = await waffle.deployContract(accounts[0], StrategyToken, [strategyFactory.address, controller.address])
+		const newImplementation = await Strategy.deploy(strategyToken.address, strategyFactory.address, controller.address, AddressZero, AddressZero)
 
 		await strategyFactory.connect(
       await impersonate(await strategyFactory.owner())
