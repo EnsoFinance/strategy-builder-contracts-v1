@@ -159,7 +159,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-        (address weth, uint256 wethAmount) = _withdrawWETH(strategy, router, amount, slippage, data);
+        (address weth, uint256 wethAmount) = _withdrawWETH(strategy, router, amount, slippage, address(this), data);
         IWETH(weth).withdraw(wethAmount);
         (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
         _require(success, uint256(0x1bb63a90056c04) /* error_macro_for("withdrawETH: call failed.") */);
@@ -180,7 +180,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-        _withdrawWETH(strategy, router, amount, slippage, data);
+        _withdrawWETH(strategy, router, amount, slippage, msg.sender, data);
         _removeStrategyLock(strategy); // locked in _withdrawWETH
     }
 
@@ -445,12 +445,13 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategyRouter router,
         uint256 amount,
         uint256 slippage,
+        address to,
         bytes memory data
     ) private returns(address weth, uint256 wethAmount) {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         (weth, wethAmount) = StrategyLibrary.withdraw(strategy, router, amount, slippage, data);
-        IERC20(weth).safeTransferFrom(address(strategy), msg.sender, wethAmount);
+        IERC20(weth).safeTransferFrom(address(strategy), to, wethAmount);
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
