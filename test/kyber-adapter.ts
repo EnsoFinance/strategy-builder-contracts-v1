@@ -23,6 +23,8 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 import IDMMFactory from '../artifacts/contracts/interfaces/kyber/IDMMFactory.sol/IDMMFactory.json'
 import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.sol/IDMMRouter02.json'
 
+import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+
 chai.use(solidity)
 
 describe('KyberSwapAdapter', function () {
@@ -177,7 +179,8 @@ describe('KyberSwapAdapter', function () {
 
 	it('Should withdraw ETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, owner)
+		const amount = (await strategyToken.balanceOf(accounts[1].address)).div(2)
 		const ethBalanceBefore = await accounts[1].getBalance()
 		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '985', '0x')
 		const receipt = await tx.wait()
