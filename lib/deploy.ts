@@ -389,6 +389,7 @@ export async function deployPlatform(
   const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
 
   const strategyToken = await waffle.deployContract(owner, StrategyToken, [factoryAddress, controllerAddress])
+  await strategyToken.deployed()
 
 	const strategyImplementation = await waffle.deployContract(
     owner, 

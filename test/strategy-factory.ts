@@ -1,15 +1,18 @@
 import { expect } from 'chai'
-import { ethers } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
-import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
+import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES } from '../lib/constants'
 import { isRevertedWith } from '../lib/errors'
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
+import { createLink, linkBytecode } from '../lib/link'
 
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
+import OtherStrategy from '../artifacts/contracts/test/OtherStrategy.sol/OtherStrategy.json'
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -220,11 +223,28 @@ describe('StrategyProxyFactory', function () {
     // meaning that an attacker can "back-run" an `updateImplementation` call with
     // an `initialize` call to the `strategy` with their own parameters, specifically
     // a "manager" address in their control.
-    const OtherStrategy = await getContractFactory('OtherStrategy')
+    const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
+    await strategyClaim.deployed()
+    const strategyClaimLink = createLink(StrategyClaim, strategyClaim.address)
+    const strategyLinked = linkBytecode(OtherStrategy, [strategyClaimLink])
     let someAddress = accounts[8].address;
-    let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress);
+    const strategyToken = await waffle.deployContract(accounts[0], StrategyToken, [strategyFactory.address, controller.address])
+    const otherStrategyImplementation = await waffle.deployContract(
+      accounts[0], 
+      strategyLinked,
+      [
+      strategyToken.address,
+      strategyFactory.address,
+      controller.address,
+      MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
+      MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,]
+    )
+    /*const OtherStrategy = await getContractFactory('OtherStrategy', {
 
-    await strategyFactory.connect(accounts[2]).updateImplementation(otherStrategy.address, '2');
+    })*/
+    //let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress);
+
+    await strategyFactory.connect(accounts[2]).updateImplementation(otherStrategyImplementation.address, '2');
     let admin = await strategyFactory.admin();
     const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
     let strategyAdmin = await StrategyAdmin.attach(admin)
