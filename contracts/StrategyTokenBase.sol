@@ -3,10 +3,10 @@ pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./interfaces/IStrategyTokenBase.sol";
-import "./StrategyTokenStorage__WIP.sol";
+import "./StrategyTokenStorage.sol";
 import "./StrategyCommonStorage.sol";
 
-abstract contract StrategyTokenBase is IStrategyTokenBase, StrategyTokenStorage__WIP, StrategyCommonStorage {
+abstract contract StrategyTokenBase is IStrategyTokenBase, StrategyTokenStorage, StrategyCommonStorage {
     using SafeMath for uint256;
 
     bytes32 public constant PERMIT_TYPEHASH = keccak256(

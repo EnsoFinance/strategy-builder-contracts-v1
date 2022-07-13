@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyToken.sol";
 
-import "./StrategyTokenStorage__WIP.sol";
+import "./StrategyTokenStorage.sol";
 import "./StrategyTokenBase.sol";
 import "./StrategyFees.sol";
 
-contract StrategyToken is IStrategyToken, StrategyTokenStorage__WIP, StrategyTokenBase, StrategyFees, Initializable {
+contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBase, StrategyFees, Initializable {
 
     constructor(address factory_, address controller_) public StrategyCommon(factory_, controller_) {
     }
