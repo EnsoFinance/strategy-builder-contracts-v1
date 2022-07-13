@@ -8,10 +8,6 @@ import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
 interface IStrategy is StrategyTypes {
-    function tokenImplementation() external view returns(IStrategyToken); // FIXME ??
-    function predictTokenAddress(string memory version) external returns(address);
-    function token() external view returns(IStrategyToken);
-
     function updateToken() external;
 
     function migrateAccount(address account) external;
@@ -49,10 +45,6 @@ interface IStrategy is StrategyTypes {
 
     function withdrawAll(uint256 amount) external;
 
-    //function mint(address account, uint256 amount) external;
-
-    //function burn(address account, uint256 amount) external returns (uint256);
-
     function delegateSwap(
         address adapter,
         uint256 amount,
@@ -69,6 +61,12 @@ interface IStrategy is StrategyTypes {
     function lock() external;
 
     function unlock() external;
+
+    function tokenImplementation() external view returns(IStrategyToken); // needed for test
+
+    function predictTokenAddress(string memory version) external view returns(address);
+
+    function token() external view returns(IStrategyToken);
 
     function locked() external view returns (bool);
 

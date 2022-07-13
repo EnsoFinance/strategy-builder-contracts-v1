@@ -41,10 +41,6 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         return true;
     }
 
-    function strategy() external view override returns(IStrategy) {
-        return IStrategy(_strategy);
-    }
-
     function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external override {
         _onlyStrategy();
         // strategy checks this only happens once
@@ -86,6 +82,10 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
           _issueStreamingFeeAndBurn(pool, manager, account, amount);
         }
         return amount;
+    }
+
+    function strategy() external view override returns(IStrategy) {
+        return IStrategy(_strategy);
     }
 
     function _transfer(

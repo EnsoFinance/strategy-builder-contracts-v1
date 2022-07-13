@@ -83,28 +83,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         return true;
     }
 
-    function tokenImplementation() external view override returns(IStrategyToken) {
-        return _tokenImplementation;
-    }
-
-    function token() external view override returns(IStrategyToken) {
-        return _token;
-    }
-
     function updateToken() external override {
         _onlyController();
         _updateToken(_version);
-    }
-
-    function predictTokenAddress(string memory version) external override returns(address) {
-        bytes32 salt = keccak256(abi.encode(address(this), version));
-        return Clones.predictDeterministicAddress(address(_tokenImplementation), salt, address(this));
-    }
-
-    function _updateToken(string memory version) private {
-        bytes32 salt = keccak256(abi.encode(address(this), version));
-        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
-        _token.initialize(_name, _symbol, _version, _manager, _totalSupply);
     }
 
     function migrateAccount(address account) external override {
@@ -119,11 +100,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _paidTokenValues[account] = 0;
         emit AccountMigrated(account, balance);
         // note: allowances would need to be updated by the user
-    }
-
-    function updateAddresses() public {
-        function(address, address)[] memory callbacks;
-        _updateAddresses(callbacks);
     }
 
     /**
@@ -331,10 +307,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         }
     }
 
-    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
-        return StrategyClaim._getAllRewardTokens();
-    }
-
     // claim all rewards tokens of claimables
     function claimAll() external override {
         StrategyClaim._claimAll(_claimables);
@@ -416,6 +388,38 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _removeLock();
     }
 
+    function updateAddresses() public {
+        function(address, address)[] memory callbacks;
+        _updateAddresses(callbacks);
+    }
+
+    function updateClaimables() public {
+        delete _claimables;
+        (, bytes[] memory values) = StrategyClaim._getAllToClaim();
+        for (uint256 i; i < values.length; ++i) {
+            _claimables.push(values[i]); // grouped by rewardsAdapter
+        }
+        emit ClaimablesUpdated();
+    }
+
+    function tokenImplementation() external view override returns(IStrategyToken) {
+        return _tokenImplementation;
+    }
+
+    function token() external view override returns(IStrategyToken) {
+        return _token;
+    }
+
+
+    function predictTokenAddress(string memory version) external view override returns(address) {
+        bytes32 salt = keccak256(abi.encode(address(this), version));
+        return Clones.predictDeterministicAddress(address(_tokenImplementation), salt, address(this));
+    }
+
+    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
+        return StrategyClaim._getAllRewardTokens();
+    }
+
     function locked() external view override returns (bool) {
         return _locked % 2 == 1;
     }
@@ -474,6 +478,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
 
     function supportsDebt() public view override returns (bool) {
         return _debt.length > 0;
+    }
+
+    function _updateToken(string memory version) private {
+        bytes32 salt = keccak256(abi.encode(address(this), version));
+        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
+        _token.initialize(_name, _symbol, _version, _manager, _totalSupply);
     }
 
     function _deletePercentages(address[] storage assets) private {
@@ -559,15 +569,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
             _setItem(item, tokenRegistry);
         }
-    }
-
-    function updateClaimables() public {
-        delete _claimables;
-        (, bytes[] memory values) = StrategyClaim._getAllToClaim();
-        for (uint256 i; i < values.length; ++i) {
-            _claimables.push(values[i]); // grouped by rewardsAdapter
-        }
-        emit ClaimablesUpdated();
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
