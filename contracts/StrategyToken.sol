@@ -41,6 +41,26 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage__WIP, StrategyTok
         return true;
     }
 
+    function migrateDeprecated(
+        bytes32 DOMAIN_SEPARATOR_,
+        uint224 streamingFeeRate_,
+        uint16 performanceFee_,
+        uint96 lastStreamTimestamp_,
+        uint128 lastTokenValue_,
+        uint256 managementFee_,
+        uint256 managementFeeRate_
+    ) external override {
+        _onlyStrategy();
+        // strategy ensures this happens only once!
+        DOMAIN_SEPARATOR = DOMAIN_SEPARATOR_;
+        _streamingFeeRate = streamingFeeRate_;
+        _performanceFee = performanceFee_;
+        _lastStreamTimestamp = lastStreamTimestamp_;
+        _lastTokenValue = lastTokenValue_;
+        _managementFee = managementFee_;
+        _managementFeeRate = managementFeeRate_;
+    }
+
     function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external override {
         _onlyStrategy();
         // strategy checks this only happens once

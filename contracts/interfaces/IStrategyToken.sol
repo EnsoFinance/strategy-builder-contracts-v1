@@ -8,6 +8,16 @@ import "./IStrategyTokenBase.sol";
 interface IStrategyToken is IStrategyFees, IStrategyTokenBase {
     function initialize(string memory name, string memory symbol, string memory version, address manager, uint256 totalSupply, uint128 lastTokenValue) external returns(bool);
 
+    function migrateDeprecated(
+        bytes32 DOMAIN_SEPARATOR_,
+        uint224 streamingFeeRate_,
+        uint16 performanceFee_,
+        uint96 lastStreamTimestamp_,
+        uint128 lastTokenValue_,
+        uint256 managementFee_,
+        uint256 managementFeeRate_
+    ) external;
+
     function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external;
 
     // protected by _onlyStrategy
