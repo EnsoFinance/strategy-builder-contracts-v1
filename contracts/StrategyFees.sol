@@ -28,8 +28,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         return managementFee / (managementFee.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
 
-    // FIXME review and update all access controls
-
     /**
      * @notice Update the per token value based on the most recent strategy value. Only callable by controller
      * @param total The current total value of the strategy in WETH
@@ -88,8 +86,18 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     }
 
     function issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) public override {
-        _onlyStrategy();
+        _onlyStrategy(); // FIXME can the multicall router spoof this?
         return _issueStreamingFeeAndBurn(pool, manager, account, amount);
+    }
+
+    function updateStreamingFeeRate(address pool, address manager) external override {
+        _onlyStrategy(); // FIXME can the multicall router spoof this?
+        return _updateStreamingFeeRate(pool, manager);
+    }
+
+    function issueStreamingFee(address pool, address manager) external override {
+        _onlyControllerOrStrategy(); // FIXME can the multicall router spoof this?
+        return _issueStreamingFee(pool, manager);
     }
 
     /**
@@ -99,11 +107,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         _issueStreamingFee(pool, manager);
         _burn(account, amount);
         _updateStreamingFeeRate(pool, manager);
-    }
-
-    function updateStreamingFeeRate(address pool, address manager) external override {
-        _onlyStrategy();
-        return _updateStreamingFeeRate(pool, manager);
     }
 
     /**
@@ -117,11 +120,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
         if (_managementFee > 0) {
            _managementFeeRate = _totalSupply.sub(poolBalance).sub(_balances[manager]).mul(managementFee);
         }
-    }
-
-    function issueStreamingFee(address pool, address manager) external override {
-        _onlyControllerOrStrategy();
-        return _issueStreamingFee(pool, manager);
     }
 
     /**
@@ -153,7 +151,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     }
 
     function setPaidTokenValue(address account, uint256 amount) external override {
-        _onlyStrategy();
+        _onlyStrategy(); // FIXME can the multicall router spoof this?
         _paidTokenValues[account] = amount;
     }
 

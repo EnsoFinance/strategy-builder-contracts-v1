@@ -11,8 +11,6 @@ import "./StrategyFees.sol";
 
 contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBase, StrategyFees, Initializable {
 
-    // FIXME review and update all access controls
-
     constructor(address factory_, address controller_) public StrategyCommon(factory_, controller_) {
     }
 
@@ -20,7 +18,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
-    function initialize( // FIXME review thoroughly
+    function initialize( // FIXME review thoroughly, 
         string memory name_,
         string memory symbol_,
         string memory version_,
@@ -42,7 +40,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
     }
 
     function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external override {
-        _onlyStrategy();
+        _onlyStrategy(); // FIXME can the multicall router bypass this?? if so, should guard against that
         // strategy checks this only happens once
         _balances[account] = balance;
         _nonces[account] = nonce;

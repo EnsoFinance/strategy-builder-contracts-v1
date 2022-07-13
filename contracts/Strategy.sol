@@ -52,7 +52,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
 
     // Initialize constructor to disable implementation
     constructor(address token_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
-      // FIXME decide how to use `StrategyCommon` between the `Strategy` and `StrategyToken`
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
         _tokenImplementation = IStrategyToken(token_);
@@ -62,7 +61,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
-    function initialize( // FIXME thoroughly compare against init of StrategyToken
+    function initialize(
         string memory name_,
         string memory symbol_,
         string memory version_,
