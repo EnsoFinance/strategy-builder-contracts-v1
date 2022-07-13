@@ -86,17 +86,17 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     }
 
     function issueStreamingFeeAndBurn(address pool, address manager, address account, uint256 amount) public override {
-        _onlyStrategy(); // FIXME can the multicall router spoof this?
+        _onlyStrategy();
         return _issueStreamingFeeAndBurn(pool, manager, account, amount);
     }
 
     function updateStreamingFeeRate(address pool, address manager) external override {
-        _onlyStrategy(); // FIXME can the multicall router spoof this?
+        _onlyStrategy();
         return _updateStreamingFeeRate(pool, manager);
     }
 
     function issueStreamingFee(address pool, address manager) external override {
-        _onlyControllerOrStrategy(); // FIXME can the multicall router spoof this?
+        _onlyControllerOrStrategy();
         return _issueStreamingFee(pool, manager);
     }
 
@@ -151,7 +151,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     }
 
     function setPaidTokenValue(address account, uint256 amount) external override {
-        _onlyStrategy(); // FIXME can the multicall router spoof this?
+        _onlyStrategy();
         _paidTokenValues[account] = amount;
     }
 
