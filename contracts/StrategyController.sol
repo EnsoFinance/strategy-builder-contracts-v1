@@ -125,26 +125,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
-    function _deposit(
-        IStrategy strategy,
-        IStrategyRouter router,
-        address account,
-        uint256 amount,
-        uint256 slippage,
-        uint256 totalBefore,
-        uint256 balanceBefore,
-        bytes memory data
-    ) private {
-        address weth;
-        if (msg.value > 0) {
-            _require(amount == 0, uint256(0x1bb63a90056c03) /* error_macro_for("Ambiguous amount") */);
-            amount = msg.value;
-            weth = _weth;
-            IWETH(weth).deposit{value: amount}();
-        }
-        StrategyLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
-    }
-
     /**
      * @notice Withdraw ETH by trading underling assets for ETH
      * @param strategy The address of the strategy being withdrawn from
@@ -475,6 +455,26 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
     }
 
+    function _deposit(
+        IStrategy strategy,
+        IStrategyRouter router,
+        address account,
+        uint256 amount,
+        uint256 slippage,
+        uint256 totalBefore,
+        uint256 balanceBefore,
+        bytes memory data
+    ) private {
+        address weth;
+        if (msg.value > 0) {
+            _require(amount == 0, uint256(0x1bb63a90056c03) /* error_macro_for("Ambiguous amount") */);
+            amount = msg.value;
+            weth = _weth;
+            IWETH(weth).deposit{value: amount}();
+        }
+        StrategyLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
+    }
+
     /**
      * @notice Finalize the structure by selling current posiition, setting new structure, and buying new position
      * @param strategy The strategy contract
@@ -536,6 +536,20 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     /**
+     * @notice Sets Reentrancy guard
+     */
+    function _setStrategyLock(IStrategy strategy) private {
+        strategy.lock();
+    }
+
+    /**
+     * @notice Removes reentrancy guard.
+     */
+    function _removeStrategyLock(IStrategy strategy) private {
+        strategy.unlock();
+    }
+
+    /**
      * @notice Checks that strategy is initialized
      */
     function _isInitialized(address strategy) private view {
@@ -568,20 +582,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     function _notSet(address strategy) private view {
         _require(!_strategyStates[strategy].set, uint256(0x1bb63a90056c19) /* error_macro_for("Strategy cannot change") */);
-    }
-
-    /**
-     * @notice Sets Reentrancy guard
-     */
-    function _setStrategyLock(IStrategy strategy) private {
-        strategy.lock();
-    }
-
-    /**
-     * @notice Removes reentrancy guard.
-     */
-    function _removeStrategyLock(IStrategy strategy) private {
-        strategy.unlock();
     }
 
     receive() external payable {
