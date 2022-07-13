@@ -17,10 +17,21 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
     event ManagementFee(uint256 amount);
 
     function updateAddresses() public {
-        function(address, address)[] memory callbacks = new function(address, address)[](2);
-        callbacks[0] = _issueStreamingFee;
-        callbacks[1] = _updateStreamingFeeRate;
+        function(bytes memory)[] memory callbacks = new function(bytes memory)[](1);
+        callbacks[0] = _updateAddressesCallback;
         _updateAddresses(callbacks);
+    }
+
+    function _updateAddressesCallback(bytes memory data) private {
+        (address currentPool, address manager, address newPool) = abi.decode(data, (address, address, address));
+        // If pool has been initialized but is now changing update paidTokenValue
+        if (currentPool != address(0)) {
+            address manager = _manager;
+            _issueStreamingFee(currentPool, manager);
+            _updateStreamingFeeRate(newPool, manager);
+            _paidTokenValues[currentPool] = _lastTokenValue;
+        }
+        _paidTokenValues[newPool] = uint256(-1);
     }
 
     function managementFee() external view returns (uint256) {
@@ -152,6 +163,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyTokenBase, StrategyComm
 
     function setPaidTokenValue(address account, uint256 amount) external override {
         _onlyStrategy();
+        if (amount == uint256(-2)) amount = _lastTokenValue;
         _paidTokenValues[account] = amount;
     }
 

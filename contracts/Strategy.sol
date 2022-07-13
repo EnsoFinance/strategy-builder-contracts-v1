@@ -22,6 +22,7 @@ import "./helpers/Require.sol";
 import "./helpers/Clones.sol";
 import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
+import "./StrategyStorage.sol";
 
 interface ISynthetixAddressResolver {
     function getAddress(bytes32 name) external returns (address);
@@ -35,7 +36,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, StrategyCommon, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, StrategyCommon, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -87,16 +88,71 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _updateToken(_version);
     }
 
+    function migrateDeprecated() external {
+      // FIXME todo
+  /*
+    // where did the deprecated storage go? see this key
+    // c means common
+    // s means strategy
+    // t means token
+
+    // FIXME need migration for all deprecated values
+
+    //bytes32 public DEPRECATED_DOMAIN_SEPARATOR; // t
+
+    //mapping(address => mapping(address => uint256)) internal DEPRECATED_allowances; // t
+    mapping(address => uint256) internal DEPRECATED_balances; // t
+    mapping(address => uint256) internal DEPRECATED_nonces; // t
+    uint256 internal DEPRECATED_totalSupply; // t
+    //string internal DEPRECATED_name; // c
+    //string internal DEPRECATED_symbol; // c
+    //string internal DEPRECATED_version; // c
+
+    //uint8 internal DEPRECATED_locked; // c 
+    //uint224 internal DEPRECATED_streamingFeeRate; // t
+    //uint16 internal DEPRECATED_performanceFee; // t
+    uint16 internal _rebalanceThreshold; // s
+    //uint96 internal DEPRECATED_lastStreamTimestamp; // t
+    uint128 internal DEPRECATED_lastTokenValue; // !!! NEED to isolate to one t
+    mapping(address => uint256) internal DEPRECATED_paidTokenValues; // !!! NEED to isolate to one t
+
+    //address internal DEPRECATED_manager; // c 
+    //address internal DEPRECATED_pool; // c
+    //address internal DEPRECATED_oracle; // c
+    //address internal DEPRECATED_weth; // c
+    //address internal DEPRECATED_susd; // s
+
+    address internal _tempRouter; // s
+    address[] internal _items; // s
+    address[] internal _synths; // s
+    address[] internal _debt; // s
+    mapping(address => int256) internal _percentage; // s
+    mapping(address => TradeData) internal _tradeData; // s
+    mapping(bytes4 => TimelockData) internal __timelockData; // s
+
+    //uint256 internal DEPRECATED_managementFee; // t
+    //uint256 internal DEPRECATED_managementFeeRate; // t
+
+    bytes[] internal _claimables; // s
+
+    IStrategyToken internal _token; // s
+    //address internal DEPRECATED_strategy; // t
+
+    // Gap for future storage changes
+    uint256[44] private __gap; // FIXME update
+   */ 
+    }
+
     function migrateAccount(address account) external override {
         _onlyController();
-        uint256 balance = _balances[account];
+        uint256 balance = DEPRECATED_balances[account];
         require(balance != type(uint256).max, "migrateAccount: account already migrated.");
         // controller called `updateToken` already
-        _token.migrateAccount(account, balance, _nonces[account], _paidTokenValues[account]);
-        _totalSupply -= balance;
-        _balances[account] = type(uint256).max; // shameless semantic overloading
-        _nonces[account] = 0;
-        _paidTokenValues[account] = 0;
+        _token.migrateAccount(account, balance, DEPRECATED_nonces[account], DEPRECATED_paidTokenValues[account]);
+        DEPRECATED_totalSupply -= balance;
+        DEPRECATED_balances[account] = type(uint256).max; // shameless semantic overloading
+        DEPRECATED_nonces[account] = 0;
+        DEPRECATED_paidTokenValues[account] = 0;
         emit AccountMigrated(account, balance);
         // note: allowances would need to be updated by the user
     }
@@ -340,13 +396,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
         _token.issueStreamingFee(pool, manager);
         _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
         // Reset paid token values
-        _token.setPaidTokenValue(manager, _lastTokenValue);
+        _token.setPaidTokenValue(manager, uint256(-2)); // means "_lastTokenValue"
         _token.setPaidTokenValue(newManager, uint256(-1));
 
         _manager = newManager;
         _token.updateStreamingFeeRate(pool, newManager);
 
-        _token.setPaidTokenValue(manager, _lastTokenValue);
+        _token.setPaidTokenValue(manager, uint256(-2)); // means "_lastTokenValue"
         _token.setPaidTokenValue(newManager, uint256(-1));
         emit UpdateManager(newManager);
     }
@@ -388,7 +444,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     }
 
     function updateAddresses() public {
-        function(address, address)[] memory callbacks;
+        function(bytes memory)[] memory callbacks;
         _updateAddresses(callbacks);
     }
 
@@ -482,7 +538,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenStorage, Strat
     function _updateToken(string memory version) private {
         bytes32 salt = keccak256(abi.encode(address(this), version));
         _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
-        _token.initialize(_name, _symbol, _version, _manager, _totalSupply);
+        _token.initialize(_name, _symbol, _version, _manager, DEPRECATED_totalSupply, DEPRECATED_lastTokenValue);
     }
 
     function _deletePercentages(address[] storage assets) private {

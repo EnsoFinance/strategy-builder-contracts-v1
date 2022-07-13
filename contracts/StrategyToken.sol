@@ -5,11 +5,11 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyToken.sol";
 
-import "./StrategyTokenStorage.sol";
+import "./StrategyTokenStorage__WIP.sol";
 import "./StrategyTokenBase.sol";
 import "./StrategyFees.sol";
 
-contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBase, StrategyFees, Initializable {
+contract StrategyToken is IStrategyToken, StrategyTokenStorage__WIP, StrategyTokenBase, StrategyFees, Initializable {
 
     constructor(address factory_, address controller_) public StrategyCommon(factory_, controller_) {
     }
@@ -23,7 +23,8 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         string memory symbol_,
         string memory version_,
         address manager_,
-        uint256 totalSupply
+        uint256 totalSupply,
+        uint128 lastTokenValue
     ) external override initializer returns (bool) {
         _strategy = msg.sender; 
         _manager = manager_;
@@ -31,6 +32,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
         _symbol = symbol_;
         _version = version_;
         _totalSupply = totalSupply; // inherits total supply from `Strategy` for first migration. future token->token migrations will need updated "migrate" function
+        _lastTokenValue = lastTokenValue; // inherits similarly
         _lastTokenValue = uint128(PRECISION);
         _lastStreamTimestamp = uint96(block.timestamp);
         _paidTokenValues[manager_] = uint256(-1);

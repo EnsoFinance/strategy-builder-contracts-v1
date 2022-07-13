@@ -5,9 +5,9 @@ pragma experimental ABIEncoderV2;
 import "./interfaces/IOracle.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
-import "./StrategyTokenStorage.sol";
+import "./StrategyCommonStorage.sol";
 
-contract StrategyCommon is StrategyTokenStorage {
+contract StrategyCommon is StrategyCommonStorage {
 
     uint256 internal constant PRECISION = 10**18;
     
@@ -22,21 +22,14 @@ contract StrategyCommon is StrategyTokenStorage {
     /**
         @notice Refresh Strategy's addresses
      */
-    function _updateAddresses(function(address, address)[] memory callbacks) internal {
+    function _updateAddresses(function(bytes memory)[] memory callbacks) internal {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
         address newPool = f.pool();
         address currentPool = _pool;
         if (newPool != currentPool) {
-            // If pool has been initialized but is now changing update paidTokenValue
-            if (currentPool != address(0)) {
-                address manager = _manager;
-                if (callbacks.length == 2) {
-                    callbacks[0](currentPool, manager); // perhaps .. _issueStreamingFee
-                    callbacks[1](newPool, manager); // and _updateStreamingFeeRate
-                }
-                _paidTokenValues[currentPool] = _lastTokenValue;
+            for (uint256 i; i < callbacks.length; ++i) {
+                callbacks[i](abi.encode(currentPool, _manager, newPool));
             }
-            _paidTokenValues[newPool] = uint256(-1);
             _pool = newPool;
         }
         address o = f.oracle();
