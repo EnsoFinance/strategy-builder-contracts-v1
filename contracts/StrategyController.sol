@@ -118,7 +118,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
           uint256(0x1bb63a90056c02) /* error_macro_for("Strategy restructuring") */
         );
         strategy.settleSynths();
-        //strategy.issueStreamingFee();
+        strategy.issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
         uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
@@ -291,15 +291,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
-    function verifyStructure(address strategy, StrategyItem[] memory newItems)
-        public
-        view
-        override
-        returns (bool)
-    {
-        return StrategyLibrary.verifyStructure(strategy, newItems);
-    }
-
     /**
      * @notice Initiate an update of a StrategyState value. This gives users a chance to withdraw before changes are finalized
      * @param category The TimelockCategory of the value we want to change
@@ -396,6 +387,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategyState.set = true;
         emit StrategySet(address(strategy));
         _removeStrategyLock(strategy);
+    }
+
+    function verifyStructure(address strategy, StrategyItem[] memory newItems)
+        public
+        view
+        override
+        returns (bool)
+    {
+        return StrategyLibrary.verifyStructure(strategy, newItems);
     }
 
     // @notice Initialized getter
