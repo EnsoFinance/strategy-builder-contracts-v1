@@ -10,7 +10,6 @@ import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./libraries/ControllerLibrary.sol";
-import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
@@ -121,7 +120,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.settleSynths();
         strategy.token().issueStreamingFee();
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
-        uint256 balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
+        uint256 balanceBefore = ControllerLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
         _removeStrategyLock(strategy);
     }
@@ -505,7 +504,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         // Liquidate unused tokens
         ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, currentDebt, data);
         // Check balance
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
+        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c11) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         IStrategyToken t = strategy.token();

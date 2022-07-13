@@ -137,7 +137,7 @@ describe('Live Estimates', function () {
 
     const newControllerImplementation = await waffle.deployContract(
       accounts[0],
-      linkBytecode(StrategyController, [strategyLibraryLink, controllerLibraryLink]),
+      linkBytecode(StrategyController, [controllerLibraryLink]),
       [strategyFactory.address]
     )
 		await newControllerImplementation.deployed()

@@ -371,7 +371,7 @@ export async function deployPlatform(
 	// Controller Implementation
 	const controllerImplementation = await waffle.deployContract(
 		owner,
-		linkBytecode(StrategyController, [strategyLibraryLink, controllerLibraryLink]),
+		linkBytecode(StrategyController, [controllerLibraryLink]),
 		[factoryAddress]
 	)
 	await controllerImplementation.deployed()

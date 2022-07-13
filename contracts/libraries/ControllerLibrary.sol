@@ -28,11 +28,6 @@ library ControllerLibrary {
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
 
-    function self() external view returns(address) {
-        // for sanity checks.. see controller init
-        return address(this);
-    }
-
     /**
      * @notice Wrap router function with approve and unapprove
      * @param strategy The strategy contract
@@ -161,14 +156,14 @@ library ControllerLibrary {
         _onlyApproved(address(router));
         strategy.settleSynths();
         strategy.claimAll();
-        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = StrategyLibrary.verifyBalance(address(strategy), oracle);
+        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle);
         require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
         _useRouter(strategy, router, router.rebalance, weth, data);
         // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), oracle);
+        (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(address(strategy), oracle);
         require(balancedAfter, "Not balanced");
         _checkSlippage(totalAfter, totalBefore, rebalanceSlippage);
         IStrategyToken t = strategy.token();
@@ -212,20 +207,6 @@ library ControllerLibrary {
     }
 
     /**
-     * @notice Checks that router is whitelisted
-     */
-    function _onlyApproved(address account) private view {
-        require(IStrategyController(address(this)).whitelist().approved(account), "Not approved");
-    }
-
-    function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
-      require(
-          slippedValue >= referenceValue.mul(slippage) / uint256(DIVISOR),
-          "Too much slippage"
-      );
-    }
-
-    /**
      * @notice Deposit eth or weth into strategy
      * @dev Calldata is only needed for the GenericRouter
      */
@@ -259,7 +240,7 @@ library ControllerLibrary {
         // Recheck total
         (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);
         require(totalAfter > totalBefore, "Lost value");
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
+        checkBalance(address(strategy), balanceBefore, totalAfter, estimates);
         uint256 valueAdded = totalAfter - totalBefore; // Safe math not needed, already checking for underflow
         _checkSlippage(valueAdded, amount, slippage);
         uint256 relativeTokens;
@@ -273,48 +254,6 @@ library ControllerLibrary {
             t.mint(account, relativeTokens);
         }
         emit Deposit(address(strategy), account, amount, relativeTokens);
-    }
-
-    function verifyStructure(address strategy, StrategyTypes.StrategyItem[] memory newItems)
-        public
-        view
-        returns (bool)
-    {
-        require(newItems.length > 0, "Cannot set empty structure");
-        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
-        require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
-
-        ITokenRegistry registry = IStrategyController(address(this)).oracle().tokenRegistry();
-
-        bool supportsSynths;
-        bool supportsDebt;
-
-        int256 total;
-        address item;
-        for (uint256 i; i < newItems.length; ++i) {
-            item = newItems[i].item;
-            require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
-            int256 percentage = newItems[i].percentage;
-            uint256 itemCategory = registry.itemCategories(item);
-            if (itemCategory == uint256(StrategyTypes.ItemCategory.DEBT)) {
-              supportsDebt = true;
-              require(percentage <= 0, "Debt cannot be positive");
-              require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
-            } else {
-              if (itemCategory == uint256(StrategyTypes.ItemCategory.SYNTH))
-                  supportsSynths = true;
-              require(percentage >= 0, "Token cannot be negative");
-              require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
-            }
-            uint256 estimatorCategory = registry.estimatorCategories(item);
-            require(estimatorCategory != uint256(StrategyTypes.EstimatorCategory.BLOCKED), "Token blocked");
-            if (estimatorCategory == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
-                _checkCyclicDependency(strategy, IStrategyToken(item).strategy(), registry);
-            total = total.add(percentage);
-        }
-        require(!(supportsSynths && supportsDebt), "No synths and debt");
-        require(total == int256(DIVISOR), "Total percentage wrong");
-        return true;
     }
 
     /**
@@ -340,7 +279,7 @@ library ControllerLibrary {
         {
             int256[] memory estimatesBefore;
             (totalBefore, estimatesBefore) = IStrategyController(address(this)).oracle().estimateStrategy(strategy);
-            balanceBefore = StrategyLibrary.amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
+            balanceBefore = amountOutOfBalance(address(strategy), totalBefore, estimatesBefore);
             uint256 totalSupply;
             {
                 IStrategyToken t = strategy.token();
@@ -397,7 +336,7 @@ library ControllerLibrary {
             }
             totalAfter = totalAfter.sub(wethAmount).sub(poolWethAmount);
         }
-        StrategyLibrary.checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
+        checkBalance(address(strategy), balanceBefore, totalAfter, estimatesAfter);
         IStrategyToken t = strategy.token();
         t.updateTokenValue(totalAfter, t.totalSupply());
         // Approve weth
@@ -406,6 +345,157 @@ library ControllerLibrary {
             IERC20(weth).transferFrom(address(strategy), pool, poolWethAmount);
         }
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
+    }
+
+
+    function self() external view returns(address) {
+        // for sanity checks.. see controller init
+        return address(this);
+    }
+
+    /**
+     * @notice This function gets the strategy value from the oracle and checks
+     *         whether the strategy is balanced. Necessary to confirm the balance
+     *         before and after a rebalance to ensure nothing fishy happened
+     */
+    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
+        (uint256 total, int256[] memory estimates) =
+            IOracle(oracle).estimateStrategy(IStrategy(strategy));
+        uint256 threshold = IStrategy(strategy).rebalanceThreshold();
+
+        bool balanced = true;
+        address[] memory strategyItems = IStrategy(strategy).items();
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
+            if (expectedValue > 0) {
+                int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
+                if (estimates[i] > expectedValue.add(rebalanceRange)) {
+                    balanced = false;
+                    break;
+                }
+                if (estimates[i] < expectedValue.sub(rebalanceRange)) {
+                    balanced = false;
+                    break;
+                }
+            } else {
+                // Token has an expected value of 0, so any value can cause the contract
+                // to be 'unbalanced' so we need an alternative way to determine balance.
+                // Min percent = 0.1%. If token value is above, consider it unbalanced
+                if (estimates[i] > StrategyLibrary.getRange(int256(total), 1)) {
+                    balanced = false;
+                    break;
+                }
+            }
+        }
+        if (balanced) {
+            address[] memory strategyDebt = IStrategy(strategy).debt();
+            for (uint256 i = 0; i < strategyDebt.length; i++) {
+              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
+              int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
+              uint256 index = strategyItems.length + i;
+               // Debt
+               if (estimates[index] < expectedValue.add(rebalanceRange)) {
+                   balanced = false;
+                   break;
+               }
+               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
+                   balanced = false;
+                   break;
+               }
+            }
+        }
+        return (balanced, total, estimates);
+    }
+
+    /**
+     * @notice This function gets the strategy value from the oracle and determines
+     *         how out of balance the strategy using an absolute value.
+     */
+    function amountOutOfBalance(address strategy, uint256 total, int256[] memory estimates) public view returns (uint256) {
+        if (total == 0) return 0;
+        uint256 amount = 0;
+        address[] memory strategyItems = IStrategy(strategy).items();
+        for (uint256 i = 0; i < strategyItems.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
+            if (estimates[i] > expectedValue) {
+                amount = amount.add(uint256(estimates[i].sub(expectedValue)));
+            } else if (estimates[i] < expectedValue) {
+                amount = amount.add(uint256(expectedValue.sub(estimates[i])));
+            }
+        }
+        address[] memory strategyDebt = IStrategy(strategy).debt();
+        for (uint256 i = 0; i < strategyDebt.length; i++) {
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
+            uint256 index = strategyItems.length + i;
+            if (estimates[index] > expectedValue) {
+                amount = amount.add(uint256(estimates[index].sub(expectedValue)));
+            } else if (estimates[index] < expectedValue) {
+                amount = amount.add(uint256(expectedValue.sub(estimates[index])));
+            }
+        }
+        return (amount.mul(10**18).div(total));
+    }
+
+    function checkBalance(address strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) public view {
+        uint256 balanceAfter = amountOutOfBalance(strategy, total, estimates);
+        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
+            require(balanceAfter <= balanceBefore, "Lost balance");
+    }
+
+    function verifyStructure(address strategy, StrategyTypes.StrategyItem[] memory newItems)
+        public
+        view
+        returns (bool)
+    {
+        require(newItems.length > 0, "Cannot set empty structure");
+        require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
+        require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
+
+        ITokenRegistry registry = IStrategyController(address(this)).oracle().tokenRegistry();
+
+        bool supportsSynths;
+        bool supportsDebt;
+
+        int256 total;
+        address item;
+        for (uint256 i; i < newItems.length; ++i) {
+            item = newItems[i].item;
+            require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
+            int256 percentage = newItems[i].percentage;
+            uint256 itemCategory = registry.itemCategories(item);
+            if (itemCategory == uint256(StrategyTypes.ItemCategory.DEBT)) {
+              supportsDebt = true;
+              require(percentage <= 0, "Debt cannot be positive");
+              require(percentage >= -PERCENTAGE_BOUND, "Out of bounds");
+            } else {
+              if (itemCategory == uint256(StrategyTypes.ItemCategory.SYNTH))
+                  supportsSynths = true;
+              require(percentage >= 0, "Token cannot be negative");
+              require(percentage <= PERCENTAGE_BOUND, "Out of bounds");
+            }
+            uint256 estimatorCategory = registry.estimatorCategories(item);
+            require(estimatorCategory != uint256(StrategyTypes.EstimatorCategory.BLOCKED), "Token blocked");
+            if (estimatorCategory == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
+                _checkCyclicDependency(strategy, IStrategyToken(item).strategy(), registry);
+            total = total.add(percentage);
+        }
+        require(!(supportsSynths && supportsDebt), "No synths and debt");
+        require(total == int256(DIVISOR), "Total percentage wrong");
+        return true;
+    }
+
+    /**
+     * @notice Checks that router is whitelisted
+     */
+    function _onlyApproved(address account) private view {
+        require(IStrategyController(address(this)).whitelist().approved(account), "Not approved");
+    }
+
+    function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
+      require(
+          slippedValue >= referenceValue.mul(slippage) / uint256(DIVISOR),
+          "Too much slippage"
+      );
     }
 
     function _checkCyclicDependency(address test, IStrategy strategy, ITokenRegistry registry) private view {
