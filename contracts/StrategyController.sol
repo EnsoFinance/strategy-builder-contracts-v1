@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
+import "./libraries/ControllerLibrary.sol";
 import "./libraries/StrategyLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
@@ -47,7 +48,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function initialize() external initializer {
         updateAddresses();
-        _require(address(this)== StrategyLibrary.self(), uint256(0x1bb63a90056c00) /* error_macro_for("Sanity check that Library shares context.") */);
+        _require(address(this)== ControllerLibrary.self(), uint256(0x1bb63a90056c00) /* error_macro_for("Sanity check that Library shares context.") */);
     }
 
     /**
@@ -142,7 +143,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (address weth, uint256 wethAmount) = _withdrawWETH(strategy, router, amount, slippage, address(this), data);
         IWETH(weth).withdraw(wethAmount);
         (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
-        _require(success, uint256(0x1bb63a90056c04) /* error_macro_for("withdrawETH: call failed.") */);
+        _require(success, uint256(0x1bb63a90056c03) /* error_macro_for("withdrawETH: call failed.") */);
         _removeStrategyLock(strategy); // locked in _withdrawWETH
     }
 
@@ -177,7 +178,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
-        StrategyLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
+        ControllerLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
         _removeStrategyLock(strategy);
     }
 
@@ -202,7 +203,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
-        StrategyLibrary.repositionSynths(strategy, adapter, token, _susd);
+        ControllerLibrary.repositionSynths(strategy, adapter, token, _susd);
         _removeStrategyLock(strategy);
     }
 
@@ -224,9 +225,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             lock.timestamp == 0 ||
                 block.timestamp >
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
-            uint256(0x1bb63a90056c05) /* error_macro_for("Timelock active") */
+            uint256(0x1bb63a90056c04) /* error_macro_for("Timelock active") */
         );
-        _require(StrategyLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c06) /* error_macro_for("Invalid structure") */);
+        _require(ControllerLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c05) /* error_macro_for("Invalid structure") */);
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems);
@@ -257,12 +258,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
-            uint256(0x1bb63a90056c07) /* error_macro_for("Timelock active") */
+            uint256(0x1bb63a90056c06) /* error_macro_for("Timelock active") */
         );
-        _require(lock.category == TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c08) /* error_macro_for("Wrong category") */);
+        _require(lock.category == TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c07) /* error_macro_for("Wrong category") */);
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
-        _require(StrategyLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c09) /* error_macro_for("Invalid structure") */);
+        _require(ControllerLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c08) /* error_macro_for("Invalid structure") */);
         _finalizeStructure(strategy, router, strategyItems, data);
         delete lock.category;
         delete lock.timestamp;
@@ -289,9 +290,9 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             lock.timestamp == 0 ||
                 block.timestamp >
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
-            uint256(0x1bb63a90056c0a) /* error_macro_for("Timelock active") */
+            uint256(0x1bb63a90056c09) /* error_macro_for("Timelock active") */
         );
-        _require(category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0b) /* error_macro_for("updateValue: category is RESTRUCTURE.") */);
+        _require(category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0a) /* error_macro_for("updateValue: category is RESTRUCTURE.") */);
         if (category != TimelockCategory.TIMELOCK) {
             _checkAndEmit(address(strategy), category, newValue, false);
         } else {
@@ -312,11 +313,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0c) /* error_macro_for("Wrong category") */);
+        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0b) /* error_macro_for("Wrong category") */);
         _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
-            uint256(0x1bb63a90056c0d) /* error_macro_for("Timelock active") */
+            uint256(0x1bb63a90056c0c) /* error_macro_for("Timelock active") */
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
         if (lock.category == TimelockCategory.TIMELOCK) {
@@ -348,7 +349,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        _require(!strategyState.social, uint256(0x1bb63a90056c0e) /* error_macro_for("Strategy already open") */);
+        _require(!strategyState.social, uint256(0x1bb63a90056c0d) /* error_macro_for("Strategy already open") */);
         strategyState.social = true;
         emit StrategyOpen(address(strategy));
         _removeStrategyLock(strategy);
@@ -363,7 +364,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        _require(!strategyState.set, uint256(0x1bb63a90056c0f) /* error_macro_for("Strategy already set") */);
+        _require(!strategyState.set, uint256(0x1bb63a90056c0e) /* error_macro_for("Strategy already set") */);
         strategyState.set = true;
         emit StrategySet(address(strategy));
         _removeStrategyLock(strategy);
@@ -375,7 +376,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         override
         returns (bool)
     {
-        return StrategyLibrary.verifyStructure(strategy, newItems);
+        return ControllerLibrary.verifyStructure(strategy, newItems);
     }
 
     // @notice Initialized getter
@@ -430,7 +431,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) private returns(address weth, uint256 wethAmount) {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        (weth, wethAmount) = StrategyLibrary.withdraw(strategy, router, amount, slippage, data);
+        (weth, wethAmount) = ControllerLibrary.withdraw(strategy, router, amount, slippage, data);
         IERC20(weth).safeTransferFrom(address(strategy), to, wethAmount);
     }
 
@@ -439,7 +440,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
-        _require(state.timelock <= 30 days, uint256(0x1bb63a90056c10) /* error_macro_for("Timelock is too long") */);
+        _require(state.timelock <= 30 days, uint256(0x1bb63a90056c0f) /* error_macro_for("Timelock is too long") */);
         _initialized[strategy] = 1;
         _strategyStates[strategy] = StrategyState(
           state.timelock,
@@ -467,12 +468,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) private {
         address weth;
         if (msg.value > 0) {
-            _require(amount == 0, uint256(0x1bb63a90056c03) /* error_macro_for("Ambiguous amount") */);
+            _require(amount == 0, uint256(0x1bb63a90056c10) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
             weth = _weth;
             IWETH(weth).deposit{value: amount}();
         }
-        StrategyLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
+        ControllerLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
     }
 
     /**
@@ -502,7 +503,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.setStructure(newItems);
         strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
-        StrategyLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, currentDebt, data);
+        ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, currentDebt, data);
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = StrategyLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c11) /* error_macro_for("Not balanced") */);

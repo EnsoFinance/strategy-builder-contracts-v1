@@ -28,20 +28,20 @@
       "1bb63a90056c00": "Sanity check that Library shares context.",
       "1bb63a90056c01": "Not factory",
       "1bb63a90056c02": "Strategy restructuring",
-      "1bb63a90056c03": "Ambiguous amount",
-      "1bb63a90056c04": "withdrawETH: call failed.",
-      "1bb63a90056c05": "Timelock active",
-      "1bb63a90056c06": "Invalid structure",
-      "1bb63a90056c07": "Timelock active",
-      "1bb63a90056c08": "Wrong category",
-      "1bb63a90056c09": "Invalid structure",
-      "1bb63a90056c0a": "Timelock active",
-      "1bb63a90056c0b": "updateValue: category is RESTRUCTURE.",
-      "1bb63a90056c0c": "Wrong category",
-      "1bb63a90056c0d": "Timelock active",
-      "1bb63a90056c0e": "Strategy already open",
-      "1bb63a90056c0f": "Strategy already set",
-      "1bb63a90056c10": "Timelock is too long",
+      "1bb63a90056c03": "withdrawETH: call failed.",
+      "1bb63a90056c04": "Timelock active",
+      "1bb63a90056c05": "Invalid structure",
+      "1bb63a90056c06": "Timelock active",
+      "1bb63a90056c07": "Wrong category",
+      "1bb63a90056c08": "Invalid structure",
+      "1bb63a90056c09": "Timelock active",
+      "1bb63a90056c0a": "updateValue: category is RESTRUCTURE.",
+      "1bb63a90056c0b": "Wrong category",
+      "1bb63a90056c0c": "Timelock active",
+      "1bb63a90056c0d": "Strategy already open",
+      "1bb63a90056c0e": "Strategy already set",
+      "1bb63a90056c0f": "Timelock is too long",
+      "1bb63a90056c10": "Ambiguous amount",
       "1bb63a90056c11": "Not balanced",
       "1bb63a90056c12": "Too much slippage",
       "1bb63a90056c13": "Out of bounds",
@@ -379,6 +379,10 @@
     "contractName": "BinaryTreeWithPayload.sol"
   },
   {
+    "contractId": "f282095f3a5e",
+    "contractName": "ControllerLibrary.sol"
+  },
+  {
     "contractId": "90f6bba6c5c4",
     "contractName": "Math.sol"
   },
@@ -519,6 +523,10 @@
     "contractName": "StrategyRouter.sol"
   },
   {
+    "contractId": "08c5ddb2e542",
+    "contractName": "AddressPredictor.sol"
+  },
+  {
     "contractId": "4ed253196e4a",
     "contractName": "Arbitrager.sol"
   },
@@ -529,6 +537,10 @@
   {
     "contractId": "62e52f24d678",
     "contractName": "BalancerRegistry.sol"
+  },
+  {
+    "contractId": "66c745e6e36a",
+    "contractName": "ControllerLibraryTest.sol"
   },
   {
     "contractId": "cddb89594569",

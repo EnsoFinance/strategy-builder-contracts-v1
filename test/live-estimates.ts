@@ -10,6 +10,7 @@ import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import { createLink, linkBytecode } from '../lib/link'
 
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
@@ -124,11 +125,19 @@ describe('Live Estimates', function () {
     const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
     await strategyLibrary.deployed()
     const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
+
+    const controllerLibrary = await waffle.deployContract(
+      accounts[0], 
+      linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+      [])
+    await controllerLibrary.deployed()
+    const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
 		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
 
     const newControllerImplementation = await waffle.deployContract(
       accounts[0],
-      linkBytecode(StrategyController, [strategyLibraryLink]),
+      linkBytecode(StrategyController, [strategyLibraryLink, controllerLibraryLink]),
       [strategyFactory.address]
     )
 		await newControllerImplementation.deployed()
