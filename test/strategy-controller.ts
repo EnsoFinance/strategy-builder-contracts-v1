@@ -65,6 +65,7 @@ describe('StrategyController', function () {
 		platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
+
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
 		library = platform.library
@@ -73,6 +74,13 @@ describe('StrategyController', function () {
 		await whitelist.connect(owner).approve(adapter.address)
 		router = await deployLoopRouter(owner, controller, library)
 		await whitelist.connect(owner).approve(router.address)
+	})
+
+	it('Should fail to call library function', async function () {
+      const ControllerLibraryTest = await getContractFactory("ControllerLibraryTest")
+      const controllerLibraryTest = await ControllerLibraryTest.deploy()
+      await controllerLibraryTest.deployed()
+      await expect(controllerLibraryTest.connect(accounts[0]).callControllerLibraryFunction(controller.address)).to.be.revertedWith("library call unsuccessful")
 	})
 
 	it('Should get implementation', async function () {
