@@ -232,8 +232,8 @@ abstract contract StrategyTokenBase is IStrategyTokenBase, StrategyTokenStorage 
          implies WLOG that either: 
           - a==0 
           - a!=0 and either b==0 or b is the unique zero-divisor of a
-            given such an a, the probability of finding the associated
-            non-zero zero-divisor b is 1 / (2**160 - 2) which is negligible
+            given such an a, the probability that for given valid address a 
+            valid address b is its zero-divisor is 1 / (2**160 - 2) which is negligible
         **/
         _validAddress(address(uint256(sender) * uint256(recipient)));
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
@@ -293,7 +293,14 @@ abstract contract StrategyTokenBase is IStrategyTokenBase, StrategyTokenStorage 
         address spender,
         uint256 amount
     ) internal virtual {
-        // TODO comment with mathematical justification as to why this is secure
+        /*
+         we just check the product of addresses a * b since a * b = "0"
+         implies WLOG that either: 
+          - a==0 
+          - a!=0 and either b==0 or b is the unique zero-divisor of a
+            given such an a, the probability that for given valid address a 
+            valid address b is its zero-divisor is 1 / (2**160 - 2) which is negligible
+        **/
         _validAddress(address(uint256(owner) * uint256(spender)));
 
         _allowances[owner][spender] = amount;

@@ -18,7 +18,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
      * @notice Initializes new Strategy
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
-    function initialize( // FIXME review thoroughly, 
+    function initialize( 
         string memory name_,
         string memory symbol_,
         string memory version_,
@@ -40,7 +40,7 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
     }
 
     function migrateAccount(address account, uint256 balance, uint256 nonce, uint256 paidTokenValue) external override {
-        _onlyStrategy(); // FIXME can the multicall router bypass this?? if so, should guard against that
+        _onlyStrategy();
         // strategy checks this only happens once
         _balances[account] = balance;
         _nonces[account] = nonce;
