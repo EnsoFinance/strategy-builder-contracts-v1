@@ -52,6 +52,7 @@ function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
 			chainId: chainIds.mainnet,
+			gas: 'auto',
 		},
 		localhost: {
 			url: 'http://127.0.0.1:8545',
@@ -102,6 +103,7 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
 		},
 		chainId: chainIds[network],
 		url,
+		gas: 'auto',
 	}
 }
 
