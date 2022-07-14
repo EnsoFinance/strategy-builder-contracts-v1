@@ -15,8 +15,8 @@ contract StrategyToken is IStrategyToken, StrategyTokenStorage, StrategyTokenBas
     }
 
     /**
-     * @notice Initializes new Strategy
-     * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
+     * @notice Initializes new StrategyToken
+     * @dev Should be called from the Strategy
      */
     function initialize( 
         string memory name_,
