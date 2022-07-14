@@ -97,6 +97,7 @@ function createTestnetConfig(network: keyof typeof chainIds): NetworkUserConfig 
 			initialIndex: 0,
 			mnemonic,
 			path: "m/44'/60'/0'/0",
+      accountsBalance: "1000000000000000000000000",
 		},
 		chainId: chainIds[network],
 		url,
