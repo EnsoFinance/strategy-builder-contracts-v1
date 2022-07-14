@@ -7,7 +7,6 @@ import "../helpers/StrategyTypes.sol";
 contract OtherStrategyStorage is StrategyTypes {
 
     // where did the deprecated storage go? see this key
-     means common
 
     bytes32 public DEPRECATED_DOMAIN_SEPARATOR; // t
 
