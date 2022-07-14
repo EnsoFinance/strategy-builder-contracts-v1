@@ -34,8 +34,13 @@ contract AaveV2DebtAdapter is BaseAdapter {
         // use zero address to represent strategy's collateral pool reserve which is valued in weth (doesn't matter that it isn't an erc20, since no erc20 functions are used)
         if (tokenOut == address(0)) {
             // since tokenOut is collateral pool, we are paying back loan
-            if (from != address(this))
+            if (from != address(this)){
+                uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
                 IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+                uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+                require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+                amount = afterBalance - beforeBalance;
+            }
             IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
         } else if (tokenIn == address(0)) {
