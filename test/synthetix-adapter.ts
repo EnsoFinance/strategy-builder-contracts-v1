@@ -201,8 +201,9 @@ describe('SynthetixAdapter', function () {
 	it('Should fail to deploy strategy: meta cannot support synths', async function () {
 		const name = 'Fail Strategy'
 		const symbol = 'FAIL'
+    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
 		const positions = [
-			{ token: strategy.address, percentage: BigNumber.from(1000), adapters: [metaStrategyAdapter.address], path: [] }
+			{ token: strategyToken.address, percentage: BigNumber.from(1000), adapters: [metaStrategyAdapter.address], path: [] }
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 

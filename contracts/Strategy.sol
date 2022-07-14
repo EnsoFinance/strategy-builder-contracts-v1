@@ -641,4 +641,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializa
     function _removeLock() internal {
         _locked = 2;
     }
+
+    fallback() external payable {
+        revert("Call may be intended for this Strategy's token.");
+    }
 }
