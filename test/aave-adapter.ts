@@ -10,7 +10,7 @@ import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import { isRevertedWith } from '../lib/errors'
 import {
-  Platform,
+	Platform,
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
@@ -18,7 +18,7 @@ import {
 	deploySynthetixAdapter,
 	deployCurveAdapter,
 	deployPlatform,
-	deployFullRouter
+	deployFullRouter,
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -36,12 +36,12 @@ const STRATEGY_STATE: InitialState = {
 	restructureSlippage: BigNumber.from(995),
 	managementFee: BigNumber.from(0),
 	social: true,
-	set: false
+	set: false,
 }
 
 describe('AaveAdapter', function () {
-	let	platform: Platform,
-    weth: Contract,
+	let platform: Platform,
+		weth: Contract,
 		susd: Contract,
 		usdc: Contract,
 		accounts: SignerWithAddress[],
@@ -72,14 +72,20 @@ describe('AaveAdapter', function () {
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
 
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, susd)
+		platform = await deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth,
+			susd
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 		whitelist = platform.administration.whitelist
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
-		const synthetixAddressProvider = new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], accounts[0]);
+		const synthetixAddressProvider = new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], accounts[0])
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
@@ -91,7 +97,14 @@ describe('AaveAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth, tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2)
+		aaveV2Adapter = await deployAaveV2Adapter(
+			accounts[0],
+			aaveAddressProvider,
+			controller,
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.AAVE_V2
+		)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], aaveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
@@ -106,36 +119,41 @@ describe('AaveAdapter', function () {
 		const symbol = 'TEST'
 
 		const positions = [
-			{ token: collateralToken,
+			{
+				token: collateralToken,
 				percentage: BigNumber.from(1000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['uint16'],
-	        [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-	      ),
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
 			},
-			{ token: collateralToken2,
+			{
+				token: collateralToken2,
 				percentage: BigNumber.from(1000),
 				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
 				path: [tokens.crv],
 				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['uint16'],
-	        [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-	      ),
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
 			},
-			{ token: tokens.debtUSDC,
+			{
+				token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
 				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['tuple(address token, uint16 percentage)[]'],
-	        [[
-						{ token: collateralToken, percentage: 500 },
-						{ token: collateralToken2, percentage: 500 }
-					]] //define what tokens you want to loop back on here
-	      ),
-			}
+					['tuple(address token, uint16 percentage)[]'],
+					[
+						[
+							{ token: collateralToken, percentage: 500 },
+							{ token: collateralToken2, percentage: 500 },
+						],
+					] //define what tokens you want to loop back on here
+				),
+			},
 		]
 
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
@@ -146,20 +164,12 @@ describe('AaveAdapter', function () {
 			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: WeiPerEther }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -171,8 +181,8 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -182,7 +192,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -191,7 +203,7 @@ describe('AaveAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(1000)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
@@ -202,7 +214,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const tx = await controller
+			.connect(accounts[1])
+			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -222,44 +236,53 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const tx = await controller
+			.connect(accounts[1])
+			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should fail to withdrawAll: cannot withdraw debt', async function() {
+	it('Should fail to withdrawAll: cannot withdraw debt', async function () {
 		const amount = BigNumber.from('10000000000000000')
 		expect(
-      await isRevertedWith(
-        strategy.connect(accounts[1]).withdrawAll(amount),
-      'Cannot withdraw debt', 'Strategy.sol')).to.be.true
+			await isRevertedWith(
+				strategy.connect(accounts[1]).withdrawAll(amount),
+				'Cannot withdraw debt',
+				'Strategy.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should restructure', async function () {
 		const positions = [
-			{ token: collateralToken,
+			{
+				token: collateralToken,
 				percentage: BigNumber.from(2000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['uint16'],
-	        [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-	      ),
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
 			},
-			{ token: tokens.debtUSDC,
+			{
+				token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
-	        [[
-						{ token: collateralToken, percentage: 500 },
-						{ token: collateralToken2, percentage: 0 }
-					]] //Need to keep collateralToken2 in the cache in order to deleverage it
-	      ),
-			}
+					[
+						[
+							{ token: collateralToken, percentage: 500 },
+							{ token: collateralToken2, percentage: 0 },
+						],
+					] //Need to keep collateralToken2 in the cache in order to deleverage it
+				),
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
@@ -275,7 +298,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -285,7 +310,9 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
-		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
+		const tx = await controller
+			.connect(accounts[1])
+			.withdrawETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -297,7 +324,9 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
+		const tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -317,7 +346,7 @@ describe('AaveAdapter', function () {
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
-					[500], // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
@@ -328,8 +357,8 @@ describe('AaveAdapter', function () {
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[[{ token: collateralToken, percentage: 500 }]] //define what tokens you want to loop back on here
-				)
-			}
+				),
+			},
 		]
 
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
@@ -340,20 +369,12 @@ describe('AaveAdapter', function () {
 			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: WeiPerEther }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -365,8 +386,8 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -376,7 +397,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -393,8 +416,8 @@ describe('AaveAdapter', function () {
 				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
-					["uint16"],
-					[500], // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
@@ -405,7 +428,7 @@ describe('AaveAdapter', function () {
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here),
-				)
+				),
 			},
 			{
 				token: tokens.debtWBTC,
@@ -415,8 +438,8 @@ describe('AaveAdapter', function () {
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here),
-				)
-			}
+				),
+			},
 		]
 
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
@@ -427,20 +450,12 @@ describe('AaveAdapter', function () {
 			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: WeiPerEther }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -452,8 +467,8 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -463,7 +478,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -474,45 +491,45 @@ describe('AaveAdapter', function () {
 		const symbol = 'AMBI'
 
 		const positions = [
-				{ token: collateralToken,
-						percentage: BigNumber.from(500),
-						adapters: [aaveV2Adapter.address],
-						path: [],
-						cache: ethers.utils.defaultAbiCoder.encode(
-								['uint16'],
-								[500]
-						),
-				},
-				{ token: collateralToken2,
-						percentage: BigNumber.from(1500),
-						adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-						path: [tokens.crv],
-						cache: ethers.utils.defaultAbiCoder.encode(
-								['uint16'],
-								[500]
-						),
-				},
-				{ token: tokens.debtUSDC,
-						percentage: BigNumber.from(-875),
-						adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-						path: [tokens.usdc, tokens.weth],
-						cache: ethers.utils.defaultAbiCoder.encode(
-								['tuple(address token, uint16 percentage)[]'],
-								[[
-									{ token: collateralToken, percentage: 250 },
-									{ token: collateralToken2, percentage: 500 }
-								]] //define what tokens you want to loop back on here
-						),
-				},
-				{ token: tokens.debtWBTC,
-						percentage: BigNumber.from(-125),
-						adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-						path: [tokens.wbtc, tokens.weth],
-						cache: ethers.utils.defaultAbiCoder.encode(
-								['tuple(address token, uint16 percentage)[]'],
-								[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here
-						),
-				}
+			{
+				token: collateralToken,
+				percentage: BigNumber.from(500),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(['uint16'], [500]),
+			},
+			{
+				token: collateralToken2,
+				percentage: BigNumber.from(1500),
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
+				path: [tokens.crv],
+				cache: ethers.utils.defaultAbiCoder.encode(['uint16'], [500]),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-875),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[
+						[
+							{ token: collateralToken, percentage: 250 },
+							{ token: collateralToken2, percentage: 500 },
+						],
+					] //define what tokens you want to loop back on here
+				),
+			},
+			{
+				token: tokens.debtWBTC,
+				percentage: BigNumber.from(-125),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.wbtc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here
+				),
+			},
 		]
 
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
@@ -523,20 +540,12 @@ describe('AaveAdapter', function () {
 			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
-		.connect(accounts[1])
-		.createStrategy(
-			name,
-			symbol,
-			strategyItems,
-			strategyState,
-			router.address,
-			'0x',
-			{ value: WeiPerEther }
-		)
+			.connect(accounts[1])
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -546,8 +555,8 @@ describe('AaveAdapter', function () {
 		strategy = await Strategy.attach(strategyAddress)
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -557,7 +566,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -576,15 +587,9 @@ describe('AaveAdapter', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				basicStrategyItems,
-				STRATEGY_STATE,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, basicStrategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
@@ -592,7 +597,7 @@ describe('AaveAdapter', function () {
 		let strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
 		const basicStrategy = await Strategy.attach(strategyAddress)
-    const basicStrategyToken = new Contract(await basicStrategy.token(), StrategyToken.abi, accounts[0])
+		const basicStrategyToken = new Contract(await basicStrategy.token(), StrategyToken.abi, accounts[0])
 
 		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, router, weth)
 		await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
@@ -600,43 +605,40 @@ describe('AaveAdapter', function () {
 		name = 'Debt Meta Strategy'
 		symbol = 'DMETA'
 		let positions2 = [
-			{ token: basicStrategyToken.address,
-        percentage: BigNumber.from(400),
-        adapters: [metaStrategyAdapter.address],
-        path: []
-      },
-      { token: tokens.aWETH,
-        percentage: BigNumber.from(1200),
-        adapters: [aaveV2Adapter.address],
-        path: [],
-        cache: ethers.utils.defaultAbiCoder.encode(
-          ['uint16'],
-          [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-        ),
-      },
-      { token: tokens.debtUSDC,
-        percentage: BigNumber.from(-600),
-        adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-        path: [tokens.usdc, weth.address], //ending in weth allows for a leverage feedback loop
-        cache: ethers.utils.defaultAbiCoder.encode(
+			{
+				token: basicStrategyToken.address,
+				percentage: BigNumber.from(400),
+				adapters: [metaStrategyAdapter.address],
+				path: [],
+			},
+			{
+				token: tokens.aWETH,
+				percentage: BigNumber.from(1200),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-600),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, weth.address], //ending in weth allows for a leverage feedback loop
+				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[[{ token: tokens.aWETH, percentage: 500 }]]
-        ),
-      },
+				),
+			},
 		]
 
 		let metaStrategyItems = prepareStrategy(positions2, uniswapAdapter.address)
 		tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				metaStrategyItems,
-				STRATEGY_STATE,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, metaStrategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -645,8 +647,8 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
 		await metaWrapper.deployed()
@@ -680,8 +682,8 @@ describe('AaveAdapter', function () {
 				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
-					["uint16"],
-					[500], // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
@@ -692,25 +694,22 @@ describe('AaveAdapter', function () {
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[[{ token: tokens.aWETH, percentage: 500 }]] //define what tokens you want to loop back on here),
-				)
-			}
+				),
+			},
 		]
 
 		const failItems = prepareStrategy(positions, uniswapAdapter.address)
 
 		expect(
-      await isRevertedWith(
-          strategyFactory
-          .connect(accounts[1])
-          .createStrategy(
-            name,
-            symbol,
-            failItems,
-            STRATEGY_STATE,
-            router.address,
-            '0x',
-            { value: WeiPerEther }
-          ),
-          'No synths and debt', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				strategyFactory
+					.connect(accounts[1])
+					.createStrategy(name, symbol, failItems, STRATEGY_STATE, router.address, '0x', {
+						value: WeiPerEther,
+					}),
+				'No synths and debt',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 })

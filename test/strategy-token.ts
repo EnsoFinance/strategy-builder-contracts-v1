@@ -9,7 +9,14 @@ import { expect } from 'chai'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract, Event } from 'ethers'
 import { preparePermit, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
-import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployTokens,
+	deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployLoopRouter,
+} from '../lib/deploy'
 import { isRevertedWith } from '../lib/errors'
 
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
@@ -20,7 +27,7 @@ const NUM_TOKENS = 15
 chai.use(solidity)
 describe('StrategyToken', function () {
 	let platform: Platform,
-    tokens: Contract[],
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -55,7 +62,7 @@ describe('StrategyToken', function () {
 		const StrategyFactory = await platform.getStrategyContractFactory()
 
 		const strategyImplementation = await StrategyFactory.connect(accounts[10]).deploy(
-      await (new Contract(await strategyFactory.implementation(), Strategy.abi, accounts[0])).tokenImplementation(),
+			await new Contract(await strategyFactory.implementation(), Strategy.abi, accounts[0]).tokenImplementation(),
 			strategyFactory.address,
 			controller.address,
 			AddressZero,
@@ -90,21 +97,15 @@ describe('StrategyToken', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: true
+			set: true,
 		}
 
 		amount = BigNumber.from('10000000000000000')
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				'Test Strategy',
-				'TEST',
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: amount }
-			)
+			.createStrategy('Test Strategy', 'TEST', strategyItems, strategyState, router.address, '0x', {
+				value: amount,
+			})
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -112,7 +113,7 @@ describe('StrategyToken', function () {
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(strategyAddress)
 		;[total] = await oracle.estimateStrategy(strategy.address)
-    strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
 		expect(BigNumber.from(await strategyToken.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategyToken.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
 	})
@@ -150,9 +151,9 @@ describe('StrategyToken', function () {
 
 	it('Should approve tokens', async function () {
 		await strategyToken.connect(accounts[1]).approve(accounts[2].address, amount)
-		expect(BigNumber.from(await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(amount)).to.equal(
-			true
-		)
+		expect(
+			BigNumber.from(await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(amount)
+		).to.equal(true)
 	})
 
 	it('Should fail to transferFrom tokens: zero spender', async function () {
@@ -176,9 +177,7 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to update manager: not manager', async function () {
-		await expect(
-      strategy.connect(accounts[2]).updateManager(accounts[2].address)
-    ).to.be.revertedWith('')
+		await expect(strategy.connect(accounts[2]).updateManager(accounts[2].address)).to.be.revertedWith('')
 	})
 
 	it('Should update manager', async function () {
@@ -251,9 +250,9 @@ describe('StrategyToken', function () {
 		const owner = accounts[2]
 		const spender = accounts[1]
 		const { v, r, s } = await preparePermit(strategyToken, owner, spender, BigNumber.from(1), BigNumber.from(0))
-		await expect(strategyToken.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)).to.be.revertedWith(
-			'Expired deadline'
-		)
+		await expect(
+			strategyToken.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)
+		).to.be.revertedWith('Expired deadline')
 	})
 
 	it('Should permit', async function () {
@@ -261,7 +260,7 @@ describe('StrategyToken', function () {
 		const owner = accounts[2]
 		const spender = accounts[1]
 		const deadline = BigNumber.from(constants.MaxUint256)
-		expect(await strategyToken.balanceOf(owner.address)).to.be.gte(amount);
+		expect(await strategyToken.balanceOf(owner.address)).to.be.gte(amount)
 		const { v, r, s } = await preparePermit(strategyToken, owner, spender, amount, deadline)
 		await strategyToken.connect(owner).permit(owner.address, spender.address, amount, deadline, v, r, s)
 		expect(amount.eq(await strategyToken.allowance(owner.address, spender.address))).to.equal(true)
@@ -278,11 +277,9 @@ describe('StrategyToken', function () {
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
-		expect(
-      await isRevertedWith(
-        strategy.connect(accounts[1]).withdrawAll(0),
-      '0 amount', 'Strategy.sol')).to.be.true
-  })
+		expect(await isRevertedWith(strategy.connect(accounts[1]).withdrawAll(0), '0 amount', 'Strategy.sol')).to.be
+			.true
+	})
 
 	it('Should withdraw', async function () {
 		amount = BigNumber.from('10000000000000')
@@ -294,16 +291,18 @@ describe('StrategyToken', function () {
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
 	})
 
-	it('Should fail to decrease allowance: more than allowed', async function() {
-		await expect(strategyToken.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith('ERC20: decreased allowance below zero')
+	it('Should fail to decrease allowance: more than allowed', async function () {
+		await expect(strategyToken.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith(
+			'ERC20: decreased allowance below zero'
+		)
 	})
 
-	it('Should increase allowance', async function() {
+	it('Should increase allowance', async function () {
 		await strategyToken.connect(accounts[1]).increaseAllowance(accounts[2].address, 1)
 		expect((await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(1)).to.equal(true)
 	})
 
-	it('Should decrease allowance', async function() {
+	it('Should decrease allowance', async function () {
 		await strategyToken.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)
 		expect((await strategyToken.allowance(accounts[1].address, accounts[2].address)).eq(0)).to.equal(true)
 	})
@@ -333,41 +332,41 @@ describe('StrategyToken', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: true
+			set: true,
 		}
 
-    const forManager = accounts[7]
-    const domain = {
-        name: 'StrategyProxyFactory',
-        version: '1',
-        chainId: await forManager.getChainId(),
-        verifyingContract: strategyFactory.address 
-    };
-    const types = {
-        Create: [
-            {name: 'name', type: 'string'},
-            {name: 'symbol', type: 'string'},
-        ]
-    };
+		const forManager = accounts[7]
+		const domain = {
+			name: 'StrategyProxyFactory',
+			version: '1',
+			chainId: await forManager.getChainId(),
+			verifyingContract: strategyFactory.address,
+		}
+		const types = {
+			Create: [
+				{ name: 'name', type: 'string' },
+				{ name: 'symbol', type: 'string' },
+			],
+		}
 
-    const value = {
-        name: 'Test Strategy',
-        symbol: 'TEST'
-    }
-    const signature = await forManager._signTypedData(domain, types, value)
+		const value = {
+			name: 'Test Strategy',
+			symbol: 'TEST',
+		}
+		const signature = await forManager._signTypedData(domain, types, value)
 
 		amount = BigNumber.from('10000000000000000')
 		let tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategyFor(
-        forManager.address,
-        value.name,
-        value.symbol,
-        strategyItems,
-        strategyState,
-        router.address,
-        '0x',
-        signature,
+				forManager.address,
+				value.name,
+				value.symbol,
+				strategyItems,
+				strategyState,
+				router.address,
+				'0x',
+				signature,
 				{ value: amount }
 			)
 		let receipt = await tx.wait()
@@ -377,10 +376,9 @@ describe('StrategyToken', function () {
 		const Strategy = await platform.getStrategyContractFactory()
 		const strategyFor = Strategy.attach(strategyAddress)
 
-    expect((await strategyFor.manager()).toLowerCase()).to.be.deep.equal(forManager.address.toLowerCase())
-
+		expect((await strategyFor.manager()).toLowerCase()).to.be.deep.equal(forManager.address.toLowerCase())
 		;[total] = await oracle.estimateStrategy(strategyFor.address)
-    strategyToken = new Contract(await strategyFor.token(), StrategyToken.abi, accounts[0])
+		strategyToken = new Contract(await strategyFor.token(), StrategyToken.abi, accounts[0])
 		expect(BigNumber.from(await strategyToken.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategyToken.balanceOf(forManager.address)).eq(total)).to.equal(true)
 	})

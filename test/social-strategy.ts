@@ -6,9 +6,16 @@ const hre = require('hardhat')
 const { ethers } = hre
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { isRevertedWith } from '../lib/errors'
-import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { increaseTime  } from '../lib/utils'
-import {  DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
+import {
+	Platform,
+	deployTokens,
+	deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployLoopRouter,
+} from '../lib/deploy'
+import { increaseTime } from '../lib/utils'
+import { DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers
@@ -24,13 +31,12 @@ const STRATEGY_STATE: InitialState = {
 	restructureSlippage: BigNumber.from(995),
 	managementFee: BigNumber.from(5),
 	social: true,
-	set: false
+	set: false,
 }
-
 
 describe('StrategyController - Social', function () {
 	let platform: Platform,
-    tokens: Contract[],
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -71,15 +77,11 @@ describe('StrategyController - Social', function () {
 		]
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy',
-			'TEST',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy', 'TEST', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -89,8 +91,8 @@ describe('StrategyController - Social', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -99,11 +101,13 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should deposit more', async function () {
-    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
 		const balanceBefore = await strategyToken.balanceOf(accounts[2].address)
 		const tx = await controller
 			.connect(accounts[2])
-			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategyToken.balanceOf(accounts[2].address)
@@ -158,33 +162,38 @@ describe('StrategyController - Social', function () {
 
 	it('Should fail to restructure: time lock active', async function () {
 		expect(
-      await isRevertedWith(
-        controller.connect(accounts[1]).restructure(strategy.address, [], []),
-			  'Timelock active', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				controller.connect(accounts[1]).restructure(strategy.address, [], []),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should fail to update value: time lock active', async function () {
 		expect(
-      await isRevertedWith(
-			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0),
-			    'Timelock active', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should fail to finalize structure: time lock not passed', async function () {
 		expect(
-      await isRevertedWith(
-			    controller
-          .connect(accounts[1])
-          .finalizeStructure(strategy.address, router.address, '0x'),
-			    'Timelock active', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x'),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should finalize structure', async function () {
 		await increaseTime(STRATEGY_STATE.timelock.toNumber())
 
-		await controller
-			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x')
+		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		//await displayBalances(wrapper, strategyItems, weth)
 	})
 
@@ -210,8 +219,11 @@ describe('StrategyController - Social', function () {
 	it('Should update timelock + fail to finalize: timelock active', async function () {
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0)
 		expect(
-      await isRevertedWith(
-        controller.connect(accounts[1]).finalizeValue(strategy.address),
-			  'Timelock active', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				controller.connect(accounts[1]).finalizeValue(strategy.address),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 })

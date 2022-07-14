@@ -2,7 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 //const { displayBalances } = require('../sri/logging.ts')
 import {
-  Platform,
+	Platform,
 	deployUniswapV2,
 	deploySushiswap,
 	deployTokens,
@@ -28,7 +28,7 @@ const NUM_TOKENS = 4
 
 describe('Flash Loan', function () {
 	let platform: Platform,
-    tokens: Contract[],
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -51,12 +51,7 @@ describe('Flash Loan', function () {
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
 		sushiFactory = await deploySushiswap(accounts[0], tokens)
-		platform = await deployPlatform(
-			accounts[0],
-			uniswapFactory,
-			new Contract(AddressZero, [], accounts[0]),
-			weth
-		)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -106,15 +101,9 @@ describe('Flash Loan', function () {
 
 		await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {

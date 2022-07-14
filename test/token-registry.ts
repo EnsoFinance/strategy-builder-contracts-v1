@@ -9,12 +9,7 @@ import { Contract } from 'ethers'
 import { Tokens } from '../lib/tokens'
 import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES } from '../lib/constants'
 import { prepareStrategy, InitialState } from '../lib/encode'
-import {
-  Platform,
-	deployUniswapV2Adapter,
-	deployPlatform,
-	deployLoopRouter,
-} from '../lib/deploy'
+import { Platform, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -22,7 +17,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('TokenRegistry', function () {
-  let platform: Platform
+	let platform: Platform
 
 	before('Setup Uniswap + Factory', async function () {
 		this.accounts = await getSigners()
@@ -71,9 +66,7 @@ describe('TokenRegistry', function () {
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
-		const positions = [
-			{ token: this.tokens.usdt, percentage: BigNumber.from(1000) }
-		]
+		const positions = [{ token: this.tokens.usdt, percentage: BigNumber.from(1000) }]
 		const strategyItems = prepareStrategy(positions, this.uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -86,15 +79,9 @@ describe('TokenRegistry', function () {
 		}
 		const tx = await this.factory
 			.connect(this.accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				this.router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, this.router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -136,7 +123,7 @@ describe('TokenRegistry', function () {
 			this.tokenRegistry.estimatorCategories(this.tokens.aWETH),
 			this.tokenRegistry.estimatorCategories(this.tokens.cUSDC),
 			this.tokenRegistry.itemCategories(this.tokens.aWETH),
-			this.tokenRegistry.itemCategories(this.tokens.cUSDC)
+			this.tokenRegistry.itemCategories(this.tokens.cUSDC),
 		])
 		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.AAVE_V2)
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
@@ -153,7 +140,7 @@ describe('TokenRegistry', function () {
 			this.tokenRegistry.estimatorCategories(this.tokens.aWETH),
 			this.tokenRegistry.estimatorCategories(this.tokens.cUSDC),
 			this.tokenRegistry.itemCategories(this.tokens.aWETH),
-			this.tokenRegistry.itemCategories(this.tokens.cUSDC)
+			this.tokenRegistry.itemCategories(this.tokens.cUSDC),
 		])
 		expect(results[0]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.CURVE_GAUGE)

@@ -7,7 +7,14 @@ import { solidity } from 'ethereum-waffle'
 import { expect } from 'chai'
 import { BigNumber, Contract, Event } from 'ethers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
-import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployBatchDepositRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployTokens,
+	deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployBatchDepositRouter,
+} from '../lib/deploy'
 import { displayBalances } from '../lib/logging'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -18,7 +25,7 @@ chai.use(solidity)
 
 describe('BatchDepositRouter', function () {
 	let platform: Platform,
-    tokens: Contract[],
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -72,7 +79,7 @@ describe('BatchDepositRouter', function () {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
-			{ token: tokens[2].address, percentage: BigNumber.from(500) }
+			{ token: tokens[2].address, percentage: BigNumber.from(500) },
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
 		const strategyState: InitialState = {
@@ -82,18 +89,11 @@ describe('BatchDepositRouter', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				AddressZero,
-				'0x'
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, AddressZero, '0x')
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -105,19 +105,31 @@ describe('BatchDepositRouter', function () {
 
 		await tokens[1].connect(accounts[1]).approve(router.address, MaxUint256.toString())
 		await tokens[2].connect(accounts[1]).approve(router.address, MaxUint256.toString())
-		tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, BigNumber.from('10000000000000000'), DEFAULT_DEPOSIT_SLIPPAGE, '0x')
+		tx = await controller
+			.connect(accounts[1])
+			.deposit(
+				strategy.address,
+				router.address,
+				BigNumber.from('10000000000000000'),
+				DEFAULT_DEPOSIT_SLIPPAGE,
+				'0x'
+			)
 		receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
 
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		await displayBalances(
+			wrapper,
+			strategyItems.map((item) => item.item),
+			weth
+		)
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
@@ -132,14 +144,7 @@ describe('BatchDepositRouter', function () {
 		//The following trade should increase the value of the token such that it doesn't need to be rebalanced
 		await adapter
 			.connect(accounts[2])
-			.swap(
-				value.div(4),
-				0,
-				weth.address,
-				tokens[2].address,
-				accounts[2].address,
-				accounts[2].address
-			)
+			.swap(value.div(4), 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
@@ -152,7 +157,9 @@ describe('BatchDepositRouter', function () {
 
 	it('Should fail to withdraw: router revert', async function () {
 		await expect(
-			controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, 1, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
+			controller
+				.connect(accounts[1])
+				.withdrawWETH(strategy.address, router.address, 1, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		).to.be.revertedWith('Withdraw not supported')
 	})
 
@@ -168,9 +175,7 @@ describe('BatchDepositRouter', function () {
 
 	it('Should fail to finalize structure: router revert', async function () {
 		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, '0x')
+			controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Restructure not supported')
 	})
 })

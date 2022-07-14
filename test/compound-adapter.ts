@@ -9,11 +9,11 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
-  Platform,
+	Platform,
 	deployCompoundAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
-	deployLoopRouter
+	deployLoopRouter,
 } from '../lib/deploy'
 import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 // import { displayBalances } from '../lib/logging'
@@ -25,8 +25,8 @@ import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToke
 chai.use(solidity)
 
 describe('CompoundAdapter', function () {
-	let	platform: Platform,
-    weth: Contract,
+	let platform: Platform,
+		weth: Contract,
 		usdt: Contract,
 		comp: Contract,
 		accounts: SignerWithAddress[],
@@ -65,33 +65,60 @@ describe('CompoundAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
+		compoundAdapter = await deployCompoundAdapter(
+			accounts[0],
+			new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]),
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.COMPOUND
+		)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
-    let tradeData : TradeData = {
-        adapters: [],
-        path: [],
-        cache: '0x'
-    }
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
-    tradeData.adapters.push(uniswapAdapter.address)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, comp.address, tradeData, false)
+		let tradeData: TradeData = {
+			adapters: [],
+			path: [],
+			cache: '0x',
+		}
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
+		tradeData.adapters.push(uniswapAdapter.address)
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+				comp.address,
+				tradeData,
+				false
+			)
 	})
 
 	it('Should deploy strategy', async function () {
-
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(200) },
-			{ token: tokens.cUSDT, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] },
-			{ token: tokens.cDAI, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.dai] }
+			{
+				token: tokens.cUSDT,
+				percentage: BigNumber.from(400),
+				adapters: [uniswapAdapter.address, compoundAdapter.address],
+				path: [tokens.usdt],
+			},
+			{
+				token: tokens.cDAI,
+				percentage: BigNumber.from(400),
+				adapters: [uniswapAdapter.address, compoundAdapter.address],
+				path: [tokens.dai],
+			},
 		]
-    console.log("cDAI", tokens.cDAI)
-    console.log("cUSDT", tokens.cUSDT)
-    console.log("weth", weth.address)
-    console.log("comp", comp.address)
-    console.log("compAdapter", compoundAdapter.address)
+		console.log('cDAI', tokens.cDAI)
+		console.log('cUSDT', tokens.cUSDT)
+		console.log('weth', weth.address)
+		console.log('comp', comp.address)
+		console.log('compAdapter', compoundAdapter.address)
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -100,33 +127,27 @@ describe('CompoundAdapter', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
-    strategy = await Strategy.attach(strategyAddress)
+		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -138,7 +159,7 @@ describe('CompoundAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(1000)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
@@ -176,14 +197,14 @@ describe('CompoundAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	/*it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
-	})*/
-
 	it('Should deposit more: ETH', async function () {
-    const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
+		const strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
 		const balanceBefore = await strategyToken.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategyToken.balanceOf(accounts[1].address)
@@ -192,12 +213,12 @@ describe('CompoundAdapter', function () {
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 
-    it('Should claim rewards', async function() {
-        const balanceBefore = await comp.balanceOf(strategy.address)
-        const tx = await strategy.connect(accounts[1]).claimAll()
-        const receipt = await tx.wait()
-		    console.log('Gas Used: ', receipt.gasUsed.toString())
-        const balanceAfter = await comp.balanceOf(strategy.address)
-        expect(balanceAfter).to.be.gt(balanceBefore)
-    })
+	it('Should claim rewards', async function () {
+		const balanceBefore = await comp.balanceOf(strategy.address)
+		const tx = await strategy.connect(accounts[1]).claimAll()
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await comp.balanceOf(strategy.address)
+		expect(balanceAfter).to.be.gt(balanceBefore)
+	})
 })
