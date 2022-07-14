@@ -7,7 +7,6 @@ import "./helpers/StrategyTypes.sol";
 contract StrategyStorage is StrategyTypes {
 
     // where did the deprecated storage go? see this key
-    // c means common
     // s means strategy, stays here! :)
     // t means token
 
@@ -18,10 +17,10 @@ contract StrategyStorage is StrategyTypes {
     uint256 internal DEPRECATED_totalSupply; // t
 
 
-    string internal _name; // c
-    string internal _symbol; // c
-    string internal _version; // c
-    uint8 internal _locked; // c 
+    string internal _name;
+    string internal _symbol;
+    string internal _version;
+    uint8 internal _locked;
 
 
     uint224 internal DEPRECATED_streamingFeeRate; // t
@@ -36,11 +35,11 @@ contract StrategyStorage is StrategyTypes {
     mapping(address => uint256) internal DEPRECATED_paidTokenValues; // t
 
 
-    address internal _manager; // c 
-    address internal _pool; // c
-    address internal _oracle; // c
-    address internal _weth; // c
-    address internal _susd; // c
+    address internal _manager;
+    address internal _pool;
+    address internal _oracle;
+    address internal _weth;
+    address internal _susd;
 
 
     address internal _tempRouter; // s
