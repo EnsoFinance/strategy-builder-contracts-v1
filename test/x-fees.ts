@@ -173,7 +173,7 @@ describe('StrategyToken Fees', function () {
 
 	it('Should deposit', async function () {
 		const balanceBefore = await strategyToken.balanceOf(accounts[10].address)
-		const tx = await controller.connect(accounts[10]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
+		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: BigNumber.from('10000000000000000') })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategyToken.balanceOf(accounts[10].address)
@@ -244,13 +244,13 @@ describe('StrategyToken Fees', function () {
 	})
 
 	it('Should withdraw tokens (including pool tokens)', async function () {
-		const user = accounts[4]
-		
+    const user = accounts[4]
 		const ownerBalance =  await strategyToken.balanceOf(owner.address)
 		const amount = ownerBalance.mul(10)
 
 		const userBalanceBefore = await weth.balanceOf(user.address)
 		const ownerBalanceBefore = await weth.balanceOf(owner.address)
+    
 
 		const tx = await controller.connect(user).withdrawWETH(strategy.address, router.address, amount, '0', '0x')
 		const receipt = await tx.wait()
