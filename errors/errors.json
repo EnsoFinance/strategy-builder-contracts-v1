@@ -22,6 +22,10 @@
     "contractName": "StrategyCommon.sol"
   },
   {
+    "contractId": "d9d66e1fdb10",
+    "contractName": "StrategyCommonStorage.sol"
+  },
+  {
     "contractId": "1bb63a90056c",
     "contractName": "StrategyController.sol",
     "errorcodes": {
@@ -73,6 +77,10 @@
   {
     "contractId": "89b89b5bfe68",
     "contractName": "StrategyProxyFactoryStorage.sol"
+  },
+  {
+    "contractId": "9e49e2fd4c92",
+    "contractName": "StrategyStorage.sol"
   },
   {
     "contractId": "90dae108da2b",
@@ -571,12 +579,22 @@
     "contractName": "NonfungibleTokenPositionDescriptor.sol"
   },
   {
-    "contractId": "6552d16b6572",
-    "contractName": "OtherStrategyToken.sol"
+    "contractId": "5ad92c6b7990",
+    "contractName": "OtherStrategy.sol",
+    "errorcodes": {
+      "5ad92c6b799000": "finalizeTimelock: timelock is not ready.",
+      "5ad92c6b799001": "Router only",
+      "5ad92c6b799002": "Cannot withdraw debt",
+      "5ad92c6b799003": "0 amount",
+      "5ad92c6b799004": "Not approved",
+      "5ad92c6b799005": "Manager already set",
+      "5ad92c6b799006": "finalizeUpdateTradeData: timelock not ready.",
+      "5ad92c6b799007": "Only StrategyProxyFactory"
+    }
   },
   {
-    "contractId": "293a87da37d9",
-    "contractName": "OtherStrategyTokenStorage.sol"
+    "contractId": "3516ccd5123f",
+    "contractName": "OtherStrategyStorage.sol"
   },
   {
     "contractId": "6779583eaf18",

@@ -220,7 +220,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
     function finalizeTimelock() external override {
         if (!_timelockIsReady(this.updateTimelock.selector)) {
             TimelockData memory td = _timelockData(this.updateTimelock.selector);
-            _require(td.delay == 0, uint256(0xb3e5dea2190e00) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
+            _require(td.delay == 0, uint256(0x5ad92c6b799000) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
         }
         (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(this.updateTimelock.selector), (bytes4, uint256));
         _setTimelock(selector, delay);
@@ -229,7 +229,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
     }
 
     function setCollateral(address token) external override {
-        _require(msg.sender == _tempRouter, uint256(0xb3e5dea2190e01) /* error_macro_for("Router only") */);
+        _require(msg.sender == _tempRouter, uint256(0x5ad92c6b799001) /* error_macro_for("Router only") */);
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
@@ -239,8 +239,8 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
      */
     function withdrawAll(uint256 amount) external override {
         _setLock();
-        _require(_debt.length == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("Cannot withdraw debt") */);
-        _require(amount > 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
+        _require(_debt.length == 0, uint256(0x5ad92c6b799002) /* error_macro_for("Cannot withdraw debt") */);
+        _require(amount > 0, uint256(0x5ad92c6b799003) /* error_macro_for("0 amount") */);
         settleSynths();
         uint256 percentage;
         {
@@ -304,7 +304,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
     ) external override {
         _onlyController();
         // Note: No reentrancy lock since only callable by repositionSynths function in controller which already locks
-        _require(whitelist().approved(adapter), uint256(0xb3e5dea2190e04) /* error_macro_for("Not approved") */);
+        _require(whitelist().approved(adapter), uint256(0x5ad92c6b799004) /* error_macro_for("Not approved") */);
         bytes memory swapData =
             abi.encodeWithSelector(
                 IBaseAdapter.swap.selector,
@@ -362,7 +362,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
         address manager = _manager;
         address pool = _pool;
         _token.issueStreamingFee(pool, manager);
-        _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
+        _require(newManager != manager, uint256(0x5ad92c6b799005) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _token.setPaidTokenValue(manager, uint256(-2)); // means "_lastTokenValue"
         _token.setPaidTokenValue(newManager, uint256(-1));
@@ -385,7 +385,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
     }
 
     function finalizeUpdateTradeData() external {
-        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
+        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0x5ad92c6b799006) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
         _resetTimelock(this.updateTradeData.selector);
@@ -396,7 +396,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
+        _require(msg.sender == _factory, uint256(0x5ad92c6b799007) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _updateToken(newVersion);
     }
