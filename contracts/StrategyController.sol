@@ -37,6 +37,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     event StrategyOpen(address indexed strategy);
     event StrategySet(address indexed strategy);
 
+    // hack! these events are called in the `ControllerLibrary`
+    // but cannot be tracked unless they are defined here!
+    event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
+    event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+
     // Initialize constructor to disable implementation
     constructor(address factory_) public initializer {
         factory = factory_;
