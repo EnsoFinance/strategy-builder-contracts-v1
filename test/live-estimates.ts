@@ -18,7 +18,7 @@ import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToke
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { WeiPerEther, AddressZero, MaxUint256 } = constants
+const { WeiPerEther, AddressZero } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
@@ -120,9 +120,10 @@ describe('Live Estimates', function () {
 			AddressZero,
 			MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
 		)
+		const version = await strategyFactory.callStatic.version()
 		await strategyFactory
 			.connect(await impersonate(await strategyFactory.owner()))
-			.updateImplementation(newImplementation.address, MaxUint256.toString())
+			.updateImplementation(newImplementation.address, (version + 1).toString())
 
 		let admin = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')

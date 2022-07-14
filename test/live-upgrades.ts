@@ -11,7 +11,7 @@ import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/St
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { MaxUint256, /*WeiPerEther,*/ AddressZero } = constants
+const { AddressZero } = constants
 
 async function impersonate(address: string): Promise<SignerWithAddress> {
 	await network.provider.request({
@@ -57,9 +57,11 @@ describe('Live Upgrades', function () {
 			AddressZero
 		)
 
+		const version = await strategyFactory.callStatic.version()
+
 		await strategyFactory
 			.connect(await impersonate(await strategyFactory.owner()))
-			.updateImplementation(newImplementation.address, MaxUint256.toString())
+			.updateImplementation(newImplementation.address, (version + 1).toString())
 
 		let admin = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
