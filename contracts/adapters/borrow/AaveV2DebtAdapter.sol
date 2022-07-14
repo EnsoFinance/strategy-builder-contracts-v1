@@ -57,11 +57,12 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
 
         } else if (tokenIn == address(0)) {
             // tokenIn is collateral pool meaning we are taking out loan
+            uint256 beforeBalance = IERC20(tokenOut).balanceOf(address(this));
             uint256 received = _convert(amount, weth, tokenOut); // lendingPool is valued in weth
-            require(received >= expected, "Insufficient tokenOut amount");
-
             ILendingPool(lendingPool).borrow(tokenOut, received, 1, 0, from);
-
+            uint256 afterBalance = IERC20(tokenOut).balanceOf(address(this));
+            received = afterBalance.sub(beforeBalance);
+            require(received >= expected, "Insufficient tokenOut amount");
             if (to != address(this))
                 IERC20(tokenOut).safeTransfer(to, received);
         } else {
