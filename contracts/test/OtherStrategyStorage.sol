@@ -17,11 +17,13 @@ contract OtherStrategyStorage is StrategyTypes {
     mapping(address => uint256) internal DEPRECATED_balances; // t
     mapping(address => uint256) internal DEPRECATED_nonces; // t
     uint256 internal DEPRECATED_totalSupply; // t
-    string internal DEPRECATED_name; // c
-    string internal DEPRECATED_symbol; // c
-    string internal DEPRECATED_version; // c
 
-    uint8 internal DEPRECATED_locked; // c 
+
+    string internal _name; // c
+    string internal _symbol; // c
+    string internal _version; // c
+    uint8 internal _locked; // c 
+
     uint224 internal DEPRECATED_streamingFeeRate; // t
     uint16 internal DEPRECATED_performanceFee; // t
 
@@ -31,11 +33,12 @@ contract OtherStrategyStorage is StrategyTypes {
     uint128 internal DEPRECATED_lastTokenValue; // t
     mapping(address => uint256) internal DEPRECATED_paidTokenValues; // t
 
-    address internal DEPRECATED_manager; // c 
-    address internal DEPRECATED_pool; // c
-    address internal DEPRECATED_oracle; // c
-    address internal DEPRECATED_weth; // c
-    address internal DEPRECATED_susd; // c
+    address internal _manager; // c 
+    address internal _pool; // c
+    address internal _oracle; // c
+    address internal _weth; // c
+    address internal _susd; // c
+
 
     address internal _tempRouter; // s
     address[] internal _items; // s

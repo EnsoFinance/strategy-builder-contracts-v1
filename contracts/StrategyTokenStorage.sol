@@ -21,7 +21,8 @@ contract StrategyTokenStorage {
     uint256 internal _managementFee;
     uint256 internal _managementFeeRate;
 
-    address internal _strategy; // t
+    address internal _strategy;
     
-    // note: this token ISN'T upgradeable
+    // Gap for future storage changes
+    uint256[50] private __gap; // in case this is behind a proxy
 }

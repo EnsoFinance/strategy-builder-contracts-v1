@@ -10,6 +10,7 @@ import "./libraries/MemoryMappings.sol";
 import "./libraries/StrategyClaim.sol";
 import "./interfaces/IBaseAdapter.sol";
 import "./interfaces/IStrategy.sol";
+import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
@@ -20,7 +21,6 @@ import "./interfaces/aave/IDebtToken.sol";
 import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
 import "./helpers/Clones.sol";
-import "./StrategyCommon.sol";
 import "./StrategyStorage.sol";
 
 interface ISynthetixAddressResolver {
@@ -35,11 +35,17 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, StrategyCommon, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
     using MemoryMappings for BinaryTreeWithPayload.Tree;
+
+    uint256 internal constant PRECISION = 10**18;
+
+    address internal immutable _factory;
+    address internal immutable _controller;
+
     IStrategyToken public immutable _tokenImplementation;
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
@@ -51,10 +57,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, StrategyCo
     event AccountMigrated(address indexed account, uint256 indexed balance);
 
     // Initialize constructor to disable implementation
-    constructor(address token_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
+    constructor(address token_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
+        _tokenImplementation = IStrategyToken(token_);
+        _factory = factory_;
+        _controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
         aaveResolver = IAaveAddressResolver(aaveResolver_);
-        _tokenImplementation = IStrategyToken(token_);
     }
 
     /**
@@ -101,16 +109,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, StrategyCo
             DEPRECATED_managementFeeRate
         );
         DEPRECATED_DOMAIN_SEPARATOR = bytes32(uint256(-1));
-
-        // common
-        _name = DEPRECATED_name;
-        _symbol = DEPRECATED_symbol;
-        _version = DEPRECATED_version;
-        _manager = DEPRECATED_manager; 
-        _pool = DEPRECATED_pool;
-        _oracle = DEPRECATED_oracle;
-        _weth = DEPRECATED_weth;
-        _susd = DEPRECATED_susd; 
     }
 
     function migrateAccount(address account) external override {
@@ -414,8 +412,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, StrategyCo
     }
 
     function updateAddresses() public {
-        function(bytes memory)[] memory callbacks;
-        _updateAddresses(callbacks);
+        _updateAddresses();
     }
 
     function updateClaimables() public {
@@ -598,5 +595,50 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, StrategyCo
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
         return __timelockData[functionSelector];
+    }
+
+    /**
+        @notice Refresh Strategy's addresses
+     */
+    function _updateAddresses() internal {
+        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        address newPool = f.pool();
+        address currentPool = _pool;
+        if (newPool != currentPool) {
+            _pool = newPool;
+        }
+        address o = f.oracle();
+        if (o != _oracle) {
+            IOracle ensoOracle = IOracle(o);
+            _oracle = o;
+            _weth = ensoOracle.weth();
+            _susd = ensoOracle.susd();
+        }
+    }
+
+    /**
+     * @dev Throws if called by any account other than the controller.
+     */
+    function _onlyController() internal {
+        if (msg.sender != _controller) revert("Controller only");
+    }
+
+    function _onlyManager() internal view {
+        if (msg.sender != _manager) revert("Not manager");
+    }
+
+    /**
+     * @notice Sets Reentrancy guard
+     */
+    function _setLock() internal {
+        if (_locked % 2 == 1) revert("No Reentrancy");
+        _locked = 1;
+    }
+
+    /**
+     * @notice Removes reentrancy guard.
+     */
+    function _removeLock() internal {
+        _locked = 2;
     }
 }
