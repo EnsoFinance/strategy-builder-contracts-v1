@@ -239,11 +239,6 @@ describe('StrategyProxyFactory', function () {
       MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
       MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,]
     )
-    /*const OtherStrategy = await getContractFactory('OtherStrategy', {
-
-    })*/
-    //let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress);
-
     await strategyFactory.connect(accounts[2]).updateImplementation(otherStrategyImplementation.address, '2');
     let admin = await strategyFactory.admin();
     const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
