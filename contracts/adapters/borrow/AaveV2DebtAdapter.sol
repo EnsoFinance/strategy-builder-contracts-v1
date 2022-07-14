@@ -44,17 +44,18 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
                 require(afterBalance > beforeBalance, "No tokens transferred to adapter");
                 amount = afterBalance - beforeBalance;
             }
-            IERC20(tokenIn).safeApprove(lendingPool, amount);
+            if (IERC20(tokenIn).allowance(address(this), lendingPool) > 0)
+                  IERC20(tokenIn).sortaSafeApprove(lendingPool, 0);
+            IERC20(tokenIn).sortaSafeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
             uint256 remaining = IERC20(tokenIn).allowance(address(this), lendingPool);
             if (remaining > 0) {
                 // Usually wouldn't allow a swap to succeed without spending all sent funds,
                 // but debt is a special case, so just return any remaining funds to the sender
-                IERC20(tokenIn).safeApprove(lendingPool, 0);
+                IERC20(tokenIn).sortaSafeApprove(lendingPool, 0);
                 if (from != address(this))
                     IERC20(tokenOut).safeTransfer(from, remaining);
             }
-
         } else if (tokenIn == address(0)) {
             // tokenIn is collateral pool meaning we are taking out loan
             uint256 beforeBalance = IERC20(tokenOut).balanceOf(address(this));

@@ -100,7 +100,9 @@ contract CurveLPAdapter is BaseAdapter {
         address pool,
         address[8] memory coins
     ) internal {
-        IERC20(tokenIn).safeApprove(pool, amount);
+        if (IERC20(tokenIn).allowance(address(this), pool) > 0)
+              IERC20(tokenIn).sortaSafeApprove(pool, 0);
+        IERC20(tokenIn).sortaSafeApprove(pool, amount);
         uint256 coinsInPool;
         uint256 tokenIndex = 8; //Outside of possible index range. If index not found function will fail
         for (uint256 i = 0; i < 8; i++) {
@@ -145,8 +147,11 @@ contract CurveLPAdapter is BaseAdapter {
             }
         }
 
-        if (zap != pool)
-            IERC20(tokenIn).safeApprove(zap, amount);
+        if (zap != pool) {
+            if (IERC20(tokenIn).allowance(address(this), zap) > 0)
+                  IERC20(tokenIn).sortaSafeApprove(zap, 0);
+            IERC20(tokenIn).sortaSafeApprove(zap, amount);
+        }
 
         uint256 indexType = zapRegistry.getIndexType(zap);
         if (indexType == 0) { //int128

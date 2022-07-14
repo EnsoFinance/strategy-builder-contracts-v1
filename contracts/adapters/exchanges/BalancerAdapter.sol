@@ -90,9 +90,9 @@ contract BalancerAdapter is BaseAdapter {
             PoolInterface pool = PoolInterface(_swap.pool);
 
             if (SwapTokenIn.allowance(address(this), _swap.pool) != 0) {
-                SwapTokenIn.safeApprove(_swap.pool, 0);
+                SwapTokenIn.sortaSafeApprove(_swap.pool, 0);
             }
-            SwapTokenIn.safeApprove(_swap.pool, _swap.swapAmount);
+            SwapTokenIn.sortaSafeApprove(_swap.pool, _swap.swapAmount);
 
             (uint tokenAmountOut,) = pool.swapExactAmountIn(
                                         _swap.tokenIn,

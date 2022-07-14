@@ -41,12 +41,13 @@ contract MetaStrategyAdapter is BaseAdapter {
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
 
         if (tokenIn == weth) {
-            if(address(router) != address(this))
-                IERC20(tokenIn).safeApprove(address(router), amount);
+            if(address(router) != address(this)) {
+                if (IERC20(tokenIn).allowance(address(this), address(router)) > 0)
+                      IERC20(tokenIn).sortaSafeApprove(address(router), 0);
+                IERC20(tokenIn).sortaSafeApprove(address(router), amount);
+            }
             //Assumes the use of LoopRouter when depositing tokens
             controller.deposit(IStrategy(tokenOut), router, amount, DEFAULT_SLIPPAGE, "0x");
-            if(address(router) != address(this))
-                IERC20(tokenIn).safeApprove(address(router), 0);
         }
 
         if (tokenOut == weth)

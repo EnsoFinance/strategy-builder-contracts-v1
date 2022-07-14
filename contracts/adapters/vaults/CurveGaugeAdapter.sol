@@ -30,7 +30,9 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
             ICurveGauge gauge = ICurveGauge(tokenOut);
             require(gauge.lp_token() == tokenIn, "Incompatible");
             amount = _takeTokens(from, tokenIn, amount);
-            IERC20(tokenIn).safeApprove(tokenOut, amount);
+            if (IERC20(tokenIn).allowance(address(this), tokenOut) > 0)
+                  IERC20(tokenIn).sortaSafeApprove(tokenOut, 0);
+            IERC20(tokenIn).sortaSafeApprove(tokenOut, amount);
             gauge.deposit(amount, address(this));
         } else {
             require(_checkToken(tokenIn), "No Curve Gauge token");

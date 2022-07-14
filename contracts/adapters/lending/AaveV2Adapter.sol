@@ -50,7 +50,9 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
         if (_checkToken(tokenOut)) {
             require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");
             address lendingPool = addressesProvider.getLendingPool();
-            IERC20(tokenIn).safeApprove(lendingPool, amount);
+            if (IERC20(tokenIn).allowance(address(this), lendingPool) > 0)
+                  IERC20(tokenIn).sortaSafeApprove(lendingPool, 0);
+            IERC20(tokenIn).sortaSafeApprove(lendingPool, amount);
             ILendingPool(lendingPool).deposit(tokenIn, amount, to, 0);
             if (strategyController.initialized(to)) {
                 //Add as collateral if strategy supports debt

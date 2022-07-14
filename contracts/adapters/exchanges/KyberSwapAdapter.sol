@@ -49,7 +49,9 @@ contract KyberSwapAdapter is BaseAdapter {
         path[0] = IERC20(tokenIn);
         path[1] = IERC20(tokenOut);
         // Approve and swap
-        IERC20(tokenIn).safeApprove(address(dmmRouter), amount);
+        if (IERC20(tokenIn).allowance(address(this), address(dmmRouter)) > 0)
+              IERC20(tokenIn).sortaSafeApprove(address(dmmRouter), 0);
+        IERC20(tokenIn).sortaSafeApprove(address(dmmRouter), amount);
         dmmRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             amount,
             expected,
