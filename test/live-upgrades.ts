@@ -60,6 +60,20 @@ describe('Live Upgrades', function () {
     ).upgrade(eDPI.address);
 	})
 
+	it('Should be initialized.', async function() {
+      /*
+       * if the latest `Strategy` implementation incorrectly updates storage
+       * then the deployed instance would incorrectly (and dangerously) 
+       * not be deemed initialized.
+       */
+
+      // now call initialize
+      const someMaliciousAddress = accounts[8].address;
+      await expect(
+        eDPI.initialize("anyName", "anySymbol", "anyVersion", someMaliciousAddress, [])
+      ).to.be.revertedWith("Initializable: contract is already initialized");
+  })
+
 	it('Should updateTradeData respecting timelock', async function() {
     // first manager must setup the timelock
     let updateTradeDataSelector = eDPI.interface.getSighash("updateTradeData")
