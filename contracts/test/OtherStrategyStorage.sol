@@ -7,9 +7,7 @@ import "../helpers/StrategyTypes.sol";
 contract OtherStrategyStorage is StrategyTypes {
 
     // where did the deprecated storage go? see this key
-    // c means common
-    // s means strategy, stays here! :)
-    // t means token
+     means common
 
     bytes32 public DEPRECATED_DOMAIN_SEPARATOR; // t
 
@@ -19,41 +17,41 @@ contract OtherStrategyStorage is StrategyTypes {
     uint256 internal DEPRECATED_totalSupply; // t
 
 
-    string internal _name; // c
-    string internal _symbol; // c
-    string internal _version; // c
-    uint8 internal _locked; // c 
+    string internal _name; 
+    string internal _symbol; 
+    string internal _version; 
+    uint8 internal _locked;  
 
     uint224 internal DEPRECATED_streamingFeeRate; // t
     uint16 internal DEPRECATED_performanceFee; // t
 
-    uint16 internal _rebalanceThreshold; // s
+    uint16 internal _rebalanceThreshold; 
 
     uint96 internal DEPRECATED_lastStreamTimestamp; // t
     uint128 internal DEPRECATED_lastTokenValue; // t
     mapping(address => uint256) internal DEPRECATED_paidTokenValues; // t
 
-    address internal _manager; // c 
-    address internal _pool; // c
-    address internal _oracle; // c
-    address internal _weth; // c
-    address internal _susd; // c
+    address internal _manager;  
+    address internal _pool; 
+    address internal _oracle; 
+    address internal _weth; 
+    address internal _susd; 
 
 
-    address internal _tempRouter; // s
-    address[] internal _items; // s
-    address[] internal _synths; // s
-    address[] internal _debt; // s
-    mapping(address => int256) internal _percentage; // s
-    mapping(address => TradeData) internal _tradeData; // s
-    mapping(bytes4 => TimelockData) internal __timelockData; // s
+    address internal _tempRouter; 
+    address[] internal _items; 
+    address[] internal _synths; 
+    address[] internal _debt; 
+    mapping(address => int256) internal _percentage; 
+    mapping(address => TradeData) internal _tradeData; 
+    mapping(bytes4 => TimelockData) internal __timelockData; 
 
     uint256 internal DEPRECATED_managementFee; // t
     uint256 internal DEPRECATED_managementFeeRate; // t
 
-    bytes[] internal _claimables; // s
+    bytes[] internal _claimables; 
 
-    IStrategyToken internal _token; // s
+    IStrategyToken internal _token; 
 
     // New storage slots
     uint256[2] public OTHERVARIABLES;

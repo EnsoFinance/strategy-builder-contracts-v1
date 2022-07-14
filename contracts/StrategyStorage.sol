@@ -7,7 +7,6 @@ import "./helpers/StrategyTypes.sol";
 contract StrategyStorage is StrategyTypes {
 
     // where did the deprecated storage go? see this key
-    // s means strategy, stays here! :)
     // t means token
 
     bytes32 public DEPRECATED_DOMAIN_SEPARATOR; // t
@@ -27,7 +26,7 @@ contract StrategyStorage is StrategyTypes {
     uint16 internal DEPRECATED_performanceFee; // t
 
     
-    uint16 internal _rebalanceThreshold; // s
+    uint16 internal _rebalanceThreshold;
 
 
     uint96 internal DEPRECATED_lastStreamTimestamp; // t
@@ -42,21 +41,21 @@ contract StrategyStorage is StrategyTypes {
     address internal _susd;
 
 
-    address internal _tempRouter; // s
-    address[] internal _items; // s
-    address[] internal _synths; // s
-    address[] internal _debt; // s
-    mapping(address => int256) internal _percentage; // s
-    mapping(address => TradeData) internal _tradeData; // s
-    mapping(bytes4 => TimelockData) internal __timelockData; // s
+    address internal _tempRouter;
+    address[] internal _items;
+    address[] internal _synths;
+    address[] internal _debt;
+    mapping(address => int256) internal _percentage;
+    mapping(address => TradeData) internal _tradeData;
+    mapping(bytes4 => TimelockData) internal __timelockData;
 
 
     uint256 internal DEPRECATED_managementFee; // t
     uint256 internal DEPRECATED_managementFeeRate; // t
 
 
-    bytes[] internal _claimables; // s
-    IStrategyToken internal _token; // s
+    bytes[] internal _claimables;
+    IStrategyToken internal _token;
 
     // Gap for future storage changes
     uint256[45] private __gap;
