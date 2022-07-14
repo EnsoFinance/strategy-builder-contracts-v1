@@ -63,6 +63,7 @@ function getNetworks(): NetworksUserConfig {
 		if (mnemonic)
 			networks.hardhat.accounts = {
 				mnemonic,
+				accountsBalance: '100000000000000000000000000',
 			}
 		if (archiveNode)
 			networks.hardhat.forking = {
