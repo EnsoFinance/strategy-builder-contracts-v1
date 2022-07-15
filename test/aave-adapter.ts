@@ -26,7 +26,7 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
-
+  
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {
