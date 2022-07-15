@@ -18,6 +18,7 @@ const { AddressZero, MaxUint256, WeiPerEther } = constants
 import { createLink, linkBytecode } from '../lib/link'
 
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+import ClonableTransparentUpgradeableProxy from '../artifacts/contracts/helpers/ClonableTransparentUpgradeableProxy.sol/ClonableTransparentUpgradeableProxy.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import OtherStrategy from '../artifacts/contracts/test/OtherStrategy.sol/OtherStrategy.json'
 
@@ -251,8 +252,13 @@ describe('StrategyProxyFactory', function () {
 			strategyFactory.address,
 			controller.address,
 		])
+		const clonableTransparentUpgradeableProxy = await waffle.deployContract(
+			accounts[0],
+			ClonableTransparentUpgradeableProxy,
+			[strategyToken.address, AddressZero]
+		) // second parameter would be manager but is reset when cloned
 		const otherStrategyImplementation = await waffle.deployContract(accounts[0], strategyLinked, [
-			strategyToken.address,
+			clonableTransparentUpgradeableProxy.address,
 			strategyFactory.address,
 			controller.address,
 			MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,

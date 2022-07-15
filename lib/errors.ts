@@ -69,7 +69,7 @@ export async function isRevertedWith(p: Promise<any>, errMsg: string, contractFi
       await p
     } catch (e: any) {
         let err = e.toString()
-        // console.log(err) // debugging
+        //console.log("Debug: ", err) // debugging
         isRevert = err.includes("reverted with reason string")
         if (isRevert) {
             let revertString = err.replace(/.*reverted with reason string '/g, "")

@@ -13,6 +13,7 @@ import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
+import "./interfaces/IClonableTransparentUpgradeableProxy.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
 import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
@@ -46,7 +47,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializa
     address internal immutable _factory;
     address internal immutable _controller;
 
-    IStrategyToken public immutable _tokenImplementation;
+    IClonableTransparentUpgradeableProxy public immutable _tokenImplementationProxy;
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
 
@@ -57,8 +58,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializa
     event AccountMigrated(address indexed account, uint256 indexed balance);
 
     // Initialize constructor to disable implementation
-    constructor(address token_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
-        _tokenImplementation = IStrategyToken(token_);
+    constructor(address tokenProxy_, address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer {
+        _tokenImplementationProxy = IClonableTransparentUpgradeableProxy(tokenProxy_);
         _factory = factory_;
         _controller = controller_;
         synthetixResolver = ISynthetixAddressResolver(synthetixResolver_);
@@ -424,8 +425,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializa
         emit ClaimablesUpdated();
     }
 
-    function tokenImplementation() external view override returns(IStrategyToken) {
-        return _tokenImplementation;
+    function tokenImplementationProxy() external view override returns(address) {
+        return address(_tokenImplementationProxy);
     }
 
     function token() external view override returns(IStrategyToken) {
@@ -435,7 +436,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializa
 
     function predictTokenAddress(string memory version) external view override returns(address) {
         bytes32 salt = keccak256(abi.encode(address(this), version));
-        return Clones.predictDeterministicAddress(address(_tokenImplementation), salt, address(this));
+        return Clones.predictDeterministicAddress(address(_tokenImplementationProxy), salt, address(this));
     }
 
     function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
@@ -504,7 +505,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyStorage, Initializa
 
     function _updateToken(string memory version) private {
         bytes32 salt = keccak256(abi.encode(address(this), version));
-        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
+        address tokenImplementation = _tokenImplementationProxy.getImplementation();
+        _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementationProxy), salt));
+        IClonableTransparentUpgradeableProxy(address(_token)).initialize(tokenImplementation, _manager);
         _token.initialize(_name, _symbol, _version, _manager, DEPRECATED_totalSupply, DEPRECATED_lastTokenValue);
     }
 

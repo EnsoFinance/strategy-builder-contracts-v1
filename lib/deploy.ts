@@ -66,6 +66,8 @@ const { ethers, waffle } = hre
 const { constants, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
 
+import ClonableTransparentUpgradeableProxy from '../artifacts/contracts/helpers/ClonableTransparentUpgradeableProxy.sol/ClonableTransparentUpgradeableProxy.json'
+
 export type Oracles = {
 	ensoOracle: Contract
 	protocols: {
@@ -391,11 +393,14 @@ export async function deployPlatform(
   const strategyToken = await waffle.deployContract(owner, StrategyToken, [factoryAddress, controllerAddress])
   await strategyToken.deployed()
 
+  const clonableTransparentUpgradeableProxy = await waffle.deployContract(owner, ClonableTransparentUpgradeableProxy, [strategyToken.address, AddressZero]) // second parameter would be manager but is reset when cloned
+  await clonableTransparentUpgradeableProxy.deployed()
+
 	const strategyImplementation = await waffle.deployContract(
     owner, 
     strategyLinked,
     [
-    strategyToken.address,
+    clonableTransparentUpgradeableProxy.address,
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,

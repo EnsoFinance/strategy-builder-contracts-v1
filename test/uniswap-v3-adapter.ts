@@ -19,6 +19,7 @@ import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Qu
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
+import ClonableTransparentUpgradeableProxy from '../artifacts/contracts/helpers/ClonableTransparentUpgradeableProxy.sol/ClonableTransparentUpgradeableProxy.json'
 
 const NUM_TOKENS = 3
 
@@ -159,8 +160,13 @@ describe('UniswapV3Adapter', function () {
 		})
 
 		const strategyToken = await waffle.deployContract(owner, StrategyToken, [factoryAddress, controllerAddress])
+		const clonableTransparentUpgradeableProxy = await waffle.deployContract(
+			accounts[0],
+			ClonableTransparentUpgradeableProxy,
+			[strategyToken.address, AddressZero]
+		) // second parameter would be manager but is reset when cloned
 		const strategyImplementation = await StrategyContractFactory.connect(owner).deploy(
-			strategyToken.address,
+			clonableTransparentUpgradeableProxy.address,
 			factoryAddress,
 			controllerAddress,
 			AddressZero,

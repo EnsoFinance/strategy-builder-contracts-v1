@@ -939,7 +939,9 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther })
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
 		).to.be.revertedWith('')
 
 		tx = await strategyFactory
@@ -950,7 +952,9 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther })
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
 		).to.be.revertedWith('')
 
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
@@ -964,7 +968,9 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther })
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
 		).to.emit(controller, 'Deposit')
 	})
 

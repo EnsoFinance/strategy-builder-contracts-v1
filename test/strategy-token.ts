@@ -62,7 +62,11 @@ describe('StrategyToken', function () {
 		const StrategyFactory = await platform.getStrategyContractFactory()
 
 		const strategyImplementation = await StrategyFactory.connect(accounts[10]).deploy(
-			await new Contract(await strategyFactory.implementation(), Strategy.abi, accounts[0]).tokenImplementation(),
+			await new Contract(
+				await strategyFactory.implementation(),
+				Strategy.abi,
+				accounts[0]
+			).tokenImplementationProxy(),
 			strategyFactory.address,
 			controller.address,
 			AddressZero,

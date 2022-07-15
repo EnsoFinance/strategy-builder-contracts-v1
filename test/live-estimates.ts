@@ -16,6 +16,7 @@ import StrategyController from '../artifacts/contracts/StrategyController.sol/St
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToken.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import ClonableTransparentUpgradeableProxy from '../artifacts/contracts/helpers/ClonableTransparentUpgradeableProxy.sol/ClonableTransparentUpgradeableProxy.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
@@ -113,8 +114,14 @@ describe('Live Estimates', function () {
 			strategyFactory.address,
 			controller.address,
 		])
+		const clonableTransparentUpgradeableProxy = await waffle.deployContract(
+			accounts[0],
+			ClonableTransparentUpgradeableProxy,
+			[strategyToken.address, AddressZero]
+		) // second parameter would be manager but is reset when cloned
+		await clonableTransparentUpgradeableProxy.deployed()
 		const newImplementation = await Strategy.deploy(
-			strategyToken.address,
+			clonableTransparentUpgradeableProxy.address,
 			strategyFactory.address,
 			controller.address,
 			AddressZero,

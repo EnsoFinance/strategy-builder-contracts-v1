@@ -67,7 +67,11 @@ describe('StrategyProxyAdmin', function () {
 		const StrategyFactory = await platform.getStrategyContractFactory()
 
 		newImplementation = await StrategyFactory.deploy(
-			await new Contract(await strategyFactory.implementation(), Strategy.abi, accounts[0]).tokenImplementation(),
+			await new Contract(
+				await strategyFactory.implementation(),
+				Strategy.abi,
+				accounts[0]
+			).tokenImplementationProxy(),
 			strategyFactory.address,
 			controller.address,
 			AddressZero,

@@ -13,6 +13,8 @@ import StrategyToken from '../artifacts/contracts/StrategyToken.sol/StrategyToke
 const { constants, getSigners, getContractFactory } = ethers
 const { AddressZero } = constants
 
+import ClonableTransparentUpgradeableProxy from '../artifacts/contracts/helpers/ClonableTransparentUpgradeableProxy.sol/ClonableTransparentUpgradeableProxy.json'
+
 async function impersonate(address: string): Promise<SignerWithAddress> {
 	await network.provider.request({
 		method: 'hardhat_impersonateAccount',
@@ -49,8 +51,15 @@ describe('Live Upgrades', function () {
 			strategyFactory.address,
 			controller.address,
 		])
+		const clonableTransparentUpgradeableProxy = await waffle.deployContract(
+			accounts[0],
+			ClonableTransparentUpgradeableProxy,
+			[strategyToken.address, AddressZero]
+		) // second parameter would be manager but is reset when cloned
+		await clonableTransparentUpgradeableProxy.deployed()
+
 		const newImplementation = await Strategy.deploy(
-			strategyToken.address,
+			clonableTransparentUpgradeableProxy.address,
 			strategyFactory.address,
 			controller.address,
 			AddressZero,

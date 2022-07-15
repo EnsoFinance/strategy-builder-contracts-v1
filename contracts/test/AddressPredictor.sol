@@ -10,6 +10,6 @@ contract AddressPredictor {
         // strategy (proxy) may not exist yet
         IStrategyProxyFactory strategyProxyFactory = IStrategyProxyFactory(strategyFactory);
         bytes32 salt = keccak256(abi.encode(strategy, strategyProxyFactory.version()));
-        return Clones.predictDeterministicAddress(address(IStrategy(strategyProxyFactory.implementation()).tokenImplementation()), salt, strategy);
+        return Clones.predictDeterministicAddress(IStrategy(strategyProxyFactory.implementation()).tokenImplementationProxy(), salt, strategy);
     }
 }
