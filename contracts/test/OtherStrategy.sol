@@ -433,8 +433,8 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
     }
 
 
-    function predictTokenAddress(string memory version) external view override returns(address) {
-        bytes32 salt = keccak256(abi.encode(address(this), version));
+    function predictTokenAddress() external view override returns(address) {
+        bytes32 salt = keccak256(abi.encode(address(this), "token"));
         return Clones.predictDeterministicAddress(address(_tokenImplementation), salt, address(this));
     }
 
@@ -503,7 +503,8 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyStorage, 
     }
 
     function _updateToken(string memory version) private {
-        bytes32 salt = keccak256(abi.encode(address(this), version));
+        if (address(_token) != address(0)) return;
+        bytes32 salt = keccak256(abi.encode(address(this), "token"));
         _token = IStrategyToken(Clones.cloneDeterministic(address(_tokenImplementation), salt));
         _token.initialize(_name, _symbol, _version, _manager, DEPRECATED_totalSupply, DEPRECATED_lastTokenValue);
     }

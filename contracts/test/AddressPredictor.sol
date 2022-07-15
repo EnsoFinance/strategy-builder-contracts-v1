@@ -9,7 +9,7 @@ contract AddressPredictor {
     function predictTokenDeterministicAddress(address strategyFactory, address strategy) public view returns(address) {
         // strategy (proxy) may not exist yet
         IStrategyProxyFactory strategyProxyFactory = IStrategyProxyFactory(strategyFactory);
-        bytes32 salt = keccak256(abi.encode(strategy, strategyProxyFactory.version()));
+        bytes32 salt = keccak256(abi.encode(strategy, "token"));
         return Clones.predictDeterministicAddress(address(IStrategy(strategyProxyFactory.implementation()).tokenImplementation()), salt, strategy);
     }
 }

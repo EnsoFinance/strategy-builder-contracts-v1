@@ -64,7 +64,7 @@ interface IStrategy is StrategyTypes {
 
     function tokenImplementation() external view returns(IStrategyToken); // needed for test
 
-    function predictTokenAddress(string memory version) external view returns(address);
+    function predictTokenAddress() external view returns(address);
 
     function token() external view returns(IStrategyToken);
 

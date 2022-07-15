@@ -330,7 +330,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
         _proxyExists[salt_] = true;
-        _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), IStrategy(address(proxy)).predictTokenAddress(_version));
+        _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), IStrategy(address(proxy)).predictTokenAddress());
         // Instead we initialize it directly in the Strategy contract
         IStrategyManagement(address(proxy)).initialize(
             name,

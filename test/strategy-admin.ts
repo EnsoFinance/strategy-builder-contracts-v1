@@ -134,6 +134,7 @@ describe('StrategyProxyAdmin', function () {
 
 	it('Should upgrade strategy proxy', async function () {
 		const factoryVersion = await strategyFactory.version()
+		const initialStrategyVersion = await strategy.version()
 		expect(await strategy.version()).to.not.eq(factoryVersion)
 		expect(await strategyToken.version()).to.not.eq(factoryVersion)
 		expect(await strategy.version()).to.eq(await strategyToken.version())
@@ -143,7 +144,7 @@ describe('StrategyProxyAdmin', function () {
 
 		expect(await strategy.version()).to.eq(factoryVersion)
 		strategyToken = new Contract(await strategy.token(), StrategyToken.abi, accounts[0])
-		expect(await strategyToken.version()).to.eq(factoryVersion)
+		expect(await strategyToken.version()).to.eq(initialStrategyVersion)
 	})
 
 	it('Should fail to get implementation: not proxy admin', async function () {
