@@ -5,10 +5,9 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./libraries/SafeERC20.sol";
-import "./libraries/MemoryMappings.sol";
 import "./libraries/StrategyClaim.sol";
+import "./interfaces/IOracle.sol";
 import "./interfaces/IBaseAdapter.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyManagement.sol";
@@ -20,8 +19,6 @@ import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
 import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
-import "./StrategyToken.sol";
-import "./StrategyCommon.sol";
 import "./StrategyFees.sol";
 
 interface ISynthetixAddressResolver {
@@ -36,7 +33,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyCommon, StrategyFees, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, IStrategyManagement, StrategyFees, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -193,9 +190,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     /**
-     * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
-     * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
-     */
+    * @notice Withdraw the underlying assets and burn the equivalent amount of strategy token
+    * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
+    */
     function withdrawAll(uint256 amount) external override {
         _setLock();
         _require(_debt.length == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("Cannot withdraw debt") */);
@@ -216,11 +213,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         IERC20[] memory tokens = new IERC20[](numTokens);
         uint256[] memory amounts = new uint256[](numTokens);
         for (uint256 i; i < itemsLength; ++i) {
-            // Should not be possible to have address(0) since the Strategy will check for it
-            IERC20 token = IERC20(_items[i]);
-            uint256 currentBalance = token.balanceOf(address(this));
-            amounts[i] = currentBalance.mul(percentage) / PRECISION;
-            tokens[i] = token;
+           // Should not be possible to have address(0) since the Strategy will check for it
+           IERC20 token = IERC20(_items[i]);
+           uint256 currentBalance = token.balanceOf(address(this));
+           amounts[i] = currentBalance.mul(percentage) / PRECISION;
+           tokens[i] = token;
         }
         if (isSynths) {
             for (uint256 i = itemsLength; i < numTokens - 2; ++i) {
@@ -325,7 +322,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
-        return StrategyClaim._getAllRewardTokens();
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
+        return StrategyClaim._getAllRewardTokens(tokenRegistry);
     }
 
     // claim all rewards tokens of claimables
@@ -372,8 +370,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         _paidTokenValues[newManager] = uint256(-1);
         _manager = newManager;
         _updateStreamingFeeRate(pool, newManager);
-        _paidTokenValues[manager] = _lastTokenValue;
-        _paidTokenValues[newManager] = uint256(-1);
         emit UpdateManager(newManager);
     }
 
@@ -386,7 +382,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         emit UpdateTradeData(item, false);
     }
 
-    function finalizeUpdateTradeData() external {
+    function finalizeTradeData() external {
         _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e07) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
@@ -446,10 +442,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         return _manager;
     }
 
-    function oracle() public view override returns (IOracle) {
-        return IOracle(_oracle);
-    }
-
     function controller() public view override returns (address) {
         return _controller;
     }
@@ -496,8 +488,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         delete _debt;
         delete _synths;
 
-        if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
-        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         // Set new items
         int256 virtualPercentage;
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
@@ -516,7 +507,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;
-        } 
+        }
     }
 
     function _setItem(StrategyItem memory strategyItem, ITokenRegistry tokenRegistry) private returns(int256) {
@@ -541,8 +532,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
     }
 
     function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) private {
-        updateClaimables();
-        address[] memory rewardTokens = StrategyClaim._getAllRewardTokens();
+        _updateClaimables(tokenRegistry);
+        address[] memory rewardTokens = StrategyClaim._getAllRewardTokens(tokenRegistry);
         bool ok;
         StrategyItem memory item;
         for (uint256 i; i < rewardTokens.length; ++i) {
@@ -554,39 +545,38 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, StrategyComm
         }
     }
 
-    function updateClaimables() public {
+    function _updateClaimables(ITokenRegistry tokenRegistry) internal {
         delete _claimables;
-        (, bytes[] memory values) = StrategyClaim._getAllToClaim();
+        (, bytes[] memory values) = StrategyClaim._getAllToClaim(tokenRegistry);
         for (uint256 i; i < values.length; ++i) {
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
         emit ClaimablesUpdated();
     }
 
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal override {
-        address pool = _pool;
-        address manager = _manager;
-        bool rateChange;
-        // We're not currently supporting performance fees but don't want to exclude it in the future.
-        // So users are getting grandfathered in by setting their paid token value to the avg token
-        // value they bought into
-        if (sender == manager || sender == pool) {
-            rateChange = true;
-        } else {
-            _removePaidTokenValue(sender, amount);
+    function updateClaimables() external {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
+        _updateClaimables(tokenRegistry);
+    }
+
+    function updateAddresses() public {
+        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        address newPool = f.pool();
+        address currentPool = _pool;
+        if (newPool != currentPool) {
+            // If pool has been initialized but is now changing update paidTokenValue
+            if (currentPool != address(0)) {
+                address manager = _manager;
+                _issueStreamingFee(currentPool, manager);
+                _updateStreamingFeeRate(newPool, manager);
+                _paidTokenValues[currentPool] = _lastTokenValue;
+            }
+            _paidTokenValues[newPool] = uint256(-1);
+            _pool = newPool;
         }
-        if (recipient == manager || recipient == pool) {
-            rateChange = true;
-        } else {
-            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
-        }
-        if (rateChange) _issueStreamingFee(pool, manager);
-        super._transfer(sender, recipient, amount);
-        if (rateChange) _updateStreamingFeeRate(pool, manager);
+        IOracle ensoOracle = IOracle(f.oracle());
+        _weth = ensoOracle.weth();
+        _susd = ensoOracle.susd();
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {

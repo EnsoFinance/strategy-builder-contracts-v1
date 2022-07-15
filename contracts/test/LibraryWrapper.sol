@@ -77,7 +77,7 @@ contract LibraryWrapper is StrategyTypes{
         } else if (token == oracle.weth()) {
             return int256(IERC20(token).balanceOf(address(s)));
         } else {
-            return s.oracle().estimateItem(
+            return oracle.estimateItem(
                 IERC20(token).balanceOf(address(s)),
                 token
             );

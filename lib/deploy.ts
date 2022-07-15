@@ -88,7 +88,7 @@ export class Platform {
 	oracles: Oracles
 	administration: Administration
 	library: Contract
-  strategyLibraries: any // 
+  strategyLibraries: any //
 
 	public constructor(
 		strategyFactory: Contract,
@@ -96,7 +96,7 @@ export class Platform {
 		oracles: Oracles,
 		administration: Administration,
 		library: Contract,
-    strategyLibraries: any 
+    strategyLibraries: any
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
@@ -347,7 +347,7 @@ export async function deployPlatform(
 	if (susd)
 		await tokenRegistry
 			.connect(owner)
-			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address) 
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
@@ -365,7 +365,8 @@ export async function deployPlatform(
 		linkBytecode(StrategyController, [strategyLibraryLink]),
 		[factoryAddress]
 	)
-	await controllerImplementation.deployed()
+	let tx = await controllerImplementation.deployed()
+	console.log("Controller bytes: ", (tx.deployTransaction.data.length/2)-1)
 
 	// Factory Implementation
 	const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controllerAddress])
@@ -380,7 +381,7 @@ export async function deployPlatform(
   const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
 
 	const strategyImplementation = await waffle.deployContract(
-    owner, 
+    owner,
     strategyLinked,
     [
 		factoryAddress,
@@ -388,7 +389,8 @@ export async function deployPlatform(
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
 		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,]
   )
-	await strategyImplementation.deployed()
+	tx = await strategyImplementation.deployed()
+	console.log("Strategy bytes: ", (tx.deployTransaction.data.length/2)-1)
 
 	await platformProxyAdmin
 		.connect(owner)

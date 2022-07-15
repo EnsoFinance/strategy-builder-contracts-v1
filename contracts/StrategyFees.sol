@@ -5,23 +5,15 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyFees.sol";
-import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
 
-abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
+abstract contract StrategyFees is IStrategyFees, StrategyCommon {
 
     uint256 private constant YEAR = 331556952; //365.2425 days
     uint256 internal constant DIVISOR = 1000;
 
     event StreamingFee(uint256 amount);
     event ManagementFee(uint256 amount);
-
-    function updateAddresses() public {
-        function(address, address)[2] memory callbacks;
-        callbacks[0] = _issueStreamingFee;
-        callbacks[1] = _updateStreamingFeeRate;
-        _updateAddresses(callbacks);
-    }
 
     function managementFee() external view returns (uint256) {
         uint256 managementFee = _managementFee;
@@ -36,16 +28,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     function updateTokenValue(uint256 total, uint256 supply) external override {
         _onlyController();
         _setTokenValue(total, supply);
-    }
-
-    /**
-     * @notice Update the per token value based on the most recent strategy value.
-     */
-    function updateTokenValue() external {
-        _setLock();
-        _onlyManager();
-        _updateTokenValue();
-        _removeLock();
     }
 
     /**
@@ -126,15 +108,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
         }
     }
 
-    /**
-     * @notice Update the per token value based on the most recent strategy value.
-     */
-    function _updateTokenValue() internal {
-        if (_oracle != address(IStrategyController(_controller).oracle())) updateAddresses();
-        (uint256 total, ) = IOracle(_oracle).estimateStrategy(IStrategy(address(this)));
-        _setTokenValue(total, _totalSupply);
-    }
-
     function _updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
         uint256 balance = _balances[account];
         if (balance == 0) {
@@ -165,5 +138,31 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
           require(total < 2**128, "value doesn't fit into 128 bits.");
           _lastTokenValue = uint128(total);
         }*/
+    }
+
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal override {
+        address pool = _pool;
+        address manager = _manager;
+        bool rateChange;
+        // We're not currently supporting performance fees but don't want to exclude it in the future.
+        // So users are getting grandfathered in by setting their paid token value to the avg token
+        // value they bought into
+        if (sender == manager || sender == pool) {
+            rateChange = true;
+        } else {
+            _removePaidTokenValue(sender, amount);
+        }
+        if (recipient == manager || recipient == pool) {
+            rateChange = true;
+        } else {
+            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
+        }
+        if (rateChange) _issueStreamingFee(pool, manager);
+        super._transfer(sender, recipient, amount);
+        if (rateChange) _updateStreamingFeeRate(pool, manager);
     }
 }
