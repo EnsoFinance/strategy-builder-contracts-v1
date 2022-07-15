@@ -23,7 +23,7 @@
     "lint": "yarn eslint",
     "prettier:solidity": "yarn prettier --write 'contracts/**/*.sol'",
     "solhint": "solhint -f table --fix 'contracts/**/*.sol'",
-    "test": "cd errors && ./errorMacro.sh && cd - && yarn hardhat test"
+    "test": "cd errors && ./errorMacro.sh && cd - && ./testAllSequentially.sh"
   },
   "dependencies": {
     "@0xsequence/token-directory": "1.1.14",
