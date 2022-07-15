@@ -3,10 +3,10 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "../interfaces/IClonableTransparentUpgradeableProxy.sol";
+import "./CloneInitializable.sol";
 
-contract ClonableTransparentUpgradeableProxy is IClonableTransparentUpgradeableProxy, TransparentUpgradeableProxy, Initializable {
+contract ClonableTransparentUpgradeableProxy is IClonableTransparentUpgradeableProxy, TransparentUpgradeableProxy, CloneInitializable {
     
     constructor(address _logic, address admin_) public payable TransparentUpgradeableProxy(_logic, admin_, new bytes(0)) initializer {}
 
