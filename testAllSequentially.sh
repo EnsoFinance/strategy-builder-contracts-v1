@@ -2,12 +2,9 @@
 
 npx hardhat compile
 
-testFiles=$(ls test | sed 's/^/test\//')
+ls test | sed 's/^/test\//' | xargs -n 1 sh -c 'npx hardhat test $0 || exit 255'
 
-for val in $testFiles; do
-  echo "testing ""$val"
-  npx hardhat test $val
-  if [ $? -ne 0 ]; then
-      exit 1 
-  fi
-done
+# -n 1 "execute one-by-one"
+# exit 255 if command fails -> causes xargs to exit
+
+exit $?
