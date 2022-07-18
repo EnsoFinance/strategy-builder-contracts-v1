@@ -2,13 +2,13 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import {
-  Platform,
+	Platform,
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
 	deployLeverage2XAdapter,
 	deployPlatform,
-	deployMulticallRouter
+	deployMulticallRouter,
 } from '../lib/deploy'
 import { Tokens } from '../lib/tokens'
 import {
@@ -17,7 +17,7 @@ import {
 	encodeSettleSwap,
 	Multicall,
 	StrategyItem,
-	InitialState
+	InitialState,
 } from '../lib/encode'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 
@@ -33,7 +33,7 @@ const { AddressZero } = constants
 
 describe('Leverage2XAdapter', function () {
 	let platform: Platform,
-    tokens: Tokens,
+		tokens: Tokens,
 		weth: Contract,
 		usdc: Contract,
 		accounts: SignerWithAddress[],
@@ -71,11 +71,26 @@ describe('Leverage2XAdapter', function () {
 
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], addressProvider, controller, weth, tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2)
+		aaveV2Adapter = await deployAaveV2Adapter(
+			accounts[0],
+			addressProvider,
+			controller,
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.AAVE_V2
+		)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], addressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
-		leverageAdapter = await deployLeverage2XAdapter(accounts[0], uniswapAdapter, aaveV2Adapter, aaveV2DebtAdapter, addressProvider, usdc, weth)
+		leverageAdapter = await deployLeverage2XAdapter(
+			accounts[0],
+			uniswapAdapter,
+			aaveV2Adapter,
+			aaveV2DebtAdapter,
+			addressProvider,
+			usdc,
+			weth
+		)
 		await whitelist.connect(accounts[0]).approve(leverageAdapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
@@ -85,7 +100,8 @@ describe('Leverage2XAdapter', function () {
 		const name = 'ETH2x Strategy'
 		const symbol = 'ETH2x'
 		const positions = [
-			{ token: tokens.aWETH,
+			{
+				token: tokens.aWETH,
 				percentage: BigNumber.from(2000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
@@ -94,15 +110,13 @@ describe('Leverage2XAdapter', function () {
 					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
-			{ token: tokens.debtUSDC,
+			{
+				token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth],
-				cache: ethers.utils.defaultAbiCoder.encode(
-					['address[]'],
-					[[tokens.aWETH]]
-				),
-			}
+				cache: ethers.utils.defaultAbiCoder.encode(['address[]'], [[tokens.aWETH]]),
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
@@ -112,15 +126,10 @@ describe('Leverage2XAdapter', function () {
 			restructureSlippage: BigNumber.from(990),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
-		const create2Address = await calculateAddress(
-			strategyFactory,
-			accounts[1].address,
-			name,
-			symbol
-		)
+		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(create2Address)
 
@@ -141,27 +150,23 @@ describe('Leverage2XAdapter', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: total }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, { value: total })
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
 
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		await displayBalances(
+			wrapper,
+			strategyItems.map((item) => item.item),
+			weth
+		)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
@@ -170,7 +175,8 @@ describe('Leverage2XAdapter', function () {
 		const name = 'BTC2X Strategy'
 		const symbol = 'BTC2X'
 		const positions = [
-			{ token: tokens.aWBTC,
+			{
+				token: tokens.aWBTC,
 				percentage: BigNumber.from(2000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
@@ -179,15 +185,13 @@ describe('Leverage2XAdapter', function () {
 					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
-			{ token: tokens.debtUSDC,
+			{
+				token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth],
-				cache: ethers.utils.defaultAbiCoder.encode(
-					['address[]'],
-					[[tokens.aWBTC]]
-				),
-			}
+				cache: ethers.utils.defaultAbiCoder.encode(['address[]'], [[tokens.aWBTC]]),
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
@@ -197,15 +201,10 @@ describe('Leverage2XAdapter', function () {
 			restructureSlippage: BigNumber.from(990),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
-		const create2Address = await calculateAddress(
-			strategyFactory,
-			accounts[1].address,
-			name,
-			symbol
-		)
+		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(create2Address)
 
@@ -237,27 +236,23 @@ describe('Leverage2XAdapter', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: total }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, { value: total })
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
 
-		await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		await displayBalances(
+			wrapper,
+			strategyItems.map((item) => item.item),
+			weth
+		)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
