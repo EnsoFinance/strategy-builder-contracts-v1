@@ -15,7 +15,7 @@ import {
 	deployUniswapV2Adapter,
 	deployUniswapV3Adapter,
 	deployPlatform,
-	deployLoopRouter
+	deployLoopRouter,
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -27,7 +27,7 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 chai.use(solidity)
 
 describe('YEarnV2Adapter', function () {
-	let	weth: Contract,
+	let weth: Contract,
 		crv: Contract,
 		//dai: Contract,
 		accounts: SignerWithAddress[],
@@ -60,8 +60,15 @@ describe('YEarnV2Adapter', function () {
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 
-		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
-		await tokens.registerTokens(accounts[0], strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
+		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } =
+			platform.oracles.registries
+		await tokens.registerTokens(
+			accounts[0],
+			strategyFactory,
+			uniswapV3Registry,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		const whitelist = platform.administration.whitelist
@@ -69,7 +76,12 @@ describe('YEarnV2Adapter', function () {
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapV2Factory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
-		uniswapV3Adapter = await deployUniswapV3Adapter(accounts[0], uniswapV3Registry, new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]), weth)
+		uniswapV3Adapter = await deployUniswapV3Adapter(
+			accounts[0],
+			uniswapV3Registry,
+			new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]),
+			weth
+		)
 		await whitelist.connect(accounts[0]).approve(uniswapV3Adapter.address)
 		curveAdapter = await deployCurveAdapter(accounts[0], addressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
@@ -87,11 +99,17 @@ describe('YEarnV2Adapter', function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(0) },
 			{ token: crv.address, percentage: BigNumber.from(500) },
-			{ token: yearnToken,
+			{
+				token: yearnToken,
 				percentage: BigNumber.from(500),
-				adapters: [uniswapV3Adapter.address, curveAdapter.address, curveLPAdapter.address, yearnAdapter.address],
-				path: [tokens.usdc, tokens.sUSD, tokens.crvSUSD]
-			}
+				adapters: [
+					uniswapV3Adapter.address,
+					curveAdapter.address,
+					curveLPAdapter.address,
+					yearnAdapter.address,
+				],
+				path: [tokens.usdc, tokens.sUSD, tokens.crvSUSD],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -101,20 +119,14 @@ describe('YEarnV2Adapter', function () {
 			restructureSlippage: BigNumber.from(985),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -126,8 +138,8 @@ describe('YEarnV2Adapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -139,7 +151,7 @@ describe('YEarnV2Adapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(100)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])

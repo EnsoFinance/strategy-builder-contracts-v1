@@ -8,12 +8,7 @@ import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
-import {
-	deployKyberSwapAdapter,
-	deployUniswapV2Adapter,
-	deployPlatform,
-	deployLoopRouter
-} from '../lib/deploy'
+import { deployKyberSwapAdapter, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { MAINNET_ADDRESSES } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -25,7 +20,7 @@ import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.s
 chai.use(solidity)
 
 describe('KyberSwapAdapter', function () {
-	let	weth: Contract,
+	let weth: Contract,
 		dai: Contract,
 		knc: Contract,
 		accounts: SignerWithAddress[],
@@ -64,9 +59,13 @@ describe('KyberSwapAdapter', function () {
 		library = platform.library
 
 		const { curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
-		await tokens.registerTokens(owner, strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
-
-
+		await tokens.registerTokens(
+			owner,
+			strategyFactory,
+			uniswapV3Registry,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		)
 
 		router = await deployLoopRouter(owner, controller, library)
 		await whitelist.connect(owner).approve(router.address)
@@ -81,7 +80,7 @@ describe('KyberSwapAdapter', function () {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: knc.address, percentage: BigNumber.from(500), adapters: [kyberAdapter.address], path: [] },
-			{ token: dai.address, percentage: BigNumber.from(500) }
+			{ token: dai.address, percentage: BigNumber.from(500) },
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -91,19 +90,13 @@ describe('KyberSwapAdapter', function () {
 			restructureSlippage: BigNumber.from(990),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -115,8 +108,8 @@ describe('KyberSwapAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -126,7 +119,9 @@ describe('KyberSwapAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -135,7 +130,7 @@ describe('KyberSwapAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -177,7 +172,9 @@ describe('KyberSwapAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
 		const ethBalanceBefore = await accounts[1].getBalance()
-		const tx = await controller.connect(accounts[1]).withdrawETH(strategy.address, router.address, amount, '985', '0x')
+		const tx = await controller
+			.connect(accounts[1])
+			.withdrawETH(strategy.address, router.address, amount, '985', '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

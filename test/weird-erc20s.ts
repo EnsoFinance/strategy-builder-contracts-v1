@@ -4,12 +4,12 @@ const chai = require('chai')
 chai.use(solidity)
 
 const { ethers } = require('hardhat')
-const { constants, getContractFactory, getSigners} = ethers
+const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { BigNumber, Event, Contract} from 'ethers'
+import { BigNumber, Event, Contract } from 'ethers'
 
 const NUM_TOKENS = 10
 const STRATEGY_STATE: InitialState = {
@@ -19,7 +19,7 @@ const STRATEGY_STATE: InitialState = {
 	restructureSlippage: BigNumber.from(995),
 	managementFee: BigNumber.from(0),
 	social: true,
-	set: false
+	set: false,
 }
 
 export enum TokenTypes {
@@ -35,11 +35,11 @@ export enum TokenTypes {
 }
 
 export class WeirdToken {
-	public contract: Contract;
-	public tokenType: TokenTypes;
+	public contract: Contract
+	public tokenType: TokenTypes
 	constructor(contract: Contract, tokenType: TokenTypes) {
-		this.contract = contract;
-		this.tokenType = tokenType;
+		this.contract = contract
+		this.tokenType = tokenType
 	}
 	print() {
 		console.log('WeirdErc20: ')
@@ -64,7 +64,6 @@ describe('Weird ERC20s', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
-
 
 	before('Setup Uniswap + Factory', async function () {
 		const defaultSupply = WeiPerEther.mul(10000)
@@ -112,7 +111,12 @@ describe('Weird ERC20s', function () {
 		const weirdTokenContracts = weirdTokens.map((token) => token.contract)
 
 		uniswapFactory = await deployUniswapV2(accounts[10], weirdTokenContracts)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		const platform = await deployPlatform(
+			accounts[10],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[10]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -137,15 +141,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy',
-			'TEST',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy', 'TEST', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -154,8 +154,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -186,15 +186,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy 2',
-			'TEST2',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 2', 'TEST2', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -203,8 +199,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -234,15 +230,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy 3',
-			'TEST3',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 3', 'TEST3', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -251,8 +243,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -282,15 +274,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy 4',
-			'TEST4',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 4', 'TEST4', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -299,8 +287,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -330,15 +318,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy 5',
-			'TEST5',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 5', 'TEST5', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -347,8 +331,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -378,15 +362,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy 6',
-			'TEST6',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 6', 'TEST6', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -395,8 +375,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -426,15 +406,11 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			'Test Strategy 7',
-			'TEST7',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 7', 'TEST7', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
@@ -443,8 +419,8 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()

@@ -1,4 +1,4 @@
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { expect } = require('chai')
 
 const { ethers, waffle } = require('hardhat')
@@ -9,65 +9,63 @@ const { WeiPerEther, AddressZero } = constants
 import { deployTokens, deployUniswapV3, deployUniswapV3Adapter, deployLoopRouter } from '../lib/deploy'
 import { encodePath, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { increaseTime, getDeadline } from '../lib/utils'
-import {  ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/constants'
+import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/constants'
+import { createLink, linkBytecode } from '../lib/link'
 
-
+import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
-
 
 const NUM_TOKENS = 3
 
 let tokens: Contract[],
-		weth: Contract,
-		accounts: SignerWithAddress[],
-		strategyFactory: Contract,
-		controller: Contract,
-		oracle: Contract,
-		library: Contract,
-		uniswapOracle: Contract,
-		adapter: Contract,
-		router: Contract,
-		strategy: Contract,
-		wrapper: Contract,
-		uniswapRegistry: Contract,
-		uniswapV3Factory: Contract,
-		uniswapRouter: Contract,
-		uniswapQuoter: Contract,
-		owner: SignerWithAddress,
-		trader: SignerWithAddress,
-		strategyItems: StrategyItem[]
+	weth: Contract,
+	accounts: SignerWithAddress[],
+	strategyFactory: Contract,
+	controller: Contract,
+	oracle: Contract,
+	library: Contract,
+	uniswapOracle: Contract,
+	adapter: Contract,
+	router: Contract,
+	strategy: Contract,
+	wrapper: Contract,
+	uniswapRegistry: Contract,
+	uniswapV3Factory: Contract,
+	uniswapRouter: Contract,
+	uniswapQuoter: Contract,
+	owner: SignerWithAddress,
+	trader: SignerWithAddress,
+	strategyItems: StrategyItem[]
 
-async function exactInput(
-  tokens: string[],
-  amountIn: number,
-  amountOutMinimum: number
-) {
-  const inputIsWETH = weth.address === tokens[0]
-  const outputIsWETH = tokens[tokens.length - 1] === weth.address
+async function exactInput(tokens: string[], amountIn: number, amountOutMinimum: number) {
+	const inputIsWETH = weth.address === tokens[0]
+	const outputIsWETH = tokens[tokens.length - 1] === weth.address
 
-  const value = inputIsWETH ? amountIn : 0
+	const value = inputIsWETH ? amountIn : 0
 
-  const params = {
-    path: encodePath(tokens, new Array(tokens.length - 1).fill(UNI_V3_FEE)),
-    recipient: outputIsWETH ? uniswapRouter.address : trader.address,
-    deadline: await getDeadline(100000),
-    amountIn,
-    amountOutMinimum,
-  }
+	const params = {
+		path: encodePath(tokens, new Array(tokens.length - 1).fill(UNI_V3_FEE)),
+		recipient: outputIsWETH ? uniswapRouter.address : trader.address,
+		deadline: await getDeadline(100000),
+		amountIn,
+		amountOutMinimum,
+	}
 
-  const data = [uniswapRouter.interface.encodeFunctionData('exactInput', [params])]
-  if (outputIsWETH)
-    data.push(uniswapRouter.interface.encodeFunctionData('unwrapWETH9', [amountOutMinimum, trader.address]))
+	const data = [uniswapRouter.interface.encodeFunctionData('exactInput', [params])]
+	if (outputIsWETH)
+		data.push(uniswapRouter.interface.encodeFunctionData('unwrapWETH9', [amountOutMinimum, trader.address]))
 
-  // optimized for the gas test
-  return data.length === 1
-    ? uniswapRouter.connect(trader).exactInput(params, { value })
-    : uniswapRouter.connect(trader).multicall(data, { value })
+	// optimized for the gas test
+	return data.length === 1
+		? uniswapRouter.connect(trader).exactInput(params, { value })
+		: uniswapRouter.connect(trader).multicall(data, { value })
 }
 
-describe('UniswapV3Adapter', function() {
-	before('Setup Uniswap V3 + Platform', async function() {
+describe('UniswapV3Adapter', function () {
+	before('Setup Uniswap V3 + Platform', async function () {
 		accounts = await getSigners()
 		owner = accounts[5]
 		trader = accounts[6]
@@ -78,13 +76,16 @@ describe('UniswapV3Adapter', function() {
 		//tokens.push(token1)
 		//tokens.push(token2)
 		weth = tokens[0]
-
-		;[uniswapV3Factory, ] = await deployUniswapV3(owner, tokens)
+		;[uniswapV3Factory] = await deployUniswapV3(owner, tokens)
 
 		uniswapRouter = await deployContract(owner, SwapRouter, [uniswapV3Factory.address, weth.address])
 
 		const UniswapV3Registry = await getContractFactory('UniswapV3Registry')
-		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address)
+		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(
+			ORACLE_TIME_WINDOW,
+			uniswapV3Factory.address,
+			weth.address
+		)
 		await uniswapRegistry.deployed()
 
 		const UniswapOracle = await getContractFactory('UniswapV3Oracle')
@@ -102,7 +103,9 @@ describe('UniswapV3Adapter', function() {
 
 		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, basicEstimator.address)
 		await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
-		await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
+		await tokenRegistry
+			.connect(owner)
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 
 		const EnsoOracle = await getContractFactory('EnsoOracle')
 		oracle = await EnsoOracle.connect(owner).deploy(tokenRegistry.address, weth.address, AddressZero)
@@ -112,8 +115,8 @@ describe('UniswapV3Adapter', function() {
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
 
-		const StrategyLibrary = await getContractFactory('StrategyLibrary')
-		library = await StrategyLibrary.connect(owner).deploy()
+		const StrategyLibraryFactory = await getContractFactory('StrategyLibrary')
+		library = await StrategyLibraryFactory.connect(owner).deploy()
 		await library.deployed()
 
 		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
@@ -122,12 +125,23 @@ describe('UniswapV3Adapter', function() {
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
 
-		const StrategyController = await getContractFactory('StrategyController', {
-			libraries: {
-				StrategyLibrary: library.address
-			}
-		})
-		const controllerImplementation = await StrategyController.connect(owner).deploy(factoryAddress)
+		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		await strategyLibrary.deployed()
+		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
+
+		const controllerLibrary = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+			[]
+		)
+		await controllerLibrary.deployed()
+		const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
+		const controllerImplementation = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(StrategyController, [controllerLibraryLink]),
+			[factoryAddress]
+		)
 		await controllerImplementation.deployed()
 
 		const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')
@@ -144,19 +158,19 @@ describe('UniswapV3Adapter', function() {
 		await strategyImplementation.deployed()
 
 		await platformProxyAdmin.initialize(
-				controllerImplementation.address,
-				factoryImplementation.address,
-				strategyImplementation.address,
-				oracle.address,
-				tokenRegistry.address,
-				whitelist.address,
-				owner.address
+			controllerImplementation.address,
+			factoryImplementation.address,
+			strategyImplementation.address,
+			oracle.address,
+			tokenRegistry.address,
+			whitelist.address,
+			owner.address
 		)
 
 		strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
-		controller = await StrategyController.attach(controllerAddress)
+		controller = new Contract(controllerAddress, StrategyController.abi, accounts[0])
 
-		await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
+		await tokenRegistry.connect(owner).transferOwnership(factoryAddress)
 
 		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
@@ -167,7 +181,7 @@ describe('UniswapV3Adapter', function() {
 		uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
 	})
 
-	it('Should initialize all tokens', async function() {
+	it('Should initialize all tokens', async function () {
 		for (let i = 1; i < tokens.length; i++) {
 			await uniswapRegistry.addPool(tokens[i].address, weth.address, UNI_V3_FEE)
 		}
@@ -178,7 +192,7 @@ describe('UniswapV3Adapter', function() {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
-			{ token: tokens[2].address, percentage: BigNumber.from(500) }
+			{ token: tokens[2].address, percentage: BigNumber.from(500) },
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
 		const strategyState: InitialState = {
@@ -188,20 +202,14 @@ describe('UniswapV3Adapter', function() {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -213,8 +221,8 @@ describe('UniswapV3Adapter', function() {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -222,13 +230,16 @@ describe('UniswapV3Adapter', function() {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should swap on uniswap, requiring rebalance', async function() {
+	it('Should swap on uniswap, requiring rebalance', async function () {
 		await exactInput([weth.address, tokens[1].address], WeiPerEther.mul(20), 0)
 		await increaseTime(60)
 	})
 
 	it('Should check oracle price', async function () {
-		const quote = await uniswapQuoter.callStatic.quoteExactInput(encodePath([tokens[1].address, weth.address], [UNI_V3_FEE]), WeiPerEther)
+		const quote = await uniswapQuoter.callStatic.quoteExactInput(
+			encodePath([tokens[1].address, weth.address], [UNI_V3_FEE]),
+			WeiPerEther
+		)
 		console.log('Quote Price: ', quote.toString())
 		const oraclePrice = await uniswapOracle.consult(WeiPerEther, tokens[1].address)
 		console.log('Oracle Price: ', oraclePrice.toString())
@@ -243,7 +254,7 @@ describe('UniswapV3Adapter', function() {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should swap on uniswap, requiring rebalance', async function() {
+	it('Should swap on uniswap, requiring rebalance', async function () {
 		const balance = await tokens[1].balanceOf(trader.address)
 		await exactInput([weth.address, tokens[1].address], balance, 0)
 		await increaseTime(60)

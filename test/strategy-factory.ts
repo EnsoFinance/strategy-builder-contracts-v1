@@ -5,7 +5,7 @@ import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, 
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { isRevertedWith } from '../lib/errors'
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
 
@@ -16,7 +16,7 @@ chai.use(solidity)
 const NUM_TOKENS = 15
 
 describe('StrategyProxyFactory', function () {
-		let tokens: Contract[],
+	let tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -40,7 +40,12 @@ describe('StrategyProxyFactory', function () {
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		const platform = await deployPlatform(
+			accounts[10],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[10]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -53,7 +58,12 @@ describe('StrategyProxyFactory', function () {
 	})
 
 	before('Setup new implementation, oracle, whitelist', async function () {
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		const platform = await deployPlatform(
+			accounts[10],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[10]),
+			weth
+		)
 		newFactory = platform.strategyFactory
 		newOracle = platform.oracles.ensoOracle
 		newWhitelist = platform.administration.whitelist
@@ -76,7 +86,7 @@ describe('StrategyProxyFactory', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const amount = ethers.BigNumber.from('10000000000000000')
@@ -84,15 +94,9 @@ describe('StrategyProxyFactory', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				'Test Strategy',
-				'TEST',
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: amount }
-			)
+			.createStrategy('Test Strategy', 'TEST', strategyItems, strategyState, router.address, '0x', {
+				value: amount,
+			})
 		let receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		strategy = Strategy.attach(strategyAddress)
@@ -126,17 +130,24 @@ describe('StrategyProxyFactory', function () {
 	it('Should update whitelist', async function () {
 		const oldBalance = await strategy.balanceOf(accounts[1].address)
 		expect(
-        await isRevertedWith(
-            controller.connect(accounts[1]).deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-              value: ethers.BigNumber.from('10000000000000000'),
-            }),
-            'Not approved', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				controller
+					.connect(accounts[1])
+					.deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+						value: ethers.BigNumber.from('10000000000000000'),
+					}),
+				'Not approved',
+				'StrategyController.sol'
+			)
+		).to.be.true
 		await strategyFactory.connect(accounts[10]).updateWhitelist(newWhitelist.address)
 		expect(await strategyFactory.whitelist()).to.equal(newWhitelist.address)
 		await controller.updateAddresses()
 		await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, newRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const newBalance = await strategy.balanceOf(accounts[1].address)
 		expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
 	})
@@ -153,11 +164,15 @@ describe('StrategyProxyFactory', function () {
 	})
 
 	it('Should fail to add item: not owner', async function () {
-		await expect(strategyFactory.connect(accounts[1]).addItemToRegistry(0, 0, tokens[1].address)).to.be.revertedWith('Not owner')
+		await expect(
+			strategyFactory.connect(accounts[1]).addItemToRegistry(0, 0, tokens[1].address)
+		).to.be.revertedWith('Not owner')
 	})
 
 	it('Should fail to add item: invalid category', async function () {
-		await expect(strategyFactory.connect(accounts[10]).addItemToRegistry(0, 100, tokens[1].address)).to.be.revertedWith('Invalid category')
+		await expect(
+			strategyFactory.connect(accounts[10]).addItemToRegistry(0, 100, tokens[1].address)
+		).to.be.revertedWith('Invalid category')
 	})
 
 	it('Should fail to update implementation: not owner', async function () {
@@ -185,9 +200,9 @@ describe('StrategyProxyFactory', function () {
 	})
 
 	it('Should fail to update proxy version: not admin', async function () {
-		await expect(
-			strategyFactory.connect(accounts[1]).updateProxyVersion(strategy.address)
-		).to.be.revertedWith('Only admin')
+		await expect(strategyFactory.connect(accounts[1]).updateProxyVersion(strategy.address)).to.be.revertedWith(
+			'Only admin'
+		)
 	})
 
 	it('Should fail to transfer ownership: not owner', async function () {
@@ -196,8 +211,10 @@ describe('StrategyProxyFactory', function () {
 		)
 	})
 
-	it('Should fail to transfer ownership: zero address', async function() {
-		await expect(strategyFactory.connect(accounts[10]).transferOwnership(AddressZero)).to.be.revertedWith('Zero address provided')
+	it('Should fail to transfer ownership: zero address', async function () {
+		await expect(strategyFactory.connect(accounts[10]).transferOwnership(AddressZero)).to.be.revertedWith(
+			'Zero address provided'
+		)
 	})
 
 	it('Should transfer ownership', async function () {
@@ -209,29 +226,29 @@ describe('StrategyProxyFactory', function () {
 		await expect(strategyFactory.connect(accounts[1]).renounceOwnership()).to.be.revertedWith('Not owner')
 	})
 
-  it('Should be initialized', async function () {
-    // tl;dr if __gap isn't used, any additional entries to put in `StrategyTokenStorage`
-    // will make it so that an upgrade to this `OtherStrategy` will put the "initialized"
-    // storage variables in different slots, so that they will have "0" value ->> false
-    // meaning that an attacker can "back-run" an `updateImplementation` call with
-    // an `initialize` call to the `strategy` with their own parameters, specifically
-    // a "manager" address in their control.
-    const OtherStrategy = await getContractFactory('OtherStrategy')
-    let someAddress = accounts[8].address;
-    let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress);
+	it('Should be initialized', async function () {
+		// tl;dr if __gap isn't used, any additional entries to put in `StrategyTokenStorage`
+		// will make it so that an upgrade to this `OtherStrategy` will put the "initialized"
+		// storage variables in different slots, so that they will have "0" value ->> false
+		// meaning that an attacker can "back-run" an `updateImplementation` call with
+		// an `initialize` call to the `strategy` with their own parameters, specifically
+		// a "manager" address in their control.
+		const OtherStrategy = await getContractFactory('OtherStrategy')
+		let someAddress = accounts[8].address
+		let otherStrategy = await OtherStrategy.deploy(strategyFactory.address, someAddress, someAddress, someAddress)
 
-    await strategyFactory.connect(accounts[2]).updateImplementation(otherStrategy.address, '2');
-    let admin = await strategyFactory.admin();
-    const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
-    let strategyAdmin = await StrategyAdmin.attach(admin)
-    await strategyAdmin.connect(accounts[1]).upgrade(strategy.address);
+		await strategyFactory.connect(accounts[2]).updateImplementation(otherStrategy.address, '2')
+		let admin = await strategyFactory.admin()
+		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
+		let strategyAdmin = await StrategyAdmin.attach(admin)
+		await strategyAdmin.connect(accounts[1]).upgrade(strategy.address)
 
-    // now call initialize
-    let someMaliciousAddress = someAddress;
-    await expect(
-      strategy.initialize("anyName", "anySymbol", "anyVersion", someMaliciousAddress, [])
-    ).to.be.revertedWith("Initializable: contract is already initialized");
-  })
+		// now call initialize
+		let someMaliciousAddress = someAddress
+		await expect(
+			strategy.initialize('anyName', 'anySymbol', 'anyVersion', someMaliciousAddress, [])
+		).to.be.revertedWith('Initializable: contract is already initialized')
+	})
 
 	it('Should update implementation to version uint256.max()', async function () {
 		/*const version = await strategyFactory.version(); // TODO update this part of test
@@ -247,5 +264,4 @@ describe('StrategyProxyFactory', function () {
 		await strategyFactory.connect(accounts[2]).renounceOwnership()
 		expect(await strategyFactory.owner()).to.equal(AddressZero)
 	})
-
 })
