@@ -46,6 +46,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     event UpdateManager(address manager);
     event UpdateTradeData(address item, bool finalized);
     event ClaimablesUpdated();
+    event RewardsUpdated();
+
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
@@ -577,6 +579,25 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         IOracle ensoOracle = IOracle(f.oracle());
         _weth = ensoOracle.weth();
         _susd = ensoOracle.susd();
+    }
+
+    function updateRewards() external {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
+        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
+        _setTokensExists(exists, _items);
+        _setTokensExists(exists, _debt);
+        _setTokensExists(exists, _synths);
+        _updateRewards(exists, tokenRegistry);
+        emit RewardsUpdated();
+    }
+
+    function _setTokensExists(BinaryTreeWithPayload.Tree memory exists, address[] memory tokens) private pure {
+        bool ok;
+        for (uint256 i; i < tokens.length; ++i) {
+            (ok, ) = exists.getValue(bytes32(uint256(tokens[i])));
+            if (ok) continue;
+            exists.add(bytes32(uint256(tokens[i])), bytes32(0x0)); // second parameter is "any" value
+        }
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
