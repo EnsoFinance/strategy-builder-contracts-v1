@@ -51,7 +51,10 @@ if (networkIndex > 0) {
 function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
-			chainId: chainIds.mainnet
+			chainId: chainIds.mainnet,
+			accounts: {
+				accountsBalance: "100000000000000000000000" //10,000 ETH
+			}
 		},
 		localhost: {
 			url: 'http://127.0.0.1:8545',
@@ -61,9 +64,7 @@ function getNetworks(): NetworksUserConfig {
 	}
 	if (networks.hardhat) {
 		if (mnemonic)
-			networks.hardhat.accounts = {
-				mnemonic,
-			}
+			networks.hardhat.accounts.mnemonic = mnemonic
 		if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
