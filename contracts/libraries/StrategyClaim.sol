@@ -23,12 +23,12 @@ library StrategyClaim {
             adaptersLength = tradeData.adapters.length;
             if (adaptersLength < 1) continue;
             rewardsAdapter = tradeData.adapters[adaptersLength - 1];
-            _delegateClaim(rewardsAdapter, tokens); 
+            _delegateClaim(rewardsAdapter, tokens);
         }
     }
 
-    function _getAllRewardTokens() public view returns(address[] memory rewardTokens) {
-        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim();
+    function _getAllRewardTokens(ITokenRegistry tokenRegistry) public view returns(address[] memory rewardTokens) {
+        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim(tokenRegistry);
         IRewardsAdapter rewardsAdapter;
         address[] memory claimableTokens;
         address[] memory _rewardTokens;
@@ -38,10 +38,10 @@ library StrategyClaim {
             rewardsAdapter = IRewardsAdapter(address(keys[i]));
             (claimableTokens) = abi.decode(values[i], (address[]));
             for (uint256 j; j < claimableTokens.length; ++j) {
-                _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[j]); 
+                _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[j]);
                 for (uint256 k; k < _rewardTokens.length; ++k) {
                     rewardToken = _rewardTokens[k];
-                    if (!BinaryTreeWithPayload.replace(exists, uint256(rewardToken), bytes(""))) continue;       
+                    if (!BinaryTreeWithPayload.replace(exists, uint256(rewardToken), bytes(""))) continue;
                     assembly {
                         mstore(add(rewardTokens, add(mul(mload(rewardTokens), 32), 32)), rewardToken)
                         mstore(rewardTokens, add(mload(rewardTokens), 1))
@@ -51,13 +51,13 @@ library StrategyClaim {
         }
     }
 
-    function _getAllToClaim() public view returns(uint256[] memory keys, bytes[] memory values) {
+    function _getAllToClaim(ITokenRegistry tokenRegistry) public view returns(uint256[] memory keys, bytes[] memory values) {
         BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         IStrategy _this = IStrategy(address(this));
-        uint256 numAdded = _toClaim(mm, exists, _this.items());
-        numAdded += _toClaim(mm, exists, _this.synths());
-        numAdded += _toClaim(mm, exists, _this.debt());
+        uint256 numAdded = _toClaim(mm, exists, tokenRegistry, _this.items());
+        numAdded += _toClaim(mm, exists, tokenRegistry, _this.synths());
+        numAdded += _toClaim(mm, exists, tokenRegistry, _this.debt());
         if (numAdded == 0) return (keys, values);
         keys = new uint256[](numAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
         values = new bytes[](numAdded);
@@ -67,10 +67,10 @@ library StrategyClaim {
     function _toClaim(
       BinaryTreeWithPayload.Tree memory mm,
       BinaryTreeWithPayload.Tree memory exists,
+      ITokenRegistry tokenRegistry,
       address[] memory positions
     ) private view returns(uint256) {
         uint256 numAdded;
-        ITokenRegistry tokenRegistry = IStrategy(address(this)).oracle().tokenRegistry();
         address position;
         StrategyTypes.TradeData memory tradeData;
         uint256 adaptersLength;
@@ -79,7 +79,7 @@ library StrategyClaim {
         bool ok;
         for (uint256 i; i < positions.length; ++i) {
             position = positions[i];
-            if (!tokenRegistry.isClaimable(position)) continue; 
+            if (!tokenRegistry.isClaimable(position)) continue;
             tradeData = IStrategy(address(this)).getTradeData(position);
             adaptersLength = tradeData.adapters.length;
             if (adaptersLength < 1) continue;
