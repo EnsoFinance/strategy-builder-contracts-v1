@@ -64,7 +64,10 @@ function getNetworks(): NetworksUserConfig {
 	}
 	if (networks.hardhat) {
 		if (mnemonic)
-			networks.hardhat.accounts.mnemonic = mnemonic
+			networks.hardhat.accounts = {
+				...networks.hardhat.accounts,
+				mnemonic,
+			}
 		if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
