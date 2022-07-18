@@ -287,7 +287,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         uint256 amount
     ) internal virtual {
         _validAddress(owner);
-        _validAddress(spender)));
+        _validAddress(spender);
 
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
