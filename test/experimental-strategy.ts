@@ -15,7 +15,7 @@ import {
 	deployCurveLPAdapter,
 	deployYEarnAdapter,
 	deployPlatform,
-	deployFullRouter
+	deployFullRouter,
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -26,7 +26,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('Experimental Strategy', function () {
-	let	weth: Contract,
+	let weth: Contract,
 		crv: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -51,7 +51,13 @@ describe('Experimental Strategy', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		crv = new Contract(tokens.crv, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth, new Contract(tokens.sUSD, ERC20.abi, accounts[0]))
+		const platform = await deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth,
+			new Contract(tokens.sUSD, ERC20.abi, accounts[0])
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -71,7 +77,14 @@ describe('Experimental Strategy', function () {
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
 		yearnAdapter = await deployYEarnAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.YEARN_V2)
 		await whitelist.connect(accounts[0]).approve(yearnAdapter.address)
-		aaveV2Adapter = await deployAaveV2Adapter(accounts[0], aaveAddressProvider, controller, weth, tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2)
+		aaveV2Adapter = await deployAaveV2Adapter(
+			accounts[0],
+			aaveAddressProvider,
+			controller,
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.AAVE_V2
+		)
 		await whitelist.connect(accounts[0]).approve(aaveV2Adapter.address)
 		aaveV2DebtAdapter = await deployAaveV2DebtAdapter(accounts[0], aaveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(aaveV2DebtAdapter.address)
@@ -81,21 +94,19 @@ describe('Experimental Strategy', function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: tokens.aCRV,
+			{
+				token: tokens.aCRV,
 				percentage: BigNumber.from(1000),
 				adapters: [uniswapV2Adapter.address, aaveV2Adapter.address],
 				path: [crv.address],
 			},
-			{ token: tokens.debtWETH,
+			{
+				token: tokens.debtWETH,
 				percentage: BigNumber.from(-400),
 				adapters: [aaveV2DebtAdapter.address, curveLPAdapter.address, yearnAdapter.address],
-				path: [tokens.weth, tokens.crvTriCrypto2, tokens.ycrvTriCrypto2]
+				path: [tokens.weth, tokens.crvTriCrypto2, tokens.ycrvTriCrypto2],
 			},
-			{ token: tokens.ycrvTriCrypto2,
-				percentage: BigNumber.from(400),
-				adapters: [],
-				path: [],
-			},
+			{ token: tokens.ycrvTriCrypto2, percentage: BigNumber.from(400), adapters: [], path: [] },
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -105,20 +116,12 @@ describe('Experimental Strategy', function () {
 			restructureSlippage: BigNumber.from(985),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: WeiPerEther }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -130,8 +133,8 @@ describe('Experimental Strategy', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
@@ -141,7 +144,9 @@ describe('Experimental Strategy', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -150,7 +155,7 @@ describe('Experimental Strategy', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(10)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -172,7 +177,9 @@ describe('Experimental Strategy', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('10000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-		const tx = await controller.connect(accounts[1]).withdrawWETH(strategy.address, router.address, amount, '980', '0x')
+		const tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(strategy.address, router.address, amount, '980', '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

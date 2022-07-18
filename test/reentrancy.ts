@@ -1,9 +1,22 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployMulticallRouter } from '../lib/deploy'
+import {
+	deployUniswapV2,
+	deployTokens,
+	deployPlatform,
+	deployUniswapV2Adapter,
+	deployMulticallRouter,
+} from '../lib/deploy'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { StrategyItem, InitialState, prepareStrategy, prepareDepositMulticall, calculateAddress, encodeSettleSwap } from '../lib/encode'
+import {
+	StrategyItem,
+	InitialState,
+	prepareStrategy,
+	prepareDepositMulticall,
+	calculateAddress,
+	encodeSettleSwap,
+} from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -30,7 +43,12 @@ describe('Reentrancy    ', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		const platform = await deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -56,15 +74,10 @@ describe('Reentrancy    ', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
-		const create2Address = await calculateAddress(
-			strategyFactory,
-			accounts[1].address,
-			name,
-			symbol
-		)
+		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(create2Address)
 
@@ -82,22 +95,14 @@ describe('Reentrancy    ', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: total }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, { value: total })
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
@@ -143,7 +148,9 @@ describe('Reentrancy    ', function () {
 		calls.push({ target: controller.address, callData: depositCalldata, value: 0 })
 		let data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 	})
 
@@ -176,7 +183,9 @@ describe('Reentrancy    ', function () {
 
 		let data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 
 		// Remove last call

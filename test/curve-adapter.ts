@@ -15,7 +15,7 @@ import {
 	deployUniswapV2Adapter,
 	deployUniswapV3Adapter,
 	deployPlatform,
-	deployLoopRouter
+	deployLoopRouter,
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -27,7 +27,7 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 chai.use(solidity)
 
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
-	let	weth: Contract,
+	let weth: Contract,
 		crv: Contract,
 		dai: Contract,
 		accounts: SignerWithAddress[],
@@ -57,7 +57,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		dai = new Contract(tokens.dai, ERC20.abi, accounts[0])
 		const uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const uniswapV3Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory.abi, accounts[0])
-		const susd =  new Contract(tokens.sUSD, ERC20.abi, accounts[0])
+		const susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		const platform = await deployPlatform(accounts[0], uniswapV2Factory, uniswapV3Factory, weth, susd)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
@@ -65,21 +65,38 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		whitelist = platform.administration.whitelist
 		library = platform.library
 
-		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
-		await tokens.registerTokens(accounts[0], strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
+		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } =
+			platform.oracles.registries
+		await tokens.registerTokens(
+			accounts[0],
+			strategyFactory,
+			uniswapV3Registry,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapV2Factory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
-		uniswapV3Adapter = await deployUniswapV3Adapter(accounts[0], uniswapV3Registry, new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]), weth)
+		uniswapV3Adapter = await deployUniswapV3Adapter(
+			accounts[0],
+			uniswapV3Registry,
+			new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]),
+			weth
+		)
 		await whitelist.connect(accounts[0]).approve(uniswapV3Adapter.address)
 		curveAdapter = await deployCurveAdapter(accounts[0], addressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		curveLPAdapter = await deployCurveLPAdapter(accounts[0], addressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
-		curveGaugeAdapter = await deployCurveGaugeAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.CURVE_GAUGE)
+		curveGaugeAdapter = await deployCurveGaugeAdapter(
+			accounts[0],
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.CURVE_GAUGE
+		)
 		await whitelist.connect(accounts[0]).approve(curveGaugeAdapter.address)
 	})
 
@@ -90,16 +107,18 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const positions = [
 			{ token: dai.address, percentage: BigNumber.from(400) },
 			{ token: crv.address, percentage: BigNumber.from(0) },
-			{ token: tokens.crvEURS,
+			{
+				token: tokens.crvEURS,
 				percentage: BigNumber.from(200),
 				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.eurs]
+				path: [tokens.usdc, tokens.eurs],
 			},
-			{ token: rewardToken,
+			{
+				token: rewardToken,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
-				path: [tokens.link, tokens.crvLINK]
-			}
+				path: [tokens.link, tokens.crvLINK],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -109,19 +128,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -133,8 +146,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -146,7 +159,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -184,25 +197,29 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	it('Should fail to claim rewards', async function() {
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([], [rewardToken])).to.be.revertedWith('Incorrect parameters')
+	it('Should fail to claim rewards', async function () {
+		await expect(strategy.connect(accounts[1]).batchClaimRewards([], [rewardToken])).to.be.revertedWith(
+			'Incorrect parameters'
+		)
 	})
 
-	it('Should fail to claim rewards', async function() {
-			const FailAdapter = await getContractFactory('FailAdapter')
-			failAdapter = await FailAdapter.deploy(weth.address)
-			await failAdapter.deployed()
+	it('Should fail to claim rewards', async function () {
+		const FailAdapter = await getContractFactory('FailAdapter')
+		failAdapter = await FailAdapter.deploy(weth.address)
+		await failAdapter.deployed()
 
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.revertedWith('Not approved')
+		await expect(
+			strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])
+		).to.be.revertedWith('Not approved')
 	})
 
-	it('Should fail to claim rewards', async function() {
-			await whitelist.connect(accounts[0]).approve(failAdapter.address)
-			await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be.reverted
+	it('Should fail to claim rewards', async function () {
+		await whitelist.connect(accounts[0]).approve(failAdapter.address)
+		await expect(strategy.connect(accounts[1]).batchClaimRewards([failAdapter.address], [rewardToken])).to.be
+			.reverted
 	})
 
-
-	it('Should claim rewards', async function() {
+	it('Should claim rewards', async function () {
 		await strategy.connect(accounts[1]).batchClaimRewards([curveGaugeAdapter.address], [rewardToken])
 	})
 
@@ -211,15 +228,17 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const symbol = 'ETHBTC'
 		const positions = [
 			{ token: dai.address, percentage: BigNumber.from(400) },
-			{ token: tokens.crvREN,
+			{
+				token: tokens.crvREN,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address],
-				path: [tokens.wbtc]
+				path: [tokens.wbtc],
 			},
-			{ token: tokens.crvSETH,
+			{
+				token: tokens.crvSETH,
 				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address],
-				path: [tokens.sETH]
+				path: [tokens.sETH],
 			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
@@ -230,19 +249,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			restructureSlippage: BigNumber.from(980), // Needs to tolerate more slippage
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -254,8 +267,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -267,7 +280,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -310,11 +323,12 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const symbol = 'META'
 		const positions = [
 			{ token: dai.address, percentage: BigNumber.from(500) },
-			{ token: tokens.crvUSDN, //Metapool uses 3crv as a liquidity token
+			{
+				token: tokens.crvUSDN, //Metapool uses 3crv as a liquidity token
 				percentage: BigNumber.from(500),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.crv3]
-			}
+				path: [tokens.usdc, tokens.crv3],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -324,19 +338,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -348,8 +356,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -361,7 +369,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])

@@ -10,7 +10,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const NUM_TOKENS = 3
 
-
 describe('BalancerAdapter', function () {
 	let tokens: Contract[],
 		weth: Contract,
@@ -35,7 +34,12 @@ describe('BalancerAdapter', function () {
 		weth = tokens[0]
 		;[balancerFactory, balancerRegistry] = await deployer.deployBalancer(accounts[0], tokens)
 		uniswapFactory = await deployer.deployUniswapV2(accounts[0], tokens)
-		const platform = await deployer.deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		const platform = await deployer.deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -55,7 +59,7 @@ describe('BalancerAdapter', function () {
 		const positions = [
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
 			{ token: tokens[2].address, percentage: BigNumber.from(500) },
-		] as Position[];
+		] as Position[]
 		strategyItems = prepareStrategy(positions, balancerAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -64,19 +68,13 @@ describe('BalancerAdapter', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -86,8 +84,8 @@ describe('BalancerAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -98,14 +96,7 @@ describe('BalancerAdapter', function () {
 
 	it('Should fail to swap: tokens cannot match', async function () {
 		await expect(
-			balancerAdapter.swap(
-				1,
-				0,
-				tokens[0].address,
-				tokens[0].address,
-				accounts[0].address,
-				accounts[0].address
-			)
+			balancerAdapter.swap(1, 0, tokens[0].address, tokens[0].address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
 	})
 
