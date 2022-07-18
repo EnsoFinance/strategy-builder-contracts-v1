@@ -365,8 +365,7 @@ export async function deployPlatform(
 		linkBytecode(StrategyController, [strategyLibraryLink]),
 		[factoryAddress]
 	)
-	let tx = await controllerImplementation.deployed()
-	console.log("Controller bytes: ", (tx.deployTransaction.data.length/2)-1)
+	await controllerImplementation.deployed()
 
 	// Factory Implementation
 	const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controllerAddress])
@@ -389,8 +388,7 @@ export async function deployPlatform(
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
 		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,]
   )
-	tx = await strategyImplementation.deployed()
-	console.log("Strategy bytes: ", (tx.deployTransaction.data.length/2)-1)
+	await strategyImplementation.deployed()
 
 	await platformProxyAdmin
 		.connect(owner)
