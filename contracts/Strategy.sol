@@ -654,27 +654,20 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyToken, Initializabl
     function updateRewards() external {
         ITokenRegistry tokenRegistry = oracle().tokenRegistry();
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
-        address[] memory tokens = _items;
+        _setTokensExists(exists, _items);
+        _setTokensExists(exists, _debt);
+        _setTokensExists(exists, _synths);
+        _updateRewards(exists, tokenRegistry);
+        emit RewardsUpdated();
+    }
+
+    function _setTokensExists(BinaryTreeWithPayload.Tree memory exists, address[] memory tokens) private pure {
         bool ok;
         for (uint256 i; i < tokens.length; ++i) {
             (ok, ) = exists.getValue(bytes32(uint256(tokens[i])));
             if (ok) continue;
             exists.add(bytes32(uint256(tokens[i])), bytes32(0x0)); // second parameter is "any" value
         }
-        tokens = _debt;
-        for (uint256 i; i < tokens.length; ++i) {
-            (ok, ) = exists.getValue(bytes32(uint256(tokens[i])));
-            if (ok) continue;
-            exists.add(bytes32(uint256(tokens[i])), bytes32(0x0)); // second parameter is "any" value
-        }
-        tokens = _synths;
-        for (uint256 i; i < tokens.length; ++i) {
-            (ok, ) = exists.getValue(bytes32(uint256(tokens[i])));
-            if (ok) continue;
-            exists.add(bytes32(uint256(tokens[i])), bytes32(0x0)); // second parameter is "any" value
-        }
-        _updateRewards(exists, tokenRegistry);
-        emit RewardsUpdated();
     }
 
     function updateClaimables() public {
