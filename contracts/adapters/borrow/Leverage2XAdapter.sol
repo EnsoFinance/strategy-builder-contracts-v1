@@ -51,8 +51,13 @@ contract Leverage2XAdapter is BaseAdapter {
         require(tokenIn != tokenOut, "Tokens cannot match");
         require(amount >= expected, "Insufficient tokenOut amount");
 
-        if (from != address(this))
+        if (from != address(this)){
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+            require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+            amount = afterBalance - beforeBalance;
+        }
 
         require(_checkAToken(tokenOut), "Only supports deposit");
         require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");

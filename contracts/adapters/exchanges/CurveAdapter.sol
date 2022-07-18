@@ -30,8 +30,13 @@ contract CurveAdapter is BaseAdapter {
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
         ICurveRegistry curveRegistry = ICurveRegistry(addressProvider.get_registry());
-        if (from != address(this))
+        if (from != address(this)){
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+            require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+            amount = afterBalance - beforeBalance;
+        }
         address pool = curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
         require(pool != address(0), "Pool not found");
         (int128 indexIn, int128 indexOut, bool isUnderlying) = curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
