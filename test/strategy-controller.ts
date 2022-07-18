@@ -184,7 +184,7 @@ describe('StrategyController', function () {
               router.address,
               '0x'
             ),
-            'Out of bounds', 'StrategyController.sol')).to.be.true
+            'Fee too high', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should fail to deploy strategy: timelock too high', async function() {
@@ -501,7 +501,7 @@ describe('StrategyController', function () {
 		expect(
       await isRevertedWith(
 			    controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, 201),
-          'Out of bounds', 'StrategyController.sol')).to.be.true
+          'Fee too high', 'StrategyController.sol')).to.be.true
 	})
 
 	it('Should update management fee', async function () {

@@ -53,7 +53,8 @@ export function getErrorCodes(contractFileName: string, errMsg : string) : strin
 }
 
 export function getErrorCodesAsRegExp(contractFileName: string, errMsg: string) : RegExp {
-    const codes = getErrorCodes(contractFileName, errMsg)
+    let codes = getErrorCodes(contractFileName, errMsg)
+    codes.push(errMsg)
     const joined = codes.join('\|')
     return new RegExp(joined)
 }
@@ -68,12 +69,13 @@ export async function isRevertedWith(p: Promise<any>, errMsg: string, contractFi
       await p
     } catch (e: any) {
         let err = e.toString()
+        // console.log(err) // debugging
         isRevert = err.includes("reverted with reason string")
         if (isRevert) {
             let revertString = err.replace(/.*reverted with reason string '/g, "")
             revertString = revertString.slice(0, -1) // trim last '
             isInErrCodes = errCodes.test(revertString)
-            if (!isInErrCodes) console.log(`Unexpected revert string: ${revertString}`)
+            if (!isInErrCodes) console.log(`lib/errors.ts: Unexpected revert string: ${revertString}`)
         }
     }
     return isRevert && isInErrCodes
