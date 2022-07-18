@@ -496,7 +496,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
         }
-
         if (_percentage[susd] > 0) {
             //If only synth is SUSD, treat it like a regular token
             _items.push(susd);
@@ -525,7 +524,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         } else if (category == ItemCategory.DEBT) {
             _assets = _debt;
         }
-        assert(category < ItemCategory.RESERVE); // ensures the following `_assets` has been assigned so the "push" makes sense
         _assets = _assets; // compiler hack
         _assets.push(newItem);
         return virtualPercentage;
