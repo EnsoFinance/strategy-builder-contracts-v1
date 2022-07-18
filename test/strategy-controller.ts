@@ -199,7 +199,7 @@ describe('StrategyController', function () {
 		}
 
 		expect(
-      await isRevertedWith( 
+      await isRevertedWith(
         strategyFactory
 			.connect(accounts[2])
 			.createStrategy(
@@ -628,8 +628,10 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to withdrawAll: no amount passed', async function () {
-		await expect(
-        strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
+		expect(
+				await isRevertedWith(
+        		strategy.connect(accounts[1]).withdrawAll(0),
+				'0 amount', 'Strategy.sol')).to.be.true
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {

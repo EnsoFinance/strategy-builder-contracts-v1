@@ -478,10 +478,6 @@
     "contractName": "StrategyControllerStorage.sol"
   },
   {
-    "contractId": "4d8f0d4f3d94",
-    "contractName": "StrategyFees.sol"
-  },
-  {
     "contractId": "f19f85f5ead4",
     "contractName": "StrategyProxyAdmin.sol"
   },
@@ -507,6 +503,10 @@
       "b3e5dea2190e07": "finalizeUpdateTradeData: timelock not ready.",
       "b3e5dea2190e08": "Only StrategyProxyFactory"
     }
+  },
+  {
+    "contractId": "ea334a07e51b",
+    "contractName": "StrategyTokenFees.sol"
   },
   {
     "contractId": "90dae108da2b",
