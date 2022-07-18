@@ -551,10 +551,6 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _manager;
     }
 
-    function oracle() public view override returns (IOracle) {
-        return IOracle(_oracle);
-    }
-
     function whitelist() public view override returns (IWhitelist) {
         return IWhitelist(IStrategyProxyFactory(factory).whitelist());
     }
@@ -620,7 +616,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         delete _items;
         delete _synths;
 
-        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(factory).tokenRegistry());
         // Set new items
         int256 virtualPercentage = 0;
         for (uint256 i = 0; i < newItems.length; i++) {
@@ -658,7 +654,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      * @notice Update the per token value based on the most recent strategy value.
      */
     function _updateTokenValue() internal {
-        (uint256 total, ) = oracle().estimateStrategy(this);
+        (uint256 total, ) = IOracle(_oracle).estimateStrategy(this);
         _setTokenValue(total, _totalSupply);
     }
 

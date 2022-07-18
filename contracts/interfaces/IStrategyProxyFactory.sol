@@ -34,6 +34,8 @@ interface IStrategyProxyFactory is StrategyTypes{
 
     function oracle() external view returns (address);
 
+    function tokenRegistry() external view returns (address);
+
     function whitelist() external view returns (address);
 
     function pool() external view returns (address);

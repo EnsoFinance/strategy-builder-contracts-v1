@@ -88,7 +88,7 @@ export class Platform {
 	oracles: Oracles
 	administration: Administration
 	library: Contract
-  strategyLibraries: any // 
+  strategyLibraries: any //
 
 	public constructor(
 		strategyFactory: Contract,
@@ -96,7 +96,7 @@ export class Platform {
 		oracles: Oracles,
 		administration: Administration,
 		library: Contract,
-    strategyLibraries: any 
+    strategyLibraries: any
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
@@ -347,7 +347,7 @@ export async function deployPlatform(
 	if (susd)
 		await tokenRegistry
 			.connect(owner)
-			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address) 
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
@@ -380,7 +380,7 @@ export async function deployPlatform(
   const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
 
 	const strategyImplementation = await waffle.deployContract(
-    owner, 
+    owner,
     strategyLinked,
     [
 		factoryAddress,
