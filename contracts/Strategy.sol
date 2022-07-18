@@ -382,7 +382,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyFees, Initializable
         emit UpdateTradeData(item, false);
     }
 
-    function finalizeTradeData() external {
+    function finalizeUpdateTradeData() external {
         _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e07) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
