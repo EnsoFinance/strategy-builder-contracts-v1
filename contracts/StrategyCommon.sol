@@ -3,9 +3,9 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/IStrategyProxyFactory.sol";
-import "./StrategyToken.sol";
+import "./StrategyTokenStorage.sol";
 
-contract StrategyCommon is StrategyToken {
+contract StrategyCommon is StrategyTokenStorage {
 
     uint256 internal constant PRECISION = 10**18;
 

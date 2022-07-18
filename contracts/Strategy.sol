@@ -19,7 +19,7 @@ import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
 import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
-import "./StrategyFees.sol";
+import "./StrategyTokenFees.sol";
 
 interface ISynthetixAddressResolver {
     function getAddress(bytes32 name) external returns (address);
@@ -33,7 +33,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyFees, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;

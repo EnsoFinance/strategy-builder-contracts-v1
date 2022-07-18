@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyFees.sol";
 import "./StrategyCommon.sol";
+import "./StrategyToken.sol";
 
-abstract contract StrategyFees is IStrategyFees, StrategyCommon {
+abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCommon {
 
     uint256 private constant YEAR = 331556952; //365.2425 days
     uint256 internal constant DIVISOR = 1000;
@@ -133,11 +134,6 @@ abstract contract StrategyFees is IStrategyFees, StrategyCommon {
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
         if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION) / (supply));
-        /*if (supply > 0) {
-          total = total.mul(PRECISION) / supply;
-          require(total < 2**128, "value doesn't fit into 128 bits.");
-          _lastTokenValue = uint128(total);
-        }*/
     }
 
     function _transfer(
