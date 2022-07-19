@@ -82,4 +82,8 @@ interface IStrategyController is StrategyTypes {
     function oracle() external view returns (IOracle);
 
     function whitelist() external view returns (IWhitelist);
+
+    function weth() external view returns (address);
+
+    function pool() external view returns (address);
 }
