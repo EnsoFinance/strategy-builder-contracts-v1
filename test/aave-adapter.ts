@@ -26,7 +26,7 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
-const runAll = false
+const runAll = true
 
 chai.use(solidity)
 
@@ -302,7 +302,7 @@ describe('AaveAdapter', function () {
 
 	it('Should restructure - basic', async function () {
     const positions = [
-			{ token: tokens.tusd,
+			{ token: tokens.usdt,
 				percentage: BigNumber.from(1000),
 				adapters: [uniswapAdapter.address],
 			},
@@ -320,11 +320,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
-  //if (runAll) {
-
 	it('Should restructure - debt positions', async function () {
-    // FIXME reverting with borrower allowance not enough
-    // notes: fails same way with collateralToken2
 		const positions = [
 			{ token: collateralToken,
 				percentage: BigNumber.from(1000),
@@ -357,40 +353,6 @@ describe('AaveAdapter', function () {
 	      ),
 			}
 		]
-		/*const positions = [
-			{ token: collateralToken,
-				percentage: BigNumber.from(1000),
-				adapters: [aaveV2Adapter.address],
-				path: [],
-				//adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-				//path: [tokens.crv],
-				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['uint16'],
-	        [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-	      ),
-			},
-			{ token: collateralToken2,
-				percentage: BigNumber.from(1000),
-				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-				path: [tokens.crv],
-				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['uint16'],
-	        [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-	      ),
-			},
-			{ token: tokens.debtUSDC,
-				percentage: BigNumber.from(-1000),
-				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-				path: [tokens.usdc, tokens.weth],
-				cache: ethers.utils.defaultAbiCoder.encode(
-					['tuple(address token, uint16 percentage)[]'],
-	        [[
-						{ token: collateralToken, percentage: 500 },
-						{ token: collateralToken2, percentage: 500 }
-					]]
-	      ),
-			}
-		]*/
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
@@ -416,14 +378,13 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
-  // FIXME this is failing
-	/*it('Should withdraw ETH', async function () {
+  it('Should withdraw ETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
+			.withdrawETH(strategy.address, router.address, amount, '970', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -437,13 +398,13 @@ describe('AaveAdapter', function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
+			.withdrawWETH(strategy.address, router.address, amount, '970', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
-	})*/
+	})
 
 	it('Should deploy new strategy', async function () {
 		const name = 'New Strategy'
@@ -477,7 +438,7 @@ describe('AaveAdapter', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
+			restructureSlippage: BigNumber.from(995), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,

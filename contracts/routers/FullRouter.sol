@@ -10,10 +10,7 @@ import "../libraries/StrategyLibrary.sol";
 import "../libraries/BinaryTreeWithPayload.sol";
 import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
-
 import "../interfaces/aave/IAToken.sol";
-
-import "hardhat/console.sol";
 
 struct LeverageItem {
   address token;
@@ -505,9 +502,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     } else {
                         leverageLiquidity[i] = leverageAmount;
                         _setTempEstimate(
-                          mm, 
-                          strategy, 
-                          token, 
+                          mm,
+                          strategy,
+                          token,
                           oracle.estimateItem(
                             IERC20(token).balanceOf(strategy),
                             token
@@ -659,7 +656,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         while (amount > 0) { //First loop must either borrow the entire amount or add more tokens as collateral in order to borrow more on following loops
             ( , , availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
             amount = _amountFromBorrowPath(data, amount, strategy, availableBorrowsETH, leverageItems);
-            console.log("after _amountFromBorrowPath");
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 // Only purchase token when there is a disparity between the expected value and the estimated value
@@ -699,9 +695,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
-            console.log("_amountFromBorrowPath");
             for (uint256 i; i < adaptersLength; ++i) {
-              console.log(i);
                 _tokenOut = data.path[i];
                 if (i == 0) {
                     _tokenIn = address(0); //Since we are withdrawing from lendingPool's collateral reserves, we can set tokenIn to zero. However, amount will be valued in weth
@@ -818,11 +812,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function _deleverageForWithdraw(
-      address strategy, 
-      int256[] memory estimates, 
-      uint256 total, 
-      uint256 expectedWeth, 
-      uint256 itemsLength, 
+      address strategy,
+      int256[] memory estimates,
+      uint256 total,
+      uint256 expectedWeth,
+      uint256 itemsLength,
       BinaryTreeWithPayload.Tree memory mm
     ) private {
         address[] memory strategyDebt = IStrategy(strategy).debt();
@@ -918,7 +912,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private pure returns(int256) {
         (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode(strategy, item)));
         if (ok) {
-            return abi.decode(result, (int256));    
+            return abi.decode(result, (int256));
         }
         return 0;
     }
