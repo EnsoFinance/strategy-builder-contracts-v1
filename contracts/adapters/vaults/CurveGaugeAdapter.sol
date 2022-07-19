@@ -56,10 +56,24 @@ contract CurveGaugeAdapter is ProtocolAdapter, IRewardsAdapter {
         }
     }
 
-    // Intended to be called via delegateCall
-    function claim(address token) external override {
-        require(_checkToken(token), "Not claimable");
+     // Intended to be called via delegateCall
+    function claim(address[] memory tokens) external override {
+        for (uint256 i; i < tokens.length; ++i) {
+          ICurveGauge(tokens[i]).claim_rewards(address(this));
+        }
+    }
+     
+    function rewardsTokens(address token) external view override returns(address[] memory ret) {
         ICurveGauge gauge = ICurveGauge(token);
-        gauge.claim_rewards(address(this));
+        ret = new address[](8); // 8 is max in curve
+        uint256 i;
+        for (; i < 8; ++i) {
+            ret[i] = gauge.reward_tokens(i);
+            if (ret[i] == address(0)) break;
+        }
+        if (ret[0] == address(0)) i = 0;
+        assembly {
+            mstore(ret, i) // this resizes ret so there won't be useless zero entries
+        }
     }
 }

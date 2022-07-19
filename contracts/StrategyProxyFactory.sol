@@ -46,9 +46,14 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     );
 
     /**
-     * @notice Log the new Oracle for the strategys
+     * @notice Log the new Oracle for the strategies
      */
     event NewOracle(address newOracle);
+
+    /**
+     * @notice Log the new TokenRegistry for the strategies
+     */
+    event NewRegistry(address newRegistry);
 
     /**
      * @notice New default whitelist address
@@ -165,6 +170,11 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         emit NewOracle(newOracle);
     }
 
+    function updateRegistry(address newRegistry) external noZeroAddress(newRegistry) onlyOwner {
+        _registry = newRegistry;
+        emit NewOracle(newRegistry);
+    }
+
     function updateWhitelist(address newWhitelist) external noZeroAddress(newWhitelist) onlyOwner {
         _whitelist = newWhitelist;
         emit NewWhitelist(newWhitelist);
@@ -211,6 +221,16 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _addItemToRegistry(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
+    function addItemDetailedToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        TradeData memory tradeData,
+        bool isClaimable
+    ) external onlyOwner {
+        _addItemDetailedToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
+    }
+
     /**
      * @dev Leaves the contract without owner. It will not be possible to call
      * `onlyOwner` functions anymore. Can only be called by the current owner.
@@ -244,10 +264,17 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     /*
-     * @dev This function is called by  Strategy and StrategyController
+     * @dev This function is called by StrategyController
      */
     function oracle() external view override returns (address) {
         return _oracle;
+    }
+
+    /*
+     * @dev This function is called by Strategy
+     */
+    function tokenRegistry() external view override returns (address) {
+        return _registry;
     }
 
     function pool() external view override returns (address) {
@@ -356,4 +383,13 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
+    function _addItemDetailedToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        TradeData memory tradeData,
+        bool isClaimable
+    ) internal {
+        ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
+    }
 }

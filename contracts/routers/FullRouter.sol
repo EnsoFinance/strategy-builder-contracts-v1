@@ -699,7 +699,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 total,
         bool isLeveraging,
         BinaryTreeWithPayload.Tree memory mm
-    ) internal returns (uint256) {
+    ) internal view returns (uint256) {
         int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
         int256 estimate = oracle.estimateItem(
             IERC20(leverageItem).balanceOf(strategy),
@@ -822,7 +822,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         uint256 total,
         BinaryTreeWithPayload.Tree memory mm
-    ) private returns(
+    ) private view returns(
         uint256[] memory diffs,
         bytes[] memory payloads
     ) {
@@ -855,15 +855,15 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         tree.readInto(diffs, payloads);
     }
 
-    function _startTempEstimateSession() private returns(BinaryTreeWithPayload.Tree memory) {
+    function _startTempEstimateSession() private pure returns(BinaryTreeWithPayload.Tree memory) {
         return BinaryTreeWithPayload.newNode();
     }
 
-    function _setTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item, int256 value) private {
+    function _setTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item, int256 value) private pure {
         mm.add(keccak256(abi.encode(strategy, item)), bytes32(value));
     }
 
-    function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private view returns(int256) {
+    function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private pure returns(int256) {
         (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode(strategy, item)));
         if (ok) {
             return abi.decode(result, (int256));    
@@ -871,7 +871,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         return 0;
     }
 
-    function _removeTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private {
+    function _removeTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private pure {
         mm.add(keccak256(abi.encode(strategy, item)), bytes32(0));
     }
 }

@@ -10,6 +10,7 @@ import StrategyController from '../artifacts/contracts/StrategyController.sol/St
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
 import UniswapV3Oracle from '../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json'
@@ -88,19 +89,22 @@ export class Platform {
 	oracles: Oracles
 	administration: Administration
 	library: Contract
+  strategyLibraries: any //
 
 	public constructor(
 		strategyFactory: Contract,
 		controller: Contract,
 		oracles: Oracles,
 		administration: Administration,
-		library: Contract
+		library: Contract,
+    strategyLibraries: any
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
 		this.oracles = oracles
 		this.administration = administration
 		this.library = library
+    this.strategyLibraries = strategyLibraries
 	}
 
 	print() {
@@ -111,6 +115,10 @@ export class Platform {
 		console.log('  Oracle: ', this.oracles.ensoOracle.address)
 		console.log('  TokenRegistry: ', this.oracles.registries.tokenRegistry.address)
 	}
+
+  public getStrategyContractFactory() : any {
+      return getContractFactory('Strategy', this.strategyLibraries)
+  }
 }
 
 export async function deployTokens(owner: SignerWithAddress, numTokens: number, value: BigNumber): Promise<Contract[]> {
@@ -377,12 +385,22 @@ export async function deployPlatform(
 	await factoryImplementation.deployed()
 
 	// Strategy Implementation
-	const strategyImplementation = await waffle.deployContract(owner, Strategy, [
+	const strategyClaim = await waffle.deployContract(owner, StrategyClaim, [])
+  const strategyLibraries = { libraries: { StrategyClaim: strategyClaim.address }}
+	await strategyClaim.deployed()
+	const strategyClaimLink = createLink(StrategyClaim, strategyClaim.address)
+
+  const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
+
+	const strategyImplementation = await waffle.deployContract(
+    owner,
+    strategyLinked,
+    [
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
-		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
-	])
+		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,]
+  )
 	await strategyImplementation.deployed()
 
 	await platformProxyAdmin
@@ -424,7 +442,7 @@ export async function deployPlatform(
 		platformProxyAdmin,
 	}
 
-	return new Platform(factory, controller, oracles, administration, strategyLibrary)
+	return new Platform(factory, controller, oracles, administration, strategyLibrary, strategyLibraries)
 }
 
 export async function deployUniswapV2Adapter(

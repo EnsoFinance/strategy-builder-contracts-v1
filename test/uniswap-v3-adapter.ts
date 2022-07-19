@@ -18,6 +18,8 @@ import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.so
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
+
 const NUM_TOKENS = 3
 
 let tokens: Contract[],
@@ -31,6 +33,7 @@ let tokens: Contract[],
 	adapter: Contract,
 	router: Contract,
 	strategy: Contract,
+	strategyClaim: Contract,
 	wrapper: Contract,
 	uniswapRegistry: Contract,
 	uniswapV3Factory: Contract,
@@ -148,7 +151,12 @@ describe('UniswapV3Adapter', function () {
 		const factoryImplementation = await StrategyProxyFactory.connect(owner).deploy(controllerAddress)
 		await factoryImplementation.deployed()
 
-		const Strategy = await getContractFactory('Strategy')
+		strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
+		await strategyClaim.deployed()
+
+		const Strategy = await getContractFactory('Strategy', {
+			libraries: { StrategyClaim: strategyClaim.address },
+		})
 		const strategyImplementation = await Strategy.connect(owner).deploy(
 			factoryAddress,
 			controllerAddress,
@@ -214,7 +222,9 @@ describe('UniswapV3Adapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await getContractFactory('Strategy', {
+			libraries: { StrategyClaim: strategyClaim.address },
+		})
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)

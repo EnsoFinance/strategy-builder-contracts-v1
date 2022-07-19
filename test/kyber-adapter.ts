@@ -8,7 +8,13 @@ import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
-import { deployKyberSwapAdapter, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployKyberSwapAdapter,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployLoopRouter,
+} from '../lib/deploy'
 import { MAINNET_ADDRESSES } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -20,7 +26,8 @@ import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.s
 chai.use(solidity)
 
 describe('KyberSwapAdapter', function () {
-	let weth: Contract,
+	let platform: Platform,
+		weth: Contract,
 		dai: Contract,
 		knc: Contract,
 		accounts: SignerWithAddress[],
@@ -51,7 +58,7 @@ describe('KyberSwapAdapter', function () {
 		const uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, owner)
 		const uniswapV3Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory.abi, owner)
 
-		const platform = await deployPlatform(owner, uniswapV2Factory, uniswapV3Factory, weth, undefined)
+		platform = await deployPlatform(owner, uniswapV2Factory, uniswapV3Factory, weth, undefined)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
@@ -101,7 +108,7 @@ describe('KyberSwapAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)

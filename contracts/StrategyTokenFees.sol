@@ -5,10 +5,10 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/utils/SafeCast.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyFees.sol";
-import "./StrategyToken.sol";
 import "./StrategyCommon.sol";
+import "./StrategyToken.sol";
 
-abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
+abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCommon {
 
     uint256 private constant YEAR = 331556952; //365.2425 days
     uint256 internal constant DIVISOR = 1000;
@@ -16,16 +16,9 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     event StreamingFee(uint256 amount);
     event ManagementFee(uint256 amount);
 
-    function updateAddresses() public {
-        function(address, address)[2] memory callbacks;
-        callbacks[0] = _issueStreamingFee;
-        callbacks[1] = _updateStreamingFeeRate;
-        _updateAddresses(callbacks);
-    }
-
     function managementFee() external view returns (uint256) {
         uint256 managementFee = _managementFee;
-        return managementFee.div(managementFee.add(PRECISION).div(DIVISOR));
+        return managementFee / (managementFee.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
 
     /**
@@ -33,31 +26,24 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
      * @param total The current total value of the strategy in WETH
      * @param supply The new supply of the token (updateTokenValue needs to be called before mint, so the new supply has to be passed in)
      */
-    function updateTokenValue(uint256 total, uint256 supply) external override onlyController {
+    function updateTokenValue(uint256 total, uint256 supply) external override {
+        _onlyController();
         _setTokenValue(total, supply);
-    }
-
-    /**
-     * @notice Update the per token value based on the most recent strategy value.
-     */
-    function updateTokenValue() external {
-        _setLock();
-        _onlyManager();
-        _updateTokenValue();
-        _removeLock();
     }
 
     /**
      * @notice Update the performance fee. Only callable by controller
      */
-    function updatePerformanceFee(uint16 fee) external override onlyController {
+    function updatePerformanceFee(uint16 fee) external override {
+        _onlyController();
         revert("This strategy does not support performance fees");
     }
 
     /**
      * @notice Update the management fee. Only callable by controller
      */
-    function updateManagementFee(uint16 fee) external override onlyController {
+    function updateManagementFee(uint16 fee) external override {
+        _onlyController();
         address pool = _pool;
         address manager = _manager;
         _issueStreamingFee(pool, manager);
@@ -68,7 +54,8 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     /**
      * @notice Issues the streaming fee to the fee pool. Only callable by controller
      */
-    function issueStreamingFee() external override onlyController {
+    function issueStreamingFee() external override {
+        _onlyController();
         _issueStreamingFee(_pool, _manager);
     }
 
@@ -109,27 +96,17 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
     function _issueStreamingFee(address pool, address manager) internal {
         uint256 timePassed = block.timestamp.sub(uint256(_lastStreamTimestamp));
         if (timePassed > 0) {
-            uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed).div(YEAR).div(PRECISION);
+            uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed) / (YEAR * PRECISION);
             _mint(pool, amountToMint);
             emit StreamingFee(amountToMint);
             uint256 managementFeeRate = _managementFeeRate;
             if (managementFeeRate > 0) {
-                amountToMint = uint256(managementFeeRate).mul(timePassed).div(YEAR).div(PRECISION);
+                amountToMint = uint256(managementFeeRate).mul(timePassed) / (YEAR * PRECISION);
                 _mint(manager, amountToMint);
                 emit ManagementFee(amountToMint);
             }
             _lastStreamTimestamp = uint96(block.timestamp);
-
         }
-    }
-
-    /**
-     * @notice Update the per token value based on the most recent strategy value.
-     */
-    function _updateTokenValue() internal {
-        if (_oracle != address(IStrategyController(_controller).oracle())) updateAddresses();
-        (uint256 total, ) = IOracle(_oracle).estimateStrategy(IStrategy(address(this)));
-        _setTokenValue(total, _totalSupply);
     }
 
     function _updatePaidTokenValue(address account, uint256 amount, uint256 tokenValue) internal {
@@ -141,7 +118,7 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
             // Otherwise, calculate avg token value
             uint256 oldValue = balance.mul(_paidTokenValues[account]);
             uint256 newValue = amount.mul(tokenValue);
-            _paidTokenValues[account] = oldValue.add(newValue).div(balance.add(amount));
+            _paidTokenValues[account] = oldValue.add(newValue) / (balance.add(amount));
         }
     }
 
@@ -156,6 +133,32 @@ abstract contract StrategyFees is IStrategyFees, StrategyToken, StrategyCommon {
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
-        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION).div(supply));
+        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION) / (supply));
+    }
+
+    function _transfer(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) internal override {
+        address pool = _pool;
+        address manager = _manager;
+        bool rateChange;
+        // We're not currently supporting performance fees but don't want to exclude it in the future.
+        // So users are getting grandfathered in by setting their paid token value to the avg token
+        // value they bought into
+        if (sender == manager || sender == pool) {
+            rateChange = true;
+        } else {
+            _removePaidTokenValue(sender, amount);
+        }
+        if (recipient == manager || recipient == pool) {
+            rateChange = true;
+        } else {
+            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
+        }
+        if (rateChange) _issueStreamingFee(pool, manager);
+        super._transfer(sender, recipient, amount);
+        if (rateChange) _updateStreamingFeeRate(pool, manager);
     }
 }

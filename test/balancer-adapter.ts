@@ -11,7 +11,8 @@ const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const NUM_TOKENS = 3
 
 describe('BalancerAdapter', function () {
-	let tokens: Contract[],
+	let platform: deployer.Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -34,7 +35,7 @@ describe('BalancerAdapter', function () {
 		weth = tokens[0]
 		;[balancerFactory, balancerRegistry] = await deployer.deployBalancer(accounts[0], tokens)
 		uniswapFactory = await deployer.deployUniswapV2(accounts[0], tokens)
-		const platform = await deployer.deployPlatform(
+		platform = await deployer.deployPlatform(
 			accounts[0],
 			uniswapFactory,
 			new Contract(AddressZero, [], accounts[0]),
@@ -79,7 +80,7 @@ describe('BalancerAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await ethers.getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.connect(accounts[0]).attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {

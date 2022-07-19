@@ -10,7 +10,7 @@ import { increaseTime } from '../lib/utils'
 import { DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
-const { constants, getSigners, getContractFactory } = hre.ethers
+const { constants, getSigners, getContractAt } = hre.ethers
 const { AddressZero } = constants
 
 const strategyState: InitialState = {
@@ -139,8 +139,7 @@ describe('Estimator', function () {
 			.createStrategy(name, symbol, strategyItems, strategyState, routerAddress, '0x', { value: depositAmount })
 		const receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
-		strategy = await Strategy.attach(strategyAddress)
+		strategy = await getContractAt('Strategy', strategyAddress)
 
 		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
 
@@ -199,8 +198,7 @@ describe('Estimator', function () {
 			.createStrategy(name, symbol, strategyItems, strategyState, routerAddress, '0x', { value: depositAmount })
 		const receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
-		strategy = await Strategy.attach(strategyAddress)
+		strategy = await getContractAt('Strategy', strategyAddress)
 
 		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
 
@@ -254,8 +252,7 @@ describe('Estimator', function () {
 			.createStrategy(name, symbol, strategyItems, strategyState, routerAddress, '0x', { value: depositAmount })
 		const receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
-		metaStrategy = await Strategy.attach(strategyAddress)
+		metaStrategy = await getContractAt('Strategy', strategyAddress)
 
 		expect(await enso.platform.controller.initialized(strategy.address)).to.equal(true)
 

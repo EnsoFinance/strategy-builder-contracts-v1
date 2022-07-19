@@ -13,12 +13,12 @@ import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/constants'
 import { increaseTime } from '../lib/utils'
 import {
+	Platform,
 	deployTokens,
 	deployUniswapV2,
 	deployUniswapV2Adapter,
 	deployPlatform,
 	deployLoopRouter,
-	Platform,
 } from '../lib/deploy'
 //import { displayBalances } from '../lib/logging'
 
@@ -217,7 +217,7 @@ describe('StrategyController', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		const emptyStrategy = await Strategy.attach(strategyAddress)
 		expect((await emptyStrategy.items()).length).to.equal(0)
 		expect((await controller.strategyState(emptyStrategy.address)).social).to.equal(true)
@@ -262,7 +262,7 @@ describe('StrategyController', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
@@ -673,7 +673,8 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to withdrawAll: no amount passed', async function () {
-		await expect(strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
+		expect(await isRevertedWith(strategy.connect(accounts[1]).withdrawAll(0), '0 amount', 'Strategy.sol')).to.be
+			.true
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {

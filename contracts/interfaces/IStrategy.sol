@@ -38,6 +38,8 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function setCollateral(address token) external;
 
+    function claimAll() external;
+
     function withdrawAll(uint256 amount) external;
 
     function mint(address account, uint256 amount) external;
@@ -78,8 +80,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
     function controller() external view returns (address);
 
     function manager() external view returns (address);
-
-    function oracle() external view returns (IOracle);
 
     function whitelist() external view returns (IWhitelist);
 

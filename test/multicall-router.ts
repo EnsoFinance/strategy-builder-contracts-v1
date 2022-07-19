@@ -4,6 +4,7 @@ import { ethers } from 'hardhat'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import {
+	Platform,
 	deployUniswapV2,
 	deployTokens,
 	deployPlatform,
@@ -41,7 +42,8 @@ export type BuyLoop = {
 }
 
 describe('MulticallRouter', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -61,12 +63,7 @@ describe('MulticallRouter', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(
-			accounts[0],
-			uniswapFactory,
-			new Contract(AddressZero, [], accounts[0]),
-			weth
-		)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -109,7 +106,7 @@ describe('MulticallRouter', function () {
 		}
 
 		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')

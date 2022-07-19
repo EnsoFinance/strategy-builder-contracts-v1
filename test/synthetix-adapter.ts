@@ -9,6 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
+	Platform,
 	deploySynthetixAdapter,
 	deployCurveAdapter,
 	deployUniswapV2Adapter,
@@ -29,7 +30,8 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('SynthetixAdapter', function () {
-	let weth: Contract,
+	let platform: Platform,
+		weth: Contract,
 		crv: Contract,
 		susd: Contract,
 		seur: Contract,
@@ -68,7 +70,7 @@ describe('SynthetixAdapter', function () {
 		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		seur = new Contract(tokens.sEUR, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(
+		platform = await deployPlatform(
 			accounts[10],
 			uniswapFactory,
 			new Contract(AddressZero, [], accounts[10]),
@@ -196,7 +198,7 @@ describe('SynthetixAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		let updateTradeDataSelector = strategy.interface.getSighash('updateTradeData')
@@ -291,9 +293,13 @@ describe('SynthetixAdapter', function () {
 			cache: '0x',
 		})
 		// sanity check
-		await expect(strategy.connect(accounts[1]).finalizeUpdateTradeData()).to.be.revertedWith(
-			'finalizeUpdateTradeData: timelock not ready.'
-		)
+		expect(
+			await isRevertedWith(
+				strategy.connect(accounts[1]).finalizeUpdateTradeData(),
+				'finalizeUpdateTradeData: timelock not ready.',
+				'Strategy.sol'
+			)
+		).to.be.true
 		await increaseTime(5 * 60)
 		await strategy.connect(accounts[1]).finalizeUpdateTradeData()
 

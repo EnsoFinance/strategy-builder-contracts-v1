@@ -8,6 +8,7 @@ import { expect } from 'chai'
 import { BigNumber, Contract, Event } from 'ethers'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import {
+	Platform,
 	deployTokens,
 	deployUniswapV2,
 	deployUniswapV2Adapter,
@@ -23,7 +24,8 @@ const NUM_TOKENS = 15
 chai.use(solidity)
 
 describe('BatchDepositRouter', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -43,12 +45,7 @@ describe('BatchDepositRouter', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(
-			accounts[0],
-			uniswapFactory,
-			new Contract(AddressZero, [], accounts[0]),
-			weth
-		)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -101,7 +98,7 @@ describe('BatchDepositRouter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)

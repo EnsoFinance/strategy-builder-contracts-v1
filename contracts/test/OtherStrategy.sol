@@ -270,35 +270,6 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     }
 
     /**
-     * @notice Withdraws the performance fee to the manager and the fee pool
-     * @param holders An array of accounts that will be used to calculate the performance fee
-     */
-    function withdrawPerformanceFee(address[] memory holders) external {
-        _setLock();
-        _onlyManager();
-        _updateTokenValue();
-        uint256 fee = uint256(_performanceFee);
-        uint256 amount = 0;
-        for (uint256 i = 0; i < holders.length; i++) {
-            amount = amount.add(_settlePerformanceFee(holders[i], fee));
-        }
-        require(amount > 0, "No earnings");
-        address pool = _pool;
-        _issuePerformanceFee(pool, amount);
-        _updateStreamingFeeRate(pool);
-        _removeLock();
-    }
-
-    /**
-     * @notice Withdraws the streaming fee to the fee pool
-     */
-    function withdrawStreamingFee() external {
-        _setLock();
-        _issueStreamingFee(_pool);
-        _removeLock();
-    }
-
-    /**
      * @notice Mint new tokens. Only callable by controller
      * @param account The address of the account getting new tokens
      * @param amount The amount of tokens being minted
@@ -366,6 +337,16 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
                 revert(ptr, size)
             }
         }
+    }
+
+    // claim all rewards tokens of claimables
+    function claimAll() external override {
+        /*
+        indeed, COMP is claimable by anyone, so it would make sense to extend this
+        model to other rewards tokens, but we always err on the side of
+        the "principle of least privelege" so that flaws in such mechanics are siloed.
+        **/
+        revert("testing contract noop");
     }
 
     /**
@@ -570,10 +551,6 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _manager;
     }
 
-    function oracle() public view override returns (IOracle) {
-        return IOracle(_oracle);
-    }
-
     function whitelist() public view override returns (IWhitelist) {
         return IWhitelist(IStrategyProxyFactory(factory).whitelist());
     }
@@ -639,7 +616,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         delete _items;
         delete _synths;
 
-        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(factory).tokenRegistry());
         // Set new items
         int256 virtualPercentage = 0;
         for (uint256 i = 0; i < newItems.length; i++) {
@@ -677,7 +654,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      * @notice Update the per token value based on the most recent strategy value.
      */
     function _updateTokenValue() internal {
-        (uint256 total, ) = oracle().estimateStrategy(this);
+        (uint256 total, ) = IOracle(_oracle).estimateStrategy(this);
         _setTokenValue(total, _totalSupply);
     }
 

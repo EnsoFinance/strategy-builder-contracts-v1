@@ -41,6 +41,27 @@ library BinaryTreeWithPayload {
         }
     }
 
+    function replace(Tree memory tree, uint256 value, bytes memory payload) internal pure returns(bool) {
+        if (!tree.exists) {
+            tree.exists = true;
+            tree.value = value;
+            tree.payload = payload;
+            return true;
+        }
+        if (tree.value == value) {
+            tree.payload = payload;
+            return false;
+        }
+        uint256 idx = 0;
+        if (tree.value > value) idx = 1;
+        if (tree.neighbors[idx].exists) {
+            return replace(tree.neighbors[idx], value, payload);
+        } else {
+            tree.neighbors[idx] = newNode(value, payload); 
+            return true;
+        }
+    }
+
     function get(Tree memory tree, uint256 value) internal pure returns(Tree memory) {
         if (!tree.exists || tree.value == value) return tree;
         uint256 idx;
@@ -49,22 +70,34 @@ library BinaryTreeWithPayload {
     }
 
     function readInto(Tree memory tree, uint256[] memory arrayA, bytes[] memory arrayB) internal pure { 
-        if (tree.neighbors[0].exists) readInto(tree.neighbors[0], arrayA, arrayB); // left
+        if (arrayA.length != arrayB.length+1) revert("readInto: arrayA needs idx entry.");
+        if (arrayB.length == 0) revert("readInto: arrayB can't be length 0.");
+        _readInto(tree, arrayA, arrayB);
+    }
+
+    function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) private pure { 
+        if (arrayA.length != arrayB.length+1) revert("readInto: arrayA needs idx entry.");
+        if (arrayB.length == 0) revert("readInto: arrayB can't be length 0.");
+        _readInto(tree, arrayA, arrayB);
+    }
+
+    function _readInto(Tree memory tree, uint256[] memory arrayA, bytes[] memory arrayB) private pure { 
+        if (tree.neighbors[0].exists) _readInto(tree.neighbors[0], arrayA, arrayB); // left
         // center
         uint256 idx = arrayA[arrayA.length-1];
         arrayA[idx] = tree.value;
         arrayB[idx] = tree.payload;
         arrayA[arrayA.length-1] = ++idx;
-        if (tree.neighbors[1].exists) readInto(tree.neighbors[1], arrayA, arrayB); // right
+        if (tree.neighbors[1].exists) _readInto(tree.neighbors[1], arrayA, arrayB); // right
     }
 
-    function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) internal pure { 
-        if (tree.neighbors[0].exists) readInto(tree.neighbors[0], arrayA, arrayB); // left
+    function _readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) private pure { 
+        if (tree.neighbors[0].exists) _readInto(tree.neighbors[0], arrayA, arrayB); // left
         // center
         uint256 idx = arrayA[arrayA.length-1];
         arrayA[idx] = tree.value;
         arrayB[idx] = abi.decode(tree.payload, (uint256));
         arrayA[arrayA.length-1] = ++idx;
-        if (tree.neighbors[1].exists) readInto(tree.neighbors[1], arrayA, arrayB); // right
+        if (tree.neighbors[1].exists) _readInto(tree.neighbors[1], arrayA, arrayB); // right
     }
 }

@@ -2,6 +2,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 //const { displayBalances } = require('../sri/logging.ts')
 import {
+	Platform,
 	deployUniswapV2,
 	deploySushiswap,
 	deployTokens,
@@ -26,7 +27,8 @@ const { AddressZero, WeiPerEther } = constants
 const NUM_TOKENS = 4
 
 describe('Flash Loan', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -49,12 +51,7 @@ describe('Flash Loan', function () {
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
 		sushiFactory = await deploySushiswap(accounts[0], tokens)
-		const platform = await deployPlatform(
-			accounts[0],
-			uniswapFactory,
-			new Contract(AddressZero, [], accounts[0]),
-			weth
-		)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -87,7 +84,7 @@ describe('Flash Loan', function () {
 			set: false,
 		}
 		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')

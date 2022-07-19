@@ -1,6 +1,7 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import {
+	Platform,
 	deployUniswapV2,
 	deployTokens,
 	deployPlatform,
@@ -24,7 +25,8 @@ const { AddressZero, WeiPerEther } = constants
 const NUM_TOKENS = 3
 
 describe('Reentrancy    ', function () {
-	let tokens: Contract[],
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -43,12 +45,7 @@ describe('Reentrancy    ', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(
-			accounts[0],
-			uniswapFactory,
-			new Contract(AddressZero, [], accounts[0]),
-			weth
-		)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -78,7 +75,7 @@ describe('Reentrancy    ', function () {
 		}
 
 		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')

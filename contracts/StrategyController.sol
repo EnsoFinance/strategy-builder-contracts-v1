@@ -108,6 +108,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
+        strategy.claimAll();
         Timelock memory lock = _timelocks[address(strategy)];
         _require(
           lock.timestamp == 0 || lock.category != TimelockCategory.RESTRUCTURE,
@@ -174,6 +175,16 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         ControllerLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
+        _removeStrategyLock(strategy);
+    }
+
+    function claimAll(
+        IStrategy strategy
+    ) external override {
+        _isInitialized(address(strategy));
+        _setStrategyLock(strategy);
+        _onlyManager(strategy);
+        strategy.claimAll();
         _removeStrategyLock(strategy);
     }
 
@@ -476,6 +487,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) internal {
         // Get strategy value
         IOracle o = oracle();
+        strategy.claimAll(); // from the old structure
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
@@ -485,6 +497,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
         // Set new structure
         strategy.setStructure(newItems);
+        strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
         ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, currentDebt, data);
         // Check balance

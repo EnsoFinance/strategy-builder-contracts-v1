@@ -10,6 +10,7 @@ import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import { isRevertedWith } from '../lib/errors'
 import {
+	Platform,
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 	deployUniswapV2Adapter,
@@ -38,7 +39,8 @@ const STRATEGY_STATE: InitialState = {
 }
 
 describe('AaveAdapter', function () {
-	let weth: Contract,
+	let platform: Platform,
+		weth: Contract,
 		susd: Contract,
 		usdc: Contract,
 		accounts: SignerWithAddress[],
@@ -69,7 +71,7 @@ describe('AaveAdapter', function () {
 		usdc = new Contract(tokens.usdc, ERC20.abi, accounts[0])
 
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(
+		platform = await deployPlatform(
 			accounts[0],
 			uniswapFactory,
 			new Contract(AddressZero, [], accounts[0]),
@@ -171,7 +173,7 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
@@ -244,7 +246,13 @@ describe('AaveAdapter', function () {
 
 	it('Should fail to withdrawAll: cannot withdraw debt', async function () {
 		const amount = BigNumber.from('10000000000000000')
-		await expect(strategy.connect(accounts[1]).withdrawAll(amount)).to.be.revertedWith('Cannot withdraw debt')
+		expect(
+			await isRevertedWith(
+				strategy.connect(accounts[1]).withdrawAll(amount),
+				'Cannot withdraw debt',
+				'Strategy.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should restructure', async function () {
@@ -370,7 +378,7 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
@@ -451,7 +459,7 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
@@ -541,7 +549,7 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 
 		strategy = await Strategy.attach(strategyAddress)
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -586,7 +594,7 @@ describe('AaveAdapter', function () {
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		let strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		const basicStrategy = await Strategy.attach(strategyAddress)
 
 		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, router, weth)
