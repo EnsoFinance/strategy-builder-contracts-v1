@@ -490,7 +490,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 address token;
                 for (uint256 i; i < leverageItems.length; ++i) {
                     token = leverageItems[i].token;
-                    if (i < leverageItems.length - 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
+                    if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
                         uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false, mm);
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
                     } else {

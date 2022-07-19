@@ -76,7 +76,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		platform = await deployPlatform(accounts[0], uniswapV2Factory, uniswapV3Factory, weth, susd)
 
-    strategyFactory = platform.strategyFactory
+		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
