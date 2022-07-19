@@ -58,19 +58,19 @@ describe('StrategyToken Fees', function () {
 		accounts = await getSigners()
 		owner = accounts[10]
 		manager = accounts[1]
-		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
+		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
-		uniswapFactory = await deployUniswapV2(accounts[10], tokens)
-		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		uniswapFactory = await deployUniswapV2(owner, tokens)
+		platform = await deployPlatform(owner, uniswapFactory, new Contract(AddressZero, [], owner), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
 		library = platform.library
-		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
-		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
-		await whitelist.connect(accounts[10]).approve(router.address)
+		adapter = await deployUniswapV2Adapter(owner, uniswapFactory, weth)
+		await whitelist.connect(owner).approve(adapter.address)
+		router = await deployLoopRouter(owner, controller, library)
+		await whitelist.connect(owner).approve(router.address)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -93,7 +93,7 @@ describe('StrategyToken Fees', function () {
 
 		amount = BigNumber.from('10000000000000000')
 		let tx = await strategyFactory
-			.connect(accounts[1])
+			.connect(manager)
 			.createStrategy('Test Strategy', 'TEST', strategyItems, strategyState, router.address, '0x', {
 				value: amount,
 			})
@@ -110,7 +110,7 @@ describe('StrategyToken Fees', function () {
 		strategy = Strategy.attach(strategyAddress)
 		;[total] = await oracle.estimateStrategy(strategy.address)
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
-		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
+		expect(BigNumber.from(await strategy.balanceOf(manager.address)).eq(total)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
@@ -122,11 +122,11 @@ describe('StrategyToken Fees', function () {
 	})
 
 	it('Should progress blocks and collect streaming fee', async function () {
-		const account1ValueBefore = new BigNumJs((await estimateValue(accounts[1].address)).toString())
+		const account1ValueBefore = new BigNumJs((await estimateValue(manager.address)).toString())
 
 		await increaseTime(YEAR)
 
-		const tx = await strategy.connect(accounts[1]).withdrawStreamingFee()
+		const tx = await strategy.connect(manager).withdrawStreamingFee()
 		const receipt = await tx.wait()
 		const block = await provider.send('eth_getBlockByNumber', [
 			BigNumber.from(receipt.blockNumber).toHexString(),
@@ -134,7 +134,7 @@ describe('StrategyToken Fees', function () {
 		])
 		const currentTimestamp = new BigNumJs(block.timestamp)
 
-		const account1ValueAfter = new BigNumJs((await estimateValue(accounts[1].address)).toString())
+		const account1ValueAfter = new BigNumJs((await estimateValue(manager.address)).toString())
 
 		const actualRatio = account1ValueAfter.dividedBy(account1ValueBefore)
 		const expectedRatio = new BigNumJs(
@@ -174,15 +174,15 @@ describe('StrategyToken Fees', function () {
 	})
 
 	it('Should deposit', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[10].address)
+		const balanceBefore = await strategy.balanceOf(owner.address)
 		const tx = await controller
-			.connect(accounts[1])
+			.connect(manager)
 			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
 				value: BigNumber.from('10000000000000000'),
 			})
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(accounts[10].address)
+		const balanceAfter = await strategy.balanceOf(owner.address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 

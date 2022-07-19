@@ -1,5 +1,93 @@
 [
   {
+    "contractId": "c992c0df3436",
+    "contractName": "PlatformProxyAdmin.sol"
+  },
+  {
+    "contractId": "b3e5dea2190e",
+    "contractName": "Strategy.sol",
+    "errorcodes": {
+      "b3e5dea2190e00": "finalizeTimelock: timelock is not ready.",
+      "b3e5dea2190e01": "Router only",
+      "b3e5dea2190e02": "Cannot withdraw debt",
+      "b3e5dea2190e03": "0 amount",
+      "b3e5dea2190e04": "Not approved",
+      "b3e5dea2190e05": "claimAll: caller must be controller or manager.",
+      "b3e5dea2190e06": "Manager already set",
+      "b3e5dea2190e07": "finalizeUpdateTradeData: timelock not ready.",
+      "b3e5dea2190e08": "Only StrategyProxyFactory"
+    }
+  },
+  {
+    "contractId": "ee78cef3375d",
+    "contractName": "StrategyCommon.sol"
+  },
+  {
+    "contractId": "1bb63a90056c",
+    "contractName": "StrategyController.sol",
+    "errorcodes": {
+      "1bb63a90056c00": "Sanity check that Library shares context.",
+      "1bb63a90056c01": "Not factory",
+      "1bb63a90056c02": "Strategy restructuring",
+      "1bb63a90056c03": "withdrawETH: call failed.",
+      "1bb63a90056c04": "Timelock active",
+      "1bb63a90056c05": "Invalid structure",
+      "1bb63a90056c06": "Timelock active",
+      "1bb63a90056c07": "Wrong category",
+      "1bb63a90056c08": "Invalid structure",
+      "1bb63a90056c09": "Timelock active",
+      "1bb63a90056c0a": "updateValue: category is RESTRUCTURE.",
+      "1bb63a90056c0b": "Wrong category",
+      "1bb63a90056c0c": "Timelock active",
+      "1bb63a90056c0d": "Strategy already open",
+      "1bb63a90056c0e": "Strategy already set",
+      "1bb63a90056c0f": "Timelock is too long",
+      "1bb63a90056c10": "Ambiguous amount",
+      "1bb63a90056c11": "Not balanced",
+      "1bb63a90056c12": "Too much slippage",
+      "1bb63a90056c13": "Out of bounds",
+      "1bb63a90056c14": "Fee too high",
+      "1bb63a90056c15": "Not initialized",
+      "1bb63a90056c16": "Not approved",
+      "1bb63a90056c17": "Not manager",
+      "1bb63a90056c18": "Not manager",
+      "1bb63a90056c19": "Strategy cannot change",
+      "1bb63a90056c1a": "Not WETH"
+    }
+  },
+  {
+    "contractId": "dbc2b7686bf5",
+    "contractName": "StrategyControllerStorage.sol"
+  },
+  {
+    "contractId": "f19f85f5ead4",
+    "contractName": "StrategyProxyAdmin.sol"
+  },
+  {
+    "contractId": "676a717422f5",
+    "contractName": "StrategyProxyFactory.sol"
+  },
+  {
+    "contractId": "89b89b5bfe68",
+    "contractName": "StrategyProxyFactoryStorage.sol"
+  },
+  {
+    "contractId": "90dae108da2b",
+    "contractName": "StrategyToken.sol"
+  },
+  {
+    "contractId": "ea334a07e51b",
+    "contractName": "StrategyTokenFees.sol"
+  },
+  {
+    "contractId": "3d55eff30f48",
+    "contractName": "StrategyTokenStorage.sol"
+  },
+  {
+    "contractId": "3218a8876422",
+    "contractName": "Whitelist.sol"
+  },
+  {
     "contractId": "dbdaf7ee2982",
     "contractName": "BaseAdapter.sol"
   },
@@ -276,6 +364,10 @@
     "contractName": "BinaryTreeWithPayload.sol"
   },
   {
+    "contractId": "f282095f3a5e",
+    "contractName": "ControllerLibrary.sol"
+  },
+  {
     "contractId": "90f6bba6c5c4",
     "contractName": "Math.sol"
   },
@@ -326,6 +418,22 @@
   {
     "contractId": "d42b479fa07f",
     "contractName": "WethMock.sol"
+  },
+  {
+    "contractId": "44602be1de22",
+    "contractName": "IStakingRewards.sol"
+  },
+  {
+    "contractId": "092da99e4402",
+    "contractName": "Owned.sol"
+  },
+  {
+    "contractId": "364659013bd7",
+    "contractName": "RewardsDistributionRecipient.sol"
+  },
+  {
+    "contractId": "f81fb48f908c",
+    "contractName": "StakingRewards.sol"
   },
   {
     "contractId": "1c40961e41f2",

@@ -22,6 +22,7 @@ async function impersonate(address: string): Promise<SignerWithAddress> {
 
 describe('Live Upgrades', function () {
 	let accounts: SignerWithAddress[],
+		manager: SignerWithAddress,
 		controller: Contract,
 		strategyFactory: Contract,
 		strategyClaim: Contract,
@@ -42,6 +43,7 @@ describe('Live Upgrades', function () {
 		})
 		// example live strategy
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
+		manager = await impersonate(await eDPI.manager())
 
 		// update to latest `Strategy`
 		const newImplementation = await Strategy.deploy(
@@ -54,17 +56,16 @@ describe('Live Upgrades', function () {
 		await strategyFactory
 			.connect(await impersonate(await strategyFactory.owner()))
 			.updateImplementation(newImplementation.address, MaxUint256.toString())
-
 		let admin = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		let strategyAdmin = await StrategyAdmin.attach(admin)
-		await strategyAdmin.connect(await impersonate(await eDPI.manager())).upgrade(eDPI.address)
+		await strategyAdmin.connect(manager).upgrade(eDPI.address)
 	})
 
 	it('Should updateTradeData respecting timelock', async function () {
 		// first manager must setup the timelock
 		let updateTradeDataSelector = eDPI.interface.getSighash('updateTradeData')
-		await eDPI.connect(await impersonate(await eDPI.manager())).updateTimelock(updateTradeDataSelector, 5 * 60)
+		await eDPI.connect(manager).updateTimelock(updateTradeDataSelector, 5 * 60)
 		await eDPI.connect(accounts[1]).finalizeTimelock()
 
 		// now updateTradeData respecting the timelock
@@ -72,7 +73,7 @@ describe('Live Upgrades', function () {
 		const tradeData = await eDPI.getTradeData(items[0])
 		expect(tradeData.adapters[0]).to.not.deep.equal(items[0])
 
-		await eDPI.connect(await impersonate(await eDPI.manager())).updateTradeData(items[0], {
+		await eDPI.connect(manager).updateTradeData(items[0], {
 			adapters: [AddressZero], // to test
 			path: [],
 			cache: '0x',

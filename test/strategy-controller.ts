@@ -602,9 +602,11 @@ describe('StrategyController', function () {
 	it('Should fail to deposit: not manager', async function () {
 		expect(
 			await isRevertedWith(
-				controller.connect(owner).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-					value: BigNumber.from('10000000000000000'),
-				}),
+				controller
+					.connect(owner)
+					.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+						value: BigNumber.from('10000000000000000'),
+					}),
 				'Not manager',
 				'StrategyController.sol'
 			)
@@ -671,7 +673,8 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to withdrawAll: no amount passed', async function () {
-		await expect(strategy.connect(accounts[1]).withdrawAll(0)).to.be.revertedWith('0 amount')
+		expect(await isRevertedWith(strategy.connect(accounts[1]).withdrawAll(0), '0 amount', 'Strategy.sol')).to.be
+			.true
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
