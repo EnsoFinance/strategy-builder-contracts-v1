@@ -325,10 +325,6 @@ contract Strategy is IStrategy, IStrategyManagement, OtherStrategyToken, OtherSt
         }
     }
 
-    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
-        return StrategyClaim._getAllRewardTokens();
-    }
-
     // claim all rewards tokens of claimables
     function claimAll() external override {
         /*
@@ -441,10 +437,6 @@ contract Strategy is IStrategy, IStrategyManagement, OtherStrategyToken, OtherSt
         return _manager;
     }
 
-    function oracle() public view override returns (IOracle) {
-        return IOracle(_oracle);
-    }
-
     function controller() public view override returns (address) {
         return _controller;
     }
@@ -489,8 +481,7 @@ contract Strategy is IStrategy, IStrategyManagement, OtherStrategyToken, OtherSt
         delete _items;
         delete _synths;
 
-        if (oracle() != IStrategyController(_controller).oracle()) updateAddresses();
-        ITokenRegistry tokenRegistry = oracle().tokenRegistry();
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(factory).tokenRegistry());
         // Set new items
         int256 virtualPercentage = 0;
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
@@ -540,7 +531,6 @@ contract Strategy is IStrategy, IStrategyManagement, OtherStrategyToken, OtherSt
             exists.add(bytes32(uint256(rewardTokens[i])), bytes32(0x0)); // second parameter is "any" value
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
             _setItem(item, tokenRegistry);
-        }
     }
 
     function updateClaimables() public {
@@ -550,32 +540,6 @@ contract Strategy is IStrategy, IStrategyManagement, OtherStrategyToken, OtherSt
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
         emit ClaimablesUpdated();
-    }
-
-    function _transfer(
-        address sender,
-        address recipient,
-        uint256 amount
-    ) internal override {
-        address pool = _pool;
-        address manager = _manager;
-        bool rateChange;
-        // We're not currently supporting performance fees but don't want to exclude it in the future.
-        // So users are getting grandfathered in by setting their paid token value to the avg token
-        // value they bought into
-        if (sender != manager && sender != pool) {
-            _removePaidTokenValue(sender, amount);
-        } else {
-            rateChange = true;
-        }
-        if (recipient != manager && recipient != pool) {
-            _updatePaidTokenValue(recipient, amount, _lastTokenValue);
-        } else {
-            rateChange = true;
-        }
-        if (rateChange) _issueStreamingFee(pool, manager);
-        super._transfer(sender, recipient, amount);
-        if (rateChange) _updateStreamingFeeRate(pool, manager);
     }
 
     /**

@@ -35,7 +35,6 @@ contract OtherStrategyTokenStorage is StrategyTypes {
     mapping(address => int256) internal _percentage;
     mapping(address => TradeData) internal _tradeData;
     mapping(bytes4 => TimelockData) internal __timelockData;
-
     uint256 internal _managementFee;
     uint256 internal _managementFeeRate;
 

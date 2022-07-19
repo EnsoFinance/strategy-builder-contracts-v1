@@ -92,9 +92,7 @@ contract Leverage2XAdapter is BaseAdapter {
         bool success;
         bytes memory swapData =
             abi.encodeWithSelector(
-                bytes4(
-                    keccak256("swap(uint256,uint256,address,address,address,address)")
-                ),
+                IBaseAdapter.swap.selector,
                 amount,
                 expected,
                 tokenIn,

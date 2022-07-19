@@ -196,10 +196,6 @@ describe('CompoundAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	/*it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
-	})*/
-
 	it('Should deposit more: ETH', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
 		const tx = await controller

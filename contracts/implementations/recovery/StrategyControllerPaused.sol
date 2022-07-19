@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../interfaces/IStrategyController.sol";
 import "../../interfaces/IStrategyProxyFactory.sol";
+import "../../libraries/StrategyLibrary.sol";
 import "../../StrategyControllerStorage.sol";
 
 /**
@@ -277,6 +278,14 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
 
     function whitelist() public view override returns (IWhitelist) {
         return IWhitelist(_whitelist);
+    }
+    
+    function weth() external view override returns(address) {
+        return _weth;
+    }
+
+    function pool() external view override returns(address) {
+        return _pool;
     }
 
     // Internal Strategy Functions

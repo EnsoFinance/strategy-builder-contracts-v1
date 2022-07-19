@@ -81,8 +81,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function manager() external view returns (address);
 
-    function oracle() external view returns (IOracle);
-
     function whitelist() external view returns (IWhitelist);
 
     function supportsSynths() external view returns (bool);

@@ -10,7 +10,11 @@ import { deployTokens, deployUniswapV3, deployUniswapV3Adapter, deployLoopRouter
 import { encodePath, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { increaseTime, getDeadline } from '../lib/utils'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/constants'
+import { createLink, linkBytecode } from '../lib/link'
 
+import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 
@@ -114,8 +118,8 @@ describe('UniswapV3Adapter', function () {
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
 
-		const StrategyLibrary = await getContractFactory('StrategyLibrary')
-		library = await StrategyLibrary.connect(owner).deploy()
+		const StrategyLibraryFactory = await getContractFactory('StrategyLibrary')
+		library = await StrategyLibraryFactory.connect(owner).deploy()
 		await library.deployed()
 
 		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
@@ -124,12 +128,23 @@ describe('UniswapV3Adapter', function () {
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
 
-		const StrategyController = await getContractFactory('StrategyController', {
-			libraries: {
-				StrategyLibrary: library.address,
-			},
-		})
-		const controllerImplementation = await StrategyController.connect(owner).deploy(factoryAddress)
+		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		await strategyLibrary.deployed()
+		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
+
+		const controllerLibrary = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+			[]
+		)
+		await controllerLibrary.deployed()
+		const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
+		const controllerImplementation = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(StrategyController, [controllerLibraryLink]),
+			[factoryAddress]
+		)
 		await controllerImplementation.deployed()
 
 		const StrategyProxyFactory = await getContractFactory('StrategyProxyFactory')
@@ -161,7 +176,7 @@ describe('UniswapV3Adapter', function () {
 		)
 
 		strategyFactory = await StrategyProxyFactory.attach(factoryAddress)
-		controller = await StrategyController.attach(controllerAddress)
+		controller = new Contract(controllerAddress, StrategyController.abi, accounts[0])
 
 		await tokenRegistry.connect(owner).transferOwnership(factoryAddress)
 
