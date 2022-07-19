@@ -344,7 +344,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}
@@ -562,7 +562,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}
@@ -692,7 +692,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(980), // Needs to tolerate more slippage
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}
@@ -781,7 +781,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(995),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}
