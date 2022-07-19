@@ -1,6 +1,6 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers/*, network*/ } from 'hardhat'
+import { ethers /*, network*/ } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther, AddressZero } = constants
 import { solidity } from 'ethereum-waffle'
@@ -13,9 +13,9 @@ import {
 	deployCurveAdapter,
 	deployUniswapV2Adapter,
 	deployMetaStrategyAdapter,
-  deployCompoundAdapter,
+	deployCompoundAdapter,
 	deployPlatform,
-	deployFullRouter
+	deployFullRouter,
 } from '../lib/deploy'
 import { isRevertedWith } from '../lib/errors'
 import { increaseTime } from '../lib/utils'
@@ -29,7 +29,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('SynthetixAdapter', function () {
-	let	weth: Contract,
+	let weth: Contract,
 		crv: Contract,
 		susd: Contract,
 		seur: Contract,
@@ -57,7 +57,7 @@ describe('SynthetixAdapter', function () {
 		restructureSlippage: BigNumber.from(990),
 		managementFee: BigNumber.from(0),
 		social: false,
-		set: false
+		set: false,
 	}
 
 	before('Setup Synthetix, Uniswap, Curve, Enso', async function () {
@@ -68,16 +68,32 @@ describe('SynthetixAdapter', function () {
 		susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		seur = new Contract(tokens.sEUR, ERC20.abi, accounts[0])
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth, susd)
+		const platform = await deployPlatform(
+			accounts[10],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[10]),
+			weth,
+			susd
+		)
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await tokens.registerTokens(accounts[10], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
+		await tokens.registerTokens(
+			accounts[10],
+			strategyFactory,
+			undefined,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		)
 
-		const synthetixResolver = new Contract('0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83', IAddressResolver.abi, accounts[0]);
+		const synthetixResolver = new Contract(
+			'0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
+			IAddressResolver.abi,
+			accounts[0]
+		)
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		const whitelist = platform.administration.whitelist
@@ -91,32 +107,33 @@ describe('SynthetixAdapter', function () {
 		await whitelist.connect(accounts[10]).approve(synthetixAdapter.address)
 		metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[10], controller, router, weth)
 		await whitelist.connect(accounts[10]).approve(metaStrategyAdapter.address)
-		compoundAdapter = await deployCompoundAdapter(accounts[10], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, platform.oracles.registries.tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
+		compoundAdapter = await deployCompoundAdapter(
+			accounts[10],
+			new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]),
+			weth,
+			platform.oracles.registries.tokenRegistry,
+			ESTIMATOR_CATEGORY.COMPOUND
+		)
 		await whitelist.connect(accounts[10]).approve(compoundAdapter.address)
 	})
 
 	it('Should fail to deploy strategy: virtual item', async function () {
 		const name = 'Fail Strategy'
 		const symbol = 'FAIL'
-		const positions = [
-			{ token: '0xffffffffffffffffffffffffffffffffffffffff', percentage: BigNumber.from(1000) }
-		]
+		const positions = [{ token: '0xffffffffffffffffffffffffffffffffffffffff', percentage: BigNumber.from(1000) }]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
-    expect(
-      await isRevertedWith(
-        strategyFactory
-				.connect(accounts[1])
-				.createStrategy(
-					name,
-					symbol,
-					strategyItems,
-					strategyState,
-					router.address,
-					'0x',
-					{ value: ethers.BigNumber.from('20000000000000000') }
-				),
-        'Invalid item addr', 'StrategyController.sol')).to.be.true
+		expect(
+			await isRevertedWith(
+				strategyFactory
+					.connect(accounts[1])
+					.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+						value: ethers.BigNumber.from('20000000000000000'),
+					}),
+				'Invalid item addr',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should fail to deploy strategy: blocked token', async function () {
@@ -124,25 +141,27 @@ describe('SynthetixAdapter', function () {
 		const symbol = 'FAIL'
 		const positions = [
 			{ token: '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E', percentage: BigNumber.from(400) }, // TUSD blocked
-			{ token: tokens.sUSD, percentage: BigNumber.from(400), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
-			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapter.address], path: [] }
+			{
+				token: tokens.sUSD,
+				percentage: BigNumber.from(400),
+				adapters: [uniswapAdapter.address, curveAdapter.address],
+				path: [tokens.usdc],
+			},
+			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapter.address], path: [] },
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
 		expect(
-      await isRevertedWith(
-          strategyFactory
-            .connect(accounts[1])
-            .createStrategy(
-              name,
-              symbol,
-              strategyItems,
-              strategyState,
-              router.address,
-              '0x',
-              { value: ethers.BigNumber.from('20000000000000000') }
-            ),
-            'Token blocked', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				strategyFactory
+					.connect(accounts[1])
+					.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+						value: ethers.BigNumber.from('20000000000000000'),
+					}),
+				'Token blocked',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should deploy strategy', async function () {
@@ -150,24 +169,28 @@ describe('SynthetixAdapter', function () {
 		const symbol = 'TEST'
 		const positions = [
 			{ token: crv.address, percentage: BigNumber.from(250) },
-			{ token: tokens.sUSD, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
+			{
+				token: tokens.sUSD,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapAdapter.address, curveAdapter.address],
+				path: [tokens.usdc],
+			},
 			{ token: tokens.sBTC, percentage: BigNumber.from(250), adapters: [synthetixAdapter.address], path: [] },
 			{ token: tokens.sEUR, percentage: BigNumber.from(250), adapters: [synthetixAdapter.address], path: [] },
-			{ token: tokens.cUSDT, percentage: BigNumber.from(250), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt]} 
+			{
+				token: tokens.cUSDT,
+				percentage: BigNumber.from(250),
+				adapters: [uniswapAdapter.address, compoundAdapter.address],
+				path: [tokens.usdt],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
@@ -176,16 +199,16 @@ describe('SynthetixAdapter', function () {
 		const Strategy = await getContractFactory('Strategy')
 		strategy = await Strategy.attach(strategyAddress)
 
-    let updateTradeDataSelector = strategy.interface.getSighash("updateTradeData")
-    await strategy.connect(accounts[1]).updateTimelock(updateTradeDataSelector, 5*60);
-    await strategy.connect(accounts[1]).finalizeTimelock()
+		let updateTradeDataSelector = strategy.interface.getSighash('updateTradeData')
+		await strategy.connect(accounts[1]).updateTimelock(updateTradeDataSelector, 5 * 60)
+		await strategy.connect(accounts[1]).finalizeTimelock()
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -198,28 +221,30 @@ describe('SynthetixAdapter', function () {
 		const name = 'Fail Strategy'
 		const symbol = 'FAIL'
 		const positions = [
-			{ token: strategy.address, percentage: BigNumber.from(1000), adapters: [metaStrategyAdapter.address], path: [] }
+			{
+				token: strategy.address,
+				percentage: BigNumber.from(1000),
+				adapters: [metaStrategyAdapter.address],
+				path: [],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
 		expect(
-      await isRevertedWith(
-          strategyFactory
-            .connect(accounts[1])
-            .createStrategy(
-              name,
-              symbol,
-              strategyItems,
-              strategyState,
-              router.address,
-              '0x',
-              { value: ethers.BigNumber.from('20000000000000000') }
-            ),
-            'Synths not supported', 'StrategyController.sol')).to.be.true
+			await isRevertedWith(
+				strategyFactory
+					.connect(accounts[1])
+					.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+						value: ethers.BigNumber.from('20000000000000000'),
+					}),
+				'Synths not supported',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should withdrawAll on a portion of tokens', async function () {
-		await increaseTime(600);
+		await increaseTime(600)
 		const amount = (await strategy.balanceOf(accounts[1].address)).div(2)
 		const tokenBalanceBefore = await seur.balanceOf(strategy.address)
 		const tx = await strategy.connect(accounts[1]).withdrawAll(amount)
@@ -232,7 +257,7 @@ describe('SynthetixAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(100)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
@@ -243,13 +268,13 @@ describe('SynthetixAdapter', function () {
 	})
 
 	it('Should withdraw synths into reserve', async function () {
-		await increaseTime(600);
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address);
+		await increaseTime(600)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
 	it('Should rebalance strategy', async function () {
-		await increaseTime(360);
+		await increaseTime(360)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -263,11 +288,13 @@ describe('SynthetixAdapter', function () {
 		await strategy.connect(accounts[1]).updateTradeData(tokens.sUSD, {
 			adapters: [uniswapAdapter.address],
 			path: [],
-			cache: '0x'
+			cache: '0x',
 		})
-    // sanity check
-    await expect(strategy.connect(accounts[1]).finalizeUpdateTradeData()).to.be.revertedWith('finalizeUpdateTradeData: timelock not ready.')
-		await increaseTime(5*60)
+		// sanity check
+		await expect(strategy.connect(accounts[1]).finalizeUpdateTradeData()).to.be.revertedWith(
+			'finalizeUpdateTradeData: timelock not ready.'
+		)
+		await increaseTime(5 * 60)
 		await strategy.connect(accounts[1]).finalizeUpdateTradeData()
 
 		let [adaptersAfter] = await strategy.getTradeData(tokens.sUSD)
@@ -287,13 +314,13 @@ describe('SynthetixAdapter', function () {
 	})
 
 	it('Should withdraw synths into reserve', async function () {
-		await increaseTime(600);
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address);
+		await increaseTime(600)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
 	it('Should rebalance strategy', async function () {
-		await increaseTime(360);
+		await increaseTime(360)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -305,40 +332,48 @@ describe('SynthetixAdapter', function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(200) },
 			{ token: crv.address, percentage: BigNumber.from(400) },
-			{ token: tokens.sUSD, percentage: BigNumber.from(0), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
-			{ token: tokens.sEUR, percentage: BigNumber.from(400), adapters: [synthetixAdapter.address], path: [] }
+			{
+				token: tokens.sUSD,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapAdapter.address, curveAdapter.address],
+				path: [tokens.usdc],
+			},
+			{ token: tokens.sEUR, percentage: BigNumber.from(400), adapters: [synthetixAdapter.address], path: [] },
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
 	it('Should finalize structure', async function () {
-		await increaseTime(600);
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address);
-		await increaseTime(600);
-		await controller
-			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x')
-
+		await increaseTime(600)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await increaseTime(600)
+		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 	})
 
 	it('Should fail to reposition synths into susd: within waiting period', async function () {
-		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)).to.be.revertedWith('Cannot settle during waiting period');
+		await expect(
+			controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		).to.be.revertedWith('Cannot settle during waiting period')
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
-		await increaseTime(600);
-		await expect(controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, tokens.sEUR)).to.be.revertedWith('Unsupported token');
+		await increaseTime(600)
+		await expect(
+			controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, tokens.sEUR)
+		).to.be.revertedWith('Unsupported token')
 	})
 
 	it('Should reposition synths into susd and back', async function () {
-    await increaseTime(600);
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address);
+		await increaseTime(600)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
 
 		expect(await seur.balanceOf(strategy.address)).to.be.eq(0)
-		await increaseTime(600);
+		await increaseTime(600)
 
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, '0xffffffffffffffffffffffffffffffffffffffff');
+		await controller
+			.connect(accounts[1])
+			.repositionSynths(strategy.address, synthetixAdapter.address, '0xffffffffffffffffffffffffffffffffffffffff')
 
 		expect(await susd.balanceOf(strategy.address)).to.be.equal(0)
 	})
@@ -346,19 +381,22 @@ describe('SynthetixAdapter', function () {
 	it('Should restructure', async function () {
 		const positions = [
 			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: tokens.sUSD, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, curveAdapter.address], path: [tokens.usdc] },
+			{
+				token: tokens.sUSD,
+				percentage: BigNumber.from(500),
+				adapters: [uniswapAdapter.address, curveAdapter.address],
+				path: [tokens.usdc],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
 	it('Should finalize structure', async function () {
-		await increaseTime(600);
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address);
-		await increaseTime(600);
-		await controller
-			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x')
+		await increaseTime(600)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await increaseTime(600)
+		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		expect((await strategy.synths()).length).to.be.equal(0)
 	})
 })

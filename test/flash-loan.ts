@@ -104,15 +104,9 @@ describe('Flash Loan', function () {
 
 		await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
