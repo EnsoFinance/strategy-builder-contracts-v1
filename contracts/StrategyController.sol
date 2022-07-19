@@ -188,16 +188,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
-    function claimAll(
-        IStrategy strategy
-    ) external override {
-        _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
-        _onlyManager(strategy);
-        strategy.claimAll();
-        _removeStrategyLock(strategy);
-    }
-
     /**
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
      *         In order to rebalance the strategy, all Synths must first be converted into sUSD
