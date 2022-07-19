@@ -8,6 +8,7 @@ import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/Pl
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
@@ -273,6 +274,14 @@ export async function deployPlatform(
 	await strategyLibrary.deployed()
 	const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
+	const controllerLibrary = await waffle.deployContract(
+		owner,
+		linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+		[]
+	)
+	await controllerLibrary.deployed()
+	const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
 	// Setup Oracle infrastructure - registries, estimators, protocol oracles
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
 	await tokenRegistry.deployed()
@@ -359,10 +368,14 @@ export async function deployPlatform(
 	const controllerAddress = await platformProxyAdmin.controller()
 	const factoryAddress = await platformProxyAdmin.factory()
 
+	console.log('controller size:', StrategyController.bytecode.length)
+	console.log('strategyLibrary size:', StrategyLibrary.bytecode.length)
+	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length)
+	console.log('strategy size:', Strategy.bytecode.length)
 	// Controller Implementation
 	const controllerImplementation = await waffle.deployContract(
 		owner,
-		linkBytecode(StrategyController, [strategyLibraryLink]),
+		linkBytecode(StrategyController, [controllerLibraryLink]),
 		[factoryAddress]
 	)
 	await controllerImplementation.deployed()
@@ -485,7 +498,7 @@ export async function deployAaveV2Adapter(
 		strategyController.address,
 		weth.address,
 		tokenRegistry.address,
-		categoryIndex
+		categoryIndex,
 	])
 	await adapter.deployed()
 	return adapter
@@ -497,14 +510,34 @@ export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressP
 	return adapter
 }
 
-export async function deployCompoundAdapter(owner: SignerWithAddress, comptroller: Contract, weth: Contract, tokenRegistry: Contract, categoryIndex: number) {
-	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address, tokenRegistry.address, categoryIndex])
+export async function deployCompoundAdapter(
+	owner: SignerWithAddress,
+	comptroller: Contract,
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
+) {
+	const adapter = await waffle.deployContract(owner, CompoundAdapter, [
+		comptroller.address,
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployYEarnAdapter(owner: SignerWithAddress, weth: Contract, tokenRegistry: Contract, categoryIndex: number) {
-	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address, tokenRegistry.address, categoryIndex])
+export async function deployYEarnAdapter(
+	owner: SignerWithAddress,
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
+) {
+	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -536,7 +569,11 @@ export async function deployCurveGaugeAdapter(
 	tokenRegistry: Contract,
 	categoryIndex: number
 ) {
-	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [weth.address, tokenRegistry.address, categoryIndex])
+	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -574,16 +611,16 @@ export async function deployKyberSwapAdapter(
 	kyberRouter: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, KyberSwapAdapter, [kyberFactory.address, kyberRouter.address, weth.address])
+	const adapter = await waffle.deployContract(owner, KyberSwapAdapter, [
+		kyberFactory.address,
+		kyberRouter.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployLoopRouter(
-	owner: SignerWithAddress,
-	controller: Contract,
-	library: Contract,
-) {
+export async function deployLoopRouter(owner: SignerWithAddress, controller: Contract, library: Contract) {
 	const router = await waffle.deployContract(
 		owner,
 		linkBytecode(LoopRouter, [createLink(StrategyLibrary, library.address)]),
