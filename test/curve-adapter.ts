@@ -9,7 +9,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
-  Platform,
+	Platform,
 	deployCurveAdapter,
 	deployCurveLPAdapter,
 	deployCurveGaugeAdapter,
@@ -17,7 +17,7 @@ import {
 	deployUniswapV3Adapter,
 	deployCompoundAdapter,
 	deployPlatform,
-	deployLoopRouter
+	deployLoopRouter,
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -29,17 +29,17 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 
 chai.use(solidity)
 
-async function impersonate(address: string) : Promise<SignerWithAddress> {
-    await network.provider.request({
-        method: 'hardhat_impersonateAccount',
-        params: [address],
-    })
-    return await ethers.getSigner(address)
+async function impersonate(address: string): Promise<SignerWithAddress> {
+	await network.provider.request({
+		method: 'hardhat_impersonateAccount',
+		params: [address],
+	})
+	return await ethers.getSigner(address)
 }
 
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
-	let	platform: Platform,
-    weth: Contract,
+	let platform: Platform,
+		weth: Contract,
 		crv: Contract,
 		dai: Contract,
 		accounts: SignerWithAddress[],
@@ -56,8 +56,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
 		crvLINKGauge: string,
-    rewardsToken: Contract,
-    stakingRewards: Contract,
+		rewardsToken: Contract,
+		stakingRewards: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
@@ -73,7 +73,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
 		const uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 		const uniswapV3Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, UniswapV3Factory.abi, accounts[0])
-		const susd =  new Contract(tokens.sUSD, ERC20.abi, accounts[0])
+		const susd = new Contract(tokens.sUSD, ERC20.abi, accounts[0])
 		platform = await deployPlatform(accounts[0], uniswapV2Factory, uniswapV3Factory, weth, susd)
 
 		strategyFactory = platform.strategyFactory
@@ -82,185 +82,260 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		whitelist = platform.administration.whitelist
 		library = platform.library
 
-		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
+		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } =
+			platform.oracles.registries
 
-		await tokens.registerTokens(accounts[0], strategyFactory, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry)
+		await tokens.registerTokens(
+			accounts[0],
+			strategyFactory,
+			uniswapV3Registry,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		router = await deployLoopRouter(accounts[0], controller, library)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapV2Factory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
-		uniswapV3Adapter = await deployUniswapV3Adapter(accounts[0], uniswapV3Registry, new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]), weth)
+		uniswapV3Adapter = await deployUniswapV3Adapter(
+			accounts[0],
+			uniswapV3Registry,
+			new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]),
+			weth
+		)
 		await whitelist.connect(accounts[0]).approve(uniswapV3Adapter.address)
 		curveAdapter = await deployCurveAdapter(accounts[0], addressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 		curveLPAdapter = await deployCurveLPAdapter(accounts[0], addressProvider, curveDepositZapRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(curveLPAdapter.address)
 
-		curveGaugeAdapter = await deployCurveGaugeAdapter(accounts[0], weth, tokenRegistry, ESTIMATOR_CATEGORY.CURVE_GAUGE)
+		curveGaugeAdapter = await deployCurveGaugeAdapter(
+			accounts[0],
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.CURVE_GAUGE
+		)
 		await whitelist.connect(accounts[0]).approve(curveGaugeAdapter.address)
 
 		crvLINKGauge = tokens.crvLINKGauge
-    
-    // setting up rewards
-    rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
-    stakingRewards = await (await getContractFactory("StakingRewards")).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK)//, crvLINKGauge)
-    const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
 
-    await uniswapV2Factory.createPair(rewardsToken.address, weth.address)
-    const pairAddress = await uniswapV2Factory.getPair(rewardsToken.address, weth.address)
-    const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
-    await rewardsToken.connect(accounts[0]).transfer(pairAddress, ownerBalance.mul(2).div(3))
-    await weth.connect(accounts[0]).deposit({value: ownerBalance.div(3)})
-    await weth.connect(accounts[0]).transfer(pairAddress, ownerBalance.div(3))
-    await pair.connect(accounts[0]).mint(accounts[0].address)
+		// setting up rewards
+		rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
+		stakingRewards = await (
+			await getContractFactory('StakingRewards')
+		).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK) //, crvLINKGauge)
+		const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
 
-    await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
-    await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
-    let stakeSig = stakingRewards.interface.getSighash("stake")
-    let withdrawSig = stakingRewards.interface.getSighash("withdraw")
-    let claimSig = stakingRewards.interface.getSighash("getReward")
-    let sigs = '0x' + stakeSig.substring(2) + withdrawSig.substring(2) + claimSig.substring(2) + AddressZero.substring(2) 
-    let rewardTokens = [rewardsToken.address]
-    while (rewardTokens.length < 8) {
-        rewardTokens.push(AddressZero)
-    }
-    const crvLINKGaugeContract = new Contract(crvLINKGauge, [
-        {
-          "constant": false,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "_rewardContract",
-              "type": "address"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "_sigs",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address[8]",
-              "name": "_reward_tokens",
-              "type": "address[8]"
-            }
-          ],
-          "name": "set_rewards",
-          "outputs": [],
-          "payable": false,
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "constant": true,
-          "inputs": [],
-          "name": "admin",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        }
-        ], accounts[0])
-      const gaugeAdminProxy = new Contract(await crvLINKGaugeContract.admin(), [
-        {
-          "constant": false,
-          "inputs": [
-            {
-              "internalType": "address",
-              "name": "_gauge",
-              "type": "address"
-            },
-            {
-              "internalType": "address",
-              "name": "_rewardContract",
-              "type": "address"
-            },
-            {
-              "internalType": "bytes32",
-              "name": "_sigs",
-              "type": "bytes32"
-            },
-            {
-              "internalType": "address[8]",
-              "name": "_reward_tokens",
-              "type": "address[8]"
-            }
-          ],
-          "name": "set_rewards",
-          "outputs": [],
-          "payable": false,
-          "stateMutability": "nonpayable",
-          "type": "function"
-        },
-        {
-          "constant": true,
-          "inputs": [],
-          "name": "ownership_admin",
-          "outputs": [
-            {
-              "internalType": "address",
-              "name": "",
-              "type": "address"
-            }
-          ],
-          "payable": false,
-          "stateMutability": "view",
-          "type": "function"
-        }
-      ], accounts[0])
-      const ownershipAdminAddress = await gaugeAdminProxy.ownership_admin()
-      await gaugeAdminProxy.connect(
-          await impersonate(ownershipAdminAddress)
-      )['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
-    
-      // add rewards to registry
-    //
-    let tradeData : TradeData = {
-        adapters: [],
-        path: [],
-        cache: '0x'
-    }
+		await uniswapV2Factory.createPair(rewardsToken.address, weth.address)
+		const pairAddress = await uniswapV2Factory.getPair(rewardsToken.address, weth.address)
+		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
+		await rewardsToken.connect(accounts[0]).transfer(pairAddress, ownerBalance.mul(2).div(3))
+		await weth.connect(accounts[0]).deposit({ value: ownerBalance.div(3) })
+		await weth.connect(accounts[0]).transfer(pairAddress, ownerBalance.div(3))
+		await pair.connect(accounts[0]).mint(accounts[0].address)
 
-		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth, tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND)
+		await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
+		await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
+		let stakeSig = stakingRewards.interface.getSighash('stake')
+		let withdrawSig = stakingRewards.interface.getSighash('withdraw')
+		let claimSig = stakingRewards.interface.getSighash('getReward')
+		let sigs =
+			'0x' + stakeSig.substring(2) + withdrawSig.substring(2) + claimSig.substring(2) + AddressZero.substring(2)
+		let rewardTokens = [rewardsToken.address]
+		while (rewardTokens.length < 8) {
+			rewardTokens.push(AddressZero)
+		}
+		const crvLINKGaugeContract = new Contract(
+			crvLINKGauge,
+			[
+				{
+					constant: false,
+					inputs: [
+						{
+							internalType: 'address',
+							name: '_rewardContract',
+							type: 'address',
+						},
+						{
+							internalType: 'bytes32',
+							name: '_sigs',
+							type: 'bytes32',
+						},
+						{
+							internalType: 'address[8]',
+							name: '_reward_tokens',
+							type: 'address[8]',
+						},
+					],
+					name: 'set_rewards',
+					outputs: [],
+					payable: false,
+					stateMutability: 'nonpayable',
+					type: 'function',
+				},
+				{
+					constant: true,
+					inputs: [],
+					name: 'admin',
+					outputs: [
+						{
+							internalType: 'address',
+							name: '',
+							type: 'address',
+						},
+					],
+					payable: false,
+					stateMutability: 'view',
+					type: 'function',
+				},
+			],
+			accounts[0]
+		)
+		const gaugeAdminProxy = new Contract(
+			await crvLINKGaugeContract.admin(),
+			[
+				{
+					constant: false,
+					inputs: [
+						{
+							internalType: 'address',
+							name: '_gauge',
+							type: 'address',
+						},
+						{
+							internalType: 'address',
+							name: '_rewardContract',
+							type: 'address',
+						},
+						{
+							internalType: 'bytes32',
+							name: '_sigs',
+							type: 'bytes32',
+						},
+						{
+							internalType: 'address[8]',
+							name: '_reward_tokens',
+							type: 'address[8]',
+						},
+					],
+					name: 'set_rewards',
+					outputs: [],
+					payable: false,
+					stateMutability: 'nonpayable',
+					type: 'function',
+				},
+				{
+					constant: true,
+					inputs: [],
+					name: 'ownership_admin',
+					outputs: [
+						{
+							internalType: 'address',
+							name: '',
+							type: 'address',
+						},
+					],
+					payable: false,
+					stateMutability: 'view',
+					type: 'function',
+				},
+			],
+			accounts[0]
+		)
+		const ownershipAdminAddress = await gaugeAdminProxy.ownership_admin()
+		await gaugeAdminProxy
+			.connect(await impersonate(ownershipAdminAddress))
+			['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
+
+		// add rewards to registry
+		//
+		let tradeData: TradeData = {
+			adapters: [],
+			path: [],
+			cache: '0x',
+		}
+
+		compoundAdapter = await deployCompoundAdapter(
+			accounts[0],
+			new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]),
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.COMPOUND
+		)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
-    // add claimables
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, tokens.crvLINKGauge, tradeData, true)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
+		// add claimables
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.CURVE_GAUGE,
+				tokens.crvLINKGauge,
+				tradeData,
+				true
+			)
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
 
-    // add rewards tokens
-    tradeData.adapters.push(uniswapV2Adapter.address)
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, comp.address, tradeData, false)
-    tradeData.adapters = [uniswapV2Adapter.address]
-    await strategyFactory.connect(accounts[0]).addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, rewardsToken.address, tradeData, false)
+		// add rewards tokens
+		tradeData.adapters.push(uniswapV2Adapter.address)
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+				comp.address,
+				tradeData,
+				false
+			)
+		tradeData.adapters = [uniswapV2Adapter.address]
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+				rewardsToken.address,
+				tradeData,
+				false
+			)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
-		const positions = [ // an "exotic" strategy
+		const positions = [
+			// an "exotic" strategy
 			{ token: dai.address, percentage: BigNumber.from(200) },
 			{ token: crv.address, percentage: BigNumber.from(0) },
-			{ token: tokens.crvEURS,
+			{
+				token: tokens.crvEURS,
 				percentage: BigNumber.from(200),
 				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.eurs]
+				path: [tokens.usdc, tokens.eurs],
 			},
-			{ token: tokens.crvLINKGauge,
+			{
+				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
-				path: [tokens.link, tokens.crvLINK]
+				path: [tokens.link, tokens.crvLINK],
 			},
-			{ token: tokens.cUSDT, percentage: BigNumber.from(100), adapters: [uniswapV2Adapter.address, compoundAdapter.address], path: [tokens.usdt] },
-			{ token: tokens.cDAI, percentage: BigNumber.from(100), adapters: [uniswapV2Adapter.address, compoundAdapter.address], path: [tokens.dai] }
-    ]
+			{
+				token: tokens.cUSDT,
+				percentage: BigNumber.from(100),
+				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
+				path: [tokens.usdt],
+			},
+			{
+				token: tokens.cDAI,
+				percentage: BigNumber.from(100),
+				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
+				path: [tokens.dai],
+			},
+		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
@@ -269,32 +344,26 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
-    strategy = await Strategy.attach(strategyAddress)
+		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -306,7 +375,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -324,37 +393,40 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-  it('Should deposit more: ETH', async function () {
-    const balanceBefore = await strategy.balanceOf(accounts[1].address)
-    //console.log(DEFAULT_DEPOSIT_SLIPPAGE)
-    const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, BigNumber.from(980), '0x', { value: BigNumber.from('10000000000000000') })
-    const receipt = await tx.wait()
-    console.log('Gas Used: ', receipt.gasUsed.toString())
-    const balanceAfter = await strategy.balanceOf(accounts[1].address)
-    //await displayBalances(wrapper, strategyItems, weth)
-    expect(await wrapper.isBalanced()).to.equal(true)
-    expect(balanceAfter.gt(balanceBefore)).to.equal(true)
-  })
-
-  it('Should claim rewards', async function() {
-    const rewardsTokens = await strategy.callStatic.getAllRewardTokens()
-    const rewardsTokensLength = rewardsTokens.length
-    expect(rewardsTokensLength).to.be.gt(0)
-    let balancesBefore = []
-    for (let i = 0; i < rewardsTokens.length; ++i) {
-        const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
-        const balanceBefore = await rewardsToken.balanceOf(strategy.address)
-        balancesBefore.push(balanceBefore)
-
-    }
-    const tx = await strategy.connect(accounts[1]).claimAll()
-    const receipt = await tx.wait()
+	it('Should deposit more: ETH', async function () {
+		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+		//console.log(DEFAULT_DEPOSIT_SLIPPAGE)
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, BigNumber.from(980), '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
+		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-    for (let i = 0; i < rewardsTokens.length; ++i) {
-        const balanceAfter = await rewardsToken.balanceOf(strategy.address)
-        expect(balanceAfter).to.be.gt(balancesBefore[i])
-    }
-  })
+		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+	})
+
+	it('Should claim rewards', async function () {
+		const rewardsTokens = await strategy.callStatic.getAllRewardTokens()
+		const rewardsTokensLength = rewardsTokens.length
+		expect(rewardsTokensLength).to.be.gt(0)
+		let balancesBefore = []
+		for (let i = 0; i < rewardsTokens.length; ++i) {
+			const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
+			const balanceBefore = await rewardsToken.balanceOf(strategy.address)
+			balancesBefore.push(balanceBefore)
+		}
+		const tx = await strategy.connect(accounts[1]).claimAll()
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		for (let i = 0; i < rewardsTokens.length; ++i) {
+			const balanceAfter = await rewardsToken.balanceOf(strategy.address)
+			expect(balanceAfter).to.be.gt(balancesBefore[i])
+		}
+	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
@@ -381,15 +453,17 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const symbol = 'ETHBTC'
 		const positions = [
 			{ token: dai.address, percentage: BigNumber.from(400) },
-			{ token: tokens.crvREN,
+			{
+				token: tokens.crvREN,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address],
-				path: [tokens.wbtc]
+				path: [tokens.wbtc],
 			},
-			{ token: tokens.crvSETH,
+			{
+				token: tokens.crvSETH,
 				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address],
-				path: [tokens.sETH]
+				path: [tokens.sETH],
 			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
@@ -400,32 +474,26 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			restructureSlippage: BigNumber.from(980), // Needs to tolerate more slippage
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
-    strategy = await Strategy.attach(strategyAddress)
+		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -437,7 +505,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])
@@ -480,11 +548,12 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const symbol = 'META'
 		const positions = [
 			{ token: dai.address, percentage: BigNumber.from(500) },
-			{ token: tokens.crvUSDN, //Metapool uses 3crv as a liquidity token
+			{
+				token: tokens.crvUSDN, //Metapool uses 3crv as a liquidity token
 				percentage: BigNumber.from(500),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.crv3]
-			}
+				path: [tokens.usdc, tokens.crv3],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
@@ -494,32 +563,26 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		const Strategy = await platform.getStrategyContractFactory()
-    strategy = await Strategy.attach(strategyAddress)
+		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()
@@ -531,7 +594,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(500)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
 			.connect(accounts[19])

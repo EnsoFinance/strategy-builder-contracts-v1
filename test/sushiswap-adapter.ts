@@ -15,11 +15,7 @@ const { constants, getSigners } = ethers
 const { WeiPerEther, MaxUint256 } = constants
 
 describe('SushiSwapThroughUniswapV2Adapter', function () {
-	let accounts: SignerWithAddress[],
-			tokens: Tokens,
-			weth: Contract,
-			cream: Contract,
-			adapter: Contract
+	let accounts: SignerWithAddress[], tokens: Tokens, weth: Contract, cream: Contract, adapter: Contract
 
 	before('Setup SushiSwap, Factory', async function () {
 		accounts = await getSigners()
@@ -39,17 +35,10 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 
 	it('Should fail to swap: less than expected', async function () {
 		const amount = WeiPerEther
-		await weth.deposit({value: amount})
+		await weth.deposit({ value: amount })
 		await weth.approve(adapter.address, amount)
 		await expect(
-			adapter.swap(
-				amount,
-				MaxUint256,
-				weth.address,
-				cream.address,
-				accounts[0].address,
-				accounts[0].address
-			)
+			adapter.swap(amount, MaxUint256, weth.address, cream.address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Insufficient tokenOut amount')
 	})
 
