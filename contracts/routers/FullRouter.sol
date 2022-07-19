@@ -13,6 +13,8 @@ import "./StrategyRouter.sol";
 
 import "../interfaces/aave/IAToken.sol";
 
+import "hardhat/console.sol";
+
 struct LeverageItem {
   address token;
   uint16 percentage;
@@ -452,9 +454,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             }
         }
         if (amountInWeth < 0) {
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
             _borrowPath(
-                tradeData,
+                IStrategy(strategy).getTradeData(token),
                 uint256(-amountInWeth),
                 total,
                 strategy,
@@ -658,6 +659,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         while (amount > 0) { //First loop must either borrow the entire amount or add more tokens as collateral in order to borrow more on following loops
             ( , , availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
             amount = _amountFromBorrowPath(data, amount, strategy, availableBorrowsETH, leverageItems);
+            console.log("after _amountFromBorrowPath");
             if (leverageItems.length > 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 // Only purchase token when there is a disparity between the expected value and the estimated value
@@ -672,7 +674,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                             // just set to zero
                             leverageLiquidity[i] = 0;
                         } else {
-                            // If leverageLiqudity remains, it means there wasn't enough weth to reach
+                            // If leverageLiquidity remains, it means there wasn't enough weth to reach
                             // the expected amount, the remained will be handled on subsequent loops of
                             // the parent while loop
                             leverageLiquidity[i] = leverageLiquidity[i].sub(leverageAmount);
@@ -697,7 +699,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
+            console.log("_amountFromBorrowPath");
             for (uint256 i; i < adaptersLength; ++i) {
+              console.log(i);
                 _tokenOut = data.path[i];
                 if (i == 0) {
                     _tokenIn = address(0); //Since we are withdrawing from lendingPool's collateral reserves, we can set tokenIn to zero. However, amount will be valued in weth
