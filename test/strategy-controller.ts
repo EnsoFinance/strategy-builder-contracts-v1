@@ -602,11 +602,9 @@ describe('StrategyController', function () {
 	it('Should fail to deposit: not manager', async function () {
 		expect(
 			await isRevertedWith(
-				controller
-					.connect(owner)
-					.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-						value: BigNumber.from('10000000000000000'),
-					}),
+				controller.connect(owner).deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: BigNumber.from('10000000000000000'),
+				}),
 				'Not manager',
 				'StrategyController.sol'
 			)
