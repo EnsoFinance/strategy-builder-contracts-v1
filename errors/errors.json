@@ -252,6 +252,10 @@
     "contractName": "IAToken.sol"
   },
   {
+    "contractId": "dcc862dda0e3",
+    "contractName": "IAaveIncentivesController.sol"
+  },
+  {
     "contractId": "c326af50ec41",
     "contractName": "IDebtToken.sol"
   },
@@ -546,14 +550,6 @@
   {
     "contractId": "f82c9bfb87d3",
     "contractName": "NonfungibleTokenPositionDescriptor.sol"
-  },
-  {
-    "contractId": "6552d16b6572",
-    "contractName": "OtherStrategyToken.sol"
-  },
-  {
-    "contractId": "293a87da37d9",
-    "contractName": "OtherStrategyTokenStorage.sol"
   },
   {
     "contractId": "6779583eaf18",
