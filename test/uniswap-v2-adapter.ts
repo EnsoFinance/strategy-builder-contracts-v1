@@ -26,14 +26,7 @@ describe('UniswapV2Adapter', function () {
 
 	it('Should fail to swap: tokens cannot match', async function () {
 		await expect(
-			adapter.swap(
-				1,
-				0,
-				tokens[0].address,
-				tokens[0].address,
-				accounts[0].address,
-				accounts[0].address
-			)
+			adapter.swap(1, 0, tokens[0].address, tokens[0].address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
 	})
 
@@ -57,14 +50,7 @@ describe('UniswapV2Adapter', function () {
 		await tokens[1].approve(adapter.address, amount)
 		const token0BalanceBefore = await tokens[0].balanceOf(accounts[0].address)
 		const token1BalanceBefore = await tokens[1].balanceOf(accounts[0].address)
-		await adapter.swap(
-			amount,
-			0,
-			tokens[1].address,
-			tokens[0].address,
-			accounts[0].address,
-			accounts[0].address
-		)
+		await adapter.swap(amount, 0, tokens[1].address, tokens[0].address, accounts[0].address, accounts[0].address)
 		const token0BalanceAfter = await tokens[0].balanceOf(accounts[0].address)
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)

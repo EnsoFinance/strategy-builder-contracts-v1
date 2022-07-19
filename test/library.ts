@@ -29,7 +29,12 @@ describe('StrategyLibrary', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		const platform = await deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
@@ -64,29 +69,23 @@ describe('StrategyLibrary', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const total = ethers.BigNumber.from('10000000000000000')
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				'Test Strategy',
-				'TEST',
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: total }
-			)
+			.createStrategy('Test Strategy', 'TEST', strategyItems, strategyState, router.address, '0x', {
+				value: total,
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
 		await wrapper.deployed()

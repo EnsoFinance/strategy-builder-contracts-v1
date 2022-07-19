@@ -1,9 +1,16 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
-import { Platform, deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployTokens,
+	deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployLoopRouter,
+} from '../lib/deploy'
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
-import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { MaxUint256, WeiPerEther, AddressZero } = constants
 import { isRevertedWith } from '../lib/errors'
@@ -15,8 +22,8 @@ chai.use(solidity)
 const NUM_TOKENS = 15
 
 describe('StrategyProxyAdmin', function () {
-		let platform: Platform,
-    tokens: Contract[],
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -70,7 +77,7 @@ describe('StrategyProxyAdmin', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const amount = ethers.BigNumber.from('10000000000000000')
@@ -78,46 +85,43 @@ describe('StrategyProxyAdmin', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				'Test Strategy',
-				'TEST',
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: amount }
-			)
+			.createStrategy('Test Strategy', 'TEST', strategyItems, strategyState, router.address, '0x', {
+				value: amount,
+			})
 		let receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		strategy = Strategy.attach(strategyAddress)
 	})
 
 	it('Should update implementation to version uint256.max()', async function () {
-		const version = await strategyFactory.version();
-		expect(await strategy.version()).to.eq(version);
+		const version = await strategyFactory.version()
+		expect(await strategy.version()).to.eq(version)
 
-		await strategyFactory.connect(accounts[10]).updateImplementation(newImplementation.address, MaxUint256.toString())
+		await strategyFactory
+			.connect(accounts[10])
+			.updateImplementation(newImplementation.address, MaxUint256.toString())
 		expect(await strategyFactory.implementation()).to.equal(newImplementation.address)
 		expect(ethers.BigNumber.from(await strategyFactory.version()).eq(MaxUint256.toString())).to.equal(true)
 		expect(await strategyAdmin.getProxyImplementation(strategy.address)).to.not.equal(newImplementation.address)
 	})
 
 	it('Should fail to upgrade strategy proxy: not manager', async function () {
-		await expect(
-      strategyAdmin.connect(accounts[10]).upgrade(strategy.address),
-    ).to.be.revertedWith('Not manager')
+		await expect(strategyAdmin.connect(accounts[10]).upgrade(strategy.address)).to.be.revertedWith('Not manager')
 	})
 
 	it('Should fail to upgrade Strategy proxy: calling to strategy directly', async function () {
 		expect(
-      await isRevertedWith(
-      strategy.connect(accounts[10]).updateVersion(await strategyFactory.version()),
-      'Only StrategyProxyFactory', 'Strategy.sol')).to.be.true
+			await isRevertedWith(
+				strategy.connect(accounts[10]).updateVersion(await strategyFactory.version()),
+				'Only StrategyProxyFactory',
+				'Strategy.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should upgrade strategy proxy', async function () {
-		const factoryVersion = await strategyFactory.version();
-		expect(await strategy.version()).to.not.eq(factoryVersion);
+		const factoryVersion = await strategyFactory.version()
+		expect(await strategy.version()).to.not.eq(factoryVersion)
 		await strategyAdmin.connect(accounts[1]).upgrade(strategy.address)
 		expect(await strategyAdmin.getProxyImplementation(strategy.address)).to.equal(newImplementation.address)
 		expect(await strategy.version()).to.eq(factoryVersion)

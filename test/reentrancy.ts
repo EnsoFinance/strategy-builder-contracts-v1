@@ -1,9 +1,23 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { Platform, deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployMulticallRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployUniswapV2,
+	deployTokens,
+	deployPlatform,
+	deployUniswapV2Adapter,
+	deployMulticallRouter,
+} from '../lib/deploy'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { StrategyItem, InitialState, prepareStrategy, prepareDepositMulticall, calculateAddress, encodeSettleSwap } from '../lib/encode'
+import {
+	StrategyItem,
+	InitialState,
+	prepareStrategy,
+	prepareDepositMulticall,
+	calculateAddress,
+	encodeSettleSwap,
+} from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -12,7 +26,7 @@ const NUM_TOKENS = 3
 
 describe('Reentrancy    ', function () {
 	let platform: Platform,
-    tokens: Contract[],
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -57,15 +71,10 @@ describe('Reentrancy    ', function () {
 			restructureSlippage: BigNumber.from(995),
 			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
-		const create2Address = await calculateAddress(
-			strategyFactory,
-			accounts[1].address,
-			name,
-			symbol
-		)
+		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(create2Address)
 
@@ -83,22 +92,14 @@ describe('Reentrancy    ', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: total }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, { value: total })
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: library.address,
+			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
 		await wrapper.deployed()
@@ -144,7 +145,9 @@ describe('Reentrancy    ', function () {
 		calls.push({ target: controller.address, callData: depositCalldata, value: 0 })
 		let data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 	})
 
@@ -177,7 +180,9 @@ describe('Reentrancy    ', function () {
 
 		let data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
 
 		// Remove last call
