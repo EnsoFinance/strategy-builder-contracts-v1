@@ -472,6 +472,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         IOracle oracle = controller.oracle();
         LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
+
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
             amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
@@ -510,6 +511,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 assert(leverageAmount == 0);
             }
         }
+
         ILendingPool lendingPool = ILendingPool(addressesProvider.getLendingPool());
         while (amount > 0) {
             if (leverageItems.length > 0) {
