@@ -40,14 +40,13 @@ contract CurveAdapter is BaseAdapter {
         address pool = curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
         require(pool != address(0), "Pool not found");
         (int128 indexIn, int128 indexOut, bool isUnderlying) = curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
-        if (IERC20(tokenIn).allowance(address(this), pool) > 0)
-              IERC20(tokenIn).sortaSafeApprove(pool, 0);
         IERC20(tokenIn).sortaSafeApprove(pool, amount);
         if (isUnderlying) {
             ICurveStableSwap(pool).exchange_underlying(indexIn, indexOut, amount, 1);
         } else {
             ICurveStableSwap(pool).exchange(indexIn, indexOut, amount, 1);
         }
+        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap");
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
         if (to != address(this))

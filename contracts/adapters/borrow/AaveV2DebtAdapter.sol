@@ -44,8 +44,6 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
                 require(afterBalance > beforeBalance, "No tokens transferred to adapter");
                 amount = afterBalance - beforeBalance;
             }
-            if (IERC20(tokenIn).allowance(address(this), lendingPool) > 0)
-                  IERC20(tokenIn).sortaSafeApprove(lendingPool, 0);
             IERC20(tokenIn).sortaSafeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
             uint256 remaining = IERC20(tokenIn).allowance(address(this), lendingPool);

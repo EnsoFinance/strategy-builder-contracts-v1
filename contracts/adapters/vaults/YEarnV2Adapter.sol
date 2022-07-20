@@ -35,10 +35,9 @@ contract YEarnV2Adapter is ProtocolAdapter {
         if (_checkToken(tokenOut)) {
             IYEarnV2Vault vault = IYEarnV2Vault(tokenOut);
             require(address(vault.token()) == tokenIn, "Incompatible");
-            if (IERC20(tokenIn).allowance(address(this), tokenOut) > 0)
-                  IERC20(tokenIn).sortaSafeApprove(tokenOut, 0);
             IERC20(tokenIn).sortaSafeApprove(tokenOut, amount);
             received = vault.deposit(amount, address(this));
+            require(IERC20(tokenIn).allowance(address(this), tokenOut) == 0, "Incomplete swap");
         } else {
             require(_checkToken(tokenIn), "No YEarn token");
             IYEarnV2Vault vault = IYEarnV2Vault(tokenIn);

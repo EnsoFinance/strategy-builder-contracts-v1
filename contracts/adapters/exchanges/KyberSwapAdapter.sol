@@ -49,8 +49,6 @@ contract KyberSwapAdapter is BaseAdapter {
         path[0] = IERC20(tokenIn);
         path[1] = IERC20(tokenOut);
         // Approve and swap
-        if (IERC20(tokenIn).allowance(address(this), address(dmmRouter)) > 0)
-              IERC20(tokenIn).sortaSafeApprove(address(dmmRouter), 0);
         IERC20(tokenIn).sortaSafeApprove(address(dmmRouter), amount);
         dmmRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             amount,
@@ -60,5 +58,6 @@ contract KyberSwapAdapter is BaseAdapter {
             to,
             block.timestamp
         );
+        require(IERC20(tokenIn).allowance(address(this), address(dmmRouter)) == 0, "Incomplete swap");
     }
 }

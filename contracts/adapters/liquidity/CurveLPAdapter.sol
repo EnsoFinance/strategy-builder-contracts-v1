@@ -100,8 +100,6 @@ contract CurveLPAdapter is BaseAdapter {
         address pool,
         address[8] memory coins
     ) internal {
-        if (IERC20(tokenIn).allowance(address(this), pool) > 0)
-              IERC20(tokenIn).sortaSafeApprove(pool, 0);
         IERC20(tokenIn).sortaSafeApprove(pool, amount);
         uint256 coinsInPool;
         uint256 tokenIndex = 8; //Outside of possible index range. If index not found function will fail
@@ -126,6 +124,7 @@ contract CurveLPAdapter is BaseAdapter {
             depositAmounts[tokenIndex] = amount;
             ICurveStableSwap(pool).add_liquidity(depositAmounts, 0);
         }
+        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap");
     }
 
     function _withdraw(
@@ -147,11 +146,9 @@ contract CurveLPAdapter is BaseAdapter {
             }
         }
 
-        if (zap != pool) {
-            if (IERC20(tokenIn).allowance(address(this), zap) > 0)
-                  IERC20(tokenIn).sortaSafeApprove(zap, 0);
+        bool isPoolNotZap = zap != pool;
+        if (isPoolNotZap)
             IERC20(tokenIn).sortaSafeApprove(zap, amount);
-        }
 
         uint256 indexType = zapRegistry.getIndexType(zap);
         if (indexType == 0) { //int128
@@ -161,5 +158,7 @@ contract CurveLPAdapter is BaseAdapter {
         } else {
             return revert("Unknown index type");
         }
+        if (isPoolNotZap)
+            require(IERC20(tokenIn).allowance(address(this), zap) == 0, "Incomplete swap");
     }
 }
