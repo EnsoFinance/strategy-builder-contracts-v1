@@ -145,7 +145,6 @@ library StrategyClaim {
      * @param tokens The addresses of the tokens being claimed
      */
     function _delegateClaim(address adapter, address[] memory tokens) private {
-        // unchecked: adapter is approved since this is from the tokenRegistry
         // Since the adapters are part of the tradeData which could be updated by the manager, for security we check that the adapter is approved.
         require(IWhitelist(IStrategyProxyFactory(IStrategy(address(this)).factory()).whitelist()).approved(adapter), "adapter not approved.");
         bytes memory data =
