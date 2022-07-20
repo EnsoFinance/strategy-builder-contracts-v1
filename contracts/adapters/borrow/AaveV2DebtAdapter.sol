@@ -43,11 +43,22 @@ contract AaveV2DebtAdapter is BaseAdapter {
             }
             IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
+            uint256 remaining = IERC20(tokenIn).allowance(address(this), lendingPool);
+            if (remaining > 0) {
+                // Usually wouldn't allow a swap to succeed without spending all sent funds,
+                // but debt is a special case, so just return any remaining funds to the sender
+                IERC20(tokenIn).safeApprove(lendingPool, 0);
+                if (from != address(this))
+                    IERC20(tokenOut).safeTransfer(from, remaining);
+            }
+
         } else if (tokenIn == address(0)) {
             // tokenIn is collateral pool meaning we are taking out loan
             uint256 received = _convert(amount, weth, tokenOut); // lendingPool is valued in weth
             require(received >= expected, "Insufficient tokenOut amount");
+
             ILendingPool(lendingPool).borrow(tokenOut, received, 1, 0, from);
+
             if (to != address(this))
                 IERC20(tokenOut).safeTransfer(to, received);
         } else {
