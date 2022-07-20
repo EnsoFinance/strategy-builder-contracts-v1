@@ -63,7 +63,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		tokens: Tokens
-	//tradeData: TradeData
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
