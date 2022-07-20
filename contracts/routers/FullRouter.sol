@@ -479,7 +479,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
-            amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
+            if (amount < type(uint256).max)
+                amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
