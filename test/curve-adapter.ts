@@ -793,7 +793,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(980),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
 		}
