@@ -26,8 +26,6 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 
-const runAll = true
-
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {
@@ -258,7 +256,9 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should deposit', async function () {
-		const tx = await controller.connect(accounts[1]).deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -269,12 +269,13 @@ describe('AaveAdapter', function () {
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
 		const tx = await controller.connect(accounts[1]).withdrawETH(
-      strategy.address,
-      router.address,
-      amount,
-      '979',  // note the high slippage!
-      '0x',
-      { gasLimit: '5000000' })
+			strategy.address,
+			router.address,
+			amount,
+			'979', // note the high slippage!
+			'0x',
+			{ gasLimit: '5000000' }
+		)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -287,12 +288,13 @@ describe('AaveAdapter', function () {
 		const amount = BigNumber.from('5000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller.connect(accounts[1]).withdrawWETH(
-      strategy.address,
-      router.address,
-      amount,
-      '963', // note the high slippage!
-      '0x',
-      { gasLimit: '5000000' })
+			strategy.address,
+			router.address,
+			amount,
+			'963', // note the high slippage!
+			'0x',
+			{ gasLimit: '5000000' }
+		)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -301,12 +303,7 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should restructure - basic', async function () {
-    const positions = [
-			{ token: tokens.usdt,
-				percentage: BigNumber.from(1000),
-				adapters: [uniswapAdapter.address],
-			},
-		]
+		const positions = [{ token: tokens.usdt, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address] }]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
@@ -322,7 +319,8 @@ describe('AaveAdapter', function () {
 
 	it('Should restructure - debt positions', async function () {
 		const positions = [
-			{ token: collateralToken,
+			{
+				token: collateralToken,
 				percentage: BigNumber.from(1000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
@@ -331,34 +329,38 @@ describe('AaveAdapter', function () {
 					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
-			{ token: collateralToken2,
+			{
+				token: collateralToken2,
 				percentage: BigNumber.from(1000),
 				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
 				path: [tokens.crv],
 				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['uint16'],
-	        [500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-	      ),
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
 			},
-			{ token: tokens.debtUSDC,
+			{
+				token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
 				cache: ethers.utils.defaultAbiCoder.encode(
-	        ['tuple(address token, uint16 percentage)[]'],
-	        [[
-						{ token: collateralToken, percentage: 500 },
-						{ token: collateralToken2, percentage: 500 }
-					]] //define what tokens you want to loop back on here
-	      ),
-			}
+					['tuple(address token, uint16 percentage)[]'],
+					[
+						[
+							{ token: collateralToken, percentage: 500 },
+							{ token: collateralToken2, percentage: 500 },
+						],
+					] //define what tokens you want to loop back on here
+				),
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
 	it('Should finalize structure - debt positions', async function () {
-    // FIXME reverting with borrower allowance not enough
+		// FIXME reverting with borrower allowance not enough
 		const tx = await controller
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
@@ -366,8 +368,6 @@ describe('AaveAdapter', function () {
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
-
-  if (runAll) {
 
 	it('Should deposit', async function () {
 		const tx = await controller
@@ -378,7 +378,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
-  it('Should withdraw ETH', async function () {
+	it('Should withdraw ETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
@@ -783,5 +783,4 @@ describe('AaveAdapter', function () {
 			)
 		).to.be.true
 	})
-  }
 })
