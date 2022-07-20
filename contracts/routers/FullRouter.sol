@@ -492,26 +492,27 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     amount = amount.add(leverageLiquidity[i]);
                 }
             } else {
-                uint256 leverageAmount = amount; // amount is denominated in weth here
                 address token;
-                for (uint256 i; i < leverageItems.length; ++i) {
-                    token = leverageItems[i].token;
-                    if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
+                if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
+                    uint256 leverageAmount = amount; // amount is denominated in weth here
+                    for (uint256 i; i < leverageItems.length; ++i) {
+                        token = leverageItems[i].token;
                         uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false, mm);
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
-                    } else {
-                        leverageLiquidity[i] = leverageAmount;
-                        _setTempEstimate(
-                          mm,
-                          strategy,
-                          token,
-                          oracle.estimateItem(
+                        leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
+                    }
+                } else {
+                    token = leverageItems[0].token;
+                    leverageLiquidity[0] = amount;
+                    _setTempEstimate(
+                        mm,
+                        strategy,
+                        token,
+                        oracle.estimateItem(
                             IERC20(token).balanceOf(strategy),
                             token
-                          )
-                        );
-                    }
-                    leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
+                        )
+                    );
                 }
             }
         }
