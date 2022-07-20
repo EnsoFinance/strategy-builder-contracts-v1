@@ -11,11 +11,10 @@
       "b3e5dea2190e01": "Router only",
       "b3e5dea2190e02": "Cannot withdraw debt",
       "b3e5dea2190e03": "0 amount",
-      "b3e5dea2190e04": "Not approved",
-      "b3e5dea2190e05": "claimAll: caller must be controller or manager.",
-      "b3e5dea2190e06": "Manager already set",
-      "b3e5dea2190e07": "finalizeUpdateTradeData: timelock not ready.",
-      "b3e5dea2190e08": "Only StrategyProxyFactory"
+      "b3e5dea2190e04": "claimAll: caller must be controller or manager.",
+      "b3e5dea2190e05": "Manager already set",
+      "b3e5dea2190e06": "finalizeUpdateTradeData: timelock not ready.",
+      "b3e5dea2190e07": "Only StrategyProxyFactory"
     }
   },
   {

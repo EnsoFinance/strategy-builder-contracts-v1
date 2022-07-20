@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
+import "./libraries/ControllerLibrary.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
-import "./libraries/ControllerLibrary.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
@@ -199,6 +199,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
+        _onlyApproved(adapter);
         ControllerLibrary.repositionSynths(strategy, adapter, token, _susd);
         _removeStrategyLock(strategy);
     }
@@ -491,15 +492,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
-        address[] memory currentDebt = strategy.debt();
         // Conditionally set data
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
+            data = abi.encode(totalBefore, estimates, currentItems, strategy.debt());
         // Set new structure
         strategy.setStructure(newItems);
         strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
-        ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, currentDebt, data);
+        ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, strategy.debt(), data);
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(address(strategy), _oracle);
         _require(balancedAfter, uint256(0x1bb63a90056c11) /* error_macro_for("Not balanced") */);

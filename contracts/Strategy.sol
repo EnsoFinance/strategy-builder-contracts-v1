@@ -47,6 +47,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     event UpdateManager(address manager);
     event UpdateTradeData(address item, bool finalized);
     event ClaimablesUpdated();
+    event RewardsUpdated();
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
@@ -159,7 +160,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         override
     {
         _onlyController();
-        StrategyClaim._claimAll(_claimables);
+        StrategyClaim.claimAll(_claimables);
         _setStructure(newItems);
     }
 
@@ -206,40 +207,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             _issueStreamingFeeAndBurn(_pool, _manager, msg.sender, amount);
             percentage = amount.mul(PRECISION).div(totalSupplyBefore);
         }
-        // Withdraw funds
-        uint256 itemsLength = _items.length;
-        uint256 synthsLength = _synths.length;
-        bool isSynths = synthsLength > 0;
-        uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
-        IERC20[] memory tokens = new IERC20[](numTokens);
-        uint256[] memory amounts = new uint256[](numTokens);
-        for (uint256 i; i < itemsLength; ++i) {
-           // Should not be possible to have address(0) since the Strategy will check for it
-           IERC20 token = IERC20(_items[i]);
-           uint256 currentBalance = token.balanceOf(address(this));
-           amounts[i] = currentBalance.mul(percentage) / PRECISION;
-           tokens[i] = token;
-        }
-        if (isSynths) {
-            for (uint256 i = itemsLength; i < numTokens - 2; ++i) {
-                IERC20 synth = IERC20(_synths[i - itemsLength]);
-                uint256 currentBalance = synth.balanceOf(address(this));
-                amounts[i] = currentBalance.mul(percentage) / PRECISION;
-                tokens[i] = synth;
-            }
-            // Include SUSD
-            IERC20 susd = IERC20(_susd);
-            uint256 susdBalance = susd.balanceOf(address(this));
-            amounts[numTokens - 2] = susdBalance.mul(percentage) / PRECISION;
-            tokens[numTokens - 2] = susd;
-        }
-        // Include WETH
-        IERC20 weth = IERC20(_weth);
-        uint256 wethBalance = weth.balanceOf(address(this));
-        amounts[numTokens - 1] = wethBalance.mul(percentage) / PRECISION;
-        tokens[numTokens - 1] = weth;
+        // Calculate amounts owed
+        (IERC20[] memory tokens, uint256[] memory amounts) = StrategyClaim.getWithdrawAmounts(
+            percentage, _items, _synths, IERC20(_weth), IERC20(_susd)
+        );
         // Transfer amounts
-        for (uint256 i; i < numTokens; ++i) {
+        for (uint256 i; i < tokens.length; ++i) {
             if (amounts[i] > 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
         emit Withdraw(msg.sender, amount, amounts);
@@ -295,8 +268,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         address tokenOut
     ) external override {
         _onlyController();
-        // Note: No reentrancy lock since only callable by repositionSynths function in controller which already locks
-        _require(whitelist().approved(adapter), uint256(0xb3e5dea2190e04) /* error_macro_for("Not approved") */);
+        // Note: No reentrancy lock or whitelist check since only callable by
+        //       repositionSynths function in controller which already locks and
+        //       checks that adapter is approved.
         bytes memory swapData =
             abi.encodeWithSelector(
                 IBaseAdapter.swap.selector,
@@ -322,9 +296,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         }
     }
 
+    function factory() external view override returns(address) {
+        return _factory;
+    }
+
     function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
-        return StrategyClaim._getAllRewardTokens(tokenRegistry);
+        return StrategyClaim.getAllRewardTokens(tokenRegistry);
     }
 
     // claim all rewards tokens of claimables
@@ -334,8 +312,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         model to other rewards tokens, but we always err on the side of
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e05) /* error_macro_for("claimAll: caller must be controller or manager.") */);
-        StrategyClaim._claimAll(_claimables);
+        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e04) /* error_macro_for("claimAll: caller must be controller or manager.") */);
+        StrategyClaim.claimAll(_claimables);
     }
 
     /**
@@ -365,7 +343,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         address manager = _manager;
         address pool = _pool;
         _issueStreamingFee(pool, manager);
-        _require(newManager != manager, uint256(0xb3e5dea2190e06) /* error_macro_for("Manager already set") */);
+        _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[manager] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
@@ -384,7 +362,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function finalizeUpdateTradeData() external {
-        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e07) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
+        _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
         _resetTimelock(this.updateTradeData.selector);
@@ -395,7 +373,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        _require(msg.sender == _factory, uint256(0xb3e5dea2190e08) /* error_macro_for("Only StrategyProxyFactory") */);
+        _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
@@ -443,18 +421,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return _manager;
     }
 
-    function controller() public view override returns (address) {
-        return _controller;
-    }
-
-    function factory() public view returns (address) {
-        return _factory;
-    }
-
-    function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(IStrategyProxyFactory(_factory).whitelist());
-    }
-
     function supportsSynths() public view override returns (bool) {
         return _synths.length > 0;
     }
@@ -497,18 +463,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
         }
-        if (_percentage[susd] > 0) {
-            //If only synth is SUSD, treat it like a regular token
-            _items.push(susd);
-            exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
-        }
-        _updateRewards(exists, tokenRegistry);
         if (_synths.length > 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;
+        } else if (_percentage[susd] > 0) {
+            //If only synth is SUSD, treat it like a regular token
+            _items.push(susd);
         }
-        emit ClaimablesUpdated();
+        _updateRewards(exists, tokenRegistry);
     }
 
     function _setItem(StrategyItem memory strategyItem, ITokenRegistry tokenRegistry) private returns(int256) {
@@ -526,19 +489,19 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         } else if (category == ItemCategory.DEBT) {
             _assets = _debt;
         }
-        _assets = _assets; // compiler hack
-        _assets.push(newItem);
+        if (category < ItemCategory.RESERVE) { // ensures the following `_assets` has been assigned so the "push" makes sense
+            _assets = _assets; // compiler hack
+            _assets.push(newItem);
+        }
         return virtualPercentage;
     }
 
     function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) private {
         _updateClaimables(tokenRegistry);
-        address[] memory rewardTokens = StrategyClaim._getAllRewardTokens(tokenRegistry);
-        bool ok;
+        address[] memory rewardTokens = StrategyClaim.getAllRewardTokens(tokenRegistry);
         StrategyItem memory item;
         for (uint256 i; i < rewardTokens.length; ++i) {
-            (ok, ) = exists.getValue(bytes32(uint256(rewardTokens[i])));
-            if (ok) continue;
+            if (_tokenExists(exists, rewardTokens[i])) continue;
             exists.add(bytes32(uint256(rewardTokens[i])), bytes32(0x0)); // second parameter is "any" value
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
             _setItem(item, tokenRegistry);
@@ -547,7 +510,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
 
     function _updateClaimables(ITokenRegistry tokenRegistry) internal {
         delete _claimables;
-        (, bytes[] memory values) = StrategyClaim._getAllToClaim(tokenRegistry);
+        (, bytes[] memory values) = StrategyClaim.getAllToClaim(tokenRegistry);
         for (uint256 i; i < values.length; ++i) {
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
@@ -577,6 +540,27 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         IOracle ensoOracle = IOracle(f.oracle());
         _weth = ensoOracle.weth();
         _susd = ensoOracle.susd();
+    }
+
+    function updateRewards() external {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
+        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
+        _setTokensExists(exists, _items);
+        _setTokensExists(exists, _debt);
+        _setTokensExists(exists, _synths);
+        _updateRewards(exists, tokenRegistry);
+        emit RewardsUpdated();
+    }
+
+    function _setTokensExists(BinaryTreeWithPayload.Tree memory exists, address[] memory tokens) private pure {
+        for (uint256 i; i < tokens.length; ++i) {
+            if (_tokenExists(exists, tokens[i])) continue;
+            exists.add(bytes32(uint256(tokens[i])), bytes32(0x0)); // second parameter is "any" value
+        }
+    }
+
+    function _tokenExists(BinaryTreeWithPayload.Tree memory exists, address token) private pure returns (bool ok){
+        (ok, ) = exists.getValue(bytes32(uint256(token)));
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
