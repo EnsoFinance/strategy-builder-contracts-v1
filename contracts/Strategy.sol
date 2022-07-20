@@ -458,17 +458,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
         }
-        if (_percentage[susd] > 0) {
-            //If only synth is SUSD, treat it like a regular token
-            _items.push(susd);
-            exists.add(bytes32(uint256(susd)), bytes32(0x0)); // second parameter is "any" value
-        }
-        _updateRewards(exists, tokenRegistry);
         if (_synths.length > 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;
+        } else if (_percentage[susd] > 0) {
+            //If only synth is SUSD, treat it like a regular token
+            _items.push(susd);
         }
+        _updateRewards(exists, tokenRegistry);
     }
 
     function _setItem(StrategyItem memory strategyItem, ITokenRegistry tokenRegistry) private returns(int256) {
