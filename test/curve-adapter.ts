@@ -62,8 +62,8 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
-		tokens: Tokens,
-		tradeData: TradeData
+		tokens: Tokens
+		//tradeData: TradeData
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -251,7 +251,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
 
 		// add rewards to registry
-		//
 		let tradeData: TradeData = {
 			adapters: [],
 			path: [],
@@ -376,8 +375,10 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should set strategy and updateRewards', async function () {
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
+
 		// setting up rewards
 		rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
+
 		stakingRewards = await (
 			await getContractFactory('StakingRewards')
 		).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK) //, crvLINKGauge)
@@ -392,6 +393,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		await pair.connect(accounts[0]).mint(accounts[0].address)
 
 		await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
+
 		await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
 		let stakeSig = stakingRewards.interface.getSighash('stake')
 		let withdrawSig = stakingRewards.interface.getSighash('withdraw')
@@ -402,6 +404,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		while (rewardTokens.length < 8) {
 			rewardTokens.push(AddressZero)
 		}
+
 		const crvLINKGaugeContract = new Contract(
 			crvLINKGauge,
 			[
@@ -448,6 +451,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			],
 			accounts[0]
 		)
+
 		const gaugeAdminProxy = new Contract(
 			await crvLINKGaugeContract.admin(),
 			[
@@ -499,10 +503,17 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			],
 			accounts[0]
 		)
+
 		const ownershipAdminAddress = await gaugeAdminProxy.ownership_admin()
 		await gaugeAdminProxy
 			.connect(await impersonate(ownershipAdminAddress))
 			['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
+
+    let tradeData: TradeData = {
+			adapters: [],
+			path: [],
+			cache: '0x',
+		}
 
 		await strategyFactory
 			.connect(accounts[0])
@@ -519,14 +530,15 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const newItems = await strategy.connect(accounts[1]).items()
 		const oldItemsLength = oldItems.length
 		const newItemsLength = newItems.length
+
 		expect(newItemsLength).to.be.gt(oldItemsLength)
 		expect(oldItems.indexOf(rewardsToken.address)).to.be.equal(-1)
 		expect(newItems.indexOf(rewardsToken.address)).to.be.gt(-1)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
-		const name = 'Test Strategy'
-		const symbol = 'TEST'
+		const name = 'Test Strategy2'
+		const symbol = 'TEST2'
 		const positions = [
 			// an "exotic" strategy
 			{ token: dai.address, percentage: BigNumber.from(200) },
