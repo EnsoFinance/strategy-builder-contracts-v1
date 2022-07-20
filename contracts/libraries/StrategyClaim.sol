@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IRewardsAdapter.sol";
+import "../interfaces/IStrategyProxyFactory.sol";
 import "../helpers/StrategyTypes.sol";
 import "./MemoryMappings.sol";
 
@@ -145,7 +146,8 @@ library StrategyClaim {
      */
     function _delegateClaim(address adapter, address[] memory tokens) private {
         // unchecked: adapter is approved since this is from the tokenRegistry
-        // !!! FIX ME !!! It looks like this data gets saved to Strategy.tradeData, which can be updated by the manager!!!!
+        // Since the adapters are part of the tradeData which could be updated by the manager, for security we check that the adapter is approved.
+        require(IWhitelist(IStrategyProxyFactory(IStrategy(address(this)).factory()).whitelist()).approved(adapter), "adapter not approved.");
         bytes memory data =
             abi.encodeWithSelector(
                 IRewardsAdapter.claim.selector,

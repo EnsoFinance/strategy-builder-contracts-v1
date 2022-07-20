@@ -82,4 +82,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
     function supportsSynths() external view returns (bool);
 
     function supportsDebt() external view returns (bool);
+
+    function factory() external view returns (address);
 }

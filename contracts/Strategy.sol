@@ -295,6 +295,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         }
     }
 
+    function factory() external view override returns(address) {
+        return _factory;
+    }
+
     function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         return StrategyClaim.getAllRewardTokens(tokenRegistry);
