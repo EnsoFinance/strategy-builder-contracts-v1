@@ -46,7 +46,7 @@ contract CurveAdapter is BaseAdapter {
         } else {
             ICurveStableSwap(pool).exchange(indexIn, indexOut, amount, 1);
         }
-        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap");
+        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap"); // sanity check
         uint256 received = IERC20(tokenOut).balanceOf(address(this));
         require(received >= expected, "Insufficient tokenOut amount");
         if (to != address(this))

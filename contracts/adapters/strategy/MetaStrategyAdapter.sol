@@ -46,7 +46,7 @@ contract MetaStrategyAdapter is BaseAdapter {
             //Assumes the use of a LoopRouter when depositing tokens
             controller.deposit(IStrategy(tokenOut), router, amount, DEFAULT_SLIPPAGE, "0x");
             if (address(router) != address(this))
-                require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
+                require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap"); // sanity check
         }
 
         if (tokenOut == weth)

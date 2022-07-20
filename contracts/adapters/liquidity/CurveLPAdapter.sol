@@ -124,7 +124,7 @@ contract CurveLPAdapter is BaseAdapter {
             depositAmounts[tokenIndex] = amount;
             ICurveStableSwap(pool).add_liquidity(depositAmounts, 0);
         }
-        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap");
+        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap"); // sanity check
     }
 
     function _withdraw(
@@ -159,6 +159,6 @@ contract CurveLPAdapter is BaseAdapter {
             return revert("Unknown index type");
         }
         if (isPoolNotZap)
-            require(IERC20(tokenIn).allowance(address(this), zap) == 0, "Incomplete swap");
+            require(IERC20(tokenIn).allowance(address(this), zap) == 0, "Incomplete swap"); // sanity check
     }
 }

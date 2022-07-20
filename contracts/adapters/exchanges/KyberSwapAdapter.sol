@@ -58,6 +58,6 @@ contract KyberSwapAdapter is BaseAdapter {
             to,
             block.timestamp
         );
-        require(IERC20(tokenIn).allowance(address(this), address(dmmRouter)) == 0, "Incomplete swap");
+        require(IERC20(tokenIn).allowance(address(this), address(dmmRouter)) == 0, "Incomplete swap"); // sanity check
     }
 }

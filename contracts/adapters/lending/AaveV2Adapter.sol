@@ -52,7 +52,7 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
             address lendingPool = addressesProvider.getLendingPool();
             IERC20(tokenIn).sortaSafeApprove(lendingPool, amount);
             ILendingPool(lendingPool).deposit(tokenIn, amount, to, 0);
-            require(IERC20(tokenIn).allowance(address(this), lendingPool) == 0, "Incomplete swap");
+            require(IERC20(tokenIn).allowance(address(this), lendingPool) == 0, "Incomplete swap"); // sanity check
             if (strategyController.initialized(to)) {
                 //Add as collateral if strategy supports debt
                 IStrategy strategy = IStrategy(to);
