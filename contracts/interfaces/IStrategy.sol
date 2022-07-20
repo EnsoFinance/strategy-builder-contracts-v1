@@ -77,13 +77,11 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function getTradeData(address item) external view returns (TradeData memory);
 
-    function controller() external view returns (address);
-
     function manager() external view returns (address);
-
-    function whitelist() external view returns (IWhitelist);
 
     function supportsSynths() external view returns (bool);
 
     function supportsDebt() external view returns (bool);
+
+    function factory() external view returns (address);
 }
