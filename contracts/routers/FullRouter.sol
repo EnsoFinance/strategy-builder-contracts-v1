@@ -10,6 +10,7 @@ import "../libraries/StrategyLibrary.sol";
 import "../libraries/BinaryTreeWithPayload.sol";
 import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
+import "../interfaces/aave/IAToken.sol";
 
 struct LeverageItem {
   address token;
@@ -22,6 +23,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
+    bytes32 private constant STRATEGY_DEBT_KEY = keccak256(abi.encode("strategyDebt"));
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
@@ -86,9 +88,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 expectedWeth = expectedWeth-diff;  // since expectedWeth >= diff
             }
             (strategyItem, estimate) = abi.decode(payloads[i], (address, int256));
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(strategyItem);
             _sellPath(
-                tradeData,
+                IStrategy(strategy).getTradeData(strategyItem),
                 _estimateSellAmount(strategy, strategyItem, diff, uint256(estimate)),
                 strategyItem,
                 strategy
@@ -193,13 +194,17 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
+                mm.add(STRATEGY_DEBT_KEY, abi.encode(strategyDebt[i]));
+                TradeData memory td = IStrategy(strategy).getTradeData(strategyDebt[i]);
                 _repayPath(
-                    IStrategy(strategy).getTradeData(strategyDebt[i]),
-                    uint256(-estimate),
+                    td,
+                    type(uint256).max, // max it out
                     total,
                     strategy,
                     mm
                 );
+                mm.add(STRATEGY_DEBT_KEY, bytes32(0));
+                _returnRemainderToStrategy(td, strategy);
             } else {
                 //Only repay if above rebalance threshold
                 _repayToken(
@@ -446,9 +451,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             }
         }
         if (amountInWeth < 0) {
-            TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
             _borrowPath(
-                tradeData,
+                IStrategy(strategy).getTradeData(token),
                 uint256(-amountInWeth),
                 total,
                 strategy,
@@ -475,7 +479,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
-            amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
+            if (amount < type(uint256).max)
+                amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
@@ -487,28 +492,28 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     amount = amount.add(leverageLiquidity[i]);
                 }
             } else {
-                uint256 leverageAmount = amount; // amount is denominated in weth here
                 address token;
-                for (uint256 i; i < leverageItems.length; ++i) {
-                    token = leverageItems[i].token;
-                    if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
+                if (leverageItems.length > 1) { //If multiple leveraged items, some may have less liquidity than the total amount we need to sell
+                    uint256 leverageAmount = amount; // amount is denominated in weth here
+                    for (uint256 i; i < leverageItems.length; ++i) {
+                        token = leverageItems[i].token;
                         uint256 liquidity = _getLeverageRemaining(oracle, strategy, token, total, false, mm);
                         leverageLiquidity[i] = leverageAmount > liquidity ? liquidity : leverageAmount;
-                    } else {
-                        leverageLiquidity[i] = leverageAmount;
-                        _setTempEstimate(
-                          mm, 
-                          strategy, 
-                          token, 
-                          oracle.estimateItem(
+                        leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
+                    }
+                } else {
+                    token = leverageItems[0].token;
+                    leverageLiquidity[0] = amount;
+                    _setTempEstimate(
+                        mm,
+                        strategy,
+                        token,
+                        oracle.estimateItem(
                             IERC20(token).balanceOf(strategy),
                             token
-                          )
-                        );
-                    }
-                    leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
+                        )
+                    );
                 }
-                assert(leverageAmount == 0);
             }
         }
 
@@ -570,6 +575,46 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     );
                 }
             }
+            if (amount != 0) {
+                (bool ok, bytes memory result) = mm.getValue(STRATEGY_DEBT_KEY);
+                if (!ok) {
+                    continue;
+                }
+                address strategyDebt = abi.decode(result, (address));
+                if (IERC20(strategyDebt).balanceOf(strategy) == 0) break;
+            }
+        }
+    }
+
+    function _returnRemainderToStrategy(TradeData memory data, address strategy) private {
+        if (data.path.length < 2 || data.path[data.path.length-1] != weth || IERC20(data.path[0]).balanceOf(address(this)) == 0) return;
+        uint256 _amount;
+        address _tokenIn;
+        address _tokenOut;
+        address _from;
+        address _to;
+        for (uint256 i; i < data.path.length-1; ++i) {
+        //for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
+            _tokenIn = data.path[uint256(i)];
+            _from = address(this);
+            _amount = IERC20(_tokenIn).balanceOf(_from);
+            if (_amount > 0) {
+                _tokenOut = data.path[uint256(i+1)];
+                if (i == data.path.length-2) {
+                    _to = strategy;
+                } else {
+                    _to = address(this);
+                }
+                _delegateSwap(
+                    data.adapters[uint256(i+1)],
+                    _amount,
+                    1,
+                    _tokenIn,
+                    _tokenOut,
+                    _from,
+                    _to
+                );
+            }
         }
     }
 
@@ -624,7 +669,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                             // just set to zero
                             leverageLiquidity[i] = 0;
                         } else {
-                            // If leverageLiqudity remains, it means there wasn't enough weth to reach
+                            // If leverageLiquidity remains, it means there wasn't enough weth to reach
                             // the expected amount, the remained will be handled on subsequent loops of
                             // the parent while loop
                             leverageLiquidity[i] = leverageLiquidity[i].sub(leverageAmount);
@@ -766,11 +811,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function _deleverageForWithdraw(
-      address strategy, 
-      int256[] memory estimates, 
-      uint256 total, 
-      uint256 expectedWeth, 
-      uint256 itemsLength, 
+      address strategy,
+      int256[] memory estimates,
+      uint256 total,
+      uint256 expectedWeth,
+      uint256 itemsLength,
       BinaryTreeWithPayload.Tree memory mm
     ) private {
         address[] memory strategyDebt = IStrategy(strategy).debt();
@@ -866,7 +911,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private pure returns(int256) {
         (bool ok, bytes memory result) = mm.getValue(keccak256(abi.encode(strategy, item)));
         if (ok) {
-            return abi.decode(result, (int256));    
+            return abi.decode(result, (int256));
         }
         return 0;
     }

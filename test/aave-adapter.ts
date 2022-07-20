@@ -25,7 +25,7 @@ import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-  
+
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {
@@ -255,13 +255,85 @@ describe('AaveAdapter', function () {
 		).to.be.true
 	})
 
-	it('Should restructure', async function () {
+	it('Should deposit', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
+
+	it('Should withdraw ETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const ethBalanceBefore = await accounts[1].getBalance()
+		const tx = await controller.connect(accounts[1]).withdrawETH(
+			strategy.address,
+			router.address,
+			amount,
+			'979', // note the high slippage!
+			'0x',
+			{ gasLimit: '5000000' }
+		)
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const ethBalanceAfter = await accounts[1].getBalance()
+		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
+	})
+
+	it('Should withdraw WETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		const tx = await controller.connect(accounts[1]).withdrawWETH(
+			strategy.address,
+			router.address,
+			amount,
+			'963', // note the high slippage!
+			'0x',
+			{ gasLimit: '5000000' }
+		)
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
+	})
+
+	it('Should restructure - basic', async function () {
+		const positions = [{ token: tokens.usdt, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address] }]
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
+
+	it('Should finalize structure - basic', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
+
+	it('Should restructure - debt positions', async function () {
 		const positions = [
 			{
 				token: collateralToken,
-				percentage: BigNumber.from(2000),
+				percentage: BigNumber.from(1000),
 				adapters: [aaveV2Adapter.address],
 				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: collateralToken2,
+				percentage: BigNumber.from(1000),
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
+				path: [tokens.crv],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
 					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
@@ -271,15 +343,15 @@ describe('AaveAdapter', function () {
 				token: tokens.debtUSDC,
 				percentage: BigNumber.from(-1000),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-				path: [tokens.usdc, tokens.weth],
+				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[
 						[
 							{ token: collateralToken, percentage: 500 },
-							{ token: collateralToken2, percentage: 0 },
+							{ token: collateralToken2, percentage: 500 },
 						],
-					] //Need to keep collateralToken2 in the cache in order to deleverage it
+					] //define what tokens you want to loop back on here
 				),
 			},
 		]
@@ -287,7 +359,7 @@ describe('AaveAdapter', function () {
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
 
-	it('Should finalize structure', async function () {
+	it('Should finalize structure - debt positions', async function () {
 		const tx = await controller
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
@@ -311,7 +383,7 @@ describe('AaveAdapter', function () {
 		const ethBalanceBefore = await accounts[1].getBalance()
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
+			.withdrawETH(strategy.address, router.address, amount, '970', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -325,7 +397,7 @@ describe('AaveAdapter', function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, router.address, amount, '985', '0x', { gasLimit: '5000000' })
+			.withdrawWETH(strategy.address, router.address, amount, '970', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -365,7 +437,7 @@ describe('AaveAdapter', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
+			restructureSlippage: BigNumber.from(995), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
