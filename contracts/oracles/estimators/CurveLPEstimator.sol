@@ -69,7 +69,11 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                         }
                     }
                     if (idx != uint256(-1)) {
-                        return IOracle(msg.sender).estimateItem(ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)), knownUnderlyingToken);
+                        try ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)) returns(uint256 _balance) {
+                            return IOracle(msg.sender).estimateItem(_balance, knownUnderlyingToken);
+                        } catch {
+                            // continue to less accurate estimate 
+                        }
                     }
                 }
                 // fall back to less accurate estimate
