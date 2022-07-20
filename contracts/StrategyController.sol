@@ -290,11 +290,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             uint256(0x1bb63a90056c09) /* error_macro_for("Timelock active") */
         );
         _require(category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0a) /* error_macro_for("updateValue: category is RESTRUCTURE.") */);
-        if (category != TimelockCategory.TIMELOCK) {
-            _checkAndEmit(address(strategy), category, newValue, false);
-        } else {
-            emit NewValue(address(strategy), category, newValue, false);
-        }
+        _checkAndEmit(address(strategy), category, newValue, false);
         lock.category = category;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(newValue);
@@ -437,7 +433,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_THRESHOLD, uint256(state.rebalanceThreshold), true);
         _checkAndEmit(strategy, TimelockCategory.REBALANCE_SLIPPAGE, uint256(state.rebalanceSlippage), true);
         _checkAndEmit(strategy, TimelockCategory.RESTRUCTURE_SLIPPAGE, uint256(state.restructureSlippage), true);
-        _require(state.timelock <= 30 days, uint256(0x1bb63a90056c0f) /* error_macro_for("Timelock is too long") */);
+        _checkAndEmit(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
         _initialized[strategy] = 1;
         _strategyStates[strategy] = StrategyState(
           state.timelock,
@@ -450,7 +446,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy(strategy).updateRebalanceThreshold(state.rebalanceThreshold);
         if (state.social) emit StrategyOpen(strategy);
         if (state.set) emit StrategySet(strategy);
-        emit NewValue(strategy, TimelockCategory.TIMELOCK, uint256(state.timelock), true);
     }
 
     function _deposit(
@@ -465,7 +460,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) private {
         address weth;
         if (msg.value > 0) {
-            _require(amount == 0, uint256(0x1bb63a90056c10) /* error_macro_for("Ambiguous amount") */);
+            _require(amount == 0, uint256(0x1bb63a90056c0f) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
             weth = _weth;
             IWETH(weth).deposit{value: amount}();
@@ -502,7 +497,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, strategy.debt(), data);
         // Check balance
         (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(address(strategy), _oracle);
-        _require(balancedAfter, uint256(0x1bb63a90056c11) /* error_macro_for("Not balanced") */);
+        _require(balancedAfter, uint256(0x1bb63a90056c10) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
     }
@@ -510,23 +505,30 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
       _require(
           slippedValue >= referenceValue.mul(slippage).div(DIVISOR),
-          uint256(0x1bb63a90056c12) /* error_macro_for("Too much slippage") */
+          uint256(0x1bb63a90056c11) /* error_macro_for("Too much slippage") */
       );
     }
 
     function _checkDivisor(uint256 value) private pure {
-        _require(value <= DIVISOR, uint256(0x1bb63a90056c13) /* error_macro_for("Out of bounds") */);
+        _require(value <= DIVISOR, uint256(0x1bb63a90056c12) /* error_macro_for("Out of bounds") */);
     }
 
     function _checkFee(uint256 value) private pure {
-        _require(value <= FEE_BOUND, uint256(0x1bb63a90056c14) /* error_macro_for("Fee too high") */);
+        _require(value <= FEE_BOUND, uint256(0x1bb63a90056c13) /* error_macro_for("Fee too high") */);
+    }
+
+    function _checkTimelock(uint256 value) private {
+        _require(value <= 30 days, uint256(0x1bb63a90056c14) /* error_macro_for("Timelock is too long") */);
     }
 
     function _checkAndEmit(address strategy, TimelockCategory category, uint256 value, bool finalized) private {
-        if (uint256(category) > 4) {
-            _checkFee(value);
-        } else {
+        uint256 timelock = uint256(TimelockCategory.TIMELOCK);
+        if (uint256(category) < timelock) {
             _checkDivisor(value);
+        } else if (uint256(category) == timelock) {
+            _checkTimelock(value);
+        } else {
+            _checkFee(value);
         }
         emit NewValue(strategy, category, value, finalized);
     }
