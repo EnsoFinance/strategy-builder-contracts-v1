@@ -13,7 +13,7 @@ import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { isRevertedWith } from '../lib/errors'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-const { constants, getContractFactory, getSigners } = ethers
+const { constants, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
 
 const chai = require('chai')
