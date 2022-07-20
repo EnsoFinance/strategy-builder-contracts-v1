@@ -16,6 +16,7 @@ export const MAINNET_ADDRESSES = {
 	SYNTHETIX_ADDRESS_PROVIDER: '0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 	COMPOUND_COMPTROLLER: '0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B'
 }
+export const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
 
 export const FEE = 997
 export const UNI_V3_FEE = 3000
