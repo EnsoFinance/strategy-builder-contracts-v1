@@ -82,15 +82,6 @@ describe('SynthetixAdapter', function () {
 		oracle = platform.oracles.ensoOracle
 		library = platform.library
 
-		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
-		await tokens.registerTokens(
-			accounts[10],
-			strategyFactory,
-			undefined,
-			chainlinkRegistry,
-			curveDepositZapRegistry
-		)
-
 		const synthetixResolver = new Contract(
 			'0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
 			IAddressResolver.abi,
@@ -117,6 +108,16 @@ describe('SynthetixAdapter', function () {
 			ESTIMATOR_CATEGORY.COMPOUND
 		)
 		await whitelist.connect(accounts[10]).approve(compoundAdapter.address)
+
+		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
+		await tokens.registerTokens(
+			accounts[10],
+			strategyFactory,
+			undefined,
+			chainlinkRegistry,
+			curveDepositZapRegistry,
+			synthetixAdapter
+		)
 	})
 
 	it('Should fail to deploy strategy: virtual item', async function () {
