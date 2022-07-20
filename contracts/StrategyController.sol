@@ -192,15 +192,15 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
      *         In order to rebalance the strategy, all Synths must first be converted into sUSD
      * @param strategy The address of the strategy being withdrawn from
-     * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address adapter, address token) external {
+    function repositionSynths(IStrategy strategy, address token) external {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         ITokenRegistry.ItemDetails memory itemDetails = oracle().tokenRegistry().itemDetails(address(-1));
-        _require(adapter == itemDetails.tradeData.adapters[0], uint256(0x1bb63a90056c04) /* error_macro_for("Invalid adapter") */);
+        address adapter = itemDetails.tradeData.adapters[0];
+        _require(adapter != address(0), uint256(0x1bb63a90056c04) /* error_macro_for("Invalid adapter") */);
         ControllerLibrary.repositionSynths(strategy, adapter, token, _susd);
         _removeStrategyLock(strategy);
     }

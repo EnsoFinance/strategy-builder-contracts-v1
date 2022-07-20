@@ -272,7 +272,7 @@ describe('SynthetixAdapter', function () {
 
 	it('Should withdraw synths into reserve', async function () {
 		await increaseTime(600)
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
@@ -322,7 +322,7 @@ describe('SynthetixAdapter', function () {
 
 	it('Should withdraw synths into reserve', async function () {
 		await increaseTime(600)
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 	})
 
@@ -353,34 +353,34 @@ describe('SynthetixAdapter', function () {
 
 	it('Should finalize structure', async function () {
 		await increaseTime(600)
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		await increaseTime(600)
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 	})
 
 	it('Should fail to reposition synths into susd: within waiting period', async function () {
 		await expect(
-			controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+			controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		).to.be.revertedWith('Cannot settle during waiting period')
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
 		await increaseTime(600)
 		await expect(
-			controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, tokens.sEUR)
+			controller.connect(accounts[1]).repositionSynths(strategy.address, tokens.sEUR)
 		).to.be.revertedWith('Unsupported token')
 	})
 
 	it('Should reposition synths into susd and back', async function () {
 		await increaseTime(600)
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 
 		expect(await seur.balanceOf(strategy.address)).to.be.eq(0)
 		await increaseTime(600)
 
 		await controller
 			.connect(accounts[1])
-			.repositionSynths(strategy.address, synthetixAdapter.address, '0xffffffffffffffffffffffffffffffffffffffff')
+			.repositionSynths(strategy.address, '0xffffffffffffffffffffffffffffffffffffffff')
 
 		expect(await susd.balanceOf(strategy.address)).to.be.equal(0)
 	})
@@ -401,7 +401,7 @@ describe('SynthetixAdapter', function () {
 
 	it('Should finalize structure', async function () {
 		await increaseTime(600)
-		await controller.connect(accounts[1]).repositionSynths(strategy.address, synthetixAdapter.address, susd.address)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		await increaseTime(600)
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		expect((await strategy.synths()).length).to.be.equal(0)
