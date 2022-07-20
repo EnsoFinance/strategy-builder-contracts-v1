@@ -360,7 +360,6 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should finalize structure - debt positions', async function () {
-		// FIXME reverting with borrower allowance not enough
 		const tx = await controller
 			.connect(accounts[1])
 			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })

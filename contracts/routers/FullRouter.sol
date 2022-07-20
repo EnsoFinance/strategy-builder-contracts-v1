@@ -479,7 +479,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
-            // FIXME maxing out amount will cause overflow throw here
             amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
@@ -513,8 +512,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     }
                     leverageAmount = leverageAmount.sub(leverageLiquidity[i]);
                 }
-                // FIXME this throws when using uint256.max
-                //assert(leverageAmount == 0);
             }
         }
 
