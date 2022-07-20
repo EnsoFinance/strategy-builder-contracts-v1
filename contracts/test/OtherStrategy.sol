@@ -50,7 +50,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
     address public immutable factory;
-    address public immutable override controller;
+    address public immutable controller;
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event RewardsClaimed(address indexed adapter, address indexed token);
@@ -551,10 +551,6 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
         return _manager;
     }
 
-    function whitelist() public view override returns (IWhitelist) {
-        return IWhitelist(IStrategyProxyFactory(factory).whitelist());
-    }
-
     function supportsSynths() public view override returns (bool) {
         return _synths.length > 0;
     }
@@ -854,7 +850,7 @@ contract OtherStrategy is IStrategy, IStrategyManagement, OtherStrategyToken, In
      * @notice Checks that router is whitelisted
      */
     function _onlyApproved(address account) internal view {
-        require(whitelist().approved(account), "Not approved");
+        require(IWhitelist(IStrategyProxyFactory(factory).whitelist()).approved(account), "Not approved");
     }
 
     function _onlyManager() internal view {

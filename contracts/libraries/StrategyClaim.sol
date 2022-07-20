@@ -2,6 +2,8 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IRewardsAdapter.sol";
 import "../helpers/StrategyTypes.sol";
@@ -10,9 +12,11 @@ import "./MemoryMappings.sol";
 library StrategyClaim {
     using MemoryMappings for BinaryTreeWithPayload.Tree;
 
+    uint256 internal constant PRECISION = 10**18;
+
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
 
-    function _claimAll(bytes[] memory claimables) public {
+    function claimAll(bytes[] memory claimables) public {
         address[] memory tokens;
         StrategyTypes.TradeData memory tradeData;
         uint256 adaptersLength;
@@ -27,8 +31,8 @@ library StrategyClaim {
         }
     }
 
-    function _getAllRewardTokens(ITokenRegistry tokenRegistry) public view returns(address[] memory rewardTokens) {
-        (uint256[] memory keys, bytes[] memory values) = _getAllToClaim(tokenRegistry);
+    function getAllRewardTokens(ITokenRegistry tokenRegistry) public view returns(address[] memory rewardTokens) {
+        (uint256[] memory keys, bytes[] memory values) = getAllToClaim(tokenRegistry);
         IRewardsAdapter rewardsAdapter;
         address[] memory claimableTokens;
         address[] memory _rewardTokens;
@@ -51,7 +55,45 @@ library StrategyClaim {
         }
     }
 
-    function _getAllToClaim(ITokenRegistry tokenRegistry) public view returns(uint256[] memory keys, bytes[] memory values) {
+    function getWithdrawAmounts(
+        uint256 percentage,
+        address[] memory items,
+        address[] memory synths,
+        IERC20 weth,
+        IERC20 susd
+    ) public view returns (
+        IERC20[] memory tokens,
+        uint256[] memory amounts
+    ) {
+        uint256 itemsLength = items.length;
+        uint256 synthsLength = synths.length;
+        bool isSynths = synthsLength > 0;
+        uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
+
+        tokens = new IERC20[](numTokens);
+        amounts = new uint256[](numTokens);
+        for (uint256 i; i < itemsLength; ++i) {
+           // Should not be possible to have address(0) since the Strategy will check for it
+           IERC20 token = IERC20(items[i]);
+           amounts[i] = _getBalanceShare(token, percentage);
+           tokens[i] = token;
+        }
+        if (isSynths) {
+            for (uint256 i = itemsLength; i < numTokens - 2; ++i) {
+                IERC20 synth = IERC20(synths[i - itemsLength]);
+                amounts[i] = _getBalanceShare(synth, percentage);
+                tokens[i] = synth;
+            }
+            // Include SUSD
+            amounts[numTokens - 2] = _getBalanceShare(susd, percentage);
+            tokens[numTokens - 2] = susd;
+        }
+        // Include WETH
+        amounts[numTokens - 1] = _getBalanceShare(weth, percentage);
+        tokens[numTokens - 1] = weth;
+    }
+
+    function getAllToClaim(ITokenRegistry tokenRegistry) public view returns(uint256[] memory keys, bytes[] memory values) {
         BinaryTreeWithPayload.Tree memory mm = BinaryTreeWithPayload.newNode();
         BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
         IStrategy _this = IStrategy(address(this));
@@ -103,6 +145,7 @@ library StrategyClaim {
      */
     function _delegateClaim(address adapter, address[] memory tokens) private {
         // unchecked: adapter is approved since this is from the tokenRegistry
+        // !!! FIX ME !!! It looks like this data gets saved to Strategy.tradeData, which can be updated by the manager!!!!
         bytes memory data =
             abi.encodeWithSelector(
                 IRewardsAdapter.claim.selector,
@@ -122,5 +165,10 @@ library StrategyClaim {
             }
         }
         emit RewardsClaimed(adapter, tokens);
+    }
+
+    function _getBalanceShare(IERC20 token, uint256 percentage) private view returns (uint256) {
+        uint256 balance = token.balanceOf(address(this));
+        return SafeMath.mul(balance, percentage) / PRECISION;
     }
 }
