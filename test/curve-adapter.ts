@@ -63,7 +63,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		tokens: Tokens
-		//tradeData: TradeData
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -509,7 +508,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			.connect(await impersonate(ownershipAdminAddress))
 			['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
 
-    let tradeData: TradeData = {
+		let tradeData: TradeData = {
 			adapters: [],
 			path: [],
 			cache: '0x',
@@ -792,7 +791,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(995),
+			restructureSlippage: BigNumber.from(980),
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,

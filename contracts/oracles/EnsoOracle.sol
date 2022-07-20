@@ -75,6 +75,10 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return tokenRegistry.getEstimator(token).estimateItem(balance, token);
     }
 
+    function estimateItem(uint256 balance, address token, address knownStrategy) public view override returns (int256) {
+        return IEstimatorKnowing(address(tokenRegistry.getEstimator(token))).estimateItem(balance, token, knownStrategy);
+    }
+
     function estimateItem(address user, address token) public view override returns (int256) {
         return tokenRegistry.getEstimator(token).estimateItem(user, token);
     }
