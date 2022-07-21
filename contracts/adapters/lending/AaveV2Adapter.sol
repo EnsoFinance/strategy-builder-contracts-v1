@@ -16,16 +16,19 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     IStrategyController public immutable strategyController;
+    IAaveIncentivesController private immutable _ic;
 
     constructor(
       address addressesProvider_,
       address strategyController_,
+      address incentivesController_,
       address weth_,
       address tokenRegistry_,
       uint256 categoryIndex_
     ) public ProtocolAdapter(weth_, tokenRegistry_, categoryIndex_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         strategyController = IStrategyController(strategyController_);
+        _ic = IAaveIncentivesController(incentivesController_);
     }
 
     function swap(
@@ -67,17 +70,8 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
 
     // Intended to be called via delegateCall
     function claim(address[] memory tokens) external override {
-        IAaveIncentivesController ic;
-        address[] memory tokens_ = new address[](1);
-        uint256 amount;
-        for (uint256 i; i < tokens.length; ++i) {
-            // unfortunately have to do loop since claimables are grouped by
-            // adapter not by rewards token
-            tokens_[0] = tokens[i];
-            ic = IAToken(tokens_[0]).getIncentivesController();
-            amount = ic.getRewardsBalance(tokens_, address(this));
-            ic.claimRewards(tokens_, amount, address(this));
-        }
+        uint256 amount = _ic.getRewardsBalance(tokens, address(this));
+        _ic.claimRewards(tokens, amount, address(this));
     }
 
     function rewardsTokens(address token) external view override returns(address[] memory) {
