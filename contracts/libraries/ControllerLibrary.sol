@@ -17,6 +17,7 @@ library ControllerLibrary {
     using SafeERC20 for IERC20;
 
     int256 private constant DIVISOR = 1000;
+    uint256 private constant REBALANCE_THRESHOLD_SCALAR = 10**2; // FIXME tune
 
     uint256 private constant PRECISION = 10**18;
     uint256 private constant WITHDRAW_UPPER_BOUND = 10**17; // Upper condition for including pool's tokens as part of burn during withdraw
@@ -155,14 +156,14 @@ library ControllerLibrary {
     ) public {
         _onlyApproved(address(router));
         strategy.settleSynths();
-        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle);
+        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle, true); // outer=true 
         require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
         _useRouter(strategy, router, router.rebalance, weth, data);
         // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(address(strategy), oracle);
+        (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(address(strategy), oracle, false); // outer=false 
         require(balancedAfter, "Not balanced");
         _checkSlippage(totalAfter, totalBefore, rebalanceSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
@@ -352,10 +353,17 @@ library ControllerLibrary {
      *         whether the strategy is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
      */
-    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
+    function verifyBalance(address strategy, address oracle, bool outer) public view returns (bool, uint256, int256[] memory) {
+        uint256 threshold = IStrategy(strategy).rebalanceThreshold();
+        if (outer) { // wider threshold
+            threshold = threshold.mul(REBALANCE_THRESHOLD_SCALAR);
+        }
+        return _verifyBalance(strategy, oracle, threshold);
+    }
+
+    function _verifyBalance(address strategy, address oracle, uint256 threshold) private view returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
             IOracle(oracle).estimateStrategy(IStrategy(strategy));
-        uint256 threshold = IStrategy(strategy).rebalanceThreshold();
 
         bool balanced = true;
         address[] memory strategyItems = IStrategy(strategy).items();

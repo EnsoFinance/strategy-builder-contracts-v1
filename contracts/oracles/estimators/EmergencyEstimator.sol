@@ -12,7 +12,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     using SignedSafeMath for int256;
 
     mapping(address => int256) public estimates;
-    mapping(bytes4 => TimelockData) private __timelockData;
+    mapping(bytes32 => TimelockData) private __timelockData;
 
     event EstimateSet(address token, int256 amount, bool finalized);
 
@@ -20,19 +20,20 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         _setTimelock(this.updateEstimate.selector, 5 minutes);
     }
 
-    function updateTimelock(bytes4 functionSelector, uint256 delay) external override onlyOwner {
-        _startTimelock(this.updateTimelock.selector, abi.encode(functionSelector, delay));
+    function updateTimelock(bytes32 identifier, uint256 delay) external override onlyOwner {
+        _startTimelock(this.updateTimelock.selector, abi.encode(identifier, delay));
         emit UpdateTimelock(delay, false);
     }
 
     function finalizeTimelock() external override {
-        if (!_timelockIsReady(this.updateTimelock.selector)) {
-            TimelockData memory td = _timelockData(this.updateTimelock.selector);
+        bytes32 key = keccak256(abi.encode(this.updateTimelock.selector));
+        if (!_timelockIsReady(key)) {
+            TimelockData memory td = _timelockData(key);
             require(td.delay == 0, "finalizeTimelock: timelock is not ready.");
         }
-        (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(this.updateTimelock.selector), (bytes4, uint256));
-        _setTimelock(selector, delay);
-        _resetTimelock(this.updateTimelock.selector);
+        (bytes32 identifier, uint256 delay) = abi.decode(_getTimelockValue(key), (bytes4, uint256));
+        _setTimelock(identifier, delay);
+        _resetTimelock(key);
         emit UpdateTimelock(delay, true);
     }
 
@@ -62,7 +63,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         return int256(balance).mul(estimates[token]).div(int256(10**uint256(IERC20NonStandard(token).decimals())));
     }
 
-    function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {
-        return __timelockData[functionSelector];
+    function _timelockData(bytes32 identifier) internal override returns(TimelockData storage) {
+        return __timelockData[identifier];
     }
 }
