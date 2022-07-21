@@ -76,7 +76,7 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
 
     function rewardsTokens(address token) external view override returns(address[] memory) {
         address[] memory ret = new address[](1);
-        ret[0] = IAToken(token).getIncentivesController().REWARD_TOKEN();
+        ret[0] = _ic.REWARD_TOKEN();
         return ret;
     }
 }

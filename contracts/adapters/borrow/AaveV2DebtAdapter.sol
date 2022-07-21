@@ -17,9 +17,11 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
+    IAaveIncentivesController private immutable _ic;
 
-    constructor(address addressesProvider_, address weth_) public BaseAdapter(weth_) {
+    constructor(address addressesProvider_, address incentivesController_, address weth_) public BaseAdapter(weth_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
+        _ic = IAaveIncentivesController(incentivesController_);
     }
 
     function swap(
@@ -83,22 +85,13 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
 
     // Intended to be called via delegateCall
     function claim(address[] memory tokens) external override {
-        IAaveIncentivesController ic;
-        address[] memory tokens_ = new address[](1);
-        uint256 amount;
-        for (uint256 i; i < tokens.length; ++i) {
-            // unfortunately have to do loop since claimables are grouped by
-            // adapter not by rewards token
-            tokens_[0] = tokens[i];
-            ic = IAToken(tokens_[0]).getIncentivesController();
-            amount = ic.getRewardsBalance(tokens_, address(this));
-            ic.claimRewards(tokens_, amount, address(this));
-        }
+        uint256 amount = _ic.getRewardsBalance(tokens, address(this));
+        _ic.claimRewards(tokens, amount, address(this));
     }
 
     function rewardsTokens(address token) external view override returns(address[] memory) {
         address[] memory ret = new address[](1);
-        ret[0] = IAToken(token).getIncentivesController().REWARD_TOKEN();
+        ret[0] = _ic.REWARD_TOKEN();
         return ret;
     }
 }
