@@ -16,8 +16,10 @@ library AddressArrays {
         for (uint256 i; i < array2.length; ++i) {
             if (tree.replace(uint256(uint160(array2[i])), new bytes(0))) count++;
         }
-        merged = new address[](count);
-        readInto(tree, merged, 0);
+        if (count > 0) {
+            merged = new address[](count);
+            readInto(tree, merged, 0);
+        }
     }
 
     // @notice Returns all values in array1 that are not also in array2
@@ -36,8 +38,10 @@ library AddressArrays {
                 count++;
             }
         }
-        reduced = new address[](count);
-        readInto(tree1, reduced, 0);
+        if (count > 0) {
+            reduced = new address[](count);
+            readInto(tree1, reduced, 0);
+        }
     }
 
     function readInto(BinaryTreeWithPayload.Tree memory tree, address[] memory array, uint256 idx) private pure {

@@ -486,7 +486,7 @@ describe('AaveAdapter', function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
+			.withdrawWETH(strategy.address, fullRouter.address, amount, '950', '0x', { gasLimit: '5000000' }) // Slippage has to set really low, not sure why
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

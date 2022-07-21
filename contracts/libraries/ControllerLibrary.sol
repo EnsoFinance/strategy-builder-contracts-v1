@@ -11,7 +11,6 @@ import "../helpers/StrategyTypes.sol";
 import "./SafeERC20.sol";
 import "./AddressArrays.sol";
 import "./StrategyLibrary.sol";
-import "hardhat/console.sol";
 
 library ControllerLibrary {
     using SafeMath for uint256;
@@ -355,7 +354,6 @@ library ControllerLibrary {
         formerDebt = formerDebt.reduce(newDebt);
         for (uint256 i = 0; i < formerDebt.length; ++i) {
             uint256 balance = IERC20(formerDebt[i]).balanceOf(strategy);
-            console.log("Balance: ", balance);
             require(balance == 0, "Former debt remaining");
         }
     }

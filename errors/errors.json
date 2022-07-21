@@ -104,6 +104,10 @@
     "contractName": "StrategyControllerPaused.sol"
   },
   {
+    "contractId": "dcc862dda0e3",
+    "contractName": "IAaveIncentivesController.sol"
+  },
+  {
     "contractId": "50f8a65c2df3",
     "contractName": "IAToken.sol"
   },
@@ -162,14 +166,6 @@
   {
     "contractId": "2ebf3ce0e034",
     "contractName": "IERC20NonStandard.sol"
-  },
-  {
-    "contractId": "dcc862dda0e3",
-    "contractName": "IAaveIncentivesController.sol"
-  },
-  {
-    "contractId": "c326af50ec41",
-    "contractName": "IDebtToken.sol"
   },
   {
     "contractId": "906224e4c805",
