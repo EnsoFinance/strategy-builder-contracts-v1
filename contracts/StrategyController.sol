@@ -180,7 +180,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
         bytes32 key = keccak256(abi.encode(this.rebalance.selector, strategy));
         _require(_timelockIsReady(key), uint256(0x1bb63a90056c04) /* error_macro_for("rebalance timelock not ready.") */);
-        _resetTimelock(key);
+        _startTimelock(key, new bytes(0));
 
         ControllerLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
         _removeStrategyLock(strategy);
