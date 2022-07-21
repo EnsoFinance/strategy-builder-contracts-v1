@@ -372,14 +372,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _removeStrategyLock(strategy);
     }
 
-    function updateTimelock(bytes32 identifier, uint256 delay) external override {
-        revert("timelock update not supported.");
-    }
-
-    function finalizeTimelock() external override {
-        revert("timelock update not supported");
-    }
-
     function verifyStructure(address strategy, StrategyItem[] memory newItems)
         public
         view

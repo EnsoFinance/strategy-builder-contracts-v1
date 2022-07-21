@@ -17,15 +17,19 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     event EstimateSet(address token, int256 amount, bool finalized);
 
     constructor() public {
-        _setTimelock(this.updateEstimate.selector, 5 minutes);
+        _setTimelock(
+          keccak256(abi.encode(this.updateEstimate.selector)), // identifier
+          5 minutes);
     }
 
-    function updateTimelock(bytes32 identifier, uint256 delay) external override onlyOwner {
-        _startTimelock(this.updateTimelock.selector, abi.encode(identifier, delay));
+    function updateTimelock(bytes32 identifier, uint256 delay) external onlyOwner {
+        _startTimelock(
+          keccak256(abi.encode(this.updateTimelock.selector)), // identifier
+          abi.encode(identifier, delay)); // payload
         emit UpdateTimelock(delay, false);
     }
 
-    function finalizeTimelock() external override {
+    function finalizeTimelock() external {
         bytes32 key = keccak256(abi.encode(this.updateTimelock.selector));
         if (!_timelockIsReady(key)) {
             TimelockData memory td = _timelockData(key);
@@ -42,14 +46,16 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     }
 
     function updateEstimate(address token, int256 amount) external onlyOwner {
-        _startTimelock(this.updateEstimate.selector, abi.encode(token, amount));
+        _startTimelock(
+          keccak256(abi.encode(this.updateEstimate.selector)), // identifier
+          abi.encode(token, amount)); // payload
         emit EstimateSet(token, amount, false);
     }
 
     function finalizeSetEstimate() external {
-        require(_timelockIsReady(this.updateEstimate.selector), "finalizeSetEstimate: timelock not ready.");
-        (address token, int256 amount) = abi.decode(_getTimelockValue(this.updateEstimate.selector), (address, int256));
-        _resetTimelock(this.updateEstimate.selector);
+        require(_timelockIsReady(keccak256(abi.encode(this.updateEstimate.selector))), "finalizeSetEstimate: timelock not ready.");
+        (address token, int256 amount) = abi.decode(_getTimelockValue(keccak256(abi.encode(this.updateEstimate.selector))), (address, int256));
+        _resetTimelock(keccak256(abi.encode(this.updateEstimate.selector)));
         estimates[token] = amount;
         emit EstimateSet(token, amount, true);
     }

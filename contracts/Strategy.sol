@@ -168,20 +168,24 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _tempRouter = router;
     }
 
-    function updateTimelock(bytes32 identifier, uint256 delay) external override {
+    function updateTimelock(bytes4 selector, uint256 delay) external {
         _onlyManager();
-        _startTimelock(this.updateTimelock.selector, abi.encode(identifier, delay));
+        _startTimelock(
+          keccak256(abi.encode(this.updateTimelock.selector)), // identifier
+          abi.encode(keccak256(abi.encode(selector)), delay)); // payload
         emit UpdateTimelock(delay, false);
     }
 
-    function finalizeTimelock() external override {
+    function finalizeTimelock() external {
         bytes32 key = keccak256(abi.encode(this.updateTimelock.selector));
         if (!_timelockIsReady(key)) {
             TimelockData memory td = _timelockData(key);
             _require(td.delay == 0, uint256(0xb3e5dea2190e00) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
         }
-        (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(key), (bytes4, uint256));
-        _setTimelock(selector, delay);
+        bytes memory value = _getTimelockValue(key);
+        require(value.length != 0, "timelock never started.");
+        (bytes32 identifier, uint256 delay) = abi.decode(value, (bytes32, uint256));
+        _setTimelock(identifier, delay);
         _resetTimelock(key);
         emit UpdateTimelock(delay, true);
     }
@@ -357,7 +361,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      */
     function updateTradeData(address item, TradeData memory data) external override {
         _onlyManager();
-        _startTimelock(this.updateTradeData.selector, abi.encode(item, data));
+        _startTimelock(
+          keccak256(abi.encode(this.updateTradeData.selector)), // identifier
+          abi.encode(item, data)); // payload
         emit UpdateTradeData(item, false);
     }
 

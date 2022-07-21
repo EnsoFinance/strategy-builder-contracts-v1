@@ -2,11 +2,16 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
 import { Platform, Administration, Oracles } from './deploy'
 import deployments from '../deployments.json'
+import hre from 'hardhat'
+const { ethers } = hre
+const { constants } = ethers
+const { AddressZero } = constants
 
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapV3Oracle from '../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json'
 import ChainlinkOracle from '../artifacts/contracts/oracles/protocols/ChainlinkOracle.sol/ChainlinkOracle.json'
@@ -55,7 +60,7 @@ export class LiveEnvironment {
 		platform: Platform,
 		adapters: LiveAdapters,
 		routers: LiveRouters,
-        estimators: Estimators,
+		estimators: Estimators
 	) {
 		this.signer = signer
 		this.platform = platform
@@ -65,10 +70,9 @@ export class LiveEnvironment {
 	}
 }
 
-
 export type LiveAdapters = {
 	aaveV2: Contract
-  aaveV2Debt: Contract
+	aaveV2Debt: Contract
 	balancer: Contract
 	compound: Contract
 	curve: Contract
@@ -97,14 +101,14 @@ export enum AdapterTypes {
 	Synthetix = 'synthetix',
 	UniswapV2 = 'uniswapv2',
 	UniswapV3 = 'uniswapv3',
-	YEarnV2 = 'yearnv2'
+	YEarnV2 = 'yearnv2',
 }
 
 export enum RouterTypes {
 	Multicall = 'multicall',
 	Loop = 'loop',
 	Full = 'full',
-	Batch = 'batch'
+	Batch = 'batch',
 }
 
 export type LiveRouters = {
@@ -128,39 +132,41 @@ export type Estimators = {
 }
 
 export function liveEstimators(signer: SignerWithAddress) {
-    if (!deployments.mainnet) throw Error("Deployment addresses not found")
-		const addrs = deployments.mainnet;
-		const defaultEstimator = new Contract(addrs.DefaultEstimator, BasicEstimator.abi, signer)
-		const chainlink = new Contract(addrs.ChainlinkEstimator, BasicEstimator.abi, signer)
-		const strategy = new Contract(addrs.StrategyEstimator, StrategyEstimator.abi, signer)
-		const emergency = new Contract(addrs.EmergencyEstimator, EmergencyEstimator.abi, signer)
-		const aaveV2 = new Contract(addrs.AaveV2Estimator, AaveV2Estimator.abi, signer)
-		const aaveV2Debt = new Contract(addrs.AaveV2DebtEstimator, AaveV2DebtEstimator.abi, signer)
-		const compound = new Contract(addrs.CompoundEstimator, CompoundEstimator.abi, signer)
-		const curveLP = new Contract(addrs.CurveLPEstimator, CurveLPEstimator.abi, signer)
-		const curveGauge = new Contract(addrs.CurveGaugeEstimator, CurveGaugeEstimator.abi, signer)
-		const yearnV2 = new Contract(addrs.YEarnV2Estimator, YEarnV2Estimator.abi, signer)
-    const estimators: Estimators = {
-       defaultEstimator,
-       chainlink,
-       strategy,
-       emergency,
-       aaveV2,
-       aaveV2Debt,
-       compound,
-       curveLP,
-       curveGauge,
-       yearnV2
-    }
-    return estimators
+	if (!deployments.mainnet) throw Error('Deployment addresses not found')
+	const addrs = deployments.mainnet
+	const defaultEstimator = new Contract(addrs.DefaultEstimator, BasicEstimator.abi, signer)
+	const chainlink = new Contract(addrs.ChainlinkEstimator, BasicEstimator.abi, signer)
+	const strategy = new Contract(addrs.StrategyEstimator, StrategyEstimator.abi, signer)
+	const emergency = new Contract(addrs.EmergencyEstimator, EmergencyEstimator.abi, signer)
+	const aaveV2 = new Contract(addrs.AaveV2Estimator, AaveV2Estimator.abi, signer)
+	const aaveV2Debt = new Contract(addrs.AaveV2DebtEstimator, AaveV2DebtEstimator.abi, signer)
+	const compound = new Contract(addrs.CompoundEstimator, CompoundEstimator.abi, signer)
+	const curveLP = new Contract(addrs.CurveLPEstimator, CurveLPEstimator.abi, signer)
+	const curveGauge = new Contract(addrs.CurveGaugeEstimator, CurveGaugeEstimator.abi, signer)
+	const yearnV2 = new Contract(addrs.YEarnV2Estimator, YEarnV2Estimator.abi, signer)
+	const estimators: Estimators = {
+		defaultEstimator,
+		chainlink,
+		strategy,
+		emergency,
+		aaveV2,
+		aaveV2Debt,
+		compound,
+		curveLP,
+		curveGauge,
+		yearnV2,
+	}
+	return estimators
 }
 
-
-
 export function livePlatform(signer: SignerWithAddress): Platform {
-	if (!deployments.mainnet) throw Error("Deployment addresses not found")
-	const addrs = deployments.mainnet;
-	const strategyLibrary =  new Contract(addrs.StrategyLibrary, StrategyLibrary.abi, signer)
+	if (!deployments.mainnet) throw Error('Deployment addresses not found')
+	const addrs = deployments.mainnet
+	const strategyLibrary = new Contract(addrs.StrategyLibrary, StrategyLibrary.abi, signer)
+	console.log('debug before')
+	const controllerLibrary = new Contract(AddressZero, ControllerLibrary.abi, signer) // FIXME ControllerLibrary address when deployed
+	console.log('debug after')
+
 	const tokenRegistry = new Contract(addrs.TokenRegistry, TokenRegistry.abi, signer)
 	const curveDepositZapRegistry = new Contract(addrs.CurveDepositZapRegistry, CurveDepositZapRegistry.abi, signer)
 	const uniswapV3Registry = new Contract(addrs.UniswapV3Registry, UniswapV3Registry.abi, signer)
@@ -179,27 +185,27 @@ export function livePlatform(signer: SignerWithAddress): Platform {
 		ensoOracle,
 		protocols: {
 			uniswapOracle,
-			chainlinkOracle
+			chainlinkOracle,
 		},
 		registries: {
 			tokenRegistry,
 			curveDepositZapRegistry,
 			uniswapV3Registry,
-			chainlinkRegistry
-		}
+			chainlinkRegistry,
+		},
 	}
 
 	// Admin
 	const administration: Administration = {
 		whitelist,
-		platformProxyAdmin
+		platformProxyAdmin,
 	}
 
-	return new Platform(factory, controller, oracles, administration, strategyLibrary, {}) // last param, strategyLibraries, currently not deployed on mainnet
+	return new Platform(factory, controller, oracles, administration, strategyLibrary, controllerLibrary, {}) // last params, strategyLibraries, controllerLibrary, currently not deployed on mainnet
 }
 
 export function liveAdapters(signer: SignerWithAddress): LiveAdapters {
-	const addrs = deployments.mainnet;
+	const addrs = deployments.mainnet
 	const aaveV2 = new Contract(addrs.AaveV2Adapter, AaveV2Adapter.abi, signer)
 	const aaveV2Debt = new Contract(addrs.AaveV2DebtAdapter, AaveV2DebtAdapter.abi, signer)
 	const balancer = new Contract(addrs.BalancerAdapter, BalancerAdapter.abi, signer)
@@ -230,14 +236,14 @@ export function liveAdapters(signer: SignerWithAddress): LiveAdapters {
 		synthetix,
 		uniswapV2,
 		uniswapV3,
-		yearnV2
+		yearnV2,
 	}
 	return liveAdapters
 }
 
 export function liveRouters(signer: SignerWithAddress): LiveRouters {
-	if (!deployments.mainnet) throw Error("Deployment addresses not found")
-	const addrs = deployments.mainnet;
+	if (!deployments.mainnet) throw Error('Deployment addresses not found')
+	const addrs = deployments.mainnet
 	const multicall = new Contract(addrs.MulticallRouter, MulticallRouter.abi, signer)
 	const loop = new Contract(addrs.LoopRouter, LoopRouter.abi, signer)
 	const full = new Contract(addrs.FullRouter, FullRouter.abi, signer)
@@ -246,22 +252,22 @@ export function liveRouters(signer: SignerWithAddress): LiveRouters {
 		multicall,
 		loop,
 		full,
-		batch
+		batch,
 	}
 	return routers
 }
 
 export function getLiveContracts(signer: SignerWithAddress): LiveEnvironment {
-	const platform = livePlatform(signer);
-	const adapters = liveAdapters(signer);
-	const routers = liveRouters(signer);
-	const estimators = liveEstimators(signer);
+	const platform = livePlatform(signer)
+	const adapters = liveAdapters(signer)
+	const routers = liveRouters(signer)
+	const estimators = liveEstimators(signer)
 	const liveContracts: LiveEnvironment = {
 		signer,
 		platform,
 		adapters,
 		routers,
-		estimators
+		estimators,
 	}
 	return liveContracts
 }

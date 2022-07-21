@@ -12,8 +12,10 @@ abstract contract Timelocks is StrategyTypes {
     bytes constant public UNSET_VALUE = abi.encode(keccak256("Timelocks: unset value."));
 
     // updgradable implementations would benefit from the ability to set new timelocks.
-    function updateTimelock(bytes32 identifier, uint256 delay) external virtual;
-    function finalizeTimelock() external virtual;
+    // not mandatory so suppressing "virtual". See EmergencyEstimator and StrategyController
+    // for an example and non-example
+    //function updateTimelock(bytes32 identifier, uint256 delay) external virtual;
+    //function finalizeTimelock() external virtual;
 
 
     // delay value is not validated but is assumed to be sensible 
