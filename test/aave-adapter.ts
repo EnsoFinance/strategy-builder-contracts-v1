@@ -137,7 +137,6 @@ describe('AaveAdapter', function () {
 				tradeData,
 				true
 			)
-
 		tradeData.adapters.push(uniswapAdapter.address)
 		await strategyFactory
 			.connect(accounts[0])
@@ -227,10 +226,10 @@ describe('AaveAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-	/*it('Should getAllRewardTokens', async function () {
+	it('Should getAllRewardTokens', async function () {
 		const rewardTokens = await strategy.connect(accounts[1]).callStatic.getAllRewardTokens()
-    expect(rewardTokens[0]).to.be.equal(stkAAVE.address)
-	})*/
+		expect(rewardTokens[0]).to.be.equal(stkAAVE.address)
+	})
 
 	it('Should deposit', async function () {
 		const tx = await controller
@@ -276,7 +275,21 @@ describe('AaveAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
+	it('Should claim stkAAVE', async function () {
+		const balanceBefore = await stkAAVE.balanceOf(strategy.address)
+		const tx = await strategy.connect(accounts[1]).claimAll()
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await stkAAVE.balanceOf(strategy.address)
+		expect(balanceAfter).to.be.gt(balanceBefore)
+	})
+
 	it('Should rebalance strategy', async function () {
+		// the strategy has a balance of stkAAVE within its "claimables"
+		// meaning that the percentage of which should be 0% in the strategy
+		// so during this rebalance, this stkAAVE is just sold on uniswap for WETH.
+		// If later, we register stkAAVE itself as a "claimable", the strategy
+		// could maintain a balance in stkAAVE from which it would claim rewards in AAVE
 		const tx = await controller
 			.connect(accounts[1])
 			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
@@ -445,15 +458,6 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
-	})
-
-	it('Should claim stkAAVE', async function () {
-		const balanceBefore = await stkAAVE.balanceOf(strategy.address)
-		const tx = await strategy.connect(accounts[1]).claimAll()
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await stkAAVE.balanceOf(strategy.address)
-		expect(balanceAfter).to.be.gt(balanceBefore)
 	})
 
 	it('Should deploy new strategy', async function () {
