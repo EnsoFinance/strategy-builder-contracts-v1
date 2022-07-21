@@ -6,7 +6,7 @@ const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
+import { prepareStrategy, encodeTransferFrom, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import { isRevertedWith } from '../lib/errors'
 import {
@@ -19,6 +19,7 @@ import {
 	deployCurveAdapter,
 	deployPlatform,
 	deployFullRouter,
+	deployMulticallRouter
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -45,7 +46,8 @@ describe('AaveAdapter', function () {
 		usdc: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
-		router: Contract,
+		fullRouter: Contract,
+		multicallRouter: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
@@ -94,8 +96,10 @@ describe('AaveAdapter', function () {
 		collateralToken = tokens.aWETH
 		collateralToken2 = tokens.aCRV
 
-		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
-		await whitelist.connect(accounts[0]).approve(router.address)
+		fullRouter = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
+		await whitelist.connect(accounts[0]).approve(fullRouter.address)
+		multicallRouter = await deployMulticallRouter(accounts[0], controller)
+		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		aaveV2Adapter = await deployAaveV2Adapter(
@@ -156,35 +160,35 @@ describe('AaveAdapter', function () {
 		const positions = [
 			{
 				token: collateralToken,
-				percentage: BigNumber.from(1000),
+				percentage: BigNumber.from(600),
 				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
-					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					[833] // Multiplier 83.3% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
 				token: collateralToken2,
-				percentage: BigNumber.from(1000),
+				percentage: BigNumber.from(600),
 				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
 				path: [tokens.crv],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
-					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					[833] // Multiplier 83.3% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
 				token: tokens.debtUSDC,
-				percentage: BigNumber.from(-1000),
+				percentage: BigNumber.from(-200),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[
 						[
-							{ token: collateralToken, percentage: 500 },
-							{ token: collateralToken2, percentage: 500 },
+							{ token: collateralToken, percentage: 167 },
+							{ token: collateralToken2, percentage: 167 },
 						],
 					] //define what tokens you want to loop back on here
 				),
@@ -204,7 +208,7 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -234,7 +238,7 @@ describe('AaveAdapter', function () {
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -242,7 +246,7 @@ describe('AaveAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(1000)
+		const value = WeiPerEther.mul(5000)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
@@ -256,7 +260,7 @@ describe('AaveAdapter', function () {
 	it('Should rebalance strategy', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+			.rebalance(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -292,7 +296,7 @@ describe('AaveAdapter', function () {
 		// could maintain a balance in stkAAVE from which it would claim rewards in AAVE
 		const tx = await controller
 			.connect(accounts[1])
-			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+			.rebalance(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -313,7 +317,7 @@ describe('AaveAdapter', function () {
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -325,7 +329,7 @@ describe('AaveAdapter', function () {
 		const ethBalanceBefore = await accounts[1].getBalance()
 		const tx = await controller.connect(accounts[1]).withdrawETH(
 			strategy.address,
-			router.address,
+			fullRouter.address,
 			amount,
 			'979', // note the high slippage!
 			'0x',
@@ -344,7 +348,7 @@ describe('AaveAdapter', function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller.connect(accounts[1]).withdrawWETH(
 			strategy.address,
-			router.address,
+			fullRouter.address,
 			amount,
 			'963', // note the high slippage!
 			'0x',
@@ -358,15 +362,49 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should restructure - basic', async function () {
-		const positions = [{ token: tokens.usdt, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address] }]
+		const positions = [
+			{
+				token: collateralToken,
+				percentage: BigNumber.from(500),
+				adapters: [aaveV2Adapter.address],
+				path: []
+			},
+			{
+				token: collateralToken2,
+				percentage: BigNumber.from(500),
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
+				path: [tokens.crv]
+			}
+		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
+
+	it('Should fail to finalize structure - debt oracle exploit', async function () {
+		const collateral = new Contract(collateralToken, ERC20.abi, accounts[0])
+		const collateral2 = new Contract(collateralToken2, ERC20.abi, accounts[0])
+		const collateralBalance = await collateral.balanceOf(strategy.address)
+		const collateral2Balance = await collateral2.balanceOf(strategy.address)
+		const calls = [
+			encodeTransferFrom(collateral, strategy.address, accounts[1].address, collateralBalance.div(6)),
+			encodeTransferFrom(collateral2, strategy.address, accounts[1].address, collateral2Balance.div(6))
+		]
+		const data = await multicallRouter.encodeCalls(calls)
+		expect(
+			await isRevertedWith(
+				controller
+					.connect(accounts[1])
+					.finalizeStructure(strategy.address, multicallRouter.address, data, { gasLimit: '5000000' }),
+				'Too much slippage',
+				'StrategyController.sol'
+			)
+		).to.be.true
 	})
 
 	it('Should finalize structure - basic', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+			.finalizeStructure(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -417,7 +455,7 @@ describe('AaveAdapter', function () {
 	it('Should finalize structure - debt positions', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+			.finalizeStructure(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -426,7 +464,7 @@ describe('AaveAdapter', function () {
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -438,7 +476,7 @@ describe('AaveAdapter', function () {
 		const ethBalanceBefore = await accounts[1].getBalance()
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawETH(strategy.address, router.address, amount, '970', '0x', { gasLimit: '5000000' })
+			.withdrawETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -452,7 +490,7 @@ describe('AaveAdapter', function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, router.address, amount, '970', '0x', { gasLimit: '5000000' })
+			.withdrawWETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -500,7 +538,7 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -525,7 +563,7 @@ describe('AaveAdapter', function () {
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -581,7 +619,7 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -606,7 +644,7 @@ describe('AaveAdapter', function () {
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -671,7 +709,7 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -694,7 +732,7 @@ describe('AaveAdapter', function () {
 	it('Should deposit', async function () {
 		const tx = await controller
 			.connect(accounts[1])
-			.deposit(strategy.address, router.address, 0, '990', '0x', { value: WeiPerEther })
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -713,7 +751,7 @@ describe('AaveAdapter', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, basicStrategyItems, STRATEGY_STATE, router.address, '0x', {
+			.createStrategy(name, symbol, basicStrategyItems, STRATEGY_STATE, fullRouter.address, '0x', {
 				value: ethers.BigNumber.from('10000000000000000'),
 			})
 
@@ -724,7 +762,7 @@ describe('AaveAdapter', function () {
 		const Strategy = await platform.getStrategyContractFactory()
 		const basicStrategy = await Strategy.attach(strategyAddress)
 
-		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, router, weth)
+		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, fullRouter, weth)
 		await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
 
 		name = 'Debt Meta Strategy'
@@ -761,7 +799,7 @@ describe('AaveAdapter', function () {
 		let metaStrategyItems = prepareStrategy(positions2, uniswapAdapter.address)
 		tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, metaStrategyItems, STRATEGY_STATE, router.address, '0x', {
+			.createStrategy(name, symbol, metaStrategyItems, STRATEGY_STATE, fullRouter.address, '0x', {
 				value: ethers.BigNumber.from('10000000000000000'),
 			})
 		receipt = await tx.wait()
@@ -829,7 +867,7 @@ describe('AaveAdapter', function () {
 			await isRevertedWith(
 				strategyFactory
 					.connect(accounts[1])
-					.createStrategy(name, symbol, failItems, STRATEGY_STATE, router.address, '0x', {
+					.createStrategy(name, symbol, failItems, STRATEGY_STATE, fullRouter.address, '0x', {
 						value: WeiPerEther,
 					}),
 				'No synths and debt',
