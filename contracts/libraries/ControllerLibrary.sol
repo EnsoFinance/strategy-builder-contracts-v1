@@ -9,12 +9,15 @@ import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrategyRouter.sol";
 import "../helpers/StrategyTypes.sol";
 import "./SafeERC20.sol";
+import "./AddressArrays.sol";
 import "./StrategyLibrary.sol";
+import "hardhat/console.sol";
 
 library ControllerLibrary {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
+    using AddressArrays for address[];
 
     int256 private constant DIVISOR = 1000;
 
@@ -148,21 +151,21 @@ library ControllerLibrary {
     function rebalance(
         IStrategy strategy,
         IStrategyRouter router,
-        address oracle,
+        IOracle oracle,
         address weth,
         uint256 rebalanceSlippage,
         bytes memory data
     ) public {
         _onlyApproved(address(router));
         strategy.settleSynths();
-        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(address(strategy), oracle);
+        (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(strategy, oracle);
         require(!balancedBefore, "Balanced");
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
             data = abi.encode(totalBefore, estimates);
         // Rebalance
         _useRouter(strategy, router, router.rebalance, weth, data);
         // Recheck total
-        (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(address(strategy), oracle);
+        (bool balancedAfter, uint256 totalAfter, ) = verifyBalance(strategy, oracle);
         require(balancedAfter, "Not balanced");
         _checkSlippage(totalAfter, totalBefore, rebalanceSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
@@ -218,7 +221,7 @@ library ControllerLibrary {
         uint256 balanceBefore,
         address weth,
         bytes memory data
-    ) public { 
+    ) public {
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
@@ -347,20 +350,30 @@ library ControllerLibrary {
         return address(this);
     }
 
+    // @notice Checks that there is no debt remaining for tokens that are no longer part of the strategy
+    function verifyFormerDebt(address strategy, address[] memory newDebt, address[] memory formerDebt) public view {
+        formerDebt = formerDebt.reduce(newDebt);
+        for (uint256 i = 0; i < formerDebt.length; ++i) {
+            uint256 balance = IERC20(formerDebt[i]).balanceOf(strategy);
+            console.log("Balance: ", balance);
+            require(balance == 0, "Former debt remaining");
+        }
+    }
+
     /**
      * @notice This function gets the strategy value from the oracle and checks
      *         whether the strategy is balanced. Necessary to confirm the balance
      *         before and after a rebalance to ensure nothing fishy happened
      */
-    function verifyBalance(address strategy, address oracle) public view returns (bool, uint256, int256[] memory) {
+    function verifyBalance(IStrategy strategy, IOracle oracle) public view returns (bool, uint256, int256[] memory) {
         (uint256 total, int256[] memory estimates) =
-            IOracle(oracle).estimateStrategy(IStrategy(strategy));
-        uint256 threshold = IStrategy(strategy).rebalanceThreshold();
+            oracle.estimateStrategy(IStrategy(strategy));
+        uint256 threshold = strategy.rebalanceThreshold();
 
         bool balanced = true;
-        address[] memory strategyItems = IStrategy(strategy).items();
+        address[] memory strategyItems = strategy.items();
         for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
+            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
             if (expectedValue > 0) {
                 int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
                 if (estimates[i] > expectedValue.add(rebalanceRange)) {
@@ -382,9 +395,9 @@ library ControllerLibrary {
             }
         }
         if (balanced) {
-            address[] memory strategyDebt = IStrategy(strategy).debt();
+            address[] memory strategyDebt = strategy.debt();
             for (uint256 i = 0; i < strategyDebt.length; i++) {
-              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
+              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
               int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
               uint256 index = strategyItems.length + i;
                // Debt

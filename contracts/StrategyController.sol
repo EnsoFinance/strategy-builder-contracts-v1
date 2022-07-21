@@ -174,7 +174,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
-        ControllerLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
+        ControllerLibrary.rebalance(strategy, router, oracle(), _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
         _removeStrategyLock(strategy);
     }
 
@@ -490,16 +490,21 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
+        address[] memory currentDebt = strategy.debt();
         // Conditionally set data
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates, currentItems, strategy.debt());
+            data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
         // Set new structure
         strategy.setStructure(newItems);
         strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
-        ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, strategy.debt(), data);
+        {
+            address[] memory newDebt = strategy.debt();
+            ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, newDebt, data);
+            ControllerLibrary.verifyFormerDebt(address(strategy), newDebt, currentDebt);
+        }
         // Check balance
-        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(address(strategy), _oracle);
+        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(strategy, o);
         _require(balancedAfter, uint256(0x1bb63a90056c13) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());

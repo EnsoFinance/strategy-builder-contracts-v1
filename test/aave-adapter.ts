@@ -390,15 +390,11 @@ describe('AaveAdapter', function () {
 			encodeTransferFrom(collateral2, strategy.address, accounts[1].address, collateral2Balance.div(6))
 		]
 		const data = await multicallRouter.encodeCalls(calls)
-		expect(
-			await isRevertedWith(
-				controller
-					.connect(accounts[1])
-					.finalizeStructure(strategy.address, multicallRouter.address, data, { gasLimit: '5000000' }),
-				'Too much slippage',
-				'StrategyController.sol'
-			)
-		).to.be.true
+		await expect(
+			controller
+				.connect(accounts[1])
+				.finalizeStructure(strategy.address, multicallRouter.address, data, { gasLimit: '5000000' })
+		).to.be.revertedWith('Former debt remaining')
 	})
 
 	it('Should finalize structure - basic', async function () {
