@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrategyController.sol";
-import "../libraries/StrategyLibrary.sol";
+import "../libraries/ControllerLibrary.sol";
 import "../helpers/StrategyTypes.sol";
 
 contract LibraryWrapper is StrategyTypes{
@@ -23,25 +23,23 @@ contract LibraryWrapper is StrategyTypes{
         strategy = IStrategy(strategy_);
     }
 
-    function isBalanced() external view returns (bool) {
-        return
-            _checkBalance(
-                strategy.rebalanceThreshold()
-            );
+    function isBalanced() external view returns (bool balanced) {
+        (balanced,,) = ControllerLibrary.verifyBalance(address(strategy), address(oracle), true); // outer=true
+        return balanced;
     }
 
-    function isRebalanceNeeded(uint256 alertThreshold) external view returns (bool) {
-        bool balanced = _checkBalance(alertThreshold);
-        return !balanced;
+    function isBalancedInner() external view returns (bool balanced) {
+        (balanced,,) = ControllerLibrary.verifyBalance(address(strategy), address(oracle), false); // outer=false
+        return balanced;
     }
 
     function getRange(int256 expectedValue, uint256 range) external pure returns (int256) {
-        return StrategyLibrary.getRange(expectedValue, range);
+        return ControllerLibrary.getRange(expectedValue, range);
     }
 
     function getRebalanceRange(int256 expectedValue) external view returns (int256) {
         uint256 range = strategy.rebalanceThreshold();
-        return StrategyLibrary.getRange(expectedValue, range);
+        return ControllerLibrary.getRange(expectedValue, range);
     }
 
     function getStrategyValue() external view returns (uint256) {
@@ -54,7 +52,7 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function getExpectedTokenValue(uint256 total, address token) external view returns (int256) {
-        return StrategyLibrary.getExpectedTokenValue(total, address(strategy), token);
+        return ControllerLibrary.getExpectedTokenValue(total, address(strategy), token);
     }
 
     function _getTokenValue(IStrategy s, address token) internal view returns (int256) {
@@ -82,54 +80,5 @@ contract LibraryWrapper is StrategyTypes{
                 token
             );
         }
-    }
-
-    function _checkBalance(
-        uint256 threshold
-    ) internal view returns (bool) {
-        (uint256 total, int256[] memory estimates) =
-            oracle.estimateStrategy(strategy);
-        bool balanced = true;
-        address[] memory strategyItems = strategy.items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
-            int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
-            if (expectedValue > 0) {
-                int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
-                if (estimates[i] > expectedValue.add(rebalanceRange)) {
-                    balanced = false;
-                    break;
-                }
-                if (estimates[i] < expectedValue.sub(rebalanceRange)) {
-                    balanced = false;
-                    break;
-                }
-            } else {
-                // Token has an expected value of 0, so any value can cause the contract
-                // to be 'unbalanced' so we need an alternative way to determine balance.
-                // Min percent = 0.1%. If token value is above, consider it unbalanced
-                if (estimates[i] > StrategyLibrary.getRange(int256(total), 1)) {
-                    balanced = false;
-                    break;
-                }
-            }
-        }
-        if (balanced) {
-            address[] memory strategyDebt = strategy.debt();
-            for (uint256 i = 0; i < strategyDebt.length; i++) {
-              int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
-              int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
-              uint256 index = strategyItems.length + i;
-               // Debt
-               if (estimates[index] < expectedValue.add(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
-               if (estimates[index] > expectedValue.sub(rebalanceRange)) {
-                   balanced = false;
-                   break;
-               }
-            }
-        }
-        return balanced;
     }
 }
