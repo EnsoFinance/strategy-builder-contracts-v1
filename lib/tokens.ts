@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
-import { ITEM_CATEGORY, ESTIMATOR_CATEGORY } from "./constants"
+import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from "./constants"
 
 export class Tokens {
   // Basic
@@ -153,7 +153,7 @@ export class Tokens {
 		this.yWBTC = '0xA696a63cc78DfFa1a63E9E50587C197387FF6C7E'
   }
 
-  async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract) {
+  async registerTokens(owner: SignerWithAddress, strategyFactory: Contract, uniswapV3Registry?: Contract, chainlinkRegistry?: Contract, curveDepositZapRegistry?: Contract, synthetixAdapter?: Contract) {
     await Promise.all([
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, this.weth),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sUSD),
@@ -207,6 +207,9 @@ export class Tokens {
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, this.crvTriCrypto), // Depreciated for TriCrypto2
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, '0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E') //TUSD second address
     ])
+		if (synthetixAdapter) {
+			await strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [synthetixAdapter.address], path: [], cache: '0x'}, false)
+		}
 		if (uniswapV3Registry) {
 			await uniswapV3Registry.connect(owner).addPool(this.wbtc, this.weth, '3000') //0.3%
 			await uniswapV3Registry.connect(owner).addPool(this.usdc, this.weth, '3000') //0.3%

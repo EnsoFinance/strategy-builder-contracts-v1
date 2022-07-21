@@ -1,21 +1,24 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../../helpers/StrategyTypes.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IOracle.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../../interfaces/curve/ICurveCrypto.sol";
 import "../../interfaces/curve/ICurveStableSwap.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
+import "../../interfaces/curve/ICurveDeposit.sol";
 
 interface IAddressProvider {
     function get_registry() external view returns (address);
 }
 
-contract CurveLPEstimator is IEstimator {
+contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
@@ -28,15 +31,23 @@ contract CurveLPEstimator is IEstimator {
     uint256 private constant TRICRYPTO2_PRECISION = 10**30; // lpPrice_precision + (lp_precision - usdt_precision) = 18 + (18 - 6) = 30
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token);
+        return _estimateItem(balance, token, address(0));
+    }
+
+    function estimateItem(uint256 balance, address token, address knownUnderlyingToken) public view override returns (int256) {
+        return _estimateItem(balance, token, knownUnderlyingToken);
     }
 
     function estimateItem(address user, address token) public view override returns (int256) {
         uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token);
+        address knownUnderlyingToken;
+        try IStrategy(user).getTradeData(token) returns(StrategyTypes.TradeData memory td) {
+            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
+        } catch {}
+        return _estimateItem(balance, token, knownUnderlyingToken);
     }
 
-    function _estimateItem(uint256 balance, address token) private view returns (int256) {
+    function _estimateItem(uint256 balance, address token, address knownUnderlyingToken) private view returns (int256) {
         if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
@@ -46,6 +57,26 @@ contract CurveLPEstimator is IEstimator {
             address pool = registry.get_pool_from_lp_token(token);
             uint256 assetType = registry.get_pool_asset_type(pool);
             if (assetType < 4) {
+                address[8] memory coins = registry.get_coins(pool);
+                // attempt more accurate estimate first
+                if (knownUnderlyingToken != address(0)) {
+                    uint256 idx = uint256(-1);
+                    for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
+                        require(coins[i] != address(0), "Token not found in pool");
+                        if(coins[i] == knownUnderlyingToken){
+                            idx = i;
+                            break;
+                        }
+                    }
+                    if (idx != uint256(-1)) {
+                        try ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)) returns(uint256 _balance) {
+                            return IOracle(msg.sender).estimateItem(_balance, knownUnderlyingToken);
+                        } catch {
+                            // continue to less accurate estimate 
+                        }
+                    }
+                }
+                // fall back to less accurate estimate
                 uint256 virtualPrice = registry.get_virtual_price_from_lp_token(token);
                 uint256 virtualBalance =
                     balance.mul(
@@ -62,10 +93,10 @@ contract CurveLPEstimator is IEstimator {
                     return IOracle(msg.sender).estimateItem(virtualBalance, SBTC);
                 } else {
                     // Other (Link or Euro)
-                    (uint256 coinsInPool, ) = registry.get_n_coins(pool);
-                    address[8] memory coins = registry.get_coins(pool);
-                    for (uint256 i = 0; i < coinsInPool; i++) {
-                        address underlyingToken = coins[i];
+                    // less accurate
+                    address underlyingToken;
+                    for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
+                        underlyingToken = coins[i];
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
                         uint256 convertedBalance = virtualBalance;
                         if (decimals < 18) {

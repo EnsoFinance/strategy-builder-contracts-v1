@@ -12,3 +12,12 @@ interface IEstimator {
         address token
     ) external view returns (int256);
 }
+
+interface IEstimatorKnowing {
+    function estimateItem(
+        uint256 balance,
+        address token,
+        address knownUnderlyingToken
+    ) external view returns (int256);
+}
+

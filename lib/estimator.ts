@@ -15,7 +15,7 @@ import IYEarnV2Vault from '../artifacts/contracts/interfaces/yearn/IYEarnV2Vault
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES } from './constants'
+import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES, VIRTUAL_ITEM } from './constants'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils
@@ -32,7 +32,6 @@ const USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
 const WETH = MAINNET_ADDRESSES.WETH
 const SUSD = MAINNET_ADDRESSES.SUSD
-const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
 const NULL_TRADE_DATA: TradeData = {
   adapters: [],
   path: [],
