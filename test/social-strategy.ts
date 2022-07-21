@@ -43,7 +43,7 @@ describe('StrategyController - Social', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -59,10 +59,10 @@ describe('StrategyController - Social', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, controllerLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -89,7 +89,7 @@ describe('StrategyController - Social', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

@@ -66,7 +66,7 @@ describe('Weird ERC20s', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		router: Contract,
 		adapter: Contract,
 		strategy: Contract,
@@ -124,10 +124,10 @@ describe('Weird ERC20s', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, controllerLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 
 		// remove weth from weird token list
@@ -157,7 +157,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
@@ -202,7 +202,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
@@ -246,7 +246,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
@@ -290,7 +290,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
@@ -334,7 +334,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
@@ -378,7 +378,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
@@ -422,7 +422,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

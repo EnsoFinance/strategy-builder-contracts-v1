@@ -37,7 +37,7 @@ describe('KyberSwapAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		kyberAdapter: Contract,
 		uniswapV2Adapter: Contract,
 		strategy: Contract,
@@ -63,7 +63,7 @@ describe('KyberSwapAdapter', function () {
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 
 		const { curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
 		await tokens.registerTokens(
@@ -74,7 +74,7 @@ describe('KyberSwapAdapter', function () {
 			curveDepositZapRegistry
 		)
 
-		router = await deployLoopRouter(owner, controller, library)
+		router = await deployLoopRouter(owner, controller, controllerLibrary)
 		await whitelist.connect(owner).approve(router.address)
 		kyberAdapter = await deployKyberSwapAdapter(owner, kyberFactory, kyberRouter, weth)
 		await whitelist.connect(owner).approve(kyberAdapter.address)
@@ -115,7 +115,7 @@ describe('KyberSwapAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

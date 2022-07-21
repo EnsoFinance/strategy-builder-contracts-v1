@@ -34,7 +34,7 @@ describe('CompoundAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapAdapter: Contract,
 		compoundAdapter: Contract,
 		strategy: Contract,
@@ -54,13 +54,13 @@ describe('CompoundAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const whitelist = platform.administration.whitelist
 		const { tokenRegistry } = platform.oracles.registries
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, controllerLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
@@ -145,7 +145,7 @@ describe('CompoundAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

@@ -14,7 +14,7 @@ import { createLink, linkBytecode } from '../lib/link'
 
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
-import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 
@@ -28,7 +28,7 @@ let tokens: Contract[],
 	strategyFactory: Contract,
 	controller: Contract,
 	oracle: Contract,
-	library: Contract,
+	controllerLibrary: Contract,
 	uniswapOracle: Contract,
 	adapter: Contract,
 	router: Contract,
@@ -118,9 +118,9 @@ describe('UniswapV3Adapter', function () {
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
 
-		const StrategyLibraryFactory = await getContractFactory('StrategyLibrary')
-		library = await StrategyLibraryFactory.connect(owner).deploy()
-		await library.deployed()
+		const ControllerLibraryFactory = await getContractFactory('ControllerLibrary')
+		controllerLibrary = await ControllerLibraryFactory.connect(owner).deploy()
+		await controllerLibrary.deployed()
 
 		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
 		const platformProxyAdmin = await PlatformProxyAdmin.connect(owner).deploy()
@@ -128,9 +128,9 @@ describe('UniswapV3Adapter', function () {
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
 
-		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		const strategyLibrary = await waffle.deployContract(accounts[0], ControllerLibrary, [])
 		await strategyLibrary.deployed()
-		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
+		const strategyLibraryLink = createLink(ControllerLibrary, strategyLibrary.address)
 
 		const controllerLibrary = await waffle.deployContract(
 			accounts[0],
@@ -183,7 +183,7 @@ describe('UniswapV3Adapter', function () {
 		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, controllerLibrary)
 		await whitelist.connect(owner).approve(router.address)
 
 		uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
@@ -231,7 +231,7 @@ describe('UniswapV3Adapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

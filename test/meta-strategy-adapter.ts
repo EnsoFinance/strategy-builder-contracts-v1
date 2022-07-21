@@ -57,7 +57,7 @@ describe('MetaStrategyAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapAdapter: Contract,
 		metaStrategyAdapter: Contract,
 		basicStrategy: Contract,
@@ -80,8 +80,8 @@ describe('MetaStrategyAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
-		loopRouter = await deployLoopRouter(accounts[0], controller, library)
+		controllerLibrary = platform.controllerLibrary
+		loopRouter = await deployLoopRouter(accounts[0], controller, controllerLibrary)
 		await whitelist.connect(accounts[0]).approve(loopRouter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
@@ -116,7 +116,7 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		basicWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
@@ -156,7 +156,7 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
@@ -218,7 +218,7 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		metaMetaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)

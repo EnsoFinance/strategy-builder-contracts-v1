@@ -36,7 +36,7 @@ describe('Experimental Strategy', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapV2Adapter: Contract,
 		curveLPAdapter: Contract,
 		yearnAdapter: Contract,
@@ -63,7 +63,7 @@ describe('Experimental Strategy', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const whitelist = platform.administration.whitelist
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
@@ -71,7 +71,7 @@ describe('Experimental Strategy', function () {
 		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
-		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
+		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, controllerLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
@@ -135,7 +135,7 @@ describe('Experimental Strategy', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)

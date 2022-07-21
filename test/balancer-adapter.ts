@@ -21,7 +21,7 @@ describe('BalancerAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		router: Contract,
 		balancerAdapter: Contract,
 		uniswapAdapter: Contract,
@@ -44,13 +44,13 @@ describe('BalancerAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const whitelist = platform.administration.whitelist
 		uniswapAdapter = await deployer.deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
-		router = await deployer.deployLoopRouter(accounts[0], controller, library)
+		router = await deployer.deployLoopRouter(accounts[0], controller, controllerLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -85,7 +85,7 @@ describe('BalancerAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

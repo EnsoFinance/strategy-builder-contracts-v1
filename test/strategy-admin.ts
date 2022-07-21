@@ -47,13 +47,13 @@ describe('StrategyProxyAdmin', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		whitelist = platform.administration.whitelist
-		const library = platform.library
+		const controllerLibrary = platform.controllerLibrary
 		const strategyAdminAddress = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		strategyAdmin = await StrategyAdmin.attach(strategyAdminAddress)
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, controllerLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 	})
 

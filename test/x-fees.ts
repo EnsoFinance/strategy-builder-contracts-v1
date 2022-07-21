@@ -38,7 +38,7 @@ describe('StrategyToken Fees', function () {
 		whitelist: Contract,
 		router: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		wrapper: Contract,
@@ -66,10 +66,10 @@ describe('StrategyToken Fees', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(owner, uniswapFactory, weth)
 		await whitelist.connect(owner).approve(adapter.address)
-		router = await deployLoopRouter(owner, controller, library)
+		router = await deployLoopRouter(owner, controller, controllerLibrary)
 		await whitelist.connect(owner).approve(router.address)
 	})
 
@@ -114,7 +114,7 @@ describe('StrategyToken Fees', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)

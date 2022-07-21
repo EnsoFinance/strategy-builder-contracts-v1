@@ -36,7 +36,7 @@ describe('StrategyProxyFactory', function () {
 		newOracle: Contract,
 		newWhitelist: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		newRouter: Contract,
 		strategy: Contract,
@@ -53,10 +53,10 @@ describe('StrategyProxyFactory', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, controllerLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 	})
 
@@ -70,7 +70,7 @@ describe('StrategyProxyFactory', function () {
 		newFactory = platform.strategyFactory
 		newOracle = platform.oracles.ensoOracle
 		newWhitelist = platform.administration.whitelist
-		newRouter = await deployLoopRouter(accounts[10], controller, library)
+		newRouter = await deployLoopRouter(accounts[10], controller, controllerLibrary)
 		await newWhitelist.connect(accounts[10]).approve(adapter.address)
 		await newWhitelist.connect(accounts[10]).approve(newRouter.address)
 		newImplementationAddress = await newFactory.implementation()
