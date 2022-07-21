@@ -230,9 +230,8 @@ describe('StrategyProxyFactory', function () {
 	})
 
 	it('Should update implementation to version uint256.max()', async function () {
-		/*const version = await strategyFactory.version(); // TODO update this part of test
-		expect(await strategy.version()).to.eq(version);
-    */
+		const version = await strategyFactory.version()
+		expect(await strategy.version()).to.eq(version)
 
 		await strategyFactory.connect(accounts[2]).updateImplementation(newImplementationAddress, MaxUint256.toString())
 		expect(await strategyFactory.implementation()).to.equal(newImplementationAddress)
