@@ -352,8 +352,9 @@ library ControllerLibrary {
     // @notice Checks that there is no debt remaining for tokens that are no longer part of the strategy
     function verifyFormerDebt(address strategy, address[] memory newDebt, address[] memory formerDebt) public view {
         formerDebt = formerDebt.without(newDebt);
-        for (uint256 i = 0; i < formerDebt.length; ++i) {
-            uint256 balance = IERC20(formerDebt[i]).balanceOf(strategy);
+        uint256 balance;
+        for (uint256 i; i < formerDebt.length; ++i) {
+            balance = IERC20(formerDebt[i]).balanceOf(strategy);
             require(balance == 0, "Former debt remaining");
         }
     }
