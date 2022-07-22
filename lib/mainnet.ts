@@ -163,9 +163,7 @@ export function livePlatform(signer: SignerWithAddress): Platform {
 	if (!deployments.mainnet) throw Error('Deployment addresses not found')
 	const addrs = deployments.mainnet
 	const strategyLibrary = new Contract(addrs.StrategyLibrary, StrategyLibrary.abi, signer)
-	console.log('debug before')
 	const controllerLibrary = new Contract(AddressZero, ControllerLibrary.abi, signer) // FIXME ControllerLibrary address when deployed
-	console.log('debug after')
 
 	const tokenRegistry = new Contract(addrs.TokenRegistry, TokenRegistry.abi, signer)
 	const curveDepositZapRegistry = new Contract(addrs.CurveDepositZapRegistry, CurveDepositZapRegistry.abi, signer)
