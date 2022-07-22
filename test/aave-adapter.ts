@@ -274,17 +274,17 @@ describe('AaveAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 	})
 
-		it('Should purchase a token, requiring a rebalance of strategy', async function () {
-			// Approve the user to use the adapter
-			const value = await usdc.balanceOf(accounts[19].address)
-			await usdc.connect(accounts[19]).approve(uniswapAdapter.address, value)
-			await uniswapAdapter
-				.connect(accounts[19])
-				.swap(value, 0, usdc.address, weth.address, accounts[19].address, accounts[19].address)
+	it('Should purchase a token, requiring a rebalance of strategy', async function () {
+		// Approve the user to use the adapter
+		const value = await usdc.balanceOf(accounts[19].address)
+		await usdc.connect(accounts[19]).approve(uniswapAdapter.address, value)
+		await uniswapAdapter
+			.connect(accounts[19])
+			.swap(value, 0, usdc.address, weth.address, accounts[19].address, accounts[19].address)
 
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(false)
-		})
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(false)
+	})
 
 	it('Should claim stkAAVE', async function () {
 		const balanceBefore = await stkAAVE.balanceOf(strategy.address)
@@ -295,87 +295,85 @@ describe('AaveAdapter', function () {
 		expect(balanceAfter).to.be.gt(balanceBefore)
 	})
 
-		it('Should rebalance strategy', async function () {
+	it('Should rebalance strategy', async function () {
 		// the strategy has a balance of stkAAVE within its "claimables"
 		// meaning that the percentage of which should be 0% in the strategy
 		// so during this rebalance, this stkAAVE is just sold on uniswap for WETH.
 		// If later, we register stkAAVE itself as a "claimable", the strategy
 		// could maintain a balance in stkAAVE from which it would claim rewards in AAVE
-			await increaseTime(5 * 60 + 1)
-			const tx = await controller
-				.connect(accounts[1])
-				.rebalance(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
-			const receipt = await tx.wait()
-			console.log('Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
-		})
+		await increaseTime(5 * 60 + 1)
+		const tx = await controller
+			.connect(accounts[1])
+			.rebalance(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
 
-		it('Should fail to withdrawAll: cannot withdraw debt', async function () {
-			const amount = BigNumber.from('10000000000000000')
-			expect(
-				await isRevertedWith(
-					strategy.connect(accounts[1]).withdrawAll(amount),
-					'Cannot withdraw debt',
-					'Strategy.sol'
-				)
-			).to.be.true
-		})
-
-		it('Should deposit', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
-			const receipt = await tx.wait()
-			console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
-
-		it('Should withdraw ETH', async function () {
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const amount = BigNumber.from('5000000000000000')
-			const ethBalanceBefore = await accounts[1].getBalance()
-			const tx = await controller.connect(accounts[1]).withdrawETH(
-				strategy.address,
-				fullRouter.address,
-				amount,
-				'977', // note the high slippage!
-				'0x',
-				{ gasLimit: '5000000' }
+	it('Should fail to withdrawAll: cannot withdraw debt', async function () {
+		const amount = BigNumber.from('10000000000000000')
+		expect(
+			await isRevertedWith(
+				strategy.connect(accounts[1]).withdrawAll(amount),
+				'Cannot withdraw debt',
+				'Strategy.sol'
 			)
-			const receipt = await tx.wait()
-			console.log('Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const ethBalanceAfter = await accounts[1].getBalance()
-			expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
-		})
+		).to.be.true
+	})
 
-		it('Should withdraw WETH', async function () {
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const amount = BigNumber.from('5000000000000000')
-			const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-			const tx = await controller.connect(accounts[1]).withdrawWETH(
-				strategy.address,
-				fullRouter.address,
-				amount,
-				'960', // note the high slippage!
-				'0x',
-				{ gasLimit: '5000000' }
-			)
-			const receipt = await tx.wait()
-			console.log('Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
-			expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
-		})
+	it('Should deposit', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-		it('Should restructure - basic', async function () {
-			const positions = [
-				{ token: tokens.usdt, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address] },
-			]
-			strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-			await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
-		})
+	it('Should withdraw ETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const ethBalanceBefore = await accounts[1].getBalance()
+		const tx = await controller.connect(accounts[1]).withdrawETH(
+			strategy.address,
+			fullRouter.address,
+			amount,
+			'977', // note the high slippage!
+			'0x',
+			{ gasLimit: '5000000' }
+		)
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const ethBalanceAfter = await accounts[1].getBalance()
+		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
+	})
+
+	it('Should withdraw WETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		const tx = await controller.connect(accounts[1]).withdrawWETH(
+			strategy.address,
+			fullRouter.address,
+			amount,
+			'960', // note the high slippage!
+			'0x',
+			{ gasLimit: '5000000' }
+		)
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
+	})
+
+	it('Should restructure - basic', async function () {
+		const positions = [{ token: tokens.usdt, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address] }]
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
 
 	it('Should fail to finalize structure - debt oracle exploit', async function () {
 		const collateral = new Contract(collateralToken, ERC20.abi, accounts[0])
@@ -394,486 +392,486 @@ describe('AaveAdapter', function () {
 		).to.be.revertedWith('Former debt remaining')
 	})
 
-		it('Should finalize structure - basic', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
-			const receipt = await tx.wait()
-			console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
+	it('Should finalize structure - basic', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.finalizeStructure(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-		it('Should restructure - debt positions', async function () {
-			const positions = [
-				{
-					token: collateralToken,
-					percentage: BigNumber.from(1000),
-					adapters: [aaveV2Adapter.address],
-					path: [],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['uint16'],
-						[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-					),
-				},
-				{
-					token: collateralToken2,
-					percentage: BigNumber.from(1000),
-					adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-					path: [tokens.crv],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['uint16'],
-						[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-					),
-				},
-				{
-					token: tokens.debtUSDC,
-					percentage: BigNumber.from(-1000),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
+	it('Should restructure - debt positions', async function () {
+		const positions = [
+			{
+				token: collateralToken,
+				percentage: BigNumber.from(1000),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: collateralToken2,
+				percentage: BigNumber.from(1000),
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
+				path: [tokens.crv],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-1000),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[
 						[
-							[
-								{ token: collateralToken, percentage: 500 },
-								{ token: collateralToken2, percentage: 500 },
-							],
-						] //define what tokens you want to loop back on here
-					),
-				},
-			]
-			strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-			await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
-		})
+							{ token: collateralToken, percentage: 500 },
+							{ token: collateralToken2, percentage: 500 },
+						],
+					] //define what tokens you want to loop back on here
+				),
+			},
+		]
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
 
-		it('Should finalize structure - debt positions', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
-			const receipt = await tx.wait()
-			console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
+	it('Should finalize structure - debt positions', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.finalizeStructure(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-		it('Should deposit', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
-			const receipt = await tx.wait()
-			console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
+	it('Should deposit', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-		it('Should withdraw ETH', async function () {
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const amount = BigNumber.from('5000000000000000')
-			const ethBalanceBefore = await accounts[1].getBalance()
-			// note the high slippage!
-			const tx = await controller
-				.connect(accounts[1])
-				.withdrawETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
-			const receipt = await tx.wait()
-			console.log('Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const ethBalanceAfter = await accounts[1].getBalance()
-			expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
-		})
+	it('Should withdraw ETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const ethBalanceBefore = await accounts[1].getBalance()
+		// note the high slippage!
+		const tx = await controller
+			.connect(accounts[1])
+			.withdrawETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const ethBalanceAfter = await accounts[1].getBalance()
+		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
+	})
 
-		it('Should withdraw WETH', async function () {
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const amount = BigNumber.from('5000000000000000')
-			const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
-			// note the high slippage!
-			const tx = await controller
-				.connect(accounts[1])
-				.withdrawWETH(strategy.address, fullRouter.address, amount, '960', '0x', { gasLimit: '5000000' })
-			const receipt = await tx.wait()
-			console.log('Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
-			expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
-		})
+	it('Should withdraw WETH', async function () {
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const amount = BigNumber.from('5000000000000000')
+		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		// note the high slippage!
+		const tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(strategy.address, fullRouter.address, amount, '960', '0x', { gasLimit: '5000000' })
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
+		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
+	})
 
-		it('Should deploy new strategy', async function () {
-			const name = 'New Strategy'
-			const symbol = 'NEW'
+	it('Should deploy new strategy', async function () {
+		const name = 'New Strategy'
+		const symbol = 'NEW'
 
-			const positions = [
-				{
-					token: tokens.aWETH,
-					percentage: BigNumber.from(2000),
-					adapters: [aaveV2Adapter.address],
-					path: [],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['uint16'],
-						[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-					),
-				},
-				{
-					token: tokens.debtUSDC,
-					percentage: BigNumber.from(-1000),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.usdc, tokens.weth],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
-						[[{ token: collateralToken, percentage: 500 }]] //define what tokens you want to loop back on here
-					),
-				},
-			]
+		const positions = [
+			{
+				token: tokens.aWETH,
+				percentage: BigNumber.from(2000),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-1000),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: collateralToken, percentage: 500 }]] //define what tokens you want to loop back on here
+				),
+			},
+		]
 
-			strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-			const strategyState: InitialState = {
-				timelock: BigNumber.from(60),
-				rebalanceThreshold: BigNumber.from(50),
-				rebalanceSlippage: BigNumber.from(997),
-				restructureSlippage: BigNumber.from(995), // Restucturing from this strategy requires higher slippage tolerance
-				managementFee: BigNumber.from(0),
-				social: false,
-				set: false,
-			}
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(50),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995), // Restucturing from this strategy requires higher slippage tolerance
+			managementFee: BigNumber.from(0),
+			social: false,
+			set: false,
+		}
 
-			const tx = await strategyFactory
-				.connect(accounts[1])
-				.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
-					value: WeiPerEther,
-				})
-			const receipt = await tx.wait()
-			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
-			const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-			const Strategy = await platform.getStrategyContractFactory()
-			strategy = await Strategy.attach(strategyAddress)
-
-			expect(await controller.initialized(strategyAddress)).to.equal(true)
-
-			const LibraryWrapper = await getContractFactory('LibraryWrapper', {
-				libraries: {
-					ControllerLibrary: controllerLibrary.address,
-				},
+		const tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
 			})
-			wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
-			await wrapper.deployed()
+		const receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await platform.getStrategyContractFactory()
+		strategy = await Strategy.attach(strategyAddress)
+
+		expect(await controller.initialized(strategyAddress)).to.equal(true)
+
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		await wrapper.deployed()
 
-		it('Should deposit', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
-			const receipt = await tx.wait()
-			console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
 
-		it('Should deploy another strategy', async function () {
-			const name = 'Another Strategy'
-			const symbol = 'ANOTHER'
+	it('Should deposit', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-			const positions = [
-				{
-					token: tokens.aWETH,
-					percentage: BigNumber.from(2000),
-					adapters: [aaveV2Adapter.address],
-					path: [],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['uint16'],
-						[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-					),
-				},
-				{
-					token: tokens.debtUSDC,
-					percentage: BigNumber.from(-500),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.usdc, tokens.weth],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
-						[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here),
-					),
-				},
-				{
-					token: tokens.debtWBTC,
-					percentage: BigNumber.from(-500),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.wbtc, tokens.weth],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
-						[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here),
-					),
-				},
-			]
+	it('Should deploy another strategy', async function () {
+		const name = 'Another Strategy'
+		const symbol = 'ANOTHER'
 
-			strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-			const strategyState: InitialState = {
-				timelock: BigNumber.from(60),
-				rebalanceThreshold: BigNumber.from(50),
-				rebalanceSlippage: BigNumber.from(997),
-				restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
-				managementFee: BigNumber.from(0),
-				social: false,
-				set: false,
-			}
+		const positions = [
+			{
+				token: tokens.aWETH,
+				percentage: BigNumber.from(2000),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-500),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here),
+				),
+			},
+			{
+				token: tokens.debtWBTC,
+				percentage: BigNumber.from(-500),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.wbtc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here),
+				),
+			},
+		]
 
-			const tx = await strategyFactory
-				.connect(accounts[1])
-				.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
-					value: WeiPerEther,
-				})
-			const receipt = await tx.wait()
-			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(50),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
+			managementFee: BigNumber.from(0),
+			social: false,
+			set: false,
+		}
 
-			const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-			const Strategy = await platform.getStrategyContractFactory()
-			strategy = await Strategy.attach(strategyAddress)
-
-			expect(await controller.initialized(strategyAddress)).to.equal(true)
-
-			const LibraryWrapper = await getContractFactory('LibraryWrapper', {
-				libraries: {
-					ControllerLibrary: controllerLibrary.address,
-				},
+		const tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
 			})
-			wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
-			await wrapper.deployed()
+		const receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await platform.getStrategyContractFactory()
+		strategy = await Strategy.attach(strategyAddress)
+
+		expect(await controller.initialized(strategyAddress)).to.equal(true)
+
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		await wrapper.deployed()
 
-		it('Should deposit', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
-			const receipt = await tx.wait()
-			console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
 
-		it('Should deploy ambiguous strategy', async function () {
-			const name = 'Ambiguous Strategy'
-			const symbol = 'AMBI'
+	it('Should deposit', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-			const positions = [
-				{
-					token: collateralToken,
-					percentage: BigNumber.from(500),
-					adapters: [aaveV2Adapter.address],
-					path: [],
-					cache: ethers.utils.defaultAbiCoder.encode(['uint16'], [500]),
-				},
-				{
-					token: collateralToken2,
-					percentage: BigNumber.from(1500),
-					adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-					path: [tokens.crv],
-					cache: ethers.utils.defaultAbiCoder.encode(['uint16'], [500]),
-				},
-				{
-					token: tokens.debtUSDC,
-					percentage: BigNumber.from(-875),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.usdc, tokens.weth],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
+	it('Should deploy ambiguous strategy', async function () {
+		const name = 'Ambiguous Strategy'
+		const symbol = 'AMBI'
+
+		const positions = [
+			{
+				token: collateralToken,
+				percentage: BigNumber.from(500),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(['uint16'], [500]),
+			},
+			{
+				token: collateralToken2,
+				percentage: BigNumber.from(1500),
+				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
+				path: [tokens.crv],
+				cache: ethers.utils.defaultAbiCoder.encode(['uint16'], [500]),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-875),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[
 						[
-							[
-								{ token: collateralToken, percentage: 250 },
-								{ token: collateralToken2, percentage: 500 },
-							],
-						] //define what tokens you want to loop back on here
-					),
-				},
-				{
-					token: tokens.debtWBTC,
-					percentage: BigNumber.from(-125),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.wbtc, tokens.weth],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
-						[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here
-					),
-				},
-			]
+							{ token: collateralToken, percentage: 250 },
+							{ token: collateralToken2, percentage: 500 },
+						],
+					] //define what tokens you want to loop back on here
+				),
+			},
+			{
+				token: tokens.debtWBTC,
+				percentage: BigNumber.from(-125),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.wbtc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: collateralToken, percentage: 250 }]] //define what tokens you want to loop back on here
+				),
+			},
+		]
 
-			strategyItems = prepareStrategy(positions, uniswapAdapter.address)
-			const strategyState: InitialState = {
-				timelock: BigNumber.from(60),
-				rebalanceThreshold: BigNumber.from(50),
-				rebalanceSlippage: BigNumber.from(997),
-				restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
-				managementFee: BigNumber.from(0),
-				social: false,
-				set: false,
-			}
+		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(50),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
+			managementFee: BigNumber.from(0),
+			social: false,
+			set: false,
+		}
 
-			const tx = await strategyFactory
-				.connect(accounts[1])
-				.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
-					value: WeiPerEther,
-				})
-			const receipt = await tx.wait()
-			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
-			const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-			const Strategy = await platform.getStrategyContractFactory()
-
-			strategy = await Strategy.attach(strategyAddress)
-			const LibraryWrapper = await getContractFactory('LibraryWrapper', {
-				libraries: {
-					ControllerLibrary: controllerLibrary.address,
-				},
+		const tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
 			})
-			wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
-			await wrapper.deployed()
+		const receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
+		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await platform.getStrategyContractFactory()
+
+		strategy = await Strategy.attach(strategyAddress)
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		await wrapper.deployed()
 
-		it('Should deposit', async function () {
-			const tx = await controller
-				.connect(accounts[1])
-				.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
-			const receipt = await tx.wait()
-			console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		})
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
 
-		it('Should deploy debt meta strategy', async function () {
-			//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+	it('Should deposit', async function () {
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, fullRouter.address, 0, '990', '0x', { value: WeiPerEther })
+		const receipt = await tx.wait()
+		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+	})
 
-			let name = 'Basic Strategy'
-			let symbol = 'BASIC'
-			let positions = [
-				{ token: weth.address, percentage: BigNumber.from(500) },
-				{ token: usdc.address, percentage: BigNumber.from(500) },
-			]
-			const basicStrategyItems = prepareStrategy(positions, uniswapAdapter.address)
+	it('Should deploy debt meta strategy', async function () {
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 
-			let tx = await strategyFactory
-				.connect(accounts[1])
-				.createStrategy(name, symbol, basicStrategyItems, STRATEGY_STATE, fullRouter.address, '0x', {
-					value: ethers.BigNumber.from('10000000000000000'),
-				})
+		let name = 'Basic Strategy'
+		let symbol = 'BASIC'
+		let positions = [
+			{ token: weth.address, percentage: BigNumber.from(500) },
+			{ token: usdc.address, percentage: BigNumber.from(500) },
+		]
+		const basicStrategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
-			let receipt = await tx.wait()
-			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
-			let strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-			const Strategy = await platform.getStrategyContractFactory()
-			const basicStrategy = await Strategy.attach(strategyAddress)
-
-			let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, fullRouter, weth)
-			await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
-
-			name = 'Debt Meta Strategy'
-			symbol = 'DMETA'
-			let positions2 = [
-				{
-					token: basicStrategy.address,
-					percentage: BigNumber.from(400),
-					adapters: [metaStrategyAdapter.address],
-					path: [],
-				},
-				{
-					token: tokens.aWETH,
-					percentage: BigNumber.from(1200),
-					adapters: [aaveV2Adapter.address],
-					path: [],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['uint16'],
-						[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-					),
-				},
-				{
-					token: tokens.debtUSDC,
-					percentage: BigNumber.from(-600),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.usdc, weth.address], //ending in weth allows for a leverage feedback loop
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
-						[[{ token: tokens.aWETH, percentage: 500 }]]
-					),
-				},
-			]
-
-			let metaStrategyItems = prepareStrategy(positions2, uniswapAdapter.address)
-			tx = await strategyFactory
-				.connect(accounts[1])
-				.createStrategy(name, symbol, metaStrategyItems, STRATEGY_STATE, fullRouter.address, '0x', {
-					value: ethers.BigNumber.from('10000000000000000'),
-				})
-			receipt = await tx.wait()
-			console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
-
-			strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-			expect(await controller.initialized(strategyAddress)).to.equal(true)
-
-			const LibraryWrapper = await getContractFactory('LibraryWrapper', {
-				libraries: {
-					ControllerLibrary: controllerLibrary.address,
-				},
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, basicStrategyItems, STRATEGY_STATE, fullRouter.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
 			})
-			let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
-			await metaWrapper.deployed()
 
-			//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
-			expect(await metaWrapper.isBalanced()).to.equal(true)
+		let receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		let strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		const Strategy = await platform.getStrategyContractFactory()
+		const basicStrategy = await Strategy.attach(strategyAddress)
+
+		let metaStrategyAdapter = await deployMetaStrategyAdapter(accounts[0], controller, fullRouter, weth)
+		await whitelist.connect(accounts[0]).approve(metaStrategyAdapter.address)
+
+		name = 'Debt Meta Strategy'
+		symbol = 'DMETA'
+		let positions2 = [
+			{
+				token: basicStrategy.address,
+				percentage: BigNumber.from(400),
+				adapters: [metaStrategyAdapter.address],
+				path: [],
+			},
+			{
+				token: tokens.aWETH,
+				percentage: BigNumber.from(1200),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-600),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, weth.address], //ending in weth allows for a leverage feedback loop
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: tokens.aWETH, percentage: 500 }]]
+				),
+			},
+		]
+
+		let metaStrategyItems = prepareStrategy(positions2, uniswapAdapter.address)
+		tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, metaStrategyItems, STRATEGY_STATE, fullRouter.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
+		receipt = await tx.wait()
+		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
+
+		strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
+		expect(await controller.initialized(strategyAddress)).to.equal(true)
+
+		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
+			libraries: {
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
+		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		await metaWrapper.deployed()
 
-		it('Should fail to deploy synth + debt strategy', async function () {
-			const name = 'SynthDebt Strategy'
-			const symbol = 'SD'
+		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
+		expect(await metaWrapper.isBalanced()).to.equal(true)
+	})
 
-			const positions = [
-				{
-					token: tokens.sUSD,
-					percentage: BigNumber.from(0),
-					adapters: [uniswapAdapter.address, curveAdapter.address],
-					path: [tokens.usdc],
-					cache: '0x',
-				},
-				{
-					token: tokens.sAAVE,
-					percentage: BigNumber.from(500),
-					adapters: [synthetixAdapter.address],
-					path: [],
-					cache: '0x',
-				},
-				{
-					token: tokens.aWETH,
-					percentage: BigNumber.from(1000),
-					adapters: [aaveV2Adapter.address],
-					path: [],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['uint16'],
-						[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
-					),
-				},
-				{
-					token: tokens.debtUSDC,
-					percentage: BigNumber.from(-500),
-					adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
-					path: [tokens.usdc, tokens.weth],
-					cache: ethers.utils.defaultAbiCoder.encode(
-						['tuple(address token, uint16 percentage)[]'],
-						[[{ token: tokens.aWETH, percentage: 500 }]] //define what tokens you want to loop back on here),
-					),
-				},
-			]
+	it('Should fail to deploy synth + debt strategy', async function () {
+		const name = 'SynthDebt Strategy'
+		const symbol = 'SD'
 
-			const failItems = prepareStrategy(positions, uniswapAdapter.address)
+		const positions = [
+			{
+				token: tokens.sUSD,
+				percentage: BigNumber.from(0),
+				adapters: [uniswapAdapter.address, curveAdapter.address],
+				path: [tokens.usdc],
+				cache: '0x',
+			},
+			{
+				token: tokens.sAAVE,
+				percentage: BigNumber.from(500),
+				adapters: [synthetixAdapter.address],
+				path: [],
+				cache: '0x',
+			},
+			{
+				token: tokens.aWETH,
+				percentage: BigNumber.from(1000),
+				adapters: [aaveV2Adapter.address],
+				path: [],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['uint16'],
+					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+				),
+			},
+			{
+				token: tokens.debtUSDC,
+				percentage: BigNumber.from(-500),
+				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
+				path: [tokens.usdc, tokens.weth],
+				cache: ethers.utils.defaultAbiCoder.encode(
+					['tuple(address token, uint16 percentage)[]'],
+					[[{ token: tokens.aWETH, percentage: 500 }]] //define what tokens you want to loop back on here),
+				),
+			},
+		]
 
-			expect(
-				await isRevertedWith(
-					strategyFactory
-						.connect(accounts[1])
-						.createStrategy(name, symbol, failItems, STRATEGY_STATE, fullRouter.address, '0x', {
-							value: WeiPerEther,
-						}),
-					'No synths and debt',
-					'StrategyController.sol'
-				)
-			).to.be.true
-		})
+		const failItems = prepareStrategy(positions, uniswapAdapter.address)
+
+		expect(
+			await isRevertedWith(
+				strategyFactory
+					.connect(accounts[1])
+					.createStrategy(name, symbol, failItems, STRATEGY_STATE, fullRouter.address, '0x', {
+						value: WeiPerEther,
+					}),
+				'No synths and debt',
+				'StrategyController.sol'
+			)
+		).to.be.true
+	})
 })
