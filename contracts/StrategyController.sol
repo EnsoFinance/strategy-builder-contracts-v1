@@ -261,6 +261,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.settleSynths();
         StrategyState memory strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
+        _require(lock.timestamp > 0, uint256(0x1bb63a90056c07) /* error_macro_for("No changes queued") */);
         _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
@@ -315,11 +316,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0d) /* error_macro_for("Wrong category") */);
+        _require(lock.timestamp > 0, uint256(0x1bb63a90056c0d) /* error_macro_for("No changes queued") */);
+        _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0e) /* error_macro_for("Wrong category") */);
         _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
-            uint256(0x1bb63a90056c0e) /* error_macro_for("Timelock active") */
+            uint256(0x1bb63a90056c0f) /* error_macro_for("Timelock active") */
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
         if (lock.category == TimelockCategory.TIMELOCK) {
@@ -351,7 +353,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        _require(!strategyState.social, uint256(0x1bb63a90056c0f) /* error_macro_for("Strategy already open") */);
+        _require(!strategyState.social, uint256(0x1bb63a90056c10) /* error_macro_for("Strategy already open") */);
         strategyState.social = true;
         emit StrategyOpen(address(strategy));
         _removeStrategyLock(strategy);
@@ -366,7 +368,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
-        _require(!strategyState.set, uint256(0x1bb63a90056c10) /* error_macro_for("Strategy already set") */);
+        _require(!strategyState.set, uint256(0x1bb63a90056c11) /* error_macro_for("Strategy already set") */);
         strategyState.set = true;
         emit StrategySet(address(strategy));
         _removeStrategyLock(strategy);
@@ -472,7 +474,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) private {
         address weth;
         if (msg.value > 0) {
-            _require(amount == 0, uint256(0x1bb63a90056c11) /* error_macro_for("Ambiguous amount") */);
+            _require(amount == 0, uint256(0x1bb63a90056c12) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
             weth = _weth;
             IWETH(weth).deposit{value: amount}();
@@ -499,16 +501,21 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         (uint256 totalBefore, int256[] memory estimates) = o.estimateStrategy(strategy);
         // Get current items
         address[] memory currentItems = strategy.items();
+        address[] memory currentDebt = strategy.debt();
         // Conditionally set data
         if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
-            data = abi.encode(totalBefore, estimates, currentItems, strategy.debt());
+            data = abi.encode(totalBefore, estimates, currentItems, currentDebt);
         // Set new structure
         strategy.setStructure(newItems);
         strategy.claimAll(); // from the new structure
         // Liquidate unused tokens
-        ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, strategy.debt(), data);
+        {
+            address[] memory newDebt = strategy.debt();
+            ControllerLibrary.useRouter(strategy, router, router.restructure, _weth, currentItems, newDebt, data);
+            ControllerLibrary.verifyFormerDebt(address(strategy), newDebt, currentDebt);
+        }
         // Check balance
-        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(address(strategy), _oracle, false); // outer=false 
+        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(strategy, _oracle, false); // outer=false 
         _require(balancedAfter, uint256(0x1bb63a90056c12) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());

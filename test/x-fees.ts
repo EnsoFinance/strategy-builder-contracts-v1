@@ -174,15 +174,16 @@ describe('StrategyToken Fees', function () {
 	})
 
 	it('Should deposit', async function () {
-		const balanceBefore = await strategy.balanceOf(owner.address)
+		const someUser = accounts[3]
+		const balanceBefore = await strategy.balanceOf(someUser.address)
 		const tx = await controller
-			.connect(manager)
+			.connect(someUser)
 			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
 				value: BigNumber.from('10000000000000000'),
 			})
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
-		const balanceAfter = await strategy.balanceOf(owner.address)
+		const balanceAfter = await strategy.balanceOf(someUser.address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 	})
 

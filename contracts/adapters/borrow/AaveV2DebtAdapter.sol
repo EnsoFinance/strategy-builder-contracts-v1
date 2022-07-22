@@ -9,16 +9,19 @@ import "../../interfaces/aave/IPriceOracleGetter.sol";
 import "../../interfaces/aave/ILendingPoolAddressesProvider.sol";
 import "../../interfaces/aave/IAToken.sol";
 import "../../interfaces/IERC20NonStandard.sol";
+import "../../interfaces/IRewardsAdapter.sol";
 import "../BaseAdapter.sol";
 
-contract AaveV2DebtAdapter is BaseAdapter {
+contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
+    IAaveIncentivesController private immutable _ic;
 
-    constructor(address addressesProvider_, address weth_) public BaseAdapter(weth_) {
+    constructor(address addressesProvider_, address incentivesController_, address weth_) public BaseAdapter(weth_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
+        _ic = IAaveIncentivesController(incentivesController_);
     }
 
     function swap(
@@ -78,5 +81,17 @@ contract AaveV2DebtAdapter is BaseAdapter {
                        .div(10**uint256(IERC20NonStandard(tokenIn).decimals()))
                        .div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
         }
+    }
+
+    // Intended to be called via delegateCall
+    function claim(address[] memory tokens) external override {
+        uint256 amount = _ic.getRewardsBalance(tokens, address(this));
+        _ic.claimRewards(tokens, amount, address(this));
+    }
+
+    function rewardsTokens(address token) external view override returns(address[] memory) {
+        address[] memory ret = new address[](1);
+        ret[0] = _ic.REWARD_TOKEN();
+        return ret;
     }
 }

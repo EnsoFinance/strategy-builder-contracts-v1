@@ -504,6 +504,7 @@ export async function deployAaveV2Adapter(
 	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [
 		addressProvider.address,
 		strategyController.address,
+		MAINNET_ADDRESSES.AAVE_INCENTIVES_CONTROLLER,
 		weth.address,
 		tokenRegistry.address,
 		categoryIndex,
@@ -513,7 +514,7 @@ export async function deployAaveV2Adapter(
 }
 
 export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressProvider: Contract, weth: Contract) {
-	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [addressProvider.address, weth.address])
+	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [addressProvider.address, MAINNET_ADDRESSES.AAVE_INCENTIVES_CONTROLLER, weth.address])
 	await adapter.deployed()
 	return adapter
 }

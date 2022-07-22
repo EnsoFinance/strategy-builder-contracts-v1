@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./libraries/StrategyClaim.sol";
+import "./libraries/MemoryMappings.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/IBaseAdapter.sol";
 import "./interfaces/IStrategy.sol";

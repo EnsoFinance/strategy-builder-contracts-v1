@@ -6,7 +6,7 @@ const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, encodeTransferFrom, StrategyItem, InitialState, /*TradeData*/} from '../lib/encode'
+import { prepareStrategy, encodeTransferFrom, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import { isRevertedWith } from '../lib/errors'
 import {
@@ -21,7 +21,7 @@ import {
 	deployFullRouter,
 	deployMulticallRouter,
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY/*, ITEM_CATEGORY*/ } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -121,7 +121,6 @@ describe('AaveAdapter', function () {
 		curveAdapter = await deployCurveAdapter(accounts[0], curveAddressProvider, weth)
 		await whitelist.connect(accounts[0]).approve(curveAdapter.address)
 
-    /*
 		let tradeData: TradeData = {
 			adapters: [],
 			path: [],
@@ -155,7 +154,6 @@ describe('AaveAdapter', function () {
 				tradeData,
 				false
 			)
-      */
 	})
 
 	it('Should deploy strategy', async function () {
@@ -165,35 +163,35 @@ describe('AaveAdapter', function () {
 		const positions = [
 			{
 				token: collateralToken,
-				percentage: BigNumber.from(1000),
+				percentage: BigNumber.from(600),
 				adapters: [aaveV2Adapter.address],
 				path: [],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
-					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					[833] // Multiplier 83.3% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
 				token: collateralToken2,
-				percentage: BigNumber.from(1000),
+				percentage: BigNumber.from(600),
 				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
 				path: [tokens.crv],
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['uint16'],
-					[500] // Multiplier 50% (divisor = 1000). For calculating the amount to purchase based off of the percentage
+					[833] // Multiplier 83.3% (divisor = 1000). For calculating the amount to purchase based off of the percentage
 				),
 			},
 			{
 				token: tokens.debtUSDC,
-				percentage: BigNumber.from(-1000),
+				percentage: BigNumber.from(-200),
 				adapters: [aaveV2DebtAdapter.address, uniswapAdapter.address],
 				path: [tokens.usdc, tokens.weth], //ending in weth allows for a leverage feedback loop
 				cache: ethers.utils.defaultAbiCoder.encode(
 					['tuple(address token, uint16 percentage)[]'],
 					[
 						[
-							{ token: collateralToken, percentage: 500 },
-							{ token: collateralToken2, percentage: 500 },
+							{ token: collateralToken, percentage: 167 },
+							{ token: collateralToken2, percentage: 167 },
 						],
 					] //define what tokens you want to loop back on here
 				),
@@ -213,7 +211,9 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -252,7 +252,7 @@ describe('AaveAdapter', function () {
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// simulates a large sway in the market over some period
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(2000)
+		const value = WeiPerEther.mul(5000)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
