@@ -1,4 +1,3 @@
-const runAll = true
 import chai from 'chai'
 const { expect } = chai
 import hre from 'hardhat'
@@ -832,191 +831,186 @@ describe('StrategyController', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
-	if (runAll) {
-		it('Should fail to rebalance: not controller', async function () {
-			await expect(router.rebalance(strategy.address, '0x')).to.be.revertedWith('Only controller')
-		})
+	it('Should fail to rebalance: not controller', async function () {
+		await expect(router.rebalance(strategy.address, '0x')).to.be.revertedWith('Only controller')
+	})
 
-		it('Should rebalance strategy', async function () {
-			await increaseTime(5 * 60 + 1)
-			const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-			const receipt = await tx.wait()
-			console.log('Gas Used: ', receipt.gasUsed.toString())
-			//await displayBalances(wrapper, strategyItems, weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
-		})
+	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
+		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
 
-		it('Should fail to open strategy: not manager', async function () {
-			expect(
-				await isRevertedWith(
-					controller.connect(owner).openStrategy(strategy.address),
-					'Not manager',
-					'StrategyController.sol'
-				)
-			).to.be.true
-		})
-
-		it('Should open strategy', async function () {
-			await controller.connect(accounts[1]).openStrategy(strategy.address)
-			expect((await controller.strategyState(strategy.address)).social).to.equal(true)
-		})
-
-		it('Should fail to open strategy: already open', async function () {
-			expect(
-				await isRevertedWith(
-					controller.connect(accounts[1]).openStrategy(strategy.address),
-					'Strategy already open',
-					'StrategyController.sol'
-				)
-			).to.be.true
-		})
-
-		it('Should deploy fail adapter + setup strategy to need rebalance', async function () {
-			const FailAdapter = await getContractFactory('FailAdapter')
-			failAdapter = await FailAdapter.deploy(weth.address)
-			await failAdapter.deployed()
-
-			const value = WeiPerEther.mul(100)
-			await weth.connect(accounts[2]).deposit({ value: value })
-			await weth.connect(accounts[2]).approve(adapter.address, value)
-			await adapter
-				.connect(accounts[2])
-				.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
-		})
-
-		it('Should restructure', async function () {
-			const positions = [
-				{ token: tokens[1].address, percentage: BigNumber.from(500) },
-				{ token: tokens[2].address, percentage: BigNumber.from(0) },
-				{ token: tokens[3].address, percentage: BigNumber.from(500) },
-			] as Position[]
-
-			strategyItems = prepareStrategy(positions, adapter.address)
-			await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
-		})
-
-		it('Should finalize structure', async function () {
-			await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
-			//await displayBalances(wrapper, strategyItems, weth)
-		})
-
-		it('Transfer reserve token to require rebalance', async function () {
-			await increaseTime(5 * 60 + 1)
-			expect(
-				await isRevertedWith(
-					controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
-					'Balanced',
-					'StrategyController.sol'
-				)
-			).to.be.true
-
-			const value = WeiPerEther.div(1000)
-			await tokens[2].connect(accounts[0]).transfer(strategy.address, value)
-			expect(await wrapper.isBalanced()).to.equal(false)
-			await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
-		})
-
-		it('Transfer reserve weth to require rebalance', async function () {
-			await increaseTime(5 * 60 + 1)
-			expect(
-				await isRevertedWith(
-					controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
-					'Balanced',
-					'StrategyController.sol'
-				)
-			).to.be.true
-
-			const value = WeiPerEther.div(100)
-			await weth.connect(accounts[4]).deposit({ value: value })
-			await weth.connect(accounts[4]).transfer(strategy.address, value)
-			expect(await wrapper.isBalanced()).to.equal(false)
-			await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-			//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-			expect(await wrapper.isBalanced()).to.equal(true)
-		})
-
-		it('Should fail to estimate and require emergency estimator', async function () {
-			const originalEstimate = await oracle['estimateItem(uint256,address)'](WeiPerEther, tokens[1].address)
-			const emergencyEstimatorAddress = await platform.oracles.registries.tokenRegistry.estimators(
-				ESTIMATOR_CATEGORY.BLOCKED
+	it('Should fail to open strategy: not manager', async function () {
+		expect(
+			await isRevertedWith(
+				controller.connect(owner).openStrategy(strategy.address),
+				'Not manager',
+				'StrategyController.sol'
 			)
+		).to.be.true
+	})
 
-			const GasBurnerEstimator = await getContractFactory('GasBurnerEstimator')
-			const gasBurnerEstimator = await GasBurnerEstimator.deploy()
-			await gasBurnerEstimator.connect(owner).deployed()
-			let tx = await strategyFactory
-				.connect(owner)
-				.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, gasBurnerEstimator.address)
-			await tx.wait()
-			tx = await strategyFactory
-				.connect(owner)
-				.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, tokens[1].address)
-			await tx.wait()
+	it('Should open strategy', async function () {
+		await controller.connect(accounts[1]).openStrategy(strategy.address)
+		expect((await controller.strategyState(strategy.address)).social).to.equal(true)
+	})
 
-			await expect(
-				controller
-					.connect(accounts[1])
-					.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-						value: WeiPerEther,
-					})
-			).to.be.revertedWith('')
-
-			tx = await strategyFactory
-				.connect(owner)
-				.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimatorAddress)
-			await tx.wait()
-
-			await expect(
-				controller
-					.connect(accounts[1])
-					.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-						value: WeiPerEther,
-					})
-			).to.be.revertedWith('')
-
-			const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
-			const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
-			await emergencyEstimator.updateEstimate(tokens[1].address, originalEstimate)
-
-			await increaseTime(10 * 60)
-
-			await emergencyEstimator.finalizeSetEstimate()
-
-			await expect(
-				controller
-					.connect(accounts[1])
-					.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-						value: WeiPerEther,
-					})
-			).to.emit(controller, 'Deposit')
-		})
-
-		it('Should set strategy', async function () {
-			await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(
-				controller,
-				'StrategySet'
+	it('Should fail to open strategy: already open', async function () {
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).openStrategy(strategy.address),
+				'Strategy already open',
+				'StrategyController.sol'
 			)
-			const positions = [{ token: weth.address, percentage: BigNumber.from(1000) }] as Position[]
-			strategyItems = prepareStrategy(positions, adapter.address)
-			expect(
-				await isRevertedWith(
-					controller.connect(accounts[1]).restructure(strategy.address, strategyItems),
-					'Strategy cannot change',
-					'StrategyController.sol'
-				)
-			).to.be.true
-		})
+		).to.be.true
+	})
 
-		it('Should fail to set strategy: already set', async function () {
-			expect(
-				await isRevertedWith(
-					controller.connect(accounts[1]).setStrategy(strategy.address),
-					'Strategy already set',
-					'StrategyController.sol'
-				)
-			).to.be.true
-		})
-	}
+	it('Should deploy fail adapter + setup strategy to need rebalance', async function () {
+		const FailAdapter = await getContractFactory('FailAdapter')
+		failAdapter = await FailAdapter.deploy(weth.address)
+		await failAdapter.deployed()
+
+		const value = WeiPerEther.mul(100)
+		await weth.connect(accounts[2]).deposit({ value: value })
+		await weth.connect(accounts[2]).approve(adapter.address, value)
+		await adapter
+			.connect(accounts[2])
+			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
+	})
+
+	it('Should restructure', async function () {
+		const positions = [
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: tokens[2].address, percentage: BigNumber.from(0) },
+			{ token: tokens[3].address, percentage: BigNumber.from(500) },
+		] as Position[]
+
+		strategyItems = prepareStrategy(positions, adapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+	})
+
+	it('Should finalize structure', async function () {
+		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
+		//await displayBalances(wrapper, strategyItems, weth)
+	})
+
+	it('Transfer reserve token to require rebalance', async function () {
+		await increaseTime(5 * 60 + 1)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+				'Balanced',
+				'StrategyController.sol'
+			)
+		).to.be.true
+
+		const value = WeiPerEther.div(1000)
+		await tokens[2].connect(accounts[0]).transfer(strategy.address, value)
+		expect(await wrapper.isBalanced()).to.equal(false)
+		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
+
+	it('Transfer reserve weth to require rebalance', async function () {
+		await increaseTime(5 * 60 + 1)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+				'Balanced',
+				'StrategyController.sol'
+			)
+		).to.be.true
+
+		const value = WeiPerEther.div(100)
+		await weth.connect(accounts[4]).deposit({ value: value })
+		await weth.connect(accounts[4]).transfer(strategy.address, value)
+		expect(await wrapper.isBalanced()).to.equal(false)
+		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+	})
+
+	it('Should fail to estimate and require emergency estimator', async function () {
+		const originalEstimate = await oracle['estimateItem(uint256,address)'](WeiPerEther, tokens[1].address)
+		const emergencyEstimatorAddress = await platform.oracles.registries.tokenRegistry.estimators(
+			ESTIMATOR_CATEGORY.BLOCKED
+		)
+
+		const GasBurnerEstimator = await getContractFactory('GasBurnerEstimator')
+		const gasBurnerEstimator = await GasBurnerEstimator.deploy()
+		await gasBurnerEstimator.connect(owner).deployed()
+		let tx = await strategyFactory
+			.connect(owner)
+			.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, gasBurnerEstimator.address)
+		await tx.wait()
+		tx = await strategyFactory
+			.connect(owner)
+			.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, tokens[1].address)
+		await tx.wait()
+
+		await expect(
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
+		).to.be.revertedWith('')
+
+		tx = await strategyFactory
+			.connect(owner)
+			.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimatorAddress)
+		await tx.wait()
+
+		await expect(
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
+		).to.be.revertedWith('')
+
+		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
+		const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
+		await emergencyEstimator.updateEstimate(tokens[1].address, originalEstimate)
+
+		await increaseTime(10 * 60)
+
+		await emergencyEstimator.finalizeSetEstimate()
+
+		await expect(
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
+		).to.emit(controller, 'Deposit')
+	})
+
+	it('Should set strategy', async function () {
+		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
+		const positions = [{ token: weth.address, percentage: BigNumber.from(1000) }] as Position[]
+		strategyItems = prepareStrategy(positions, adapter.address)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).restructure(strategy.address, strategyItems),
+				'Strategy cannot change',
+				'StrategyController.sol'
+			)
+		).to.be.true
+	})
+
+	it('Should fail to set strategy: already set', async function () {
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).setStrategy(strategy.address),
+				'Strategy already set',
+				'StrategyController.sol'
+			)
+		).to.be.true
+	})
 })

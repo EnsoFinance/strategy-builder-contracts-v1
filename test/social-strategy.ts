@@ -129,6 +129,7 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -206,6 +207,7 @@ describe('StrategyController - Social', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

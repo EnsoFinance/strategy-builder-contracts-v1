@@ -30,6 +30,7 @@ import {
 } from '../lib/encode'
 import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
+import { increaseTime } from '../lib/utils'
 
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -192,6 +193,7 @@ describe('MulticallRouter', function () {
 		// it should fail before that check is made
 		const calls = [transferCall, reentrancyCall]
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		).to.be.revertedWith('')
@@ -210,6 +212,7 @@ describe('MulticallRouter', function () {
 			strategy.address
 		)
 		const data = await multicallRouter.encodeCalls([call])
+		await increaseTime(5 * 60 + 1)
 		expect(
 			await isRevertedWith(
 				controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data),
@@ -232,6 +235,7 @@ describe('MulticallRouter', function () {
 			strategy.address
 		)
 		const data = await multicallRouter.encodeCalls([call])
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		).to.be.revertedWith('') //Revert in calldata
@@ -326,6 +330,7 @@ describe('MulticallRouter', function () {
 		}
 
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		expect(
 			await isRevertedWith(
 				controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data),
@@ -339,6 +344,7 @@ describe('MulticallRouter', function () {
 		// Multicall gets initial tokens from uniswap
 		const calls = await prepareRebalanceMulticall(strategy, multicallRouter, adapter, oracle, weth)
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

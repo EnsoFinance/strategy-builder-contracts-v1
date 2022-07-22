@@ -17,6 +17,7 @@ import {
 } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Event, Contract } from 'ethers'
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 10
 const STRATEGY_STATE: InitialState = {
@@ -177,6 +178,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -221,6 +223,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -265,6 +268,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -309,6 +313,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -353,6 +358,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -397,6 +403,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -441,6 +448,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 

@@ -14,7 +14,7 @@ import { createLink, linkBytecode } from '../lib/link'
 
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
-import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import SwapRouter from '@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json'
 import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 
@@ -118,21 +118,17 @@ describe('UniswapV3Adapter', function () {
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
 
-		const ControllerLibraryFactory = await getContractFactory('ControllerLibrary')
-		controllerLibrary = await ControllerLibraryFactory.connect(owner).deploy()
-		await controllerLibrary.deployed()
-
 		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
 		const platformProxyAdmin = await PlatformProxyAdmin.connect(owner).deploy()
 		await platformProxyAdmin.deployed()
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
 
-		const strategyLibrary = await waffle.deployContract(accounts[0], ControllerLibrary, [])
+		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
 		await strategyLibrary.deployed()
-		const strategyLibraryLink = createLink(ControllerLibrary, strategyLibrary.address)
+		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
-		const controllerLibrary = await waffle.deployContract(
+		controllerLibrary = await waffle.deployContract(
 			accounts[0],
 			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
 			[]
@@ -257,6 +253,7 @@ describe('UniswapV3Adapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -271,6 +268,7 @@ describe('UniswapV3Adapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

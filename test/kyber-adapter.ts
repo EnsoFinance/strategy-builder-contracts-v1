@@ -22,6 +22,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import IDMMFactory from '../artifacts/contracts/interfaces/kyber/IDMMFactory.sol/IDMMFactory.json'
 import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.sol/IDMMRouter02.json'
+import { increaseTime } from '../lib/utils'
 
 chai.use(solidity)
 
@@ -148,6 +149,7 @@ describe('KyberSwapAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -168,6 +170,7 @@ describe('KyberSwapAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

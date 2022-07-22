@@ -23,6 +23,7 @@ import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 4
 
@@ -154,6 +155,7 @@ describe('Flash Loan', function () {
 		)
 		const calls = [...rebalanceCalls, ...flashLoanCalls]
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

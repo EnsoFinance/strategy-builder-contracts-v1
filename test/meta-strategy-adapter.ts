@@ -31,6 +31,7 @@ import {
 } from '../lib/deploy'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 15
 const STRATEGY_STATE: InitialState = {
@@ -241,6 +242,7 @@ describe('MetaStrategyAdapter', function () {
 	it('Should rebalance strategy: selling basic strategy tokens', async function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -254,6 +256,7 @@ describe('MetaStrategyAdapter', function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		const balanceBefore = await metaStrategy.balanceOf(metaMetaStrategy.address)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(metaMetaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -278,6 +281,7 @@ describe('MetaStrategyAdapter', function () {
 
 	it('Should rebalance strategy: buying basic strategy tokens', async function () {
 		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -423,6 +427,7 @@ describe('MetaStrategyAdapter', function () {
 		)
 		//Encode multicalls and rebalance
 		const rebalanceData = await multicallRouter.encodeCalls([...maliciousCalls, ...rebalanceCalls])
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(basicStrategy.address, multicallRouter.address, rebalanceData)
 		).to.be.revertedWith('')

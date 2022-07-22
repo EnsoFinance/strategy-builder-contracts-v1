@@ -26,6 +26,7 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
+import { increaseTime } from '../lib/utils'
 
 chai.use(solidity)
 
@@ -571,7 +572,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
-			rebalanceSlippage: BigNumber.from(997),
+			rebalanceSlippage: BigNumber.from(990),
 			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
 			managementFee: BigNumber.from(0),
 			social: false,
@@ -605,7 +606,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
+		const value = WeiPerEther.mul(800)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -617,6 +618,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -672,6 +674,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -735,7 +738,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
+		const value = WeiPerEther.mul(800)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -747,6 +750,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -767,6 +771,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -824,7 +829,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
+		const value = WeiPerEther.mul(1000)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -836,6 +841,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -856,6 +862,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

@@ -17,7 +17,7 @@ library ControllerLibrary {
     using SafeERC20 for IERC20;
 
     int256 private constant DIVISOR = 1000;
-    uint256 private constant REBALANCE_THRESHOLD_SCALAR = 2**2; // FIXME tune
+    uint256 private constant REBALANCE_THRESHOLD_SCALAR = 2; // FIXME tune
 
     uint256 private constant PRECISION = 10**18;
     uint256 private constant WITHDRAW_UPPER_BOUND = 10**17; // Upper condition for including pool's tokens as part of burn during withdraw

@@ -18,6 +18,7 @@ import {
 import { displayBalances } from '../lib/logging'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 15
 
@@ -150,6 +151,7 @@ describe('BatchDepositRouter', function () {
 	})
 
 	it('Should fail to rebalance: router revert', async function () {
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Rebalance not supported')

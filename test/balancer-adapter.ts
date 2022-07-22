@@ -6,6 +6,7 @@ import * as deployer from '../lib/deploy'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { increaseTime } from '../lib/utils'
 
 const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const NUM_TOKENS = 3
@@ -155,6 +156,7 @@ describe('BalancerAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
