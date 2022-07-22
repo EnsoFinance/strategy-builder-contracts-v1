@@ -16,5 +16,5 @@ contract StrategyControllerStorage  is StrategyTypes {
     mapping(bytes32 => TimelockData) internal __timelockData;
 
     // Gap for future storage changes
-    uint256[49] private __gap;
+    uint256[48] private __gap;
 }
