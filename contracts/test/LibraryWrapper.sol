@@ -24,12 +24,12 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function isBalanced() external view returns (bool balanced) {
-        (balanced,,) = ControllerLibrary.verifyBalance(address(strategy), address(oracle), true); // outer=true
+        (balanced,,) = ControllerLibrary.verifyBalance(strategy, oracle, true); // outer=true
         return balanced;
     }
 
     function isBalancedInner() external view returns (bool balanced) {
-        (balanced,,) = ControllerLibrary.verifyBalance(address(strategy), address(oracle), false); // outer=false
+        (balanced,,) = ControllerLibrary.verifyBalance(strategy, oracle, false); // outer=false
         return balanced;
     }
 

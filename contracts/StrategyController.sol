@@ -182,7 +182,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(_timelockIsReady(key), uint256(0x1bb63a90056c04) /* error_macro_for("rebalance timelock not ready.") */);
         _startTimelock(key, new bytes(0));
 
-        ControllerLibrary.rebalance(strategy, router, _oracle, _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
+        ControllerLibrary.rebalance(strategy, router, oracle(), _weth, _strategyStates[address(strategy)].rebalanceSlippage, data);
         _removeStrategyLock(strategy);
     }
 
@@ -515,7 +515,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             ControllerLibrary.verifyFormerDebt(address(strategy), newDebt, currentDebt);
         }
         // Check balance
-        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(strategy, _oracle, false); // outer=false 
+        (bool balancedAfter, uint256 totalAfter, ) = ControllerLibrary.verifyBalance(strategy, oracle(), false); // outer=false 
         _require(balancedAfter, uint256(0x1bb63a90056c12) /* error_macro_for("Not balanced") */);
         _checkSlippage(totalAfter, totalBefore, _strategyStates[address(strategy)].restructureSlippage);
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
