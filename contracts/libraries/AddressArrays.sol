@@ -6,8 +6,8 @@ import "./BinaryTreeWithPayload.sol";
 library AddressArrays {
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
-    // @notice Returns all values from array1 and array2 without duplicates
-    function merge(address[] memory array1, address[] memory array2) internal pure returns (address[] memory merged) {
+    // @notice Returns all values from array1 and array2 (without duplicates)
+    function with(address[] memory array1, address[] memory array2) internal view returns (address[] memory result) {
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
         uint256 count;
         for (uint256 i; i < array1.length; ++i) {
@@ -17,13 +17,13 @@ library AddressArrays {
             if (tree.replace(uint256(uint160(array2[i])), new bytes(0))) count++;
         }
         if (count > 0) {
-            merged = new address[](count);
-            readInto(tree, merged, 0);
+            result = new address[](count);
+            readInto(tree, result, 0);
         }
     }
 
     // @notice Returns all values in array1 that are not also in array2
-    function reduce(address[] memory array1, address[] memory array2) internal pure returns (address[] memory reduced) {
+    function without(address[] memory array1, address[] memory array2) internal view returns (address[] memory result) {
         BinaryTreeWithPayload.Tree memory tree2 = BinaryTreeWithPayload.newNode();
         for (uint256 i; i < array2.length; ++i) {
             tree2.add(uint256(uint160(array2[i])), new bytes(0));
@@ -39,16 +39,17 @@ library AddressArrays {
             }
         }
         if (count > 0) {
-            reduced = new address[](count);
-            readInto(tree1, reduced, 0);
+            result = new address[](count);
+            readInto(tree1, result, 0);
         }
     }
 
-    function readInto(BinaryTreeWithPayload.Tree memory tree, address[] memory array, uint256 idx) private pure {
-        if (tree.neighbors[0].exists) readInto(tree.neighbors[0], array, idx); // left
+    function readInto(BinaryTreeWithPayload.Tree memory tree, address[] memory array, uint256 idx) private view returns (uint256) {
+        if (tree.neighbors[0].exists) idx = readInto(tree.neighbors[0], array, idx); // left
         // center
         array[idx] = address(uint160(tree.value));
         ++idx;
-        if (tree.neighbors[1].exists) readInto(tree.neighbors[1], array, idx); // right
+        if (tree.neighbors[1].exists) idx = readInto(tree.neighbors[1], array, idx); // right
+        return idx;
     }
 }
