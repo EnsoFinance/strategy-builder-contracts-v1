@@ -19,7 +19,7 @@ import {
 	deployCurveAdapter,
 	deployPlatform,
 	deployFullRouter,
-	deployMulticallRouter
+	deployMulticallRouter,
 } from '../lib/deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
@@ -208,7 +208,9 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -367,14 +369,14 @@ describe('AaveAdapter', function () {
 				token: collateralToken,
 				percentage: BigNumber.from(500),
 				adapters: [aaveV2Adapter.address],
-				path: []
+				path: [],
 			},
 			{
 				token: collateralToken2,
 				percentage: BigNumber.from(500),
 				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-				path: [tokens.crv]
-			}
+				path: [tokens.crv],
+			},
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
@@ -387,7 +389,7 @@ describe('AaveAdapter', function () {
 		const collateral2Balance = await collateral2.balanceOf(strategy.address)
 		const calls = [
 			encodeTransferFrom(collateral, strategy.address, accounts[1].address, collateralBalance.div(6)),
-			encodeTransferFrom(collateral2, strategy.address, accounts[1].address, collateral2Balance.div(6))
+			encodeTransferFrom(collateral2, strategy.address, accounts[1].address, collateral2Balance.div(6)),
 		]
 		const data = await multicallRouter.encodeCalls(calls)
 		await expect(
@@ -534,7 +536,9 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -615,7 +619,9 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -705,7 +711,9 @@ describe('AaveAdapter', function () {
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', { value: WeiPerEther })
+			.createStrategy(name, symbol, strategyItems, strategyState, fullRouter.address, '0x', {
+				value: WeiPerEther,
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 

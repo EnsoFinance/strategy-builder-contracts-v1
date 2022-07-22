@@ -44,7 +44,7 @@ library AddressArrays {
         }
     }
 
-    function readInto(BinaryTreeWithPayload.Tree memory tree, address[] memory array, uint256 idx) private view returns (uint256) {
+    function readInto(BinaryTreeWithPayload.Tree memory tree, address[] memory array, uint256 idx) internal view returns (uint256) {
         if (tree.neighbors[0].exists) idx = readInto(tree.neighbors[0], array, idx); // left
         // center
         array[idx] = address(uint160(tree.value));
