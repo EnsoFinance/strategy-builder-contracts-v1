@@ -5,7 +5,7 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
-import { deployFullRouter } from '../lib/deploy'
+import { deployFullRouter, deployUniswapV3Adapter } from '../lib/deploy'
 import { DIVISOR, MAINNET_ADDRESSES } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
@@ -29,10 +29,20 @@ describe('Live Estimates', function () {
 		eYLA: Contract,
 		eNFTP: Contract,
 		eETH2X: Contract,
-		strategyClaim: Contract
+		strategyClaim: Contract,
+		oldUniswapV3Address: string,
+		newUniswapV3Address: string
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
+
+		// Impersonate owner
+		await network.provider.request({
+			method: 'hardhat_impersonateAccount',
+			params: [ownerAddress],
+		})
+		const owner = await ethers.getSigner(ownerAddress)
+
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 
@@ -42,7 +52,7 @@ describe('Live Estimates', function () {
 
 		const { tokenRegistry, uniswapV3Registry, curveDepositZapRegistry } = enso.platform.oracles.registries
 
-		const {
+		let {
 			aaveV2,
 			compound,
 			curve,
@@ -56,6 +66,13 @@ describe('Live Estimates', function () {
 			uniswapV3,
 			yearnV2,
 		} = enso.adapters
+
+		oldUniswapV3Address = uniswapV3.address
+		// Deploy new uniswap v3 adapter
+		uniswapV3 = await deployUniswapV3Adapter(accounts[0], enso.platform.oracles.registries.uniswapV3Registry,  new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], accounts[0]), weth)
+		// Whitelist
+		await enso.platform.administration.whitelist.connect(owner).approve(uniswapV3.address)
+		newUniswapV3Address = uniswapV3.address
 
 		estimator = new Estimator(
 			accounts[0],
@@ -89,12 +106,6 @@ describe('Live Estimates', function () {
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
 
-		// Impersonate owner
-		await network.provider.request({
-			method: 'hardhat_impersonateAccount',
-			params: [ownerAddress],
-		})
-		const owner = await ethers.getSigner(ownerAddress)
 		// Deploy new router
 		router = await deployFullRouter(
 			accounts[0],
@@ -136,6 +147,35 @@ describe('Live Estimates', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+	})
+
+	it('Should update adapter', async function () {
+		// Impersonate manager
+		const managerAddress = await eDPI.manager()
+		await network.provider.request({
+			method: 'hardhat_impersonateAccount',
+			params: [managerAddress],
+		})
+		const manager = await ethers.getSigner(managerAddress)
+
+		const items = await eDPI.items()
+		for (let i = 0; i < items.length; i++) {
+			 let tradeData = await eDPI.getTradeData(items[i])
+			 let adapters = [...tradeData.adapters]
+			 let shouldUpdate = false;
+			 for (let j = 0; j < adapters.length; j++) {
+				 	if (adapters[j].toLowerCase() == oldUniswapV3Address.toLowerCase()) {
+							adapters[j] = newUniswapV3Address
+							shouldUpdate = true;
+					}
+			 }
+			 if (shouldUpdate) {
+				 await eDPI.connect(manager).updateTradeData(items[i], {
+					 ...tradeData,
+					 adapters: adapters
+				 })
+			 }
+		}
 	})
 
 	it('Should estimate deposit eDPI', async function () {
