@@ -562,6 +562,10 @@
     "contractName": "SushiswapFactory.sol"
   },
   {
+    "contractId": "9effd4c5cb9b",
+    "contractName": "TestBinaryTree.sol"
+  },
+  {
     "contractId": "48f342a7366c",
     "contractName": "UniswapNaiveOracle.sol"
   },
