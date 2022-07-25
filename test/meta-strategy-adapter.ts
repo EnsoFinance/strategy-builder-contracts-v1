@@ -120,7 +120,11 @@ describe('MetaStrategyAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		basicWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		basicWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await basicWrapper.deployed()
 
 		expect(await basicWrapper.isBalanced()).to.equal(true)
@@ -160,7 +164,11 @@ describe('MetaStrategyAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await metaWrapper.deployed()
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
@@ -222,7 +230,11 @@ describe('MetaStrategyAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		metaMetaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		metaMetaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await metaMetaWrapper.deployed()
 	})
 

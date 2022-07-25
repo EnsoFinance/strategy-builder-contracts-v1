@@ -228,7 +228,7 @@ describe('AaveAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -548,7 +548,7 @@ describe('AaveAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -631,7 +631,7 @@ describe('AaveAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -721,7 +721,7 @@ describe('AaveAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -812,7 +812,11 @@ describe('AaveAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await metaWrapper.deployed()
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)

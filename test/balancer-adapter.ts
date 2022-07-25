@@ -89,7 +89,7 @@ describe('BalancerAdapter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)

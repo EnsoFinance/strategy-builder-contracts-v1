@@ -15,6 +15,7 @@ import { isRevertedWith } from '../lib/errors'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
+import { increaseTime } from '../lib/utils'
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -122,6 +123,34 @@ describe('StrategyProxyFactory', function () {
 		expect(await controller.oracle()).to.equal(oracle.address)
 		await controller.updateAddresses()
 		expect(await controller.oracle()).to.equal(newOracle.address)
+	})
+
+	it('Should update rebalanceParameters', async function () {
+		expect(
+			await isRevertedWith(
+				// sanity check
+				controller.connect(accounts[5]).finalizeRebalanceParameters(),
+				'updateRebalanceParameters timelock not ready.',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		let rebalanceTimelockPeriod = 5 * 60
+		let rebalanceThresholdScalar = 1000
+		await strategyFactory
+			.connect(accounts[10])
+			.updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar)
+		await increaseTime(5 * 60 + 1)
+		await controller.connect(accounts[5]).finalizeRebalanceParameters()
+		expect(await controller.callStatic.rebalanceThresholdScalar()).to.eq(rebalanceThresholdScalar)
+
+		// settle on this value
+		rebalanceThresholdScalar = 2000
+		await strategyFactory
+			.connect(accounts[10])
+			.updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar)
+		await increaseTime(5 * 60 + 1)
+		await controller.connect(accounts[5]).finalizeRebalanceParameters()
+		expect(await controller.callStatic.rebalanceThresholdScalar()).to.eq(rebalanceThresholdScalar)
 	})
 
 	it('Should fail to update whitelist: not owner', async function () {

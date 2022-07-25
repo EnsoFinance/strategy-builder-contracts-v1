@@ -272,7 +272,7 @@ describe('StrategyController', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)

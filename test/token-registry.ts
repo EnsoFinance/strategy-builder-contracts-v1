@@ -96,7 +96,7 @@ describe('TokenRegistry', function () {
 				ControllerLibrary: this.controllerLibrary.address,
 			},
 		})
-		this.wrapper = await LibraryWrapper.deploy(this.oracle.address, strategyAddress)
+		this.wrapper = await LibraryWrapper.deploy(this.oracle.address, strategyAddress, this.controller.address)
 		await this.wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

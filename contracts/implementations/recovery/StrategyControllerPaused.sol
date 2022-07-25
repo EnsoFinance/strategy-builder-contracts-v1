@@ -272,6 +272,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         }
     }
 
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external override {
+        revert("StrategyControllerPaused.");
+    }
+
     function oracle() public view override returns (IOracle) {
         return IOracle(_oracle);
     }
@@ -286,6 +290,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
 
     function pool() external view override returns(address) {
         return _pool;
+    }
+
+    function rebalanceThresholdScalar() external view override returns(uint256) {
+        return _rebalanceThresholdScalar;
     }
 
     // Internal Strategy Functions

@@ -17,19 +17,21 @@ contract LibraryWrapper is StrategyTypes{
 
     IOracle public oracle;
     IStrategy public strategy;
+    IStrategyController public controller;
 
-    constructor(address oracle_, address strategy_) public {
+    constructor(address oracle_, address strategy_, address controller_) public {
         oracle = IOracle(oracle_);
         strategy = IStrategy(strategy_);
+        controller = IStrategyController(controller_);
     }
 
     function isBalanced() external view returns (bool balanced) {
-        (balanced,,) = ControllerLibrary.verifyBalance(strategy, oracle, true); // outer=true
+        (balanced,,) = ControllerLibrary.verifyBalance(strategy, oracle, controller.rebalanceThresholdScalar());
         return balanced;
     }
 
     function isBalancedInner() external view returns (bool balanced) {
-        (balanced,,) = ControllerLibrary.verifyBalance(strategy, oracle, false); // outer=false
+        (balanced,,) = ControllerLibrary.verifyBalance(strategy, oracle, 0);
         return balanced;
     }
 

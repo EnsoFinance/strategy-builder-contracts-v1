@@ -133,7 +133,7 @@ describe('MulticallRouter', function () {
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)
