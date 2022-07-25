@@ -926,7 +926,7 @@ describe('StrategyController', function () {
 			)
 		).to.be.true
 
-		const value = WeiPerEther.div(100)
+		const value = WeiPerEther.div(10)
 		await weth.connect(accounts[4]).deposit({ value: value })
 		await weth.connect(accounts[4]).transfer(strategy.address, value)
 		expect(await wrapper.isBalanced()).to.equal(false)
