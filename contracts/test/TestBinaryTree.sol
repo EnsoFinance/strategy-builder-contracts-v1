@@ -2,16 +2,17 @@
 pragma solidity 0.6.12;
 
 import "../libraries/AddressArrays.sol";
+import "../libraries/BinaryTreeWithPayload.sol";
 
 contract TestBinaryTree {
 
     function fuzzAddressArrayReadInto() external {
         address[] memory arr = new address[](20); 
-        BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
+        BinaryTree.Tree memory tree = BinaryTree.newNode();
         address addrs;
         for (uint256 i; i < arr.length; ++i) {
             addrs = address(uint256(keccak256(abi.encode(i))));
-            BinaryTreeWithPayload.add(tree, uint256(uint160(addrs)), new bytes(0));
+            BinaryTree.add(tree, uint256(uint160(addrs)));
         }
         address[] memory res = new address[](arr.length);
         AddressArrays.readInto(tree, res, 0);
