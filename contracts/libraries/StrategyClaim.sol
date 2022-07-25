@@ -102,7 +102,7 @@ library StrategyClaim {
         numAdded += _toClaim(mm, exists, tokenRegistry, _this.synths());
         numAdded += _toClaim(mm, exists, tokenRegistry, _this.debt());
         if (numAdded == 0) return (keys, values);
-        keys = new uint256[](numAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        keys = new uint256[](numAdded);
         values = new bytes[](numAdded);
         BinaryTreeWithPayload.readInto(mm, keys, values);
     }

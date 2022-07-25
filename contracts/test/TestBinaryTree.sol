@@ -41,7 +41,7 @@ contract TestBinaryTree {
             value = uint256(keccak256(abi.encode(i)));
             BinaryTreeWithPayload.add(tree, value, new bytes(0));
         }
-        uint256[] memory res = new uint256[](arr.length + 1); // see Bin..Tree..readInto implementation
+        uint256[] memory res = new uint256[](arr.length);
         bytes[] memory vals = new bytes[](arr.length);
         BinaryTreeWithPayload.readInto(tree, res, vals);
         for (uint256 i; i < res.length - 1; ++i) {

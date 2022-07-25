@@ -252,7 +252,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
                 ++numberAdded;
             }
         }
-        diffs = new uint256[](numberAdded+1); // +1 is for length entry. see `BinaryTreeWithPayload.readInto`
+        diffs = new uint256[](numberAdded);
         payloads = new bytes[](numberAdded);
         tree.readInto(diffs, payloads);
     }
