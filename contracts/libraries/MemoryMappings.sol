@@ -1,9 +1,11 @@
 //SPDX-License-Identifier: GPL-3.0 
 pragma solidity 0.6.12;
 
+import "./BinaryTree.sol";
 import "./BinaryTreeWithPayload.sol";
 
 library MemoryMappings {
+    using BinaryTree for BinaryTree.Tree;
     using BinaryTreeWithPayload for BinaryTreeWithPayload.Tree;
 
     function append(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes32 value) internal pure returns(bool) {
@@ -24,6 +26,14 @@ library MemoryMappings {
         mm.replace(uint256(key), abi.encode(arr));
     }
 
+    function add(BinaryTree.Tree memory mm, bytes32 key) internal pure {
+        mm.add(uint256(key)); 
+    }
+
+    function add(BinaryTree.Tree memory mm, bytes memory key) internal pure {
+        add(mm, keccak256(key)); 
+    }
+
     function add(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes32 value) internal pure {
         mm.add(uint256(key), abi.encode(value)); 
     }
@@ -38,6 +48,13 @@ library MemoryMappings {
 
     function add(BinaryTreeWithPayload.Tree memory mm, bytes memory key, bytes32 value) internal pure {
         add(mm, keccak256(key), abi.encode(value)); 
+    }
+
+    function doesExist(BinaryTree.Tree memory mm, bytes32 key) internal pure returns(bool ok) {
+        BinaryTree.Tree memory node = mm.get(uint256(key)); 
+        if (node.exists) {
+            ok = true;
+        }
     }
 
     function getValue(BinaryTreeWithPayload.Tree memory mm, bytes32 key) internal pure returns(bool ok, bytes memory ret) {
