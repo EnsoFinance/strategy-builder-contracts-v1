@@ -6,15 +6,15 @@ import "./BinaryTree.sol";
 library AddressArrays {
     using BinaryTree for BinaryTree.Tree;
 
-    // @notice Returns all values from array1 and array2 (without duplicates)
-    function with(address[] memory array1, address[] memory array2) internal view returns (address[] memory result) {
+    // @notice Returns all values from array0 and array1 (without duplicates)
+    function with(address[] memory array0, address[] memory array1) internal view returns (address[] memory result) {
         BinaryTree.Tree memory tree = BinaryTree.newNode();
         uint256 count;
+        for (uint256 i; i < array0.length; ++i) {
+            if (tree.replace(uint256(uint160(array0[i])))) count++;
+        }
         for (uint256 i; i < array1.length; ++i) {
             if (tree.replace(uint256(uint160(array1[i])))) count++;
-        }
-        for (uint256 i; i < array2.length; ++i) {
-            if (tree.replace(uint256(uint160(array2[i])))) count++;
         }
         if (count > 0) {
             result = new address[](count);
@@ -22,7 +22,7 @@ library AddressArrays {
         }
     }
 
-    // @notice Returns all values in array1 that are not also in array2
+    // @notice Returns all values in array0 that are not also in array1
     function without(address[] memory array0, address[] memory array1) internal view returns (address[] memory result) {
         BinaryTree.Tree memory tree1 = BinaryTree.newNode();
         for (uint256 i; i < array1.length; ++i) {
