@@ -55,7 +55,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function initialize() external initializer {
         _rebalanceTimelockPeriod = 5 minutes;
-        _rebalanceThresholdScalar = 2000; 
+        _rebalanceThresholdScalar = 2000;
         bytes32 key = keccak256(abi.encode(this.updateRebalanceParameters.selector));
         _setTimelock(key, _rebalanceTimelockPeriod);
 
@@ -79,7 +79,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data_
     ) external payable override {
         IStrategy strategy = IStrategy(strategy_);
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _require(msg.sender == factory, uint256(0x1bb63a90056c01) /* error_macro_for("Not factory") */);
         _setInitialState(strategy_, state_);
         // Deposit
@@ -113,7 +113,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) external payable override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 3); // Deposit lock type
         _socialOrManager(strategy);
         strategy.claimAll();
         Timelock memory lock = _timelocks[address(strategy)];
@@ -179,7 +179,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
 
         bytes32 key = keccak256(abi.encode(this.rebalance.selector, strategy));
@@ -195,7 +195,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         IStrategy strategy
     ) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
         strategy.claimAll();
         _removeStrategyLock(strategy);
@@ -209,7 +209,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function repositionSynths(IStrategy strategy, address token) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
         ITokenRegistry.ItemDetails memory itemDetails = oracle().tokenRegistry().itemDetails(address(-1));
         address adapter = itemDetails.tradeData.adapters[0];
@@ -229,7 +229,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _isInitialized(address(strategy));
         _notSet(address(strategy)); // Set strategies cannot restructure
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
         _require(
@@ -260,7 +260,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     ) external override {
         _isInitialized(address(strategy));
         _notSet(address(strategy));  // Set strategies cannot restructure
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyApproved(address(router));
         _onlyManager(strategy);
         strategy.settleSynths();
@@ -295,7 +295,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 newValue
     ) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
         Timelock storage lock = _timelocks[address(strategy)];
         _require(
@@ -318,7 +318,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function finalizeValue(IStrategy strategy) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
         _require(lock.timestamp != 0, uint256(0x1bb63a90056c0c) /* error_macro_for("No changes queued") */);
@@ -356,7 +356,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function openStrategy(IStrategy strategy) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         _require(!strategyState.social, uint256(0x1bb63a90056c0f) /* error_macro_for("Strategy already open") */);
@@ -371,7 +371,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      */
     function setStrategy(IStrategy strategy) external override {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         _onlyManager(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         _require(!strategyState.set, uint256(0x1bb63a90056c10) /* error_macro_for("Strategy already set") */);
@@ -381,7 +381,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function verifyStructure(address strategy, StrategyItem[] memory newItems)
-        external 
+        external
         view
         override
     {
@@ -461,7 +461,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) private returns(address weth_, uint256 wethAmount) {
         _isInitialized(address(strategy));
-        _setStrategyLock(strategy);
+        _setStrategyLock(strategy, 1);
         (weth_, wethAmount) = ControllerLibrary.withdraw(strategy, router, amount, slippage, data);
         IERC20(weth_).safeTransferFrom(address(strategy), to, wethAmount);
     }
@@ -582,8 +582,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     /**
      * @notice Sets Reentrancy guard
      */
-    function _setStrategyLock(IStrategy strategy) private {
-        strategy.lock();
+    function _setStrategyLock(IStrategy strategy, uint8 lockType) private {
+        strategy.lock(lockType);
     }
 
     /**
