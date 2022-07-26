@@ -34,6 +34,74 @@ contracts/routers/StrategyRouter.sol               |  18 +-
 
 -------------------------------------------------------------------------------
 
+### Interface updates for Frontend
+
+Strategy
+
++    function updateTimelock(bytes4 functionSelector, uint256 delay) external;
++    function finalizeTimelock() external;
+
++    function updateTradeData(address item, TradeData memory data) external;
++    function finalizeUpdateTradeData() external {
+
++    function getAllRewardTokens() external view returns(address[] memory rewardTokens)
++    function claimAll() external;
++    function factory() external view returns (address);
+-    function performanceFee() external view returns (uint256);
+-    function getPerformanceFeeOwed(address account) external view returns (uint256);
+-    function controller() external view returns (address);
+-    function oracle() external view returns (IOracle);
+-    function whitelist() external view returns (IWhitelist);
+-    function supportsSynths() external view returns (bool);
+
+StrategyController
++    function claimAll(
++        IStrategy strategy
++    ) external;
+
++    function weth() external view returns (address);
++    function pool() external view returns (address);
+
+StrategyProxyFactory
+     function createStrategy(
+-        address manager,
+         string memory name,
+         string memory symbol,
+         StrategyItem[] memory strategyItems,
+-        InitialState memory strategyInit,
++        InitialState memory strategyState,
+         address router,
+         bytes memory data
+     ) external payable returns (address);
++    function createStrategyFor(
++        address manager,
++        string memory name,
++        string memory symbol,
++        StrategyItem[] memory strategyItems,
++        InitialState memory strategyState,
++        address router,
++        bytes memory data,
++        bytes memory signature
++    ) external payable returns (address);
+
+TokenRegistry
++    struct ItemDetails {
++        bool isClaimable;
++        StrategyTypes.TradeData tradeData;
++    }
++    function itemDetails(address item) external view returns(ItemDetails memory);
++    function isClaimable(address item) external view returns(bool);
++    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable) external;
+
+EmergencyEstimator
++    function updateTimelock(bytes4 functionSelector, uint256 delay) external;
++    function finalizeTimelock() external;
++    function estimateItem(uint256 balance, address token) public view returns (int256);
++    function updateEstimate(address token, int256 amount) external;
++    function finalizeSetEstimate() external;
+
+-------------------------------------------------------------------------------
+
 commit dd7dd46a29cc39041213943e92f0df286485bd36 (HEAD -> develop, origin/develop, origin/HEAD)
 Author: George Carder <georgercarder@gmail.com>
 Date:   Tue Jul 26 10:17:52 2022 -0700
