@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "./libraries/SafeERC20.sol";
 import "./libraries/StrategyClaim.sol";
 import "./libraries/MemoryMappings.sol";
+import "./libraries/BinaryTree.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/IBaseAdapter.sol";
 import "./interfaces/IStrategy.sol";
@@ -38,7 +39,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
-    using MemoryMappings for BinaryTreeWithPayload.Tree;
+    using MemoryMappings for BinaryTree.Tree;
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
@@ -466,10 +467,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         // Set new items
         int256 virtualPercentage;
-        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
+        BinaryTree.Tree memory exists = BinaryTree.newNode();
         for (uint256 i; i < newItems.length; ++i) {
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
-            exists.add(bytes32(uint256(newItems[i].item)), bytes32(0x0)); // second parameter is "any" value
+            exists.add(bytes32(uint256(newItems[i].item)));
         }
         if (_synths.length > 0) {
             // Add SUSD percentage
@@ -504,13 +505,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return virtualPercentage;
     }
 
-    function _updateRewards(BinaryTreeWithPayload.Tree memory exists, ITokenRegistry tokenRegistry) private {
+    function _updateRewards(BinaryTree.Tree memory exists, ITokenRegistry tokenRegistry) private {
         _updateClaimables(tokenRegistry);
         address[] memory rewardTokens = StrategyClaim.getAllRewardTokens(tokenRegistry);
         StrategyItem memory item;
         for (uint256 i; i < rewardTokens.length; ++i) {
             if (_tokenExists(exists, rewardTokens[i])) continue;
-            exists.add(bytes32(uint256(rewardTokens[i])), bytes32(0x0)); // second parameter is "any" value
+            exists.add(bytes32(uint256(rewardTokens[i])));
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
             _setItem(item, tokenRegistry);
         }
@@ -552,7 +553,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
 
     function updateRewards() external {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
-        BinaryTreeWithPayload.Tree memory exists = BinaryTreeWithPayload.newNode();
+        BinaryTree.Tree memory exists = BinaryTree.newNode();
         _setTokensExists(exists, _items);
         _setTokensExists(exists, _debt);
         _setTokensExists(exists, _synths);
@@ -560,15 +561,15 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit RewardsUpdated();
     }
 
-    function _setTokensExists(BinaryTreeWithPayload.Tree memory exists, address[] memory tokens) private pure {
+    function _setTokensExists(BinaryTree.Tree memory exists, address[] memory tokens) private pure {
         for (uint256 i; i < tokens.length; ++i) {
             if (_tokenExists(exists, tokens[i])) continue;
-            exists.add(bytes32(uint256(tokens[i])), bytes32(0x0)); // second parameter is "any" value
+            exists.add(bytes32(uint256(tokens[i])));
         }
     }
 
-    function _tokenExists(BinaryTreeWithPayload.Tree memory exists, address token) private pure returns (bool ok){
-        (ok, ) = exists.getValue(bytes32(uint256(token)));
+    function _tokenExists(BinaryTree.Tree memory exists, address token) private pure returns (bool ok){
+        return exists.doesExist(bytes32(uint256(token)));
     }
 
     function _timelockData(bytes32 identifier) internal override returns(TimelockData storage) {
