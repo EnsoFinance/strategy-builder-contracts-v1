@@ -301,7 +301,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return _factory;
     }
 
-    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
+    function getAllRewardTokens() external view override returns(address[] memory rewardTokens) {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         return StrategyClaim.getAllRewardTokens(tokenRegistry);
     }
@@ -362,7 +362,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit UpdateTradeData(item, false);
     }
 
-    function finalizeUpdateTradeData() external {
+    function finalizeUpdateTradeData() external override {
         _require(_timelockIsReady(this.updateTradeData.selector), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(this.updateTradeData.selector), (address, TradeData));
         _tradeData[item] = data;
@@ -518,12 +518,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit ClaimablesUpdated();
     }
 
-    function updateClaimables() external {
+    function updateClaimables() external override {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         _updateClaimables(tokenRegistry);
     }
 
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
         address newPool = f.pool();
         address currentPool = _pool;
@@ -543,7 +543,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _susd = ensoOracle.susd();
     }
 
-    function updateRewards() external {
+    function updateRewards() external override {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         BinaryTree.Tree memory exists = BinaryTree.newNode();
         _setTokensExists(exists, _items);
