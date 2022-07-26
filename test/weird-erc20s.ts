@@ -128,7 +128,7 @@ describe('Weird ERC20s', function () {
 		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, controllerLibrary)
+		router = await deployLoopRouter(accounts[10], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 
 		// remove weth from weird token list
@@ -158,6 +158,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -204,6 +205,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -249,6 +251,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -294,6 +297,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -339,6 +343,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -384,6 +389,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -429,6 +435,7 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

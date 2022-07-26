@@ -156,6 +156,7 @@ describe('Leverage2XAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -242,6 +243,7 @@ describe('Leverage2XAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

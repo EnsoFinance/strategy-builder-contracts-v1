@@ -96,7 +96,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
-		router = await deployLoopRouter(accounts[0], controller, controllerLibrary)
+		router = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapV2Factory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
@@ -363,6 +363,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -594,6 +595,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -726,6 +728,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -817,6 +820,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

@@ -130,6 +130,7 @@ describe('MulticallRouter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

@@ -82,7 +82,7 @@ describe('MetaStrategyAdapter', function () {
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
 		controllerLibrary = platform.controllerLibrary
-		loopRouter = await deployLoopRouter(accounts[0], controller, controllerLibrary)
+		loopRouter = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(loopRouter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
@@ -117,6 +117,7 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -161,6 +162,7 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -227,6 +229,7 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

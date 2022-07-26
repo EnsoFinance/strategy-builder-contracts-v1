@@ -33,6 +33,7 @@ let tokens: Contract[],
 	adapter: Contract,
 	router: Contract,
 	strategy: Contract,
+	strategyLibrary: Contract,
 	strategyClaim: Contract,
 	wrapper: Contract,
 	uniswapRegistry: Contract,
@@ -124,7 +125,7 @@ describe('UniswapV3Adapter', function () {
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
 
-		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
 		await strategyLibrary.deployed()
 		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
@@ -179,7 +180,7 @@ describe('UniswapV3Adapter', function () {
 		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
-		router = await deployLoopRouter(accounts[0], controller, controllerLibrary)
+		router = await deployLoopRouter(accounts[0], controller, strategyLibrary)
 		await whitelist.connect(owner).approve(router.address)
 
 		uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
@@ -227,6 +228,7 @@ describe('UniswapV3Adapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

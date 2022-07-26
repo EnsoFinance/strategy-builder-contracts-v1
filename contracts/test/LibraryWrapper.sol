@@ -9,6 +9,7 @@ import "../interfaces/IOracle.sol";
 import "../interfaces/IStrategy.sol";
 import "../interfaces/IStrategyController.sol";
 import "../libraries/ControllerLibrary.sol";
+import "../libraries/StrategyLibrary.sol";
 import "../helpers/StrategyTypes.sol";
 
 contract LibraryWrapper is StrategyTypes{
@@ -36,12 +37,12 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function getRange(int256 expectedValue, uint256 range) external pure returns (int256) {
-        return ControllerLibrary.getRange(expectedValue, range);
+        return StrategyLibrary.getRange(expectedValue, range);
     }
 
     function getRebalanceRange(int256 expectedValue) external view returns (int256) {
         uint256 range = strategy.rebalanceThreshold();
-        return ControllerLibrary.getRange(expectedValue, range);
+        return StrategyLibrary.getRange(expectedValue, range);
     }
 
     function getStrategyValue() external view returns (uint256) {
@@ -54,7 +55,7 @@ contract LibraryWrapper is StrategyTypes{
     }
 
     function getExpectedTokenValue(uint256 total, address token) external view returns (int256) {
-        return ControllerLibrary.getExpectedTokenValue(total, address(strategy), token);
+        return StrategyLibrary.getExpectedTokenValue(total, address(strategy), token);
     }
 
     function _getTokenValue(IStrategy s, address token) internal view returns (int256) {

@@ -54,7 +54,7 @@ describe('BatchDepositRouter', function () {
 		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployBatchDepositRouter(accounts[0], controller, controllerLibrary)
+		router = await deployBatchDepositRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -120,6 +120,7 @@ describe('BatchDepositRouter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

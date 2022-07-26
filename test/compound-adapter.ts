@@ -61,7 +61,7 @@ describe('CompoundAdapter', function () {
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
-		router = await deployLoopRouter(accounts[0], controller, controllerLibrary)
+		router = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
@@ -146,6 +146,7 @@ describe('CompoundAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

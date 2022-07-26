@@ -94,7 +94,7 @@ describe('SynthetixAdapter', function () {
 			accounts[10],
 			new Contract(AddressZero, [], accounts[0]),
 			controller,
-			controllerLibrary
+			platform.strategyLibrary
 		)
 		await whitelist.connect(accounts[10]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
@@ -215,6 +215,7 @@ describe('SynthetixAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

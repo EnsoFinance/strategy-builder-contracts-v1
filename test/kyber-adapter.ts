@@ -75,7 +75,7 @@ describe('KyberSwapAdapter', function () {
 			curveDepositZapRegistry
 		)
 
-		router = await deployLoopRouter(owner, controller, controllerLibrary)
+		router = await deployLoopRouter(owner, controller, platform.strategyLibrary)
 		await whitelist.connect(owner).approve(router.address)
 		kyberAdapter = await deployKyberSwapAdapter(owner, kyberFactory, kyberRouter, weth)
 		await whitelist.connect(owner).approve(kyberAdapter.address)
@@ -116,6 +116,7 @@ describe('KyberSwapAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

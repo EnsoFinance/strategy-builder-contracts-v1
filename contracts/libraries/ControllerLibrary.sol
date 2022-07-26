@@ -350,18 +350,6 @@ library ControllerLibrary {
         return address(this);
     }
 
-    function getExpectedTokenValue(
-        uint256 total,
-        address strategy,
-        address token
-    ) public view returns (int256) {
-        return StrategyLibrary.getExpectedTokenValue(total, strategy, token);
-    }
-
-    function getRange(int256 expectedValue, uint256 threshold) public pure returns (int256) {
-        return StrategyLibrary.getRange(expectedValue, threshold);
-    }
-
     // @notice Checks that there is no debt remaining for tokens that are no longer part of the strategy
     function verifyFormerDebt(address strategy, address[] memory newDebt, address[] memory formerDebt) public view {
         formerDebt = formerDebt.without(newDebt);

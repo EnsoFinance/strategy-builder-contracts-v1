@@ -72,7 +72,7 @@ describe('Experimental Strategy', function () {
 		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory, undefined, chainlinkRegistry, curveDepositZapRegistry)
 
-		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, controllerLibrary)
+		router = await deployFullRouter(accounts[0], aaveAddressProvider, controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
@@ -136,6 +136,7 @@ describe('Experimental Strategy', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

@@ -65,7 +65,7 @@ describe('StrategyController', function () {
 
 		adapter = await deployUniswapV2Adapter(owner, uniswapFactory, weth)
 		await whitelist.connect(owner).approve(adapter.address)
-		router = await deployLoopRouter(owner, controller, controllerLibrary)
+		router = await deployLoopRouter(owner, controller, platform.strategyLibrary)
 		await whitelist.connect(owner).approve(router.address)
 	})
 
@@ -269,6 +269,7 @@ describe('StrategyController', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

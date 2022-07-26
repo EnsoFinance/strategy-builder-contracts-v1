@@ -7,7 +7,6 @@ import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
 import { deployFullRouter } from '../lib/deploy'
 import { DIVISOR, MAINNET_ADDRESSES } from '../lib/constants'
-import { createLink, linkBytecode } from '../lib/link'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
@@ -92,14 +91,6 @@ describe('Live Estimates', function () {
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
 
-		const strategyLibraryLink = createLink(StrategyLibrary, enso.platform.strategyLibrary.address)
-		const controllerLibrary = await waffle.deployContract(
-			accounts[0],
-			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
-			[]
-		)
-		await controllerLibrary.deployed()
-
 		// Impersonate owner
 		await network.provider.request({
 			method: 'hardhat_impersonateAccount',
@@ -111,7 +102,7 @@ describe('Live Estimates', function () {
 			accounts[0],
 			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
 			controller,
-			controllerLibrary
+			enso.platform.strategyLibrary
 		)
 		// Whitelist
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)

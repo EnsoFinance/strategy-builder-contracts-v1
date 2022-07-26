@@ -51,7 +51,7 @@ describe('BalancerAdapter', function () {
 		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
-		router = await deployer.deployLoopRouter(accounts[0], controller, controllerLibrary)
+		router = await deployer.deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -86,6 +86,7 @@ describe('BalancerAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

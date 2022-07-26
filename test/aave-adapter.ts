@@ -100,7 +100,7 @@ describe('AaveAdapter', function () {
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 
-		fullRouter = await deployFullRouter(accounts[0], aaveAddressProvider, controller, controllerLibrary)
+		fullRouter = await deployFullRouter(accounts[0], aaveAddressProvider, controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(fullRouter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
@@ -225,6 +225,7 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -545,6 +546,7 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -628,6 +630,7 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -718,6 +721,7 @@ describe('AaveAdapter', function () {
 		strategy = await Strategy.attach(strategyAddress)
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})
@@ -809,6 +813,7 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: controllerLibrary.address,
 			},
 		})

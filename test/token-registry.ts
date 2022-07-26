@@ -48,7 +48,7 @@ describe('TokenRegistry', function () {
 			curveDepositZapRegistry
 		)
 
-		this.router = await deployLoopRouter(this.accounts[0], this.controller, this.controllerLibrary)
+		this.router = await deployLoopRouter(this.accounts[0], this.controller, platform.strategyLibrary)
 		await this.whitelist.connect(this.accounts[0]).approve(this.router.address)
 		this.uniswapAdapter = await deployUniswapV2Adapter(this.accounts[0], this.uniswapFactory, this.weth)
 		await this.whitelist.connect(this.accounts[0]).approve(this.uniswapAdapter.address)
@@ -93,6 +93,7 @@ describe('TokenRegistry', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
+				StrategyLibrary: platform.strategyLibrary.address,
 				ControllerLibrary: this.controllerLibrary.address,
 			},
 		})
