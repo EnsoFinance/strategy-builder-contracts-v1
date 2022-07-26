@@ -36,6 +36,8 @@ contracts/routers/StrategyRouter.sol               |  18 +-
 
 ### Interface updates for Frontend
 
+```
+
 Strategy
 
 +    function updateTimelock(bytes4 functionSelector, uint256 delay) external;
@@ -99,6 +101,7 @@ EmergencyEstimator
 +    function estimateItem(uint256 balance, address token) public view returns (int256);
 +    function updateEstimate(address token, int256 amount) external;
 +    function finalizeSetEstimate() external;
+```
 
 -------------------------------------------------------------------------------
 
