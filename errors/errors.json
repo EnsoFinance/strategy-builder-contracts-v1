@@ -370,6 +370,10 @@
     "contractName": "AddressArrays.sol"
   },
   {
+    "contractId": "fb3859462a28",
+    "contractName": "BinaryTree.sol"
+  },
+  {
     "contractId": "a0976939a344",
     "contractName": "BinaryTreeWithPayload.sol"
   },
