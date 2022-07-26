@@ -202,7 +202,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     * @param amount The amount of strategy tokens to burn to recover the equivalent underlying assets
     */
     function withdrawAll(uint256 amount) external override {
-        _setLock();
+        _setLock(1);
         _require(_debt.length == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("Cannot withdraw debt") */);
         _require(amount > 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
         settleSynths();
@@ -388,9 +388,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         updateAddresses();
     }
 
-    function lock() external override {
+    function lock(uint8 lockType) external override {
         _onlyController();
-        _setLock();
+        _setLock(lockType);
     }
 
     function unlock() external override {
@@ -400,6 +400,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
 
     function locked() external view override returns (bool) {
         return _locked % 2 == 1;
+    }
+
+    function lockType() external view override returns (uint8) {
+        return _locked;
     }
 
     function items() external view override returns (address[] memory) {

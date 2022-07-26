@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IERC20NonStandard.sol";
+import "../../interfaces/IStrategy.sol";
 import "../../helpers/Timelocks.sol";
 
 contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
@@ -41,10 +42,6 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit UpdateTimelock(delay, true);
     }
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token);
-    }
-
     function updateEstimate(address token, int256 amount) external onlyOwner {
         _startTimelock(
           keccak256(abi.encode(this.updateEstimate.selector)), // identifier
@@ -60,7 +57,12 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit EstimateSet(token, amount, true);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(uint256 balance, address token) public view override returns (int256) {
+        return _estimateItem(balance, token);
+    }
+
+    function estimateItem(address user, address token) public view override returns (int256) {
+        require(IStrategy(user).lockType() != 3, "Cannot deposit into blocked token"); // FIXME: Currently assuming user is strategy
         uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance, token);
     }
