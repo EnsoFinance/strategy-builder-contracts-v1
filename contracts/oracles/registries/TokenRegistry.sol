@@ -36,9 +36,9 @@ contract TokenRegistry is ITokenRegistry, Ownable {
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);  
     }
 
-    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable) external override onlyOwner {
+    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable_) external override onlyOwner {
         ItemDetails storage id = _itemDetails[token];
-        id.isClaimable = isClaimable;
+        id.isClaimable = isClaimable_;
         id.tradeData = tradeData;
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);    
     }

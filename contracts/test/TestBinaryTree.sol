@@ -6,13 +6,13 @@ import "../libraries/BinaryTreeWithPayload.sol";
 
 contract TestBinaryTree {
 
-    function fuzzAddressArrayReadInto() external {
+    function fuzzAddressArrayReadInto() external pure {
         address[] memory arr = new address[](20); 
         BinaryTree.Tree memory tree = BinaryTree.newNode();
         address addrs;
         for (uint256 i; i < arr.length; ++i) {
             addrs = address(uint256(keccak256(abi.encode(i))));
-            BinaryTree.add(tree, uint256(uint160(addrs)));
+            BinaryTree.push(tree, uint256(uint160(addrs)));
         }
         address[] memory res = new address[](arr.length);
         AddressArrays.readInto(tree, res, 0);
@@ -34,13 +34,13 @@ contract TestBinaryTree {
         }
     }
 
-    function fuzzBinaryTreeWithPayloadReadInto() external {
+    function fuzzBinaryTreeWithPayloadReadInto() external pure {
         uint256[] memory arr = new uint256[](20); 
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
         uint256 value;
         for (uint256 i; i < arr.length; ++i) {
             value = uint256(keccak256(abi.encode(i)));
-            BinaryTreeWithPayload.add(tree, value, new bytes(0));
+            BinaryTreeWithPayload.push(tree, value, new bytes(0));
         }
         uint256[] memory res = new uint256[](arr.length);
         bytes[] memory vals = new bytes[](arr.length);

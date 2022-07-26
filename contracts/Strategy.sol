@@ -231,10 +231,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         // is needed to determine the mint amount, it is called earlier in StrategyController.deposit()
         // so it unnecessary to call here.
         address pool = _pool;
-        address manager = _manager;
-        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
+        address manager_ = _manager;
+        if (account != manager_ && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
         _mint(account, amount);
-        _updateStreamingFeeRate(pool, manager);
+        _updateStreamingFeeRate(pool, manager_);
     }
 
     /**
@@ -248,9 +248,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         if (account == pool) {
           _burn(account, amount);
         } else {
-          address manager = _manager;
-          if (account != manager) _removePaidTokenValue(account, amount);
-          _issueStreamingFeeAndBurn(pool, manager, account, amount);
+          address manager_ = _manager;
+          if (account != manager_) _removePaidTokenValue(account, amount);
+          _issueStreamingFeeAndBurn(pool, manager_, account, amount);
         }
         return amount;
     }
@@ -341,12 +341,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      */
     function updateManager(address newManager) external override {
         _onlyManager();
-        address manager = _manager;
+        address manager_ = _manager;
         address pool = _pool;
-        _issueStreamingFee(pool, manager);
-        _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
+        _issueStreamingFee(pool, manager_);
+        _require(newManager != manager_, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
         // Reset paid token values
-        _paidTokenValues[manager] = _lastTokenValue;
+        _paidTokenValues[manager_] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
         _manager = newManager;
         _updateStreamingFeeRate(pool, newManager);
@@ -462,7 +462,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         BinaryTree.Tree memory exists = BinaryTree.newNode();
         for (uint256 i; i < newItems.length; ++i) {
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
-            exists.add(bytes32(uint256(newItems[i].item)));
+            exists.push(bytes32(uint256(newItems[i].item)));
         }
         if (_synths.length > 0) {
             // Add SUSD percentage
@@ -503,7 +503,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         StrategyItem memory item;
         for (uint256 i; i < rewardTokens.length; ++i) {
             if (_tokenExists(exists, rewardTokens[i])) continue;
-            exists.add(bytes32(uint256(rewardTokens[i])));
+            exists.push(bytes32(uint256(rewardTokens[i])));
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
             _setItem(item, tokenRegistry);
         }
@@ -530,9 +530,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         if (newPool != currentPool) {
             // If pool has been initialized but is now changing update paidTokenValue
             if (currentPool != address(0)) {
-                address manager = _manager;
-                _issueStreamingFee(currentPool, manager);
-                _updateStreamingFeeRate(newPool, manager);
+                address manager_ = _manager;
+                _issueStreamingFee(currentPool, manager_);
+                _updateStreamingFeeRate(newPool, manager_);
                 _paidTokenValues[currentPool] = _lastTokenValue;
             }
             _paidTokenValues[newPool] = uint256(-1);
@@ -556,7 +556,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     function _setTokensExists(BinaryTree.Tree memory exists, address[] memory tokens) private pure {
         for (uint256 i; i < tokens.length; ++i) {
             if (_tokenExists(exists, tokens[i])) continue;
-            exists.add(bytes32(uint256(tokens[i])));
+            exists.push(bytes32(uint256(tokens[i])));
         }
     }
 

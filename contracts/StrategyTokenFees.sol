@@ -17,8 +17,8 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     event ManagementFee(uint256 amount);
 
     function managementFee() external view returns (uint256) {
-        uint256 managementFee = _managementFee;
-        return managementFee / (managementFee.add(PRECISION) / DIVISOR); // divisors cannot be 0
+        uint256 managementFee_ = _managementFee;
+        return managementFee_ / (managementFee_.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
 
     /**
@@ -35,6 +35,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
      * @notice Update the performance fee. Only callable by controller
      */
     function updatePerformanceFee(uint16 fee) external override {
+        fee; // shh compiler
         _onlyController();
         revert("This strategy does not support performance fees");
     }
@@ -84,9 +85,9 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
         uint256 streamingFee = IStrategyProxyFactory(_factory).streamingFee();
         uint256 poolBalance = _balances[pool];
         _streamingFeeRate = uint224(_totalSupply.sub(poolBalance).mul(streamingFee));
-        uint256 managementFee = _managementFee;
-        if (_managementFee > 0) {
-           _managementFeeRate = _totalSupply.sub(poolBalance).sub(_balances[manager]).mul(managementFee);
+        uint256 managementFee_ = _managementFee;
+        if (managementFee_ > 0) {
+           _managementFeeRate = _totalSupply.sub(poolBalance).sub(_balances[manager]).mul(managementFee_);
         }
     }
 

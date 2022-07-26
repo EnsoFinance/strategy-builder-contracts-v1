@@ -68,6 +68,7 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter, StringUtils {
     }
 
     function rewardsTokens(address token) external view override returns(address[] memory) {
+        token; // shh baby compiler
         address[] memory ret = new address[](1);
         ret[0] = comptroller.getCompAddress();
         return ret;

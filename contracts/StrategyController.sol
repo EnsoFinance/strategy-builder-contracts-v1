@@ -136,8 +136,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         bytes memory data
     ) external override {
-        (address weth, uint256 wethAmount) = _withdrawWETH(strategy, router, amount, slippage, address(this), data);
-        IWETH(weth).withdraw(wethAmount);
+        (address weth_, uint256 wethAmount) = _withdrawWETH(strategy, router, amount, slippage, address(this), data);
+        IWETH(weth_).withdraw(wethAmount);
         (bool success, ) = msg.sender.call{ value : wethAmount }(""); // Using 'call' instead of 'transfer' to safegaurd against gas price increases
         _require(success, uint256(0x1bb63a90056c03) /* error_macro_for("withdrawETH: call failed.") */);
         _removeStrategyLock(strategy); // locked in _withdrawWETH
@@ -424,11 +424,11 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 slippage,
         address to,
         bytes memory data
-    ) private returns(address weth, uint256 wethAmount) {
+    ) private returns(address weth_, uint256 wethAmount) {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
-        (weth, wethAmount) = ControllerLibrary.withdraw(strategy, router, amount, slippage, data);
-        IERC20(weth).safeTransferFrom(address(strategy), to, wethAmount);
+        (weth_, wethAmount) = ControllerLibrary.withdraw(strategy, router, amount, slippage, data);
+        IERC20(weth_).safeTransferFrom(address(strategy), to, wethAmount);
     }
 
     function _setInitialState(address strategy, InitialState memory state) private {
@@ -461,14 +461,14 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         uint256 balanceBefore,
         bytes memory data
     ) private {
-        address weth;
+        address weth_;
         if (msg.value > 0) {
             _require(amount == 0, uint256(0x1bb63a90056c12) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
-            weth = _weth;
-            IWETH(weth).deposit{value: amount}();
+            weth_ = _weth;
+            IWETH(weth_).deposit{value: amount}();
         }
-        ControllerLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
+        ControllerLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth_, data);
     }
 
     /**
@@ -525,7 +525,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(value <= FEE_BOUND, uint256(0x1bb63a90056c16) /* error_macro_for("Fee too high") */);
     }
 
-    function _checkTimelock(uint256 value) private {
+    function _checkTimelock(uint256 value) private pure {
         _require(value <= 30 days, uint256(0x1bb63a90056c17) /* error_macro_for("Timelock is too long") */);
     }
 

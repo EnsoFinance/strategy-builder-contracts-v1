@@ -90,6 +90,7 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
     }
 
     function rewardsTokens(address token) external view override returns(address[] memory) {
+        token; // shh compiler
         address[] memory ret = new address[](1);
         ret[0] = _ic.REWARD_TOKEN();
         return ret;

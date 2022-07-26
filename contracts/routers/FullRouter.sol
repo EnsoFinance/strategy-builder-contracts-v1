@@ -194,7 +194,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             estimate = estimates[strategyItems.length + i];
             //Repay all debt that has 0 percentage
             if (IStrategy(strategy).getPercentage(strategyDebt[i]) == 0) {
-                mm.add(STRATEGY_DEBT_KEY, abi.encode(strategyDebt[i]));
+                mm.push(STRATEGY_DEBT_KEY, abi.encode(strategyDebt[i]));
                 TradeData memory td = IStrategy(strategy).getTradeData(strategyDebt[i]);
                 _repayPath(
                     td,
@@ -203,7 +203,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     strategy,
                     mm
                 );
-                mm.add(STRATEGY_DEBT_KEY, bytes32(0));
+                mm.push(STRATEGY_DEBT_KEY, bytes32(0));
                 _returnRemainderToStrategy(td, strategy);
             } else {
                 //Only repay if above rebalance threshold
@@ -892,7 +892,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             }
             if (estimatedValue > expectedValue) {
                 // condition check above means adding diff that isn't overflowed
-                tree.add(uint256(estimatedValue-expectedValue), abi.encode(strategyItem, estimatedValue));
+                tree.push(uint256(estimatedValue-expectedValue), abi.encode(strategyItem, estimatedValue));
                 ++numberAdded;
             }
         }
@@ -906,7 +906,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function _setTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item, int256 value) private pure {
-        mm.add(keccak256(abi.encode(strategy, item)), bytes32(value));
+        mm.push(keccak256(abi.encode(strategy, item)), bytes32(value));
     }
 
     function _getTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private pure returns(int256) {
@@ -918,6 +918,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     }
 
     function _removeTempEstimate(BinaryTreeWithPayload.Tree memory mm, address strategy, address item) private pure {
-        mm.add(keccak256(abi.encode(strategy, item)), bytes32(0));
+        mm.push(keccak256(abi.encode(strategy, item)), bytes32(0));
     }
 }

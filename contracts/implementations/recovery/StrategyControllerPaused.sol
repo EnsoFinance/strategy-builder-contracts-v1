@@ -126,7 +126,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address adapter, address token) external {
+    function repositionSynths(IStrategy strategy, address adapter, address token) external pure {
         (strategy, adapter, token); // shh compiler
         revert("StrategyControllerPaused.");
     }

@@ -20,7 +20,7 @@ contract StrategyCommon is StrategyTokenStorage {
     /**
      * @dev Throws if called by any account other than the controller.
      */
-    function _onlyController() internal {
+    function _onlyController() internal view {
         if (msg.sender != _controller) revert("Controller only");
     }
 
