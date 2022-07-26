@@ -1,3 +1,39 @@
+## Changelog after code4ena engagement
+
+### Must redeploy
+
+```
+contracts/Strategy.sol                             | 735 ++++++------------
+contracts/StrategyController.sol                   | 520 ++++---------
+contracts/StrategyProxyFactory.sol                 | 142 +++-
+contracts/adapters/borrow/AaveV2DebtAdapter.sol    |  37 +-
+contracts/adapters/borrow/Leverage2XAdapter.sol    |  11 +-
+contracts/adapters/exchanges/CurveAdapter.sol      |   7 +-
+contracts/adapters/exchanges/UniswapV3Adapter.sol  |   7 +-
+contracts/adapters/lending/AaveV2Adapter.sol       |  63 +-
+contracts/adapters/lending/CompoundAdapter.sol     |  62 +-
+contracts/adapters/liquidity/CurveLPAdapter.sol    |   8 +-
+contracts/adapters/vaults/CurveGaugeAdapter.sol    |  65 +-
+contracts/adapters/vaults/YEarnV2Adapter.sol       |  51 +-
+.../recovery/StrategyControllerPaused.sol          |  16 +
+contracts/libraries/ControllerLibrary.sol          | 520 +++++++++++++
+contracts/libraries/StrategyClaim.sol              | 177 +++++
+contracts/libraries/StrategyLibrary.sol            |  90 +--
+contracts/oracles/EnsoOracle.sol                   |   4 +
+.../oracles/estimators/CurveGaugeEstimator.sol     |  14 +-
+contracts/oracles/estimators/CurveLPEstimator.sol  |  47 +-
+.../oracles/estimators/EmergencyEstimator.sol      |  41 +-
+contracts/oracles/protocols/ChainlinkOracle.sol    |   5 +-
+contracts/oracles/registries/TokenRegistry.sol     |  24 +-
+contracts/routers/FullRouter.sol                   | 510 +++++++-----
+contracts/routers/LoopRouter.sol                   |  83 +-
+contracts/routers/MulticallRouter.sol              |  15 +-
+contracts/routers/StrategyRouter.sol               |  18 +-
+```
+
+
+-------------------------------------------------------------------------------
+
 commit dd7dd46a29cc39041213943e92f0df286485bd36 (HEAD -> develop, origin/develop, origin/HEAD)
 Author: George Carder <georgercarder@gmail.com>
 Date:   Tue Jul 26 10:17:52 2022 -0700
