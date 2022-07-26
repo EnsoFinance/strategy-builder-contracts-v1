@@ -19,4 +19,6 @@ interface IStrategyToken is IERC20NonStandard {
     ) external;
 
     function nonces(address owner) external view returns (uint256);
+
+     function version() external view returns (string memory);
 }
