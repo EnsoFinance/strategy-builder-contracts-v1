@@ -100,7 +100,7 @@ describe('Live Estimates', function () {
 			accounts[0],
 			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
 			controller,
-			enso.platform.library
+			enso.platform.strategyLibrary
 		)
 		// Whitelist
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)

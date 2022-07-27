@@ -31,6 +31,7 @@ import {
 } from '../lib/deploy'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 15
 const STRATEGY_STATE: InitialState = {
@@ -57,7 +58,7 @@ describe('MetaStrategyAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapAdapter: Contract,
 		metaStrategyAdapter: Contract,
 		basicStrategy: Contract,
@@ -80,8 +81,8 @@ describe('MetaStrategyAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
-		loopRouter = await deployLoopRouter(accounts[0], controller, library)
+		controllerLibrary = platform.controllerLibrary
+		loopRouter = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(loopRouter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
@@ -116,10 +117,15 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		basicWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		basicWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await basicWrapper.deployed()
 
 		expect(await basicWrapper.isBalanced()).to.equal(true)
@@ -156,10 +162,15 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await metaWrapper.deployed()
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
@@ -218,10 +229,15 @@ describe('MetaStrategyAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		metaMetaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		metaMetaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await metaMetaWrapper.deployed()
 	})
 
@@ -241,6 +257,7 @@ describe('MetaStrategyAdapter', function () {
 	it('Should rebalance strategy: selling basic strategy tokens', async function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -254,6 +271,7 @@ describe('MetaStrategyAdapter', function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		const balanceBefore = await metaStrategy.balanceOf(metaMetaStrategy.address)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(metaMetaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -278,6 +296,7 @@ describe('MetaStrategyAdapter', function () {
 
 	it('Should rebalance strategy: buying basic strategy tokens', async function () {
 		const balanceBefore = await basicStrategy.balanceOf(metaStrategy.address)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(metaStrategy.address, loopRouter.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -423,6 +442,7 @@ describe('MetaStrategyAdapter', function () {
 		)
 		//Encode multicalls and rebalance
 		const rebalanceData = await multicallRouter.encodeCalls([...maliciousCalls, ...rebalanceCalls])
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(basicStrategy.address, multicallRouter.address, rebalanceData)
 		).to.be.revertedWith('')

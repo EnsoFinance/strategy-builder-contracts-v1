@@ -9,7 +9,7 @@ const { AddressZero, WeiPerEther } = constants
 
 const NUM_TOKENS = 15
 
-describe('StrategyLibrary', function () {
+describe('ControllerLibrary', function () {
 	let tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
@@ -19,7 +19,7 @@ describe('StrategyLibrary', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
@@ -39,10 +39,10 @@ describe('StrategyLibrary', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 
 		const positions = [
@@ -84,10 +84,11 @@ describe('StrategyLibrary', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)

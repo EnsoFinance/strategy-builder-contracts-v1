@@ -43,7 +43,7 @@ describe('Leverage2XAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapAdapter: Contract,
 		aaveV2Adapter: Contract,
 		aaveV2DebtAdapter: Contract,
@@ -63,7 +63,7 @@ describe('Leverage2XAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const { tokenRegistry } = platform.oracles.registries
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
@@ -156,10 +156,11 @@ describe('Leverage2XAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address, controller.address)
 		await wrapper.deployed()
 
 		await displayBalances(
@@ -242,10 +243,11 @@ describe('Leverage2XAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address, controller.address)
 		await wrapper.deployed()
 
 		await displayBalances(
