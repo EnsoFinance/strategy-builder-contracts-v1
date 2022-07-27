@@ -69,7 +69,7 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
     }
 
     // Intended to be called via delegateCall
-    function claim(address[] memory tokens) external override {
+    function claim(address[] calldata tokens) external override {
         uint256 amount = _ic.getRewardsBalance(tokens, address(this));
         _ic.claimRewards(tokens, amount, address(this));
     }

@@ -131,8 +131,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         @dev Can send ETH with this call to automatically deposit items into the strategy
     */
     function createStrategy(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
@@ -143,13 +143,13 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     function createStrategyFor(
         address manager,
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
         bytes memory data,
-        bytes memory signature
+        bytes calldata signature
     ) external payable override returns (address) {
         bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, keccak256(bytes(name)), keccak256(bytes(symbol))));
         bytes32 digest = _hashTypedDataV4(structHash);
@@ -158,7 +158,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
 
-    function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
+    function updateImplementation(address newImplementation, string calldata newVersion) external noZeroAddress(newImplementation) onlyOwner {
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
         _version = newVersion;
@@ -252,7 +252,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         owner = newOwner;
     }
 
-    function salt(address manager, string memory name, string memory symbol) public pure override returns (bytes32) {
+    function salt(address manager, string calldata name, string calldata symbol) public pure override returns (bytes32) {
       return keccak256(abi.encode(manager, name, symbol));
     }
 
@@ -305,8 +305,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     function _createStrategy(
         address manager,
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
@@ -335,7 +335,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         @notice Creates a Strategy proxy and makes a delegate call to initialize items + percentages on the proxy
     */
     function _createProxy(
-        address manager, string memory name, string memory symbol, StrategyItem[] memory strategyItems
+        address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
         require(!_proxyExists[salt_], "_createProxy: proxy already exists.");

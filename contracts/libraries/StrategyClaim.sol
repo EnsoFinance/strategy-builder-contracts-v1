@@ -19,7 +19,7 @@ library StrategyClaim {
 
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
 
-    function claimAll(bytes[] memory claimables) public {
+    function claimAll(bytes[] calldata claimables) public {
         address[] memory tokens;
         StrategyTypes.TradeData memory tradeData;
         uint256 adaptersLength;

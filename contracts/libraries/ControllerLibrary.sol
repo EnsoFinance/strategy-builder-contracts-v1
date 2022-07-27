@@ -122,7 +122,7 @@ library ControllerLibrary {
      */
     function approveSynthsAndDebt(
         IStrategy strategy,
-        address[] memory strategyDebt,
+        address[] calldata strategyDebt,
         address router,
         uint256 amount
     ) public {
@@ -350,7 +350,7 @@ library ControllerLibrary {
     }
 
     // @notice Checks that there is no debt remaining for tokens that are no longer part of the strategy
-    function verifyFormerDebt(address strategy, address[] memory newDebt, address[] memory formerDebt) public view {
+    function verifyFormerDebt(address strategy, address[] calldata newDebt, address[] memory formerDebt) public view {
         formerDebt = formerDebt.without(newDebt);
         uint256 balance;
         for (uint256 i; i < formerDebt.length; ++i) {
