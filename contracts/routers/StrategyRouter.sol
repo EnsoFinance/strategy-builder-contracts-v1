@@ -129,7 +129,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address from
     ) internal {
         if (amount != 0) {
-            for (uint256 i = 0; i < data.adapters.length; i++) {
+            for (uint256 i; i < data.adapters.length; ++i) {
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut;

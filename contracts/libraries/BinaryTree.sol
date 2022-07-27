@@ -32,7 +32,7 @@ library BinaryTree {
         if (tree.value == value) {
             return;
         }
-        uint256 idx = 0;
+        uint256 idx;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
             add(tree.neighbors[idx], value);
@@ -50,7 +50,7 @@ library BinaryTree {
         if (tree.value == value) {
             return false;
         }
-        uint256 idx = 0;
+        uint256 idx;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
             return replace(tree.neighbors[idx], value);

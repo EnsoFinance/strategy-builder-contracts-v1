@@ -371,7 +371,7 @@ library ControllerLibrary {
 
         bool balanced = true;
         address[] memory strategyItems = strategy.items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
             if (expectedValue > 0) {
                 int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
@@ -395,7 +395,7 @@ library ControllerLibrary {
         }
         if (balanced) {
             address[] memory strategyDebt = strategy.debt();
-            for (uint256 i = 0; i < strategyDebt.length; i++) {
+            for (uint256 i; i < strategyDebt.length; ++i) {
               int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
               int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
               uint256 index = strategyItems.length + i;
@@ -419,9 +419,9 @@ library ControllerLibrary {
      */
     function amountOutOfBalance(address strategy, uint256 total, int256[] memory estimates) public view returns (uint256) {
         if (total == 0) return 0;
-        uint256 amount = 0;
+        uint256 amount;
         address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (estimates[i] > expectedValue) {
                 amount = amount.add(uint256(estimates[i].sub(expectedValue)));
@@ -430,7 +430,7 @@ library ControllerLibrary {
             }
         }
         address[] memory strategyDebt = IStrategy(strategy).debt();
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (uint256 i; i < strategyDebt.length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
             uint256 index = strategyItems.length + i;
             if (estimates[index] > expectedValue) {

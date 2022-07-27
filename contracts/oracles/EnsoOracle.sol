@@ -33,7 +33,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         address[] memory strategyDebt = strategy.debt();
         int256 total = int256(IERC20(weth).balanceOf(address(strategy))); //WETH is never part of items array but always included in total value
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             int256 estimate = estimateItem(
                 address(strategy),
                 strategyItems[i]
@@ -41,7 +41,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
             total = total.add(estimate);
             estimates[i] = estimate;
         }
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        for (uint256 i; i < strategyDebt.length; ++i) {
             int256 estimate = estimateItem(
                 address(strategy),
                 strategyDebt[i]
@@ -53,8 +53,8 @@ contract EnsoOracle is IOracle, StrategyTypes {
         if (strategySynths.length > 0) {
             // All synths rely on the chainlink oracle
             IEstimator chainlinkEstimator = tokenRegistry.estimators(uint256(EstimatorCategory.CHAINLINK_ORACLE));
-            int256 estimate = 0;
-            for (uint256 i = 0; i < strategySynths.length; i++) {
+            int256 estimate;
+            for (uint256 i; i < strategySynths.length; ++i) {
                 estimate = estimate.add(chainlinkEstimator.estimateItem(
                     address(strategy),
                     strategySynths[i]
@@ -85,7 +85,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
 
     function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {
         uint256[] memory totals = new uint256[](strategies.length);
-        for (uint256 i = 0; i < strategies.length; i++) {
+        for (uint256 i; i < strategies.length; ++i) {
             (uint256 total, ) = estimateStrategy(strategies[i]);
             totals[i] = total;
         }

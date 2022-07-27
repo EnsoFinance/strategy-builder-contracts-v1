@@ -37,7 +37,7 @@ library BinaryTreeWithPayload {
             tree.payload = payload;
             return;
         }
-        uint256 idx = 0;
+        uint256 idx;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
             add(tree.neighbors[idx], value, payload);
@@ -57,7 +57,7 @@ library BinaryTreeWithPayload {
             tree.payload = payload;
             return false;
         }
-        uint256 idx = 0;
+        uint256 idx;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
             return replace(tree.neighbors[idx], value, payload);

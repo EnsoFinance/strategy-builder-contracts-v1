@@ -40,7 +40,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         address strategyItem;
         int256 estimate;
         uint256 i;
-        while (expectedWeth > 0 && i < payloads.length) {
+        while (expectedWeth != 0 && i < payloads.length) {
             diff = diffs[i];
             if (diff > expectedWeth) {
                 diff = expectedWeth;
@@ -65,7 +65,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyItems = IStrategy(strategy).items();
         int256[] memory buy = new int256[](strategyItems.length);
         // Sell loop
-        for (uint256 i = 0; i < strategyItems.length; ++i) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             int expected = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (!_sellToken(
                     strategy,
@@ -77,7 +77,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
             // semantic overloading to cache `expected` since it will be used in next loop.
         }
         // Buy loop
-        for (uint256 i = 0; i < strategyItems.length; ++i) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             if (buy[i] != 0) {
                 _buyToken(
                     strategy,
@@ -113,7 +113,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         address[] memory strategyItems
     ) internal {
-        for (uint256 i = 0; i < strategyItems.length; ++i) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             // Convert funds into Ether
             address strategyItem = strategyItems[i];
             if (IStrategy(strategy).getPercentage(strategyItem) == 0) {
@@ -143,7 +143,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256[] memory estimates,
         address[] memory strategyItems
     ) internal {
-        for (uint256 i = 0; i < strategyItems.length; ++i) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             address strategyItem = strategyItems[i];
             _buyToken(
                 strategy,

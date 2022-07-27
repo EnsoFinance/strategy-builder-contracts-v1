@@ -17,7 +17,7 @@ contract ChainlinkRegistry is IChainlinkRegistry, Ownable {
     ) external override onlyOwner {
         require(tokens.length == pairs.length, "Array mismatch");
         require(tokens.length == oracles.length, "Array mismatch");
-        for (uint256 i = 0; i < tokens.length; i++) {
+        for (uint256 i; i < tokens.length; ++i) {
             ChainlinkOracleData storage oracleData = _chainlinkOracles[tokens[i]];
             oracleData.pair = pairs[i];
             oracleData.oracle = oracles[i];

@@ -487,7 +487,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             leverageLiquidity = new uint256[](leverageItems.length);
             if (amount == 0) {
                 // Special case where debt doesn't need to change but the relative amounts of leverage tokens do. We must first deleverage our debt
-                for (uint256 i = 0; i < leverageItems.length; i++) {
+                for (uint256 i; i < leverageItems.length; i++) {
                     leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false, mm);
                     amount = amount.add(leverageLiquidity[i]);
                 }
