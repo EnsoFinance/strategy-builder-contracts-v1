@@ -523,7 +523,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             if (leverageItems.length != 0) {
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 ( , , uint256 availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
-                bool isLiquidityRemaining = false;
+                bool isLiquidityRemaining;
                 uint256 leverageAmount;
                 for (uint256 i; i < leverageItems.length; ++i) {
                     if (leverageLiquidity[i] != 0 && availableBorrowsETH != 0) {

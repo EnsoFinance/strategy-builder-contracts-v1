@@ -154,7 +154,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, keccak256(bytes(name)), keccak256(bytes(symbol))));
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = ECDSA.recover(digest, signature);
-        require(signer == manager, "createStrategyFor: not signed by manager.");
+        require(signer == manager, "createStrategyFor: invalid.");
         return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
 
@@ -338,7 +338,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
-        require(!_proxyExists[salt_], "_createProxy: proxy already exists.");
+        require(!_proxyExists[salt_], "_createProxy: already exists.");
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy{salt: salt_}(
                     _implementation,

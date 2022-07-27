@@ -36,7 +36,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
      */
     function updatePerformanceFee(uint16 fee) external override {
         _onlyController();
-        revert("This strategy does not support performance fees");
+        revert("not supported");
     }
 
     /**

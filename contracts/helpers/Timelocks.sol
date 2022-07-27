@@ -20,7 +20,7 @@ abstract contract Timelocks is StrategyTypes {
     // since this function is internal, this way `_timelockIsReady` will not overflow
     function _setTimelock(bytes4 selector, uint256 delay) internal {
         TimelockData storage td = _timelockData(selector); 
-        require(delay <= uint128(-1), "_setTimelock: delay out of range.");
+        require(delay <= uint128(-1), "delay > uint128(-1).");
         td.delay = uint128(delay);
         td.value = UNSET_VALUE;
         emit TimelockSet(selector, delay);

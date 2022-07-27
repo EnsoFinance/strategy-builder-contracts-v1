@@ -20,7 +20,7 @@ contract Multicall {
         for (uint256 i; i < callsLength; ++i) {
             internalTx = calls[i];
             assembly { success := extcodesize(mload(internalTx)) }
-            require(success, "aggregate: target not a contract.");
+            require(success, "aggregate: not a contract.");
             (success, returnData[i]) =
                 internalTx.target.call(internalTx.callData);
             if (!success) {

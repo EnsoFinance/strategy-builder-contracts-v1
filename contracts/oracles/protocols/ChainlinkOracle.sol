@@ -28,13 +28,12 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
     function _traversePairs(
         uint256 amount,
         IChainlinkRegistry.ChainlinkOracleData memory oracleData
-    ) internal view returns (uint256){
+    ) internal view returns (uint256 value){
         AggregatorV3Interface oracle = AggregatorV3Interface(oracleData.oracle);
         (uint80 roundId, int256 price, , uint256 updatedAt, uint80 answeredInRound) = oracle.latestRoundData();
         require(price != 0, "_traversePairs: price == 0.");
-        require(updatedAt != 0, "_traversePairs: Incomplete round.");
+        require(updatedAt != 0, "_traversePairs: updatedAt != 0.");
         require(answeredInRound >= roundId, "_traversePairs: Stale price.");
-        uint256 value;
         if (oracleData.inverse) {
             value = amount.mul(10**uint256(oracle.decimals())).div(uint256(price));
         } else {
@@ -45,6 +44,5 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
             require(pairData.oracle != address(0), "Pair not initialized");
             value = _traversePairs(value, pairData);
         }
-        return value;
     }
 }

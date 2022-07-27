@@ -99,7 +99,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) external virtual override returns (bool) {
         uint256 currentAllowance = _allowances[msg.sender][spender];
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance < 0");
         _approve(msg.sender, spender, currentAllowance.sub(subtractedValue));
 
         return true;

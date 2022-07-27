@@ -28,7 +28,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     function finalizeTimelock() external override {
         if (!_timelockIsReady(this.updateTimelock.selector)) {
             TimelockData memory td = _timelockData(this.updateTimelock.selector);
-            require(td.delay == 0, "finalizeTimelock: timelock is not ready.");
+            require(td.delay == 0, "finalizeTimelock: not ready.");
         }
         (bytes4 selector, uint256 delay) = abi.decode(_getTimelockValue(this.updateTimelock.selector), (bytes4, uint256));
         _setTimelock(selector, delay);
@@ -46,7 +46,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     }
 
     function finalizeSetEstimate() external {
-        require(_timelockIsReady(this.updateEstimate.selector), "finalizeSetEstimate: timelock not ready.");
+        require(_timelockIsReady(this.updateEstimate.selector), "finalizeSetEstimate: not ready.");
         (address token, int256 amount) = abi.decode(_getTimelockValue(this.updateEstimate.selector), (address, int256));
         _resetTimelock(this.updateEstimate.selector);
         estimates[token] = amount;

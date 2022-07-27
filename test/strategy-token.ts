@@ -286,7 +286,7 @@ describe('StrategyToken', function () {
 
 	it('Should fail to decrease allowance: more than allowed', async function () {
 		await expect(strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith(
-			'ERC20: decreased allowance below zero'
+			'ERC20: decreased allowance < 0'
 		)
 	})
 

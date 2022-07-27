@@ -75,14 +75,14 @@ library BinaryTreeWithPayload {
     }
 
     function readInto(Tree memory tree, uint256[] memory arrayA, bytes[] memory arrayB) internal pure { 
-        if (arrayA.length != arrayB.length) revert("readInto: arrayA needs idx entry.");
-        if (arrayB.length == 0) revert("readInto: arrayB can't be length 0.");
+        if (arrayA.length != arrayB.length) revert("readInto: length mismatch.");
+        if (arrayB.length == 0) revert("readInto: array length == 0.");
         _readInto(tree, arrayA, arrayB, 0);
     }
 
     function readInto(Tree memory tree, uint256[] memory arrayA, uint256[] memory arrayB) private pure { 
-        if (arrayA.length != arrayB.length) revert("readInto: array lengths must match.");
-        if (arrayB.length == 0) revert("readInto: arrays can't be length 0.");
+        if (arrayA.length != arrayB.length) revert("readInto: length mismatch.");
+        if (arrayB.length == 0) revert("readInto: array length == 0.");
         _readInto(tree, arrayA, arrayB, 0);
     }
 

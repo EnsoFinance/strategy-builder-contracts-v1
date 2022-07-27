@@ -68,7 +68,7 @@ library BinaryTree {
     }
 
     function readInto(Tree memory tree, uint256[] memory array) internal pure { 
-        if (array.length == 0) revert("readInto: array can't be length 0.");
+        if (array.length == 0) revert("readInto: array.length == 0.");
         _readInto(tree, array, 0);
     }
 

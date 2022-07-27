@@ -225,7 +225,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
                 lock.timestamp.add(uint256(_strategyStates[address(strategy)].timelock)),
             uint256(0x1bb63a90056c05) /* error_macro_for("Timelock active") */
         );
-        _require(ControllerLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c06) /* error_macro_for("Invalid structure") */);
+        ControllerLibrary.verifyStructure(address(strategy), strategyItems);
         lock.category = TimelockCategory.RESTRUCTURE;
         lock.timestamp = block.timestamp;
         lock.data = abi.encode(strategyItems);
@@ -262,7 +262,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(lock.category == TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c09) /* error_macro_for("Wrong category") */);
         (StrategyItem[] memory strategyItems) =
             abi.decode(lock.data, (StrategyItem[]));
-        _require(ControllerLibrary.verifyStructure(address(strategy), strategyItems), uint256(0x1bb63a90056c0a) /* error_macro_for("Invalid structure") */);
+        ControllerLibrary.verifyStructure(address(strategy), strategyItems);
         _finalizeStructure(strategy, router, strategyItems, data);
         delete lock.category;
         delete lock.timestamp;
@@ -370,9 +370,8 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         public
         view
         override
-        returns (bool)
     {
-        return ControllerLibrary.verifyStructure(strategy, newItems);
+        ControllerLibrary.verifyStructure(strategy, newItems);
     }
 
     // @notice Initialized getter

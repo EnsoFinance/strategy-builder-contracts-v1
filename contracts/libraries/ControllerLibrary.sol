@@ -451,7 +451,6 @@ library ControllerLibrary {
     function verifyStructure(address strategy, StrategyTypes.StrategyItem[] memory newItems)
         public
         view
-        returns (bool)
     {
         require(newItems.length != 0, "Cannot set empty structure");
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
@@ -487,7 +486,6 @@ library ControllerLibrary {
         }
         require(!(supportsSynths && supportsDebt), "No synths and debt");
         require(total == int256(DIVISOR), "Total percentage wrong");
-        return true;
     }
 
     /**

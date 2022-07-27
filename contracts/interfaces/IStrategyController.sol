@@ -78,10 +78,7 @@ interface IStrategyController is StrategyTypes {
 
     function strategyState(address strategy) external view returns (StrategyState memory);
 
-    function verifyStructure(address strategy, StrategyItem[] memory newItems)
-        external
-        view
-        returns (bool);
+    function verifyStructure(address strategy, StrategyItem[] memory newItems) external view;
 
     function oracle() external view returns (IOracle);
 
