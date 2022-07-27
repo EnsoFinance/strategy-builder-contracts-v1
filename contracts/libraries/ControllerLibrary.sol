@@ -109,7 +109,7 @@ library ControllerLibrary {
         uint256 amount
     ) private {
         strategy.approveToken(weth, router, amount);
-        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, router, amount);
+        if (strategyItems.length != 0) strategy.approveTokens(strategyItems, router, amount);
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
@@ -135,7 +135,7 @@ library ControllerLibrary {
         address router,
         uint256 amount
     ) private {
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
+        if (strategyDebt.length != 0) strategy.approveDebt(strategyDebt, router, amount);
         if (strategy.supportsDebt()) {
             if (amount == 0) {
                 strategy.setRouter(address(0));
@@ -177,7 +177,7 @@ library ControllerLibrary {
             address[] memory synths = strategy.synths();
             for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
-                if (amount > 0) {
+                if (amount != 0) {
                     strategy.delegateSwap(
                         adapter,
                         amount,
@@ -192,7 +192,7 @@ library ControllerLibrary {
             address[] memory synths = strategy.synths();
             for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
-                if (amount > 0) {
+                if (amount != 0) {
                     strategy.delegateSwap(
                         adapter,
                         amount,
@@ -247,8 +247,8 @@ library ControllerLibrary {
         {
             uint256 totalSupply = strategy.totalSupply();
             relativeTokens =
-                totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
-            require(relativeTokens > 0, "Insuffient tokens");
+                totalSupply != 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+            require(relativeTokens != 0, "Insuffient tokens");
             strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
             strategy.mint(account, relativeTokens);
         }
@@ -267,7 +267,7 @@ library ControllerLibrary {
         bytes memory data
     ) public returns (address weth, uint256 wethAmount) {
         _onlyApproved(address(router));
-        require(amount > 0, "0 amount");
+        require(amount != 0, "0 amount");
         _checkDivisor(slippage);
         strategy.settleSynths();
         address pool = IStrategyController(address(this)).pool();
@@ -291,7 +291,7 @@ library ControllerLibrary {
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
                 {
                     uint256 poolBalance = strategy.balanceOf(pool);
-                    if (poolBalance > 0) {
+                    if (poolBalance != 0) {
                         // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
                         uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
                         if (feePercentage > WITHDRAW_LOWER_BOUND && feePercentage < WITHDRAW_UPPER_BOUND) {
@@ -337,7 +337,7 @@ library ControllerLibrary {
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         // Approve weth
         strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
-        if (poolWethAmount > 0) {
+        if (poolWethAmount != 0) {
             IERC20(weth).transferFrom(address(strategy), pool, poolWethAmount);
         }
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
@@ -453,7 +453,7 @@ library ControllerLibrary {
         view
         returns (bool)
     {
-        require(newItems.length > 0, "Cannot set empty structure");
+        require(newItems.length != 0, "Cannot set empty structure");
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
         require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
 

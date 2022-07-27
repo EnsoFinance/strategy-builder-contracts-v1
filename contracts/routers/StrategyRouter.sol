@@ -85,7 +85,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address token,
         address strategy
     ) internal {
-        if (amount > 0) {
+        if (amount != 0) {
             for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
                 uint256 _amount;
                 address _tokenIn;
@@ -128,7 +128,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address strategy,
         address from
     ) internal {
-        if (amount > 0) {
+        if (amount != 0) {
             for (uint256 i = 0; i < data.adapters.length; i++) {
                 uint256 _amount;
                 address _tokenIn;

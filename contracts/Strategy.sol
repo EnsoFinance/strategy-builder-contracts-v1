@@ -77,7 +77,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _setDomainSeperator();
         updateAddresses();
         // Set structure
-        if (strategyItems_.length > 0) {
+        if (strategyItems_.length != 0) {
             IStrategyController(_controller).verifyStructure(address(this), strategyItems_);
             _setStructure(strategyItems_);
         }
@@ -199,7 +199,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     function withdrawAll(uint256 amount) external override {
         _setLock();
         _require(_debt.length == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("Cannot withdraw debt") */);
-        _require(amount > 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
+        _require(amount != 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
         settleSynths();
         uint256 percentage;
         {
@@ -214,7 +214,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         );
         // Transfer amounts
         for (uint256 i; i < tokens.length; ++i) {
-            if (amounts[i] > 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
+            if (amounts[i] != 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
         emit Withdraw(msg.sender, amount, amounts);
         _removeLock();
@@ -423,11 +423,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function supportsSynths() public view override returns (bool) {
-        return _synths.length > 0;
+        return _synths.length != 0;
     }
 
     function supportsDebt() public view override returns (bool) {
-        return _debt.length > 0;
+        return _debt.length != 0;
     }
 
     function _deletePercentages(address[] storage assets) private {
@@ -464,7 +464,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)));
         }
-        if (_synths.length > 0) {
+        if (_synths.length != 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;

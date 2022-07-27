@@ -70,7 +70,7 @@ library StrategyClaim {
     ) {
         uint256 itemsLength = items.length;
         uint256 synthsLength = synths.length;
-        bool isSynths = synthsLength > 0;
+        bool isSynths = synthsLength != 0;
         uint256 numTokens = isSynths ? itemsLength + synthsLength + 2 : itemsLength + 1;
 
         tokens = new IERC20[](numTokens);

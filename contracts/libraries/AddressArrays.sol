@@ -16,7 +16,7 @@ library AddressArrays {
         for (uint256 i; i < array1.length; ++i) {
             if (tree.replace(uint256(uint160(array1[i])))) count++;
         }
-        if (count > 0) {
+        if (count != 0) {
             result = new address[](count);
             readInto(tree, result, 0);
         }
@@ -38,7 +38,7 @@ library AddressArrays {
                 count++;
             }
         }
-        if (count > 0) {
+        if (count != 0) {
             result = new address[](count);
             readInto(tree0, result, 0);
         }

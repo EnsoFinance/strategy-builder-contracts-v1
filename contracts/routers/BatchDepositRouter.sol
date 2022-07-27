@@ -25,7 +25,7 @@ contract BatchDepositRouter is StrategyRouter {
           address token = strategyItems[i];
           uint256 expectedValue =
               uint256(StrategyLibrary.getExpectedTokenValue(amount, strategy, token));
-          if (expectedValue > 0)
+          if (expectedValue != 0)
               IERC20(token).safeTransferFrom(
                   depositor,
                   strategy,

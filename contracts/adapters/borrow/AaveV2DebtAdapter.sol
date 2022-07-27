@@ -47,7 +47,7 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
             IERC20(tokenIn).safeApprove(lendingPool, amount);
             ILendingPool(lendingPool).repay(tokenIn, amount, 1, to);
             uint256 remaining = IERC20(tokenIn).allowance(address(this), lendingPool);
-            if (remaining > 0) {
+            if (remaining != 0) {
                 // Usually wouldn't allow a swap to succeed without spending all sent funds,
                 // but debt is a special case, so just return any remaining funds to the sender
                 IERC20(tokenIn).safeApprove(lendingPool, 0);

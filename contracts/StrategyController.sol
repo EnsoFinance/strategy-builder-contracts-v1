@@ -76,7 +76,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _require(msg.sender == factory, uint256(0x1bb63a90056c01) /* error_macro_for("Not factory") */);
         _setInitialState(strategy_, state_);
         // Deposit
-        if (msg.value > 0)
+        if (msg.value != 0)
             // No need to issue streaming fees on initial setup
             _deposit(
                 strategy,
@@ -253,7 +253,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         strategy.settleSynths();
         StrategyState memory strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        _require(lock.timestamp > 0, uint256(0x1bb63a90056c07) /* error_macro_for("No changes queued") */);
+        _require(lock.timestamp != 0, uint256(0x1bb63a90056c07) /* error_macro_for("No changes queued") */);
         _require(
             !strategyState.social ||
                 block.timestamp >= lock.timestamp.add(uint256(strategyState.timelock)),
@@ -308,7 +308,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _setStrategyLock(strategy);
         StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock storage lock = _timelocks[address(strategy)];
-        _require(lock.timestamp > 0, uint256(0x1bb63a90056c0d) /* error_macro_for("No changes queued") */);
+        _require(lock.timestamp != 0, uint256(0x1bb63a90056c0d) /* error_macro_for("No changes queued") */);
         _require(lock.category != TimelockCategory.RESTRUCTURE, uint256(0x1bb63a90056c0e) /* error_macro_for("Wrong category") */);
         _require(
             !strategyState.social ||
@@ -377,7 +377,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     // @notice Initialized getter
     function initialized(address strategy) public view override returns (bool) {
-        return _initialized[strategy] > 0;
+        return _initialized[strategy] != 0;
     }
 
     // @notice StrategyState getter
@@ -462,7 +462,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         bytes memory data
     ) private {
         address weth;
-        if (msg.value > 0) {
+        if (msg.value != 0) {
             _require(amount == 0, uint256(0x1bb63a90056c12) /* error_macro_for("Ambiguous amount") */);
             amount = msg.value;
             weth = _weth;
