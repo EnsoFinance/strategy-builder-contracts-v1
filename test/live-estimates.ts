@@ -5,8 +5,8 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
-import { deployFullRouter } from '../lib/deploy'
-import { DIVISOR, MAINNET_ADDRESSES } from '../lib/constants'
+import { deployFullRouter, deployUniswapV3Adapter, deployAaveV2Adapter, deployAaveV2DebtAdapter } from '../lib/deploy'
+import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
@@ -29,10 +29,58 @@ describe('Live Estimates', function () {
 		eYLA: Contract,
 		eNFTP: Contract,
 		eETH2X: Contract,
-		strategyClaim: Contract
+		strategyClaim: Contract,
+		oldAdapters: string[],
+		newAdapters: string[]
+
+	async function updateAdapters(strategy: Contract) {
+			// Impersonate manager
+			const managerAddress = await strategy.manager()
+			await network.provider.request({
+				method: 'hardhat_impersonateAccount',
+				params: [managerAddress],
+			})
+			const manager = await ethers.getSigner(managerAddress)
+
+			// Send funds to manager
+			await accounts[19].sendTransaction({to: managerAddress, value: WeiPerEther})
+
+			const items = await strategy.items()
+			for (let i = 0; i < items.length; i++) {
+					let tradeData = await strategy.getTradeData(items[i])
+					let adapters = [...tradeData.adapters]
+					let shouldUpdate = false;
+					for (let j = 0; j < adapters.length; j++) {
+					 	for (let k = 0; k < oldAdapters.length; k++) {
+								if (adapters[j].toLowerCase() == oldAdapters[k].toLowerCase()) {
+										adapters[j] = newAdapters[k];
+										shouldUpdate = true;
+										break;
+								}
+						}
+					}
+					if (shouldUpdate) {
+						 await strategy.connect(manager).updateTradeData(items[i], {
+							 ...tradeData,
+							 adapters: adapters
+						 })
+					}
+			}
+	}
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
+
+		// Impersonate owner
+		await network.provider.request({
+			method: 'hardhat_impersonateAccount',
+			params: [ownerAddress],
+		})
+		const owner = await ethers.getSigner(ownerAddress)
+
+		// Send funds to owner
+		await accounts[19].sendTransaction({to: ownerAddress, value: WeiPerEther.mul(5)})
+
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 
@@ -42,8 +90,9 @@ describe('Live Estimates', function () {
 
 		const { tokenRegistry, uniswapV3Registry, curveDepositZapRegistry } = enso.platform.oracles.registries
 
-		const {
+		let {
 			aaveV2,
+			aaveV2Debt,
 			compound,
 			curve,
 			curveLP,
@@ -56,6 +105,31 @@ describe('Live Estimates', function () {
 			uniswapV3,
 			yearnV2,
 		} = enso.adapters
+
+		// Store old adapter addresses
+		oldAdapters = [uniswapV3.address, aaveV2.address, aaveV2Debt.address]
+		// Deploy and whitelist new adapters
+		const uniswapV3Router = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], owner)
+		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], owner)
+		uniswapV3 = await deployUniswapV3Adapter(
+			owner, enso.platform.oracles.registries.uniswapV3Registry,
+			uniswapV3Router,
+			weth
+		)
+		await enso.platform.administration.whitelist.connect(owner).approve(uniswapV3.address)
+		aaveV2 = await deployAaveV2Adapter(
+			accounts[0],
+			aaveAddressProvider,
+			enso.platform.controller,
+			weth,
+			enso.platform.oracles.registries.tokenRegistry,
+			ESTIMATOR_CATEGORY.AAVE_V2
+		)
+		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2.address)
+		aaveV2Debt = await deployAaveV2DebtAdapter(owner, aaveAddressProvider, weth)
+		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2Debt.address)
+		// Store new adapter addresses
+		newAdapters = [uniswapV3.address, aaveV2.address, aaveV2Debt.address]
 
 		estimator = new Estimator(
 			accounts[0],
@@ -88,13 +162,12 @@ describe('Live Estimates', function () {
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
+		await updateAdapters(eDPI)
+		await updateAdapters(eYETI)
+		await updateAdapters(eYLA)
+		await updateAdapters(eNFTP)
+		await updateAdapters(eETH2X)
 
-		// Impersonate owner
-		await network.provider.request({
-			method: 'hardhat_impersonateAccount',
-			params: [ownerAddress],
-		})
-		const owner = await ethers.getSigner(ownerAddress)
 		// Deploy new router
 		router = await deployFullRouter(
 			accounts[0],
