@@ -17,7 +17,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     event EstimateSet(address token, int256 amount, bool finalized);
 
     constructor() public {
-        _setTimelock(this.updateEstimate.selector, 5 minutes);
+        _setTimelock(EmergencyEstimator.updateEstimate.selector, 5 minutes);
     }
 
     function updateTimelock(bytes4 functionSelector, uint256 delay) external override onlyOwner {

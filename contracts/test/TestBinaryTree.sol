@@ -6,7 +6,10 @@ import "../libraries/BinaryTreeWithPayload.sol";
 
 contract TestBinaryTree {
 
-    function fuzzAddressArrayReadInto() external pure {
+    uint256 public wall = 1;
+
+    function fuzzAddressArrayReadInto() external {
+        wall = 1; // touch wall to silence compiler warnings
         address[] memory arr = new address[](20); 
         BinaryTree.Tree memory tree = BinaryTree.newNode();
         address addrs;
@@ -34,7 +37,8 @@ contract TestBinaryTree {
         }
     }
 
-    function fuzzBinaryTreeWithPayloadReadInto() external pure {
+    function fuzzBinaryTreeWithPayloadReadInto() external {
+        wall = 1; // touch wall to silence compiler warnings
         uint256[] memory arr = new uint256[](20); 
         BinaryTreeWithPayload.Tree memory tree = BinaryTreeWithPayload.newNode();
         uint256 value;
