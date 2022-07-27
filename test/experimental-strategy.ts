@@ -23,7 +23,7 @@ import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-  
+
 chai.use(solidity)
 
 describe('Experimental Strategy', function () {
@@ -181,7 +181,7 @@ describe('Experimental Strategy', function () {
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, router.address, amount, '980', '0x')
+			.withdrawWETH(strategy.address, router.address, amount, '980', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
