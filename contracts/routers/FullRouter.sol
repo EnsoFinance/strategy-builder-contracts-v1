@@ -544,38 +544,39 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
-            for (uint256 i = data.adapters.length-1; ; --i) {
-                _tokenIn = data.path[i];
-                if (i == data.adapters.length-1) {
-                    uint256 balance = IERC20(_tokenIn).balanceOf(strategy);
-                    _amount = balance > amount ? amount : balance;
-                    _from = strategy;
-                    //Update amounts
-                    amount = SafeMath.sub(amount, _amount); // a.sub(b) causes stack-too-deep and costs more in gas
-                } else {
-                    _from = address(this);
-                    _amount = IERC20(_tokenIn).balanceOf(_from);
-                }
-                if (_amount != 0) {
-                    if (i == 0) {
-                        _tokenOut = address(0); //Since we're repaying to the lending pool we'll set tokenOut to zero, however amount is valued in weth
-                        _to = strategy;
+            if (data.adapters.length != 0) 
+                for (uint256 i = data.adapters.length-1; ; --i) {
+                    _tokenIn = data.path[i];
+                    if (i == data.adapters.length-1) {
+                        uint256 balance = IERC20(_tokenIn).balanceOf(strategy);
+                        _amount = balance > amount ? amount : balance;
+                        _from = strategy;
+                        //Update amounts
+                        amount = SafeMath.sub(amount, _amount); // a.sub(b) causes stack-too-deep and costs more in gas
                     } else {
-                        _tokenOut = data.path[i-1];
-                        _to = address(this);
+                        _from = address(this);
+                        _amount = IERC20(_tokenIn).balanceOf(_from);
                     }
-                    _delegateSwap(
-                        data.adapters[i],
-                        _amount,
-                        1,
-                        _tokenIn,
-                        _tokenOut,
-                        _from,
-                        _to
-                    );
+                    if (_amount != 0) {
+                        if (i == 0) {
+                            _tokenOut = address(0); //Since we're repaying to the lending pool we'll set tokenOut to zero, however amount is valued in weth
+                            _to = strategy;
+                        } else {
+                            _tokenOut = data.path[i-1];
+                            _to = address(this);
+                        }
+                        _delegateSwap(
+                            data.adapters[i],
+                            _amount,
+                            1,
+                            _tokenIn,
+                            _tokenOut,
+                            _from,
+                            _to
+                        );
+                    }
+                    if (i == 0) break;
                 }
-                if (i == 0) break;
-            }
             if (amount != 0) {
                 (bool ok, bytes memory result) = mm.getValue(STRATEGY_DEBT_KEY);
                 if (!ok) {
