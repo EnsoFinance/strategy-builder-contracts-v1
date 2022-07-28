@@ -246,7 +246,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         _validAddress(sender);
         _validAddress(recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -262,7 +262,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     function _mint(address account, uint256 amount) internal virtual {
         _validAddress(account);
         _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -280,7 +280,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     function _burn(address account, uint256 amount) internal virtual {
         _validAddress(account);
         _balances[account] = _balances[account].sub(amount, BALANCE_LOW);
-        _totalSupply = _totalSupply.sub(amount);
+        _totalSupply -= amount;
         emit Transfer(account, address(0), amount);
     }
 
