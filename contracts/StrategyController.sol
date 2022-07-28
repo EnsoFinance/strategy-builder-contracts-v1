@@ -316,20 +316,21 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             uint256(0x1bb63a90056c0f) /* error_macro_for("Timelock active") */
         );
         uint256 newValue = abi.decode(lock.data, (uint256));
-        if (lock.category == TimelockCategory.TIMELOCK) {
+        TimelockCategory lockCategory = lock.category;
+        if (lockCategory == TimelockCategory.TIMELOCK) {
             strategyState.timelock = uint32(newValue);
-        } else if (lock.category == TimelockCategory.REBALANCE_SLIPPAGE) {
+        } else if (lockCategory == TimelockCategory.REBALANCE_SLIPPAGE) {
             strategyState.rebalanceSlippage = uint16(newValue);
-        } else if (lock.category == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
+        } else if (lockCategory == TimelockCategory.RESTRUCTURE_SLIPPAGE) {
             strategyState.restructureSlippage = uint16(newValue);
-        } else if (lock.category == TimelockCategory.REBALANCE_THRESHOLD) {
+        } else if (lockCategory == TimelockCategory.REBALANCE_THRESHOLD) {
             strategy.updateRebalanceThreshold(uint16(newValue));
-        } else if (lock.category == TimelockCategory.PERFORMANCE_FEE) {
+        } else if (lockCategory == TimelockCategory.PERFORMANCE_FEE) {
             strategy.updatePerformanceFee(uint16(newValue));
-        } else { // lock.category == TimelockCategory.MANAGEMENT_FEE
+        } else { // lockCategory == TimelockCategory.MANAGEMENT_FEE
             strategy.updateManagementFee(uint16(newValue));
         }
-        emit NewValue(address(strategy), lock.category, newValue, true);
+        emit NewValue(address(strategy), lockCategory, newValue, true);
         delete lock.category;
         delete lock.timestamp;
         delete lock.data;
@@ -367,7 +368,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     }
 
     function verifyStructure(address strategy, StrategyItem[] memory newItems)
-        public
+        external 
         view
         override
     {
@@ -511,7 +512,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     function _checkSlippage(uint256 slippedValue, uint256 referenceValue, uint256 slippage) private pure {
       _require(
-          slippedValue >= referenceValue.mul(slippage).div(DIVISOR),
+          slippedValue >= referenceValue.mul(slippage) / DIVISOR,
           uint256(0x1bb63a90056c14) /* error_macro_for("Too much slippage") */
       );
     }
