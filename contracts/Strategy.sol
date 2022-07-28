@@ -391,7 +391,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function locked() external view override returns (bool) {
-        return _locked % 2 == 1;
+        return _locked == 1;
     }
 
     function items() external view override returns (address[] memory) {
@@ -426,7 +426,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return _synths.length != 0;
     }
 
-    function supportsDebt() public view override returns (bool) {
+    function supportsDebt() external view override returns (bool) {
         return _debt.length != 0;
     }
 

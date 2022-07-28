@@ -51,7 +51,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
         if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
-            return IOracle(msg.sender).estimateItem(lpPrice.mul(balance).div(TRICRYPTO2_PRECISION), USDT);
+            return IOracle(msg.sender).estimateItem(lpPrice.mul(balance) / TRICRYPTO2_PRECISION, USDT);
         } else {
             ICurveRegistry registry = ICurveRegistry(ADDRESS_PROVIDER.get_registry());
             address pool = registry.get_pool_from_lp_token(token);
@@ -81,7 +81,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                 uint256 virtualBalance =
                     balance.mul(
                         virtualPrice
-                    ).div(10**18);
+                    ) / 10**18;
                 if (assetType == 0) {
                     // USD
                     return IOracle(msg.sender).estimateItem(virtualBalance, SUSD);
@@ -100,7 +100,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
                         uint256 convertedBalance = virtualBalance;
                         if (decimals < 18) {
-                          convertedBalance = convertedBalance.div(10**(18-decimals));
+                          convertedBalance = convertedBalance / 10**(18-decimals);
                         } else if (decimals > 18) {
                           convertedBalance = convertedBalance.mul(10**(decimals-18));
                         }

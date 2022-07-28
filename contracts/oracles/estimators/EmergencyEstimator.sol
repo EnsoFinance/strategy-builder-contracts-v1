@@ -36,7 +36,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit UpdateTimelock(delay, true);
     }
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
+    function estimateItem(uint256 balance, address token) external view override returns (int256) {
         return _estimateItem(balance, token);
     }
 
@@ -53,13 +53,13 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit EstimateSet(token, amount, true);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
+    function estimateItem(address user, address token) external view override returns (int256) { 
         uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance, token);
     }
 
     function _estimateItem(uint256 balance, address token) private view returns (int256) {
-        return int256(balance).mul(estimates[token]).div(int256(10**uint256(IERC20NonStandard(token).decimals())));
+        return int256(balance).mul(estimates[token]) / int256(10**uint256(IERC20NonStandard(token).decimals()));
     }
 
     function _timelockData(bytes4 functionSelector) internal override returns(TimelockData storage) {

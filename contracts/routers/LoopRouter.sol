@@ -162,8 +162,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
               // Calculate remaining WETH
               // Since from is not address(this), we know this is a deposit, so estimated value not relevant
               uint256 amount =
-                  total.mul(uint256(percentage))
-                       .div(DIVISOR);
+                  total.mul(uint256(percentage)) / DIVISOR;
               IERC20(weth).safeTransferFrom(
                   from,
                   strategy,

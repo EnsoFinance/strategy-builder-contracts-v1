@@ -43,7 +43,7 @@ library ControllerLibrary {
         function(address, bytes memory) external routerAction,
         address weth,
         bytes memory data
-    ) public {
+    ) external {
         _useRouter(strategy, router, routerAction, weth, data);
     }
 
@@ -64,7 +64,7 @@ library ControllerLibrary {
         address[] memory strategyItems,
         address[] memory strategyDebt,
         bytes memory data
-    ) public {
+    ) external {
         _useRouter(strategy, router, routerAction, weth, strategyItems, strategyDebt, data);
     }
 
@@ -125,7 +125,7 @@ library ControllerLibrary {
         address[] calldata strategyDebt,
         address router,
         uint256 amount
-    ) public {
+    ) external {
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
@@ -154,7 +154,7 @@ library ControllerLibrary {
         address weth,
         uint256 rebalanceSlippage,
         bytes memory data
-    ) public {
+    ) external {
         _onlyApproved(address(router));
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(strategy, oracle);
@@ -220,7 +220,7 @@ library ControllerLibrary {
         uint256 balanceBefore,
         address weth,
         bytes memory data
-    ) public {
+    ) external {
         _onlyApproved(address(router));
         _checkDivisor(slippage);
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
@@ -265,7 +265,7 @@ library ControllerLibrary {
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) public returns (address weth, uint256 wethAmount) {
+    ) external returns (address weth, uint256 wethAmount) {
         _onlyApproved(address(router));
         require(amount != 0, "0 amount");
         _checkDivisor(slippage);
@@ -350,7 +350,7 @@ library ControllerLibrary {
     }
 
     // @notice Checks that there is no debt remaining for tokens that are no longer part of the strategy
-    function verifyFormerDebt(address strategy, address[] calldata newDebt, address[] memory formerDebt) public view {
+    function verifyFormerDebt(address strategy, address[] calldata newDebt, address[] memory formerDebt) external view {
         formerDebt = formerDebt.without(newDebt);
         uint256 balance;
         for (uint256 i; i < formerDebt.length; ++i) {

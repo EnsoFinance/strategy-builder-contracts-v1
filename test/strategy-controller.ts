@@ -431,7 +431,9 @@ describe('StrategyController', function () {
 
 	it('Should finalize value', async function () {
 		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(REBALANCE_THRESHOLD)).to.equal(true)
-		await controller.finalizeValue(strategy.address)
+		const tx = await controller.finalizeValue(strategy.address)
+		const receipt = await tx.wait()
+		console.log('Gas used', receipt.gasUsed.toString())
 		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(newThreshold)).to.equal(true)
 	})
 

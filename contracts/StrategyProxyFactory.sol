@@ -111,12 +111,12 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _pool = pool_;
         _streamingFee = uint256(1001001001001001); // 0.1% inflation
         _version = "1";
-        emit Update(_implementation, _version);
-        emit NewOracle(_oracle);
-        emit NewWhitelist(_whitelist);
-        emit NewPool(_pool);
+        emit Update(implementation_, "1");
+        emit NewOracle(oracle_);
+        emit NewWhitelist(whitelist_);
+        emit NewPool(pool_);
         emit NewStreamingFee(uint256(1));
-        emit OwnershipTransferred(address(0), owner);
+        emit OwnershipTransferred(address(0), owner_);
         return true;
     }
 
@@ -162,7 +162,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
         _version = newVersion;
-        emit Update(newImplementation, _version);
+        emit Update(newImplementation, newVersion);
     }
 
     function updateOracle(address newOracle) external noZeroAddress(newOracle) onlyOwner {
@@ -238,7 +238,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public onlyOwner {
+    function renounceOwnership() external onlyOwner {
         emit OwnershipTransferred(owner, address(0));
         owner = address(0);
     }
@@ -247,7 +247,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public noZeroAddress(newOwner) onlyOwner {
+    function transferOwnership(address newOwner) external noZeroAddress(newOwner) onlyOwner {
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }

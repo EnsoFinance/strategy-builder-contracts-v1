@@ -188,7 +188,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         uint256 percentage;
         (percentage, total, estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
-        expectedWeth = total.mul(percentage).div(10**18);
+        expectedWeth = total.mul(percentage) / 10**18;
         total = total.sub(expectedWeth);
     }
 }

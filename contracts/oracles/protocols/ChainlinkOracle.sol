@@ -37,7 +37,7 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
         if (oracleData.inverse) {
             value = amount.mul(10**uint256(oracle.decimals())).div(uint256(price));
         } else {
-            value = amount.mul(uint256(price)).div(10**uint256(oracle.decimals()));
+            value = amount.mul(uint256(price)) / (10**uint256(oracle.decimals()));
         }
         if (oracleData.pair != weth) {
             IChainlinkRegistry.ChainlinkOracleData memory pairData = registry.getOracle(oracleData.pair);

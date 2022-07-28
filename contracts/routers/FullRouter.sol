@@ -23,9 +23,10 @@ contract FullRouter is StrategyTypes, StrategyRouter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     address public immutable susd;
-    bytes32 private constant STRATEGY_DEBT_KEY = keccak256(abi.encode("strategyDebt"));
+    bytes32 private immutable STRATEGY_DEBT_KEY;
 
     constructor(address addressesProvider_, address controller_) public StrategyRouter(RouterCategory.LOOP, controller_) {
+        STRATEGY_DEBT_KEY = keccak256(abi.encode("strategyDebt"));
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         susd = IStrategyController(controller_).oracle().susd();
     }
@@ -303,8 +304,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
               // Calculate remaining WETH
               // Since from is not address(this), we know this is a deposit, so estimated value not relevant
               uint256 amount =
-                  total.mul(uint256(percentage))
-                       .div(DIVISOR);
+                  total.mul(uint256(percentage)) / DIVISOR;
               IERC20(weth).safeTransferFrom(
                   from,
                   strategy,
@@ -372,8 +372,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         // Note: it is possible for a restructure to have an estimated value of zero,
         // but only if it's expected value is also zero, in which case this function
         // will end without making a purchase. So it is safe to set `isDeposit` this way
-        bool isDeposit = estimatedValue == 0;
-        if (isDeposit) {
+        if (estimatedValue == 0) { // isDeposit
             amount = expectedValue;
         } else {
             int256 rebalanceRange =
@@ -390,7 +389,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             if (tradeData.cache.length != 0) {
                 //Apply multiplier
                 uint16 multiplier = abi.decode(tradeData.cache, (uint16));
-                amount = amount.mul(int256(multiplier)).div(int256(DIVISOR));
+                amount = amount.mul(int256(multiplier)) / int256(DIVISOR);
             }
             uint256 balance = IERC20(weth).balanceOf(from);
             _buyPath(
@@ -735,7 +734,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
       uint256 total
     ) internal view returns (uint256) {
       int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
-      return uint256(expected).mul(leveragePercentage).div(DIVISOR);
+      return uint256(expected).mul(leveragePercentage) / DIVISOR;
     }
 
     function _getLeverageRemaining(
@@ -830,7 +829,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             // Note: Loss of precision by using 'debtPercentage' as a intermediary is an advantage here
             // because it rounds the 'estimatedDebtAfter' down to the nearest tenth of a percent
             uint256 debtPercentage = estimatedDebtBefore.mul(DIVISOR).div(total.add(expectedWeth)); // total before = total + expected weth
-            uint256 estimatedDebtAfter = total.mul(debtPercentage).div(DIVISOR);
+            uint256 estimatedDebtAfter = total.mul(debtPercentage) / DIVISOR;
             expectedDebt = estimatedDebtBefore.sub(estimatedDebtAfter);
         }
 

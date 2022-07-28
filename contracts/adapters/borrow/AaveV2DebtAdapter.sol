@@ -76,11 +76,11 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
         if (tokenIn == weth) {
           return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(_po.getAssetPrice(tokenOut));
         } else if (tokenOut == weth) {
-          return amount.mul(_po.getAssetPrice(tokenIn)).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
+          return amount.mul(_po.getAssetPrice(tokenIn)) / 10**uint256(IERC20NonStandard(tokenIn).decimals());
         } else {
-          return amount.mul(_po.getAssetPrice(tokenIn))
+          return (amount.mul(_po.getAssetPrice(tokenIn))
                        .mul(10**uint256(IERC20NonStandard(tokenOut).decimals()))
-                       .div(10**uint256(IERC20NonStandard(tokenIn).decimals()))
+                       / 10**uint256(IERC20NonStandard(tokenIn).decimals()))
                        .div(_po.getAssetPrice(tokenOut));
         }
     }
