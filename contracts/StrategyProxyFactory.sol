@@ -94,14 +94,14 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address pool_
     ) external
         initializer
-        noZeroAddress(owner_)
-        noZeroAddress(implementation_)
-        noZeroAddress(oracle_)
-        noZeroAddress(registry_)
-        noZeroAddress(whitelist_)
-        noZeroAddress(pool_)
         returns (bool)
     {
+        _noZeroAddress(owner_);
+        _noZeroAddress(implementation_);
+        _noZeroAddress(oracle_);
+        _noZeroAddress(registry_);
+        _noZeroAddress(whitelist_);
+        _noZeroAddress(pool_);
         admin = address(new StrategyProxyAdmin());
         owner = owner_;
         _implementation = implementation_;
@@ -158,29 +158,34 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
 
-    function updateImplementation(address newImplementation, string calldata newVersion) external noZeroAddress(newImplementation) onlyOwner {
+    function updateImplementation(address newImplementation, string calldata newVersion) external onlyOwner {
+        _noZeroAddress(newImplementation);
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
         _version = newVersion;
         emit Update(newImplementation, newVersion);
     }
 
-    function updateOracle(address newOracle) external noZeroAddress(newOracle) onlyOwner {
+    function updateOracle(address newOracle) external onlyOwner {
+        _noZeroAddress(newOracle);
         _oracle = newOracle;
         emit NewOracle(newOracle);
     }
 
-    function updateRegistry(address newRegistry) external noZeroAddress(newRegistry) onlyOwner {
+    function updateRegistry(address newRegistry) external onlyOwner {
+        _noZeroAddress(newRegistry);
         _registry = newRegistry;
         emit NewOracle(newRegistry);
     }
 
-    function updateWhitelist(address newWhitelist) external noZeroAddress(newWhitelist) onlyOwner {
+    function updateWhitelist(address newWhitelist) external onlyOwner {
+        _noZeroAddress(newWhitelist);
         _whitelist = newWhitelist;
         emit NewWhitelist(newWhitelist);
     }
 
-    function updatePool(address newPool) external noZeroAddress(newPool) onlyOwner {
+    function updatePool(address newPool) external onlyOwner {
+        _noZeroAddress(newPool); 
         _pool = newPool;
         emit NewPool(newPool);
     }
@@ -247,7 +252,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) external noZeroAddress(newOwner) onlyOwner {
+    function transferOwnership(address newOwner) external onlyOwner {
+        _noZeroAddress(newOwner); 
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
