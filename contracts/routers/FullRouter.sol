@@ -321,7 +321,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         if (synths.length == 0) return;
         uint256 percentage;
         uint256 amount;
-        for (uint256 i; i < synths.length; ++i) {
+        uint256 length = synths.length;
+        for (uint256 i; i < length; ++i) {
             percentage = uint256(IStrategy(strategy).getPercentage(synths[i]));
             if (percentage != 0) {
                 amount = susdBalance.mul(percentage).div(virtualPercentage);
@@ -595,7 +596,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address _tokenOut;
         address _from;
         address _to;
-        for (uint256 i; i < data.path.length-1; ++i) {
+        uint256 length = data.path.length - 1;
+        for (uint256 i; i < length; ++i) {
             _tokenIn = data.path[uint256(i)];
             _from = address(this);
             _amount = IERC20(_tokenIn).balanceOf(_from);
@@ -634,16 +636,19 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         LeverageItem[] memory leverageItems;
         uint256[] memory leverageLiquidity;
 
+        uint256 length;
         if (data.path[data.path.length-1] == weth && data.cache.length != 0) {
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
             if (isDeposit) {
-              for (uint256 i; i < leverageItems.length; ++i) {
+              length = leverageItems.length;
+              for (uint256 i; i < length; ++i) {
                   leverageLiquidity[i] = _getLeveragePercentage(strategy, leverageItems[i].token, leverageItems[i].percentage, total);
               }
             } else {
               IOracle oracle = controller.oracle();
-              for (uint256 i; i < leverageItems.length; ++i) {
+              length = leverageItems.length;
+              for (uint256 i; i < length; ++i) {
                   leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, true, mm);
               }
             }
@@ -653,13 +658,14 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         uint256 availableBorrowsETH;
         bool lastItem;
         uint256 leverageAmount;
+        length = leverageItems.length;
         while (amount != 0) { //First loop must either borrow the entire amount or add more tokens as collateral in order to borrow more on following loops
             ( , , availableBorrowsETH, , , ) = lendingPool.getUserAccountData(strategy);
             amount = _amountFromBorrowPath(data, amount, strategy, availableBorrowsETH, leverageItems);
-            if (leverageItems.length != 0) {
+            if (length != 0) { // leverageItems.length
                 // Leverage tokens: cache can contain an array of tokens that can be purchased with the WETH received from selling debt
                 // Only purchase token when there is a disparity between the expected value and the estimated value
-                for (uint256 i; i < leverageItems.length; ++i) {
+                for (uint256 i; i < length; ++i) {
                     // Since we're inside a while loop, the last item will be when `amount` == 0
                     lastItem = amount == 0 && i == leverageItems.length - 1;
                     if (leverageLiquidity[i] != 0 || lastItem) {
@@ -824,7 +830,8 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         {
             // Add up debt estimates
             uint256 estimatedDebtBefore;
-            for (uint256 i; i < strategyDebt.length; ++i) {
+            uint256 length = strategyDebt.length;
+            for (uint256 i; i < length; ++i) {
                 estimatedDebtBefore = estimatedDebtBefore.add(uint256(-estimates[itemsLength + i]));
             }
             // Note: Loss of precision by using 'debtPercentage' as a intermediary is an advantage here

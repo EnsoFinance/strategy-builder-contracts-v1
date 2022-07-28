@@ -173,9 +173,11 @@ library ControllerLibrary {
 
     function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
         strategy.settleSynths();
+        uint256 length;
         if (token == susd) {
             address[] memory synths = strategy.synths();
-            for (uint256 i; i < synths.length; ++i) {
+            length = synths.length;
+            for (uint256 i; i < length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount != 0) {
                     strategy.delegateSwap(
@@ -190,6 +192,7 @@ library ControllerLibrary {
             uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
+            length = synths.length;
             for (uint256 i; i < synths.length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
                 if (amount != 0) {
@@ -353,7 +356,8 @@ library ControllerLibrary {
     function verifyFormerDebt(address strategy, address[] calldata newDebt, address[] memory formerDebt) external view {
         formerDebt = formerDebt.without(newDebt);
         uint256 balance;
-        for (uint256 i; i < formerDebt.length; ++i) {
+        uint256 length = formerDebt.length;
+        for (uint256 i; i < length; ++i) {
             balance = IERC20(formerDebt[i]).balanceOf(strategy);
             require(balance == 0, "Former debt remaining");
         }
@@ -421,7 +425,8 @@ library ControllerLibrary {
         if (total == 0) return 0;
         uint256 amount;
         address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i; i < strategyItems.length; ++i) {
+        uint256 length = strategyItems.length;
+        for (uint256 i; i < length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (estimates[i] > expectedValue) {
                 amount = amount.add(uint256(estimates[i].sub(expectedValue)));
@@ -430,6 +435,7 @@ library ControllerLibrary {
             }
         }
         address[] memory strategyDebt = IStrategy(strategy).debt();
+        length = strategyDebt.length;
         for (uint256 i; i < strategyDebt.length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
             uint256 index = strategyItems.length + i;
@@ -463,7 +469,8 @@ library ControllerLibrary {
 
         int256 total;
         address item;
-        for (uint256 i; i < newItems.length; ++i) {
+        uint256 length = newItems.length;
+        for (uint256 i; i < length; ++i) {
             item = newItems[i].item;
             require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
             int256 percentage = newItems[i].percentage;
@@ -506,7 +513,8 @@ library ControllerLibrary {
         require(address(strategy) != test, "Cyclic dependency");
         require(!strategy.supportsSynths(), "Synths not supported");
         address[] memory strategyItems = strategy.items();
-        for (uint256 i; i < strategyItems.length; ++i) {
+        uint256 length = strategyItems.length;
+        for (uint256 i; i < length; ++i) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
               _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
         }

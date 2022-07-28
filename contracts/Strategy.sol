@@ -111,7 +111,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         uint256 amount
     ) external override {
         _onlyController();
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             IERC20(tokens[i]).sortaSafeApprove(account, amount);
         }
     }
@@ -128,7 +129,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         uint256 amount
     ) external override {
         _onlyController();
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             IDebtToken(tokens[i]).approveDelegation(account, amount);
         }
     }
@@ -213,7 +215,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             percentage, _items, _synths, IERC20(_weth), IERC20(_susd)
         );
         // Transfer amounts
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             if (amounts[i] != 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
         emit Withdraw(msg.sender, amount, amounts);
@@ -325,7 +328,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             IExchanger exchanger = IExchanger(synthetixResolver.getAddress("Exchanger"));
             IIssuer issuer = IIssuer(synthetixResolver.getAddress("Issuer"));
             exchanger.settle(address(this), "sUSD");
-            for (uint256 i; i < _synths.length; ++i) {
+            uint256 length = _synths.length;
+            for (uint256 i; i < length; ++i) {
                 exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
             }
         }
@@ -432,8 +436,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
 
     function _deletePercentages(address[] storage assets) private {
         address[] memory _assets = assets;
-        uint256 assetsLength = _assets.length;
-        for (uint256 i; i < assetsLength; ++i) {
+        uint256 length = _assets.length;
+        for (uint256 i; i < length; ++i) {
             delete _percentage[_assets[i]];
         }
     }
@@ -460,7 +464,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         // Set new items
         int256 virtualPercentage;
         BinaryTree.Tree memory exists = BinaryTree.newNode();
-        for (uint256 i; i < newItems.length; ++i) {
+        uint256 length = newItems.length;
+        for (uint256 i; i < length; ++i) {
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
             exists.add(bytes32(uint256(newItems[i].item)));
         }
@@ -501,7 +506,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _updateClaimables(tokenRegistry);
         address[] memory rewardTokens = StrategyClaim.getAllRewardTokens(tokenRegistry);
         StrategyItem memory item;
-        for (uint256 i; i < rewardTokens.length; ++i) {
+        uint256 length = rewardTokens.length;
+        for (uint256 i; i < length; ++i) {
             if (_tokenExists(exists, rewardTokens[i])) continue;
             exists.add(bytes32(uint256(rewardTokens[i])));
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
@@ -512,7 +518,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     function _updateClaimables(ITokenRegistry tokenRegistry) internal {
         delete _claimables;
         (, bytes[] memory values) = StrategyClaim.getAllToClaim(tokenRegistry);
-        for (uint256 i; i < values.length; ++i) {
+        uint256 length = values.length;
+        for (uint256 i; i < length; ++i) {
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
         emit ClaimablesUpdated();
@@ -554,7 +561,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function _setTokensExists(BinaryTree.Tree memory exists, address[] memory tokens) private pure {
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             if (_tokenExists(exists, tokens[i])) continue;
             exists.add(bytes32(uint256(tokens[i])));
         }

@@ -24,7 +24,8 @@ library StrategyClaim {
         StrategyTypes.TradeData memory tradeData;
         uint256 adaptersLength;
         address rewardsAdapter;
-        for (uint256 i; i < claimables.length; ++i) {
+        uint256 length = claimables.length;
+        for (uint256 i; i < length; ++i) {
             (tokens) = abi.decode(claimables[i], (address[]));
             tradeData = IStrategy(address(this)).getTradeData(tokens[0]); // the tokens are grouped by rewardsAdapter
             adaptersLength = tradeData.adapters.length;
@@ -41,10 +42,13 @@ library StrategyClaim {
         address[] memory _rewardTokens;
         address rewardToken;
         BinaryTree.Tree memory exists = BinaryTree.newNode();
-        for (uint256 i; i < values.length; ++i) {
+        uint256 lengthi = values.length;
+        uint256 lengthj;
+        for (uint256 i; i < lengthi; ++i) {
             rewardsAdapter = IRewardsAdapter(address(keys[i]));
             (claimableTokens) = abi.decode(values[i], (address[]));
-            for (uint256 j; j < claimableTokens.length; ++j) {
+            lengthj = claimableTokens.length;
+            for (uint256 j; j < lengthj; ++j) {
                 _rewardTokens = rewardsAdapter.rewardsTokens(claimableTokens[j]);
                 for (uint256 k; k < _rewardTokens.length; ++k) {
                     rewardToken = _rewardTokens[k];
@@ -81,19 +85,22 @@ library StrategyClaim {
            amounts[i] = _getBalanceShare(token, percentage);
            tokens[i] = token;
         }
+        uint256 numTokensShifted;
         if (isSynths) {
-            for (uint256 i = itemsLength; i < numTokens - 2; ++i) {
+            numTokensShifted = numTokens - 2;
+            for (uint256 i = itemsLength; i < numTokensShifted; ++i) {
                 IERC20 synth = IERC20(synths[i - itemsLength]);
                 amounts[i] = _getBalanceShare(synth, percentage);
                 tokens[i] = synth;
             }
             // Include SUSD
-            amounts[numTokens - 2] = _getBalanceShare(susd, percentage);
-            tokens[numTokens - 2] = susd;
+            amounts[numTokensShifted] = _getBalanceShare(susd, percentage);
+            tokens[numTokensShifted] = susd;
         }
         // Include WETH
-        amounts[numTokens - 1] = _getBalanceShare(weth, percentage);
-        tokens[numTokens - 1] = weth;
+        numTokensShifted = numTokens - 1;
+        amounts[numTokensShifted] = _getBalanceShare(weth, percentage);
+        tokens[numTokensShifted] = weth;
     }
 
     function getAllToClaim(ITokenRegistry tokenRegistry) public view returns(uint256[] memory keys, bytes[] memory values) {
