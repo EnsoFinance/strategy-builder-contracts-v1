@@ -57,13 +57,29 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         address recipient,
         uint256 amount
     ) external virtual override returns (bool) {
+        _spendAllowance(sender, msg.sender, amount);
         _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount, "ERC20: allowance too low")
-        );
         return true;
+    }
+
+    /**
+     * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
+     *
+     * Does not update the allowance amount in case of infinite allowance.
+     * Revert if not enough allowance is available.
+     *
+     * Might emit an {Approval} event.
+     */
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        uint256 currentAllowance = _allowances[owner][spender];
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC20: insufficient allowance");
+            _approve(owner, spender, currentAllowance - amount);
+        }
     }
 
     /**
@@ -113,7 +129,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public override {
+    ) external override {
         require(block.timestamp <= deadline, "Expired deadline");
 
         bytes32 digest =
