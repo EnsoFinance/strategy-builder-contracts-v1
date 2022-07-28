@@ -16,6 +16,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     using SafeERC20 for IERC20;
 
     uint256 internal constant DIVISOR = 1000;
+    uint256 internal constant _1e18 = 1e18;
 
     RouterCategory public override immutable category;
     IStrategyController public override immutable controller;
@@ -190,7 +191,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         uint256 percentage;
         (percentage, total, estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
-        expectedWeth = total.mul(percentage) / 10**18;
+        expectedWeth = total.mul(percentage) / _1e18;
         total = total.sub(expectedWeth);
     }
 }

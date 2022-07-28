@@ -445,12 +445,12 @@ library ControllerLibrary {
                 amount = amount.add(uint256(expectedValue.sub(estimates[index])));
             }
         }
-        return (amount.mul(10**18).div(total));
+        return (amount.mul(PRECISION).div(total));
     }
 
     function checkBalance(address strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) public view {
         uint256 balanceAfter = amountOutOfBalance(strategy, total, estimates);
-        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
+        if (balanceAfter > PRECISION.mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
             require(balanceAfter <= balanceBefore, "Lost balance");
     }
 
