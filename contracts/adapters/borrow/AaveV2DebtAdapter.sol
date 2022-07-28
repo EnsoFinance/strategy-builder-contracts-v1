@@ -18,10 +18,12 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     IAaveIncentivesController private immutable _ic;
+    IPriceOracleGetter private immutable _po;
 
     constructor(address addressesProvider_, address incentivesController_, address weth_) public BaseAdapter(weth_) {
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         _ic = IAaveIncentivesController(incentivesController_);
+        _po = IPriceOracleGetter(ILendingPoolAddressesProvider(addressesProvider_).getPriceOracle());
     }
 
     function swap(
@@ -72,14 +74,14 @@ contract AaveV2DebtAdapter is BaseAdapter, IRewardsAdapter {
     function _convert(uint256 amount, address tokenIn, address tokenOut) internal view returns (uint256) {
         if (tokenIn == tokenOut) return amount;
         if (tokenIn == weth) {
-          return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
+          return amount.mul(10**uint256(IERC20NonStandard(tokenOut).decimals())).div(_po.getAssetPrice(tokenOut));
         } else if (tokenOut == weth) {
-          return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn)).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
+          return amount.mul(_po.getAssetPrice(tokenIn)).div(10**uint256(IERC20NonStandard(tokenIn).decimals()));
         } else {
-          return amount.mul(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenIn))
+          return amount.mul(_po.getAssetPrice(tokenIn))
                        .mul(10**uint256(IERC20NonStandard(tokenOut).decimals()))
                        .div(10**uint256(IERC20NonStandard(tokenIn).decimals()))
-                       .div(IPriceOracleGetter(addressesProvider.getPriceOracle()).getAssetPrice(tokenOut));
+                       .div(_po.getAssetPrice(tokenOut));
         }
     }
 
