@@ -50,7 +50,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
             estimates[i + strategyItems.length] = estimate;
         }
         address[] memory strategySynths = strategy.synths();
-        if (strategySynths.length > 0) {
+        if (strategySynths.length != 0) {
             // All synths rely on the chainlink oracle
             IEstimator chainlinkEstimator = tokenRegistry.estimators(uint256(EstimatorCategory.CHAINLINK_ORACLE));
             int256 estimate;

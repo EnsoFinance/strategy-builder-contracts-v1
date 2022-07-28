@@ -86,30 +86,30 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address strategy
     ) internal {
         if (amount != 0) {
-            for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
+            for (uint256 i = data.adapters.length-1; ; --i) {
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut;
                 address _from;
                 address _to;
-                if (uint256(i) == data.adapters.length-1) {
+                if (i == data.adapters.length-1) {
                     _tokenIn = token;
                     _amount = amount;
                     _from = strategy;
                 } else {
-                    _tokenIn = data.path[uint256(i)];
+                    _tokenIn = data.path[i];
                     _from = address(this);
                     _amount = IERC20(_tokenIn).balanceOf(_from);
                 }
-                if (uint256(i) == 0) {
+                if (i == 0) {
                     _tokenOut = weth;
                     _to = strategy;
                 } else {
-                    _tokenOut = data.path[uint256(i-1)];
+                    _tokenOut = data.path[i-1];
                     _to = address(this);
                 }
                 _delegateSwap(
-                    data.adapters[uint256(i)],
+                    data.adapters[i],
                     _amount,
                     1,
                     _tokenIn,
@@ -117,6 +117,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
                     _from,
                     _to
                 );
+                if (i == 0) break;
             }
         }
     }

@@ -486,7 +486,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             leverageLiquidity = new uint256[](leverageItems.length);
             if (amount == 0) {
                 // Special case where debt doesn't need to change but the relative amounts of leverage tokens do. We must first deleverage our debt
-                for (uint256 i; i < leverageItems.length; i++) {
+                for (uint256 i; i < leverageItems.length; ++i) {
                     leverageLiquidity[i] = _getLeverageRemaining(oracle, strategy, leverageItems[i].token, total, false, mm);
                     amount = amount.add(leverageLiquidity[i]);
                 }
@@ -544,9 +544,9 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
-            for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
-                _tokenIn = data.path[uint256(i)];
-                if (uint256(i) == data.adapters.length-1) {
+            for (uint256 i = data.adapters.length-1; ; --i) {
+                _tokenIn = data.path[i];
+                if (i == data.adapters.length-1) {
                     uint256 balance = IERC20(_tokenIn).balanceOf(strategy);
                     _amount = balance > amount ? amount : balance;
                     _from = strategy;
@@ -557,15 +557,15 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                     _amount = IERC20(_tokenIn).balanceOf(_from);
                 }
                 if (_amount != 0) {
-                    if (uint256(i) == 0) {
+                    if (i == 0) {
                         _tokenOut = address(0); //Since we're repaying to the lending pool we'll set tokenOut to zero, however amount is valued in weth
                         _to = strategy;
                     } else {
-                        _tokenOut = data.path[uint256(i-1)];
+                        _tokenOut = data.path[i-1];
                         _to = address(this);
                     }
                     _delegateSwap(
-                        data.adapters[uint256(i)],
+                        data.adapters[i],
                         _amount,
                         1,
                         _tokenIn,
@@ -574,6 +574,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                         _to
                     );
                 }
+                if (i == 0) break;
             }
             if (amount != 0) {
                 (bool ok, bytes memory result) = mm.getValue(STRATEGY_DEBT_KEY);
@@ -594,7 +595,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address _from;
         address _to;
         for (uint256 i; i < data.path.length-1; ++i) {
-        //for (int256 i = int256(data.adapters.length-1); i >= 0; --i) { //this doesn't work with uint256?? wtf solidity
             _tokenIn = data.path[uint256(i)];
             _from = address(this);
             _amount = IERC20(_tokenIn).balanceOf(_from);
