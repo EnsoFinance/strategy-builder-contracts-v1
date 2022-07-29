@@ -1,3 +1,5 @@
+import chai from 'chai'
+const { expect } = chai
 import { ethers, network, waffle } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -12,9 +14,17 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { WeiPerEther } = constants
+const { WeiPerEther, AddressZero } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
+
+async function impersonate(address: string): Promise<SignerWithAddress> {
+	await network.provider.request({
+		method: 'hardhat_impersonateAccount',
+		params: [address],
+	})
+	return await ethers.getSigner(address)
+}
 
 describe('Live Estimates', function () {
 	let accounts: SignerWithAddress[],
@@ -162,7 +172,33 @@ describe('Live Estimates', function () {
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
-		await updateAdapters(eDPI)
+    const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
+
+    const strategyFactory = enso.platform.strategyFactory
+
+    // update to latest `Strategy`
+		const newImplementation = await Strategy.deploy(
+			strategyFactory.address,
+			controller.address,
+			AddressZero,
+			AddressZero
+		)
+    
+ 		const version = await strategyFactory.callStatic.version()
+    await strategyFactory
+			.connect(owner)
+			.updateImplementation(newImplementation.address, (version + 1).toString())
+
+    const admin = await strategyFactory.admin()
+		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
+		const strategyAdmin = await StrategyAdmin.attach(admin)
+
+		strategies.forEach(async (s: Contract) => {
+			await strategyAdmin.connect(await impersonate(await s.manager())).upgrade(s.address)
+			await controller.connect(accounts[0]).migrateStrategy(s.address, [])
+		})
+
+    await updateAdapters(eDPI)
 		await updateAdapters(eYETI)
 		await updateAdapters(eYLA)
 		await updateAdapters(eNFTP)
@@ -177,6 +213,20 @@ describe('Live Estimates', function () {
 		)
 		// Whitelist
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
+	})
+
+  it('Should be initialized.', async function () {
+		/*
+		 * if the latest `Strategy` implementation incorrectly updates storage
+		 * then the deployed instance would incorrectly (and dangerously)
+		 * not be deemed initialized.
+		 */
+
+		// now call initialize
+		const someMaliciousAddress = accounts[8].address
+		await expect(
+			eDPI.initialize('anyName', 'anySymbol', 'anyVersion', someMaliciousAddress, [])
+		).to.be.revertedWith('Initializable: contract is already initialized')
 	})
 
 	it('Should estimate deposit eETH2X', async function () {
