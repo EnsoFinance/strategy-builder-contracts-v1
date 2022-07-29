@@ -125,7 +125,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @param strategy The address of the strategy being withdrawn from
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address token) external pure override {
+    function repositionSynths(IStrategy strategy, address token) external override {
         (strategy, token); // shh compiler
         revert("StrategyControllerPaused.");
     }

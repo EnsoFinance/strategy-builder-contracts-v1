@@ -373,7 +373,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit UpdateTradeData(item, false);
     }
 
-    function finalizeUpdateTradeData() external {
+    function finalizeUpdateTradeData() external override {
         bytes32 key = keccak256(abi.encode(this.updateTradeData.selector));
         _require(_timelockIsReady(key), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(key), (address, TradeData));
