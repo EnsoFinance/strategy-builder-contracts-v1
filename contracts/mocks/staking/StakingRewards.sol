@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: NONE 
 //pragma solidity ^0.5.16;
 pragma solidity >=0.6.0 <0.8.0;
 
@@ -49,7 +50,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         address _rewardsDistribution,
         address _rewardsToken,
         address _stakingToken
-    ) public RewardsDistributionRecipient(_owner) {
+    ) RewardsDistributionRecipient(_owner) {
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDistribution = _rewardsDistribution;

@@ -139,7 +139,7 @@ library StrategyClaim {
             key = keccak256(abi.encodePacked(rewardsAdapter, position));
             ok = exists.doesExist(key);
             if (ok) continue;
-            exists.add(key);
+            exists.push(key);
             ok = mm.append(bytes32(uint256(rewardsAdapter)), bytes32(uint256(position)));
             // ok means "isNew"
             if (ok) ++numAdded;

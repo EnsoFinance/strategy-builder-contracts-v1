@@ -25,7 +25,7 @@ library BinaryTreeWithPayload {
         return tree;
     }
 
-    function add(Tree memory tree, uint256 value, bytes memory payload) internal pure {
+    function push(Tree memory tree, uint256 value, bytes memory payload) internal pure {
         if (!tree.exists) {
             tree.exists = true;
             tree.value = value;
@@ -40,7 +40,7 @@ library BinaryTreeWithPayload {
         uint256 idx;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
-            add(tree.neighbors[idx], value, payload);
+            push(tree.neighbors[idx], value, payload);
         } else {
             tree.neighbors[idx] = newNode(value, payload); 
         }

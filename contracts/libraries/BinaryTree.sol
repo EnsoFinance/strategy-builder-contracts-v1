@@ -23,7 +23,7 @@ library BinaryTree {
         return tree;
     }
 
-    function add(Tree memory tree, uint256 value) internal pure {
+    function push(Tree memory tree, uint256 value) internal pure {
         if (!tree.exists) {
             tree.exists = true;
             tree.value = value;
@@ -35,7 +35,7 @@ library BinaryTree {
         uint256 idx;
         if (tree.value > value) idx = 1;
         if (tree.neighbors[idx].exists) {
-            add(tree.neighbors[idx], value);
+            push(tree.neighbors[idx], value);
         } else {
             tree.neighbors[idx] = newNode(value); 
         }
