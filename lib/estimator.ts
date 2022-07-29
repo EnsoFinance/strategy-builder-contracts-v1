@@ -171,6 +171,7 @@ export class Estimator {
       }
 
       return this.estimateBatchBuy(
+        AddressZero,
         items,
         synths,
         itemsData,
@@ -201,6 +202,7 @@ export class Estimator {
       itemsData[VIRTUAL_ITEM] = await this.getStrategyItem(strategy, VIRTUAL_ITEM);
 
       return this.estimateBatchBuy(
+        strategy.address,
         items,
         synths,
         itemsData,
@@ -280,6 +282,7 @@ export class Estimator {
   }
 
   async estimateBatchBuy(
+      strategy: string,
       items: string[],
       synths: string[],
       itemsData: ItemDictionary,
@@ -298,7 +301,7 @@ export class Estimator {
               rebalanceRange,
               data
           );
-          return this.oracle['estimateItem(uint256,address)'](amount, item)
+          return this.oracle['estimateItem(address,address,uint256)'](strategy, item, amount)
       }))
       if (synths.length > 0) {
           // Purchase SUSD
@@ -313,7 +316,7 @@ export class Estimator {
               rebalanceRange,
               data
           );
-          amounts.push(await this.estimateBuySynths(itemsData, synths, percentage, susdAmount));
+          amounts.push(await this.estimateBuySynths(strategy, itemsData, synths, percentage, susdAmount));
       }
       const percentage = itemsData[WETH].percentage;
       if (percentage.gt('0')) {
@@ -322,7 +325,7 @@ export class Estimator {
       return amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
   }
 
-  async estimateBuySynths(itemsData: ItemDictionary, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
+  async estimateBuySynths(strategy: string, itemsData: ItemDictionary, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
     let totalValue = BigNumber.from('0')
     let susdRemaining = susdAmount
     for (let i = 0; i < synths.length; i++) {
@@ -336,14 +339,14 @@ export class Estimator {
             SUSD,
             synths[i]
           )
-          const value = await this.oracle['estimateItem(uint256,address)'](balance, synths[i])
+          const value = await this.oracle['estimateItem(address,address,uint256)'](strategy, synths[i], balance)
           totalValue = totalValue.add(value)
           susdRemaining = susdRemaining.sub(amount)
         }
       }
     }
     if (susdRemaining.gt('0')) {
-      const value = await this.oracle['estimateItem(uint256,address)'](susdRemaining, SUSD)
+      const value = await this.oracle['estimateItem(address,address,uint256)'](strategy, SUSD, susdRemaining)
       totalValue = totalValue.add(value)
     }
     return totalValue

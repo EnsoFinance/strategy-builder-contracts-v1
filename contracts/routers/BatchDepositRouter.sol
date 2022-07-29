@@ -29,7 +29,7 @@ contract BatchDepositRouter is StrategyRouter {
               IERC20(token).safeTransferFrom(
                   depositor,
                   strategy,
-                  expectedValue.mul(10**18).div(uint256(oracle.estimateItem(10**18, token)))
+                  expectedValue.mul(10**18).div(uint256(oracle.estimateItem(IStrategy(strategy), token, 10**18)))
               );
         }
     }

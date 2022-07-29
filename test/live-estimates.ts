@@ -5,9 +5,16 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
-import { deployFullRouter, deployUniswapV3Adapter, deployAaveV2Adapter, deployAaveV2DebtAdapter } from '../lib/deploy'
+import {
+	deployOracle,
+	deployFullRouter,
+	deployUniswapV3Adapter,
+	deployAaveV2Adapter,
+	deployAaveV2DebtAdapter
+} from '../lib/deploy'
 import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
+import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
@@ -70,7 +77,6 @@ describe('Live Estimates', function () {
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
-
 		// Impersonate owner
 		await network.provider.request({
 			method: 'hardhat_impersonateAccount',
@@ -86,9 +92,42 @@ describe('Live Estimates', function () {
 
 		const enso = getLiveContracts(accounts[0])
 		controller = enso.platform.controller
-		oracle = enso.platform.oracles.ensoOracle
 
-		const { tokenRegistry, uniswapV3Registry, curveDepositZapRegistry } = enso.platform.oracles.registries
+		const factory = enso.platform.strategyFactory
+
+		const {
+			tokenRegistry,
+			uniswapV3Registry,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		} = enso.platform.oracles.registries
+
+		// Deploy new oracle
+		const uniswapV3Factory: Contract = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, [], accounts[0])
+		oracle = (await deployOracle(
+			owner,
+			uniswapV3Factory,
+			uniswapV3Factory,
+			tokenRegistry,
+			uniswapV3Registry,
+			chainlinkRegistry,
+			weth,
+			new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
+			(estimatorCategory: number, estimatorAddress: string) => {
+				return factory.connect(owner).addEstimatorToRegistry(estimatorCategory, estimatorAddress)
+			}
+		))[0]
+		await factory.connect(owner).updateOracle(oracle.address)
+		await controller.connect(owner).updateAddresses()
+		// Deploy new router
+		router = await deployFullRouter(
+			accounts[0],
+			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
+			controller,
+			enso.platform.strategyLibrary
+		)
+		// Whitelist
+		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 
 		let {
 			aaveV2,
@@ -167,16 +206,6 @@ describe('Live Estimates', function () {
 		await updateAdapters(eYLA)
 		await updateAdapters(eNFTP)
 		await updateAdapters(eETH2X)
-
-		// Deploy new router
-		router = await deployFullRouter(
-			accounts[0],
-			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
-			controller,
-			enso.platform.strategyLibrary
-		)
-		// Whitelist
-		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 	})
 
 	it('Should estimate deposit eETH2X', async function () {

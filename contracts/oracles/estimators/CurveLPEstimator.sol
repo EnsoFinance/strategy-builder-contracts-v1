@@ -30,28 +30,37 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
     address public constant TRICRYPTO2_ORACLE = 0xE8b2989276E2Ca8FDEA2268E3551b2b4B2418950;
     uint256 private constant TRICRYPTO2_PRECISION = 10**30; // lpPrice_precision + (lp_precision - usdt_precision) = 18 + (18 - 6) = 30
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token, address(0));
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        uint256 balance = IERC20(token).balanceOf(address(strategy));
+        return estimateItem(strategy, token, balance);
     }
 
-    function estimateItem(uint256 balance, address token, address knownUnderlyingToken) public view override returns (int256) {
-        return _estimateItem(balance, token, knownUnderlyingToken);
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
+        address underlyingToken;
+        if (address(strategy) != address(0)) {
+            StrategyTypes.TradeData memory td = strategy.getTradeData(token);
+            if (td.path.length != 0) underlyingToken = td.path[td.path.length - 1];
+        }
+        return estimateItem(strategy, token, underlyingToken, balance);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) {
-        uint256 balance = IERC20(token).balanceOf(address(user));
-        address knownUnderlyingToken;
-        try IStrategy(user).getTradeData(token) returns(StrategyTypes.TradeData memory td) {
-            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
-        } catch {}
-        return _estimateItem(balance, token, knownUnderlyingToken);
-    }
-
-    function _estimateItem(uint256 balance, address token, address knownUnderlyingToken) private view returns (int256) {
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        address underlyingToken,
+        uint256 balance
+    ) public view override returns (int256) {
         if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
-            return IOracle(msg.sender).estimateItem(lpPrice.mul(balance).div(TRICRYPTO2_PRECISION), USDT);
+            return IOracle(msg.sender).estimateItem(strategy, USDT, lpPrice.mul(balance).div(TRICRYPTO2_PRECISION));
         } else {
             ICurveRegistry registry = ICurveRegistry(ADDRESS_PROVIDER.get_registry());
             address pool = registry.get_pool_from_lp_token(token);
@@ -59,20 +68,20 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
             if (assetType < 4) {
                 address[8] memory coins = registry.get_coins(pool);
                 // attempt more accurate estimate first
-                if (knownUnderlyingToken != address(0)) {
+                if (underlyingToken != address(0)) {
                     uint256 idx = uint256(-1);
                     for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
                         require(coins[i] != address(0), "Token not found in pool");
-                        if(coins[i] == knownUnderlyingToken){
+                        if(coins[i] == underlyingToken){
                             idx = i;
                             break;
                         }
                     }
                     if (idx != uint256(-1)) {
                         try ICurveDeposit(pool).calc_withdraw_one_coin(balance, int128(idx)) returns(uint256 _balance) {
-                            return IOracle(msg.sender).estimateItem(_balance, knownUnderlyingToken);
+                            return IOracle(msg.sender).estimateItem(strategy, underlyingToken, _balance);
                         } catch {
-                            // continue to less accurate estimate 
+                            // continue to less accurate estimate
                         }
                     }
                 }
@@ -84,17 +93,16 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                     ).div(10**18);
                 if (assetType == 0) {
                     // USD
-                    return IOracle(msg.sender).estimateItem(virtualBalance, SUSD);
+                    return IOracle(msg.sender).estimateItem(strategy, SUSD, virtualBalance);
                 } else if (assetType == 1) {
                     // ETH
                     return int256(virtualBalance);
                 } else if (assetType == 2) {
                     // BTC
-                    return IOracle(msg.sender).estimateItem(virtualBalance, SBTC);
+                    return IOracle(msg.sender).estimateItem(strategy, SBTC, virtualBalance);
                 } else {
                     // Other (Link or Euro)
                     // less accurate
-                    address underlyingToken;
                     for (uint256 i; coins[i] != address(0) && i < 8; ++i) {
                         underlyingToken = coins[i];
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
@@ -104,7 +112,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                         } else if (decimals > 18) {
                           convertedBalance = convertedBalance.mul(10**(decimals-18));
                         }
-                        try IOracle(msg.sender).estimateItem(convertedBalance, underlyingToken) returns (int256 value) {
+                        try IOracle(msg.sender).estimateItem(strategy, underlyingToken, convertedBalance) returns (int256 value) {
                             if (value > 0) {
                               return value;
                             }

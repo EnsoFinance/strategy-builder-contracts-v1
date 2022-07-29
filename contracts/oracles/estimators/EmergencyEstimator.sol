@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../../interfaces/IEstimator.sol";
 import "../../interfaces/IERC20NonStandard.sol";
-import "../../interfaces/IStrategy.sol";
 import "../../helpers/Timelocks.sol";
 
 contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
@@ -21,6 +20,25 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         _setTimelock(
           keccak256(abi.encode(this.updateEstimate.selector)), // identifier
           5 minutes);
+    }
+
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        uint256 balance = IERC20(token).balanceOf(address(strategy));
+        return estimateItem(strategy, token, balance);
+    }
+
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
+        if (address(strategy) != address(0))
+            require(strategy.lockType() != 3, "Cannot deposit into blocked token");
+        return int256(balance).mul(estimates[token])
+                              .div(int256(10**uint256(IERC20NonStandard(token).decimals())));
     }
 
     function updateTimelock(bytes32 identifier, uint256 delay) external onlyOwner {
@@ -55,20 +73,6 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         _resetTimelock(keccak256(abi.encode(this.updateEstimate.selector)));
         estimates[token] = amount;
         emit EstimateSet(token, amount, true);
-    }
-
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token);
-    }
-
-    function estimateItem(address user, address token) public view override returns (int256) {
-        require(IStrategy(user).lockType() != 3, "Cannot deposit into blocked token"); // FIXME: Currently assuming user is strategy
-        uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token);
-    }
-
-    function _estimateItem(uint256 balance, address token) private view returns (int256) {
-        return int256(balance).mul(estimates[token]).div(int256(10**uint256(IERC20NonStandard(token).decimals())));
     }
 
     function _timelockData(bytes32 identifier) internal override returns(TimelockData storage) {

@@ -937,46 +937,65 @@ describe('StrategyController', function () {
 	})
 
 	it('Should fail to estimate and require emergency estimator', async function () {
-		const originalEstimate = await oracle['estimateItem(uint256,address)'](WeiPerEther, tokens[1].address)
-		const emergencyEstimatorAddress = await platform.oracles.registries.tokenRegistry.estimators(
-			ESTIMATOR_CATEGORY.BLOCKED
-		)
+		const originalEstimate = await oracle['estimateItem(address,address,uint256)'](strategy.address, tokens[1].address, WeiPerEther)
 
+		// Check deposit on blocked token
+		let tx = await strategyFactory
+			.connect(owner)
+			.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, tokens[1].address)
+		await tx.wait()
+		// Should fail to deposit - blocked
+		await expect(
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
+		).to.be.revertedWith('Cannot deposit into blocked token')
+
+		// Add estimator that causes oracle to fail due to out-of-gas
 		const GasBurnerEstimator = await getContractFactory('GasBurnerEstimator')
 		const gasBurnerEstimator = await GasBurnerEstimator.deploy()
 		await gasBurnerEstimator.connect(owner).deployed()
-		let tx = await strategyFactory
+		tx = await strategyFactory
 			.connect(owner)
-			.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, gasBurnerEstimator.address)
+			.addEstimatorToRegistry(1000, gasBurnerEstimator.address)
 		await tx.wait()
+
+		// Switch token estimator
+		tx = await strategyFactory
+			.connect(owner)
+			.addItemToRegistry(ITEM_CATEGORY.BASIC, 1000, tokens[1].address)
+		await tx.wait()
+
+		// Set new structure
+		const positions = [
+			{ token: tokens[2].address, percentage: BigNumber.from(500) },
+			{ token: tokens[3].address, percentage: BigNumber.from(500) },
+		] as Position[]
+		strategyItems = prepareStrategy(positions, adapter.address)
+		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+
+		// Fail to finalize structure - out of gas
+		await expect(
+			controller
+				.connect(accounts[1])
+				.finalizeStructure(strategy.address, router.address, '0x')
+		).to.be.revertedWith('')
+
+		// Update so failing token used emergency estimator
 		tx = await strategyFactory
 			.connect(owner)
 			.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.BLOCKED, tokens[1].address)
 		await tx.wait()
 
-		await expect(
-			controller
-				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-					value: WeiPerEther,
-				})
-		).to.be.revertedWith('')
-
-		tx = await strategyFactory
-			.connect(owner)
-			.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimatorAddress)
-		await tx.wait()
-
-		await expect(
-			controller
-				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-					value: WeiPerEther,
-				})
-		).to.be.revertedWith('')
-
+		// Update emergency estimator with a token estimate
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
-		const emergencyEstimator = await EmergencyEstimator.attach(emergencyEstimatorAddress)
+		const emergencyEstimator = await EmergencyEstimator.attach(
+			await platform.oracles.registries.tokenRegistry.estimators(
+				ESTIMATOR_CATEGORY.BLOCKED
+			)
+		)
 		await emergencyEstimator.updateEstimate(tokens[1].address, originalEstimate)
 
 		await increaseTime(10 * 60)
@@ -986,10 +1005,8 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
-					value: WeiPerEther,
-				})
-		).to.emit(controller, 'Deposit')
+				.finalizeStructure(strategy.address, router.address, '0x')
+		).to.emit(controller, 'NewStructure')
 	})
 
 	it('Should set strategy', async function () {

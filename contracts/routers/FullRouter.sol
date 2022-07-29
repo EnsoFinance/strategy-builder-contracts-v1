@@ -480,7 +480,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
             if (amount < type(uint256).max)
-                amount = amount.mul(10**18).div(uint256(oracle.estimateItem(10**18, data.path[data.path.length-1])));
+                amount = amount.mul(10**18).div(uint256(oracle.estimateItem(
+                    IStrategy(strategy),
+                    data.path[data.path.length-1],
+                    10**18
+                )));
         } else if (data.cache.length > 0) {
             // Deleverage tokens
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
@@ -509,7 +513,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                             strategy,
                             token,
                             oracle.estimateItem(
-                                IERC20(token).balanceOf(strategy),
+                                IStrategy(strategy),
                                 token
                             )
                         );
@@ -748,7 +752,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     ) internal view returns (uint256) {
         int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
         int256 estimate = oracle.estimateItem(
-            IERC20(leverageItem).balanceOf(strategy),
+            IStrategy(strategy),
             leverageItem
         );
         if (isLeveraging) {
@@ -805,7 +809,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         );
         // Update temp estimates with new value since tokens have been sold (it will be needed on later sell loops)
         _setTempEstimate(mm, strategy, leverageItem, oracle.estimateItem(
-            IERC20(leverageItem).balanceOf(strategy),
+            IStrategy(strategy),
             leverageItem
         ));
         return leverageAmount;

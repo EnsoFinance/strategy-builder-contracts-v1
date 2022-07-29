@@ -35,7 +35,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1); // +1 for virtual item
         for (uint256 i = 0; i < strategyItems.length; i++) {
             int256 estimate = estimateItem(
-                address(strategy),
+                strategy,
                 strategyItems[i]
             );
             total = total.add(estimate);
@@ -43,7 +43,7 @@ contract EnsoOracle is IOracle, StrategyTypes {
         }
         for (uint256 i = 0; i < strategyDebt.length; i++) {
             int256 estimate = estimateItem(
-                address(strategy),
+                strategy,
                 strategyDebt[i]
             );
             total = total.add(estimate);
@@ -56,12 +56,12 @@ contract EnsoOracle is IOracle, StrategyTypes {
             int256 estimate = 0;
             for (uint256 i = 0; i < strategySynths.length; i++) {
                 estimate = estimate.add(chainlinkEstimator.estimateItem(
-                    address(strategy),
+                    strategy,
                     strategySynths[i]
                 ));
             }
             estimate = estimate.add(chainlinkEstimator.estimateItem(
-                IERC20(susd).balanceOf(address(strategy)),
+                strategy,
                 susd
             )); //SUSD is never part of synths array but always included in total value
             total = total.add(estimate);
@@ -71,16 +71,28 @@ contract EnsoOracle is IOracle, StrategyTypes {
         return (uint256(total), estimates);
     }
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return tokenRegistry.getEstimator(token).estimateItem(balance, token);
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        return tokenRegistry.getEstimator(token).estimateItem(strategy, token);
     }
 
-    function estimateItem(uint256 balance, address token, address knownStrategy) public view override returns (int256) {
-        return IEstimatorKnowing(address(tokenRegistry.getEstimator(token))).estimateItem(balance, token, knownStrategy);
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
+        return tokenRegistry.getEstimator(token).estimateItem(strategy, token, balance);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) {
-        return tokenRegistry.getEstimator(token).estimateItem(user, token);
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        address underlyingToken,
+        uint256 balance
+    ) public view override returns (int256) {
+        return IEstimatorKnowing(address(tokenRegistry.getEstimator(token))).estimateItem(strategy, token, underlyingToken, balance);
     }
 
     function estimateStrategies(IStrategy[] memory strategies) external view returns (uint256[] memory) {

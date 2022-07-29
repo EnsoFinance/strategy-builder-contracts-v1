@@ -264,6 +264,76 @@ export async function deploySushiswap(owner: SignerWithAddress, tokens: Contract
 	return sushiswapFactory
 }
 
+export async function deployOracle(
+	owner: SignerWithAddress,
+	uniswapOracleFactory: Contract,
+	uniswapV3Factory: Contract,
+	tokenRegistry: Contract,
+	uniswapV3Registry: Contract,
+	chainlinkRegistry: Contract,
+	weth: Contract,
+	susd: Contract,
+	registerEstimator: (estimatorCategory: number, estimatorAddress: string) => void
+): Promise<Contract[]> {
+	let uniswapOracle
+	if (uniswapOracleFactory.address == uniswapV3Factory.address) {
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
+	} else {
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [
+			uniswapOracleFactory.address,
+			weth.address,
+		])
+	}
+	await uniswapOracle.deployed()
+
+	/* TODO switch to this approach once we setup registry script
+	let uniswapOracle: Contract, uniswapV3Registry: Contract;
+	if (uniswapFactory.address === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
+		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address])
+		await uniswapV3Registry.deployed()
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
+	} else {
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory.address, weth.address])
+	}
+	await uniswapOracle.deployed()
+	*/
+
+	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [
+		chainlinkRegistry.address,
+		weth.address,
+	])
+	await chainlinkOracle.deployed()
+	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [
+		tokenRegistry.address,
+		weth.address,
+		susd.address,
+	])
+	await ensoOracle.deployed()
+
+	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
+	await registerEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)
+	const chainlinkEstimator = await waffle.deployContract(owner, BasicEstimator, [chainlinkOracle.address])
+	await registerEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)
+	const strategyEstimator = await waffle.deployContract(owner, StrategyEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
+	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
+	const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
+	const aaveV2DebtEstimator = await waffle.deployContract(owner, AaveV2DebtEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)
+	const compoundEstimator = await waffle.deployContract(owner, CompoundEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)
+	const curveLPEstimator = await waffle.deployContract(owner, CurveLPEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)
+	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
+	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
+
+	return [ensoOracle, uniswapOracle, chainlinkOracle]
+}
+
 export async function deployPlatform(
 	owner: SignerWithAddress,
 	uniswapOracleFactory: Contract,
@@ -299,61 +369,19 @@ export async function deployPlatform(
 	const chainlinkRegistry = await waffle.deployContract(owner, ChainlinkRegistry, [])
 	await chainlinkRegistry.deployed()
 
-	let uniswapOracle
-	if (uniswapOracleFactory.address == uniswapV3Factory.address) {
-		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
-	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [
-			uniswapOracleFactory.address,
-			weth.address,
-		])
-	}
-	await uniswapOracle.deployed()
-
-	/* TODO switch to this approach once we setup registry script
-	let uniswapOracle: Contract, uniswapV3Registry: Contract;
-	if (uniswapFactory.address === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
-		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address])
-		await uniswapV3Registry.deployed()
-		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
-	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory.address, weth.address])
-	}
-	await uniswapOracle.deployed()
-	*/
-
-	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [
-		chainlinkRegistry.address,
-		weth.address,
-	])
-	await chainlinkOracle.deployed()
-	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [
-		tokenRegistry.address,
-		weth.address,
-		susd?.address || AddressZero,
-	])
-	await ensoOracle.deployed()
-
-	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)
-	const chainlinkEstimator = await waffle.deployContract(owner, BasicEstimator, [chainlinkOracle.address])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)
-	const strategyEstimator = await waffle.deployContract(owner, StrategyEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
-	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
-	const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
-	const aaveV2DebtEstimator = await waffle.deployContract(owner, AaveV2DebtEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)
-	const compoundEstimator = await waffle.deployContract(owner, CompoundEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)
-	const curveLPEstimator = await waffle.deployContract(owner, CurveLPEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)
-	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
-	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
+	const [ensoOracle, uniswapOracle, chainlinkOracle] = await deployOracle(
+		owner,
+		uniswapOracleFactory,
+		uniswapV3Factory,
+		tokenRegistry,
+		uniswapV3Registry,
+		chainlinkRegistry,
+		weth,
+		susd || new Contract(AddressZero, [], owner),
+		(estimatorCategory: number, estimatorAddress: string) => {
+			return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+		}
+	)
 
 	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 	if (susd)
