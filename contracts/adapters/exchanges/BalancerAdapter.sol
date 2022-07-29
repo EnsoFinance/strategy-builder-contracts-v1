@@ -89,10 +89,7 @@ contract BalancerAdapter is BaseAdapter {
             IERC20 SwapTokenIn = IERC20(_swap.tokenIn);
             PoolInterface pool = PoolInterface(_swap.pool);
 
-            if (SwapTokenIn.allowance(address(this), _swap.pool) != 0) {
-                SwapTokenIn.safeApprove(_swap.pool, 0);
-            }
-            SwapTokenIn.safeApprove(_swap.pool, _swap.swapAmount);
+            SwapTokenIn.sortaSafeApprove(_swap.pool, _swap.swapAmount);
 
             (uint tokenAmountOut,) = pool.swapExactAmountIn(
                                         _swap.tokenIn,
@@ -101,6 +98,7 @@ contract BalancerAdapter is BaseAdapter {
                                         _swap.limitReturnAmount,
                                         _swap.maxPrice
                                     );
+            require(SwapTokenIn.allowance(address(this), _swap.pool) == 0, "Incomplete swap"); // sanity check
             totalAmountOut = tokenAmountOut.add(totalAmountOut);
         }
 
@@ -109,7 +107,7 @@ contract BalancerAdapter is BaseAdapter {
         if (to != address(this))
             tokenOut.safeTransfer(to, totalAmountOut);
         if (from != address(this))
-            tokenIn.safeTransfer(from, tokenIn.balanceOf(address(this))); //Return unused funds
+            tokenIn.safeTransfer(from, tokenIn.balanceOf(address(this))); // Return unused funds
     }
 
     function _viewSplitExactIn(

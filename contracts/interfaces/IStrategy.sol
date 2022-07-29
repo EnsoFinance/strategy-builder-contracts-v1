@@ -59,6 +59,14 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function updateTradeData(address item, TradeData memory data) external;
 
+    function finalizeUpdateTradeData() external;
+
+    function updateClaimables() external;
+
+    function updateAddresses() external;
+
+    function updateRewards() external;
+
     function lock() external;
 
     function unlock() external;
@@ -84,4 +92,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
     function supportsDebt() external view returns (bool);
 
     function factory() external view returns (address);
+
+    function getAllRewardTokens() external view returns(address[] memory rewardTokens);
 }

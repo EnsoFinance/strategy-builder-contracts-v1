@@ -56,7 +56,7 @@ contract CurveLPAdapter is BaseAdapter {
         } else if (poolIn != address(0) && poolOut != address(0)) { //Metapool
             bool isDeposit;
             address[8] memory depositCoins = curveRegistry.get_coins(poolOut);
-            for (uint256 i = 0; i < 8; i++) {
+            for (uint256 i; i < 8; ++i) {
                 if (depositCoins[i] == address(0)) break;
                 if (depositCoins[i] == tokenIn) {
                     isDeposit = true;
@@ -68,7 +68,7 @@ contract CurveLPAdapter is BaseAdapter {
             } else {
                 bool isWithdraw;
                 address[8] memory withdrawCoins = curveRegistry.get_coins(poolIn);
-                for (uint256 i = 0; i < 8; i++) {
+                for (uint256 i; i < 8; ++i) {
                     if (withdrawCoins[i] == address(0)) break;
                     if (withdrawCoins[i] == tokenOut) {
                         isWithdraw = true;
@@ -100,10 +100,10 @@ contract CurveLPAdapter is BaseAdapter {
         address pool,
         address[8] memory coins
     ) internal {
-        IERC20(tokenIn).safeApprove(pool, amount);
+        IERC20(tokenIn).sortaSafeApprove(pool, amount);
         uint256 coinsInPool;
         uint256 tokenIndex = 8; //Outside of possible index range. If index not found function will fail
-        for (uint256 i = 0; i < 8; i++) {
+        for (uint256 i; i < 8; ++i) {
           if (coins[i] == address(0)) {
               coinsInPool = i;
               break;
@@ -124,6 +124,7 @@ contract CurveLPAdapter is BaseAdapter {
             depositAmounts[tokenIndex] = amount;
             ICurveStableSwap(pool).add_liquidity(depositAmounts, 0);
         }
+        require(IERC20(tokenIn).allowance(address(this), pool) == 0, "Incomplete swap"); // sanity check
     }
 
     function _withdraw(
@@ -137,7 +138,7 @@ contract CurveLPAdapter is BaseAdapter {
         if (zap == address(0)) zap = pool;
 
         int128 tokenIndex;
-        for (uint256 i = 0; i < 8; i++) {
+        for (uint256 i; i < 8; ++i) {
             require(coins[i] != address(0), "Token not found in pool");
             if (coins[i] == tokenOut) {
                 tokenIndex = int128(i);
@@ -145,8 +146,9 @@ contract CurveLPAdapter is BaseAdapter {
             }
         }
 
-        if (zap != pool)
-            IERC20(tokenIn).safeApprove(zap, amount);
+        bool isPoolNotZap = zap != pool;
+        if (isPoolNotZap)
+            IERC20(tokenIn).sortaSafeApprove(zap, amount);
 
         uint256 indexType = zapRegistry.getIndexType(zap);
         if (indexType == 0) { //int128
@@ -156,5 +158,7 @@ contract CurveLPAdapter is BaseAdapter {
         } else {
             return revert("Unknown index type");
         }
+        if (isPoolNotZap)
+            require(IERC20(tokenIn).allowance(address(this), zap) == 0, "Incomplete swap"); // sanity check
     }
 }

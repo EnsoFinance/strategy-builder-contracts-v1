@@ -17,6 +17,7 @@ import {
 } from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Event, Contract } from 'ethers'
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 10
 const STRATEGY_STATE: InitialState = {
@@ -66,7 +67,7 @@ describe('Weird ERC20s', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		router: Contract,
 		adapter: Contract,
 		strategy: Contract,
@@ -124,10 +125,10 @@ describe('Weird ERC20s', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 
 		// remove weth from weird token list
@@ -157,10 +158,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -177,6 +179,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -202,10 +205,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -221,6 +225,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -246,10 +251,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -265,6 +271,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -290,10 +297,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -309,6 +317,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -334,10 +343,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -353,6 +363,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -378,10 +389,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -397,6 +409,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 
@@ -422,10 +435,11 @@ describe('Weird ERC20s', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -441,6 +455,7 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 	})
 

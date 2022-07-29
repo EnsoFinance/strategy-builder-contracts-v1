@@ -16,7 +16,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     event StreamingFee(uint256 amount);
     event ManagementFee(uint256 amount);
 
-    function managementFee() external view returns (uint256) {
+    function managementFee() external view override returns (uint256) {
         uint256 managementFee_ = _managementFee;
         return managementFee_ / (managementFee_.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
@@ -37,7 +37,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     function updatePerformanceFee(uint16 fee) external override {
         fee; // shh compiler
         _onlyController();
-        revert("This strategy does not support performance fees");
+        revert("not supported");
     }
 
     /**
@@ -63,7 +63,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     /**
      * @notice Withdraws the streaming fee to the fee pool
      */
-    function withdrawStreamingFee() external {
+    function withdrawStreamingFee() external override {
         _setLock();
         _issueStreamingFee(_pool, _manager);
         _removeLock();
@@ -86,7 +86,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
         uint256 poolBalance = _balances[pool];
         _streamingFeeRate = uint224(_totalSupply.sub(poolBalance).mul(streamingFee));
         uint256 managementFee_ = _managementFee;
-        if (managementFee_ > 0) {
+        if (managementFee_ != 0) {
            _managementFeeRate = _totalSupply.sub(poolBalance).sub(_balances[manager]).mul(managementFee_);
         }
     }
@@ -96,12 +96,12 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
      */
     function _issueStreamingFee(address pool, address manager) internal {
         uint256 timePassed = block.timestamp.sub(uint256(_lastStreamTimestamp));
-        if (timePassed > 0) {
+        if (timePassed != 0) {
             uint256 amountToMint = uint256(_streamingFeeRate).mul(timePassed) / (YEAR * PRECISION);
             _mint(pool, amountToMint);
             emit StreamingFee(amountToMint);
             uint256 managementFeeRate = _managementFeeRate;
-            if (managementFeeRate > 0) {
+            if (managementFeeRate != 0) {
                 amountToMint = uint256(managementFeeRate).mul(timePassed) / (YEAR * PRECISION);
                 _mint(manager, amountToMint);
                 emit ManagementFee(amountToMint);
@@ -134,7 +134,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
      * @notice Sets the new _lastTokenValue based on the total price and token supply
      */
     function _setTokenValue(uint256 total, uint256 supply) internal {
-        if (supply > 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION) / (supply));
+        if (supply != 0) _lastTokenValue = SafeCast.toUint128(total.mul(PRECISION) / (supply));
     }
 
     function _transfer(

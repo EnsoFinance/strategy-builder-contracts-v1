@@ -23,6 +23,7 @@ import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 4
 
@@ -38,7 +39,7 @@ describe('Flash Loan', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		sushiAdapter: Contract,
 		sushiFactory: Contract,
 		uniswapAdapter: Contract,
@@ -56,7 +57,7 @@ describe('Flash Loan', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		sushiAdapter = await deployUniswapV2Adapter(accounts[0], sushiFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
@@ -107,10 +108,11 @@ describe('Flash Loan', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyConfig.strategyItems, weth)
@@ -154,6 +156,7 @@ describe('Flash Loan', function () {
 		)
 		const calls = [...rebalanceCalls, ...flashLoanCalls]
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

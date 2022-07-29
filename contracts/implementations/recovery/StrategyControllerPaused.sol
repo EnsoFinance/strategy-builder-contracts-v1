@@ -123,11 +123,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
      *         In order to rebalance the strategy, all Synths must first be converted into sUSD
      * @param strategy The address of the strategy being withdrawn from
-     * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address adapter, address token) external pure {
-        (strategy, adapter, token); // shh compiler
+    function repositionSynths(IStrategy strategy, address token) external pure override {
+        (strategy, token); // shh compiler
         revert("StrategyControllerPaused.");
     }
 
@@ -227,7 +226,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         public
         view
         override
-        returns (bool)
     {
         require(newItems.length > 0, "Cannot set empty structure");
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught by the ordering requirement below
@@ -254,13 +252,12 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
             total = total.add(percentage);
         }
         require(total == int256(DIVISOR), "Total percentage wrong");
-        return true;
     }
 
     /**
         @notice Refresh StrategyController's addresses
      */
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         _whitelist = f.whitelist();
         address o = f.oracle();
@@ -270,6 +267,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
           _weth = ensoOracle.weth();
           _susd = ensoOracle.susd();
         }
+    }
+
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external override {
+        revert("StrategyControllerPaused.");
     }
 
     function oracle() public view override returns (IOracle) {
@@ -286,6 +287,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
 
     function pool() external view override returns(address) {
         return _pool;
+    }
+
+    function rebalanceThresholdScalar() external view override returns(uint256) {
+        return _rebalanceThresholdScalar;
     }
 
     // Internal Strategy Functions

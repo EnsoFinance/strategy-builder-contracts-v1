@@ -19,7 +19,8 @@ abstract contract ProtocolOracle is IProtocolOracle {
         //Loop through tokens and calculate the total
         uint256 total = 0;
         uint256[] memory estimates = new uint256[](tokens.length);
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 length = tokens.length;
+        for (uint256 i = 0; i < length; i++) {
             uint256 estimate;
             if (tokens[i] == address(0)) {
                 estimate = account.balance;

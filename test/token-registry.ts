@@ -36,7 +36,7 @@ describe('TokenRegistry', function () {
 		this.controller = platform.controller
 		this.oracle = platform.oracles.ensoOracle
 		this.whitelist = platform.administration.whitelist
-		this.library = platform.library
+		this.controllerLibrary = platform.controllerLibrary
 		this.tokenRegistry = platform.oracles.registries.tokenRegistry
 
 		const { curveDepositZapRegistry, chainlinkRegistry } = platform.oracles.registries
@@ -48,7 +48,7 @@ describe('TokenRegistry', function () {
 			curveDepositZapRegistry
 		)
 
-		this.router = await deployLoopRouter(this.accounts[0], this.controller, this.library)
+		this.router = await deployLoopRouter(this.accounts[0], this.controller, platform.strategyLibrary)
 		await this.whitelist.connect(this.accounts[0]).approve(this.router.address)
 		this.uniswapAdapter = await deployUniswapV2Adapter(this.accounts[0], this.uniswapFactory, this.weth)
 		await this.whitelist.connect(this.accounts[0]).approve(this.uniswapAdapter.address)
@@ -93,10 +93,11 @@ describe('TokenRegistry', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: this.library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: this.controllerLibrary.address,
 			},
 		})
-		this.wrapper = await LibraryWrapper.deploy(this.oracle.address, strategyAddress)
+		this.wrapper = await LibraryWrapper.deploy(this.oracle.address, strategyAddress, this.controller.address)
 		await this.wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
