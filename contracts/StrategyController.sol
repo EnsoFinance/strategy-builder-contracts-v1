@@ -207,7 +207,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
      * @param strategy The address of the strategy being withdrawn from
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address token) external {
+    function repositionSynths(IStrategy strategy, address token) external override {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _onlyManager(strategy);
@@ -401,7 +401,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     /**
         @notice Refresh StrategyController's addresses
      */
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         _whitelist = f.whitelist();
         _pool = f.pool();

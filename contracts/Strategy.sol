@@ -309,7 +309,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return _factory;
     }
 
-    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
+    function getAllRewardTokens() external view override returns(address[] memory rewardTokens) {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         return StrategyClaim.getAllRewardTokens(tokenRegistry);
     }
@@ -533,12 +533,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit ClaimablesUpdated();
     }
 
-    function updateClaimables() external {
+    function updateClaimables() external override {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         _updateClaimables(tokenRegistry);
     }
 
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
         address newPool = f.pool();
         address currentPool = _pool;
@@ -558,7 +558,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _susd = ensoOracle.susd();
     }
 
-    function updateRewards() external {
+    function updateRewards() external override {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         BinaryTree.Tree memory exists = BinaryTree.newNode();
         _setTokensExists(exists, _items);

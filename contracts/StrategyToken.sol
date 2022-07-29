@@ -182,7 +182,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     /**
      * @dev Returns the token implementation version
      */
-     function version() external view returns (string memory) {
+     function version() external view override returns (string memory) {
          return _version;
      }
 

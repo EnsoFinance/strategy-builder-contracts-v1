@@ -16,7 +16,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     event StreamingFee(uint256 amount);
     event ManagementFee(uint256 amount);
 
-    function managementFee() external view returns (uint256) {
+    function managementFee() external view override returns (uint256) {
         uint256 managementFee = _managementFee;
         return managementFee / (managementFee.add(PRECISION) / DIVISOR); // divisors cannot be 0
     }
@@ -62,7 +62,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     /**
      * @notice Withdraws the streaming fee to the fee pool
      */
-    function withdrawStreamingFee() external {
+    function withdrawStreamingFee() external override {
         _setLock();
         _issueStreamingFee(_pool, _manager);
         _removeLock();

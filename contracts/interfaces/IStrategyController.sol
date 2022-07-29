@@ -51,6 +51,8 @@ interface IStrategyController is StrategyTypes {
         IStrategy strategy
     ) external;
 
+    function repositionSynths(IStrategy strategy, address token) external;
+
     function restructure(
         IStrategy strategy,
         StrategyItem[] memory strategyItems
@@ -79,6 +81,8 @@ interface IStrategyController is StrategyTypes {
     function initialized(address strategy) external view returns (bool);
 
     function strategyState(address strategy) external view returns (StrategyState memory);
+
+    function updateAddresses() external;
 
     function verifyStructure(address strategy, StrategyItem[] memory newItems) external view;
 

@@ -123,11 +123,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
      *         In order to rebalance the strategy, all Synths must first be converted into sUSD
      * @param strategy The address of the strategy being withdrawn from
-     * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address adapter, address token) external {
-        (strategy, adapter, token); // shh compiler
+    function repositionSynths(IStrategy strategy, address token) external override {
+        (strategy, token); // shh compiler
         revert("StrategyControllerPaused.");
     }
 
@@ -258,7 +257,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     /**
         @notice Refresh StrategyController's addresses
      */
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         _whitelist = f.whitelist();
         address o = f.oracle();
