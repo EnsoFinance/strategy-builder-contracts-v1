@@ -202,6 +202,10 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         emit NewStreamingFee(uint256(fee));
     }
 
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external onlyOwner {
+        IStrategyController(controller).updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar);
+    }
+
     /*
      * @dev This function is called by StrategyProxyAdmin
      */

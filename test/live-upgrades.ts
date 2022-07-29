@@ -64,8 +64,9 @@ describe('Live Upgrades', function () {
 
 	it('Should updateTradeData respecting timelock', async function () {
 		// first manager must setup the timelock
-		let updateTradeDataSelector = eDPI.interface.getSighash('updateTradeData')
+		const updateTradeDataSelector = eDPI.interface.getSighash('updateTradeData')
 		await eDPI.connect(manager).updateTimelock(updateTradeDataSelector, 5 * 60)
+
 		await eDPI.connect(accounts[1]).finalizeTimelock()
 
 		// now updateTradeData respecting the timelock

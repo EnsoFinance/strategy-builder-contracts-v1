@@ -88,7 +88,8 @@ export class Platform {
 	controller: Contract
 	oracles: Oracles
 	administration: Administration
-	library: Contract
+	strategyLibrary: Contract
+	controllerLibrary: Contract
 	strategyLibraries: any //
 
 	public constructor(
@@ -96,14 +97,16 @@ export class Platform {
 		controller: Contract,
 		oracles: Oracles,
 		administration: Administration,
-		library: Contract,
+		strategyLibrary: Contract,
+		controllerLibrary: Contract,
 		strategyLibraries: any
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
 		this.oracles = oracles
 		this.administration = administration
-		this.library = library
+		this.strategyLibrary = strategyLibrary
+		this.controllerLibrary = controllerLibrary
 		this.strategyLibraries = strategyLibraries
 	}
 
@@ -439,7 +442,15 @@ export async function deployPlatform(
 		platformProxyAdmin,
 	}
 
-	return new Platform(factory, controller, oracles, administration, strategyLibrary, strategyLibraries)
+	return new Platform(
+		factory,
+		controller,
+		oracles,
+		administration,
+		strategyLibrary,
+		controllerLibrary,
+		strategyLibraries
+	)
 }
 
 export async function deployUniswapV2Adapter(

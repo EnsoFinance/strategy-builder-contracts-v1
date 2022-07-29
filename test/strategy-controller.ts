@@ -42,7 +42,7 @@ describe('StrategyController', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		failAdapter: Contract,
 		strategy: Contract,
@@ -61,11 +61,11 @@ describe('StrategyController', function () {
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 
 		adapter = await deployUniswapV2Adapter(owner, uniswapFactory, weth)
 		await whitelist.connect(owner).approve(adapter.address)
-		router = await deployLoopRouter(owner, controller, library)
+		router = await deployLoopRouter(owner, controller, platform.strategyLibrary)
 		await whitelist.connect(owner).approve(router.address)
 	})
 
@@ -269,10 +269,11 @@ describe('StrategyController', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -547,7 +548,18 @@ describe('StrategyController', function () {
 		expect(BigNumber.from((await controller.strategyState(strategy.address)).timelock).eq(timelock)).to.equal(true)
 	})
 
+	it('Should fail to rebalance, rebalance timelock not ready.', async function () {
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+				'rebalance timelock not ready.',
+				'StrategyController.sol'
+			)
+		).to.be.true
+	})
+
 	it('Should fail to rebalance, already balanced', async function () {
+		await increaseTime(5 * 60 + 1)
 		expect(
 			await isRevertedWith(
 				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
@@ -557,9 +569,9 @@ describe('StrategyController', function () {
 		).to.be.true
 	})
 
-	it('Should purchase a token, requiring a rebalance', async function () {
+	it('Should purchase a token, not quite enough for a rebalance', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(50)
+		const value = WeiPerEther.mul(1)
 		await weth.connect(accounts[2]).deposit({ value: value.mul(2) })
 		await weth.connect(accounts[2]).approve(adapter.address, value.mul(2))
 		await adapter
@@ -570,7 +582,10 @@ describe('StrategyController', function () {
 			.connect(accounts[2])
 			.swap(value.div(4), 0, weth.address, tokens[3].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
-		expect(await wrapper.isBalanced()).to.equal(false)
+
+		// note the differences in inner and outer rebalance thresholds
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(await wrapper.isBalancedInner()).to.equal(false) // inner and outer wrt rebalance threshold
 	})
 
 	it('Should fail to rebalance, router not approved', async function () {
@@ -583,7 +598,35 @@ describe('StrategyController', function () {
 		).to.be.true
 	})
 
+	it('Should fail to rebalance, balanced', async function () {
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
+				'Balanced',
+				'StrategyController.sol'
+			)
+		).to.be.true
+	})
+
+	it('Should purchase a token, requiring a rebalance', async function () {
+		// Approve the user to use the adapter
+		const value = WeiPerEther.mul(10)
+		await weth.connect(accounts[2]).deposit({ value: value.mul(2) })
+		await weth.connect(accounts[2]).approve(adapter.address, value.mul(2))
+		await adapter
+			.connect(accounts[2])
+			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
+		//The following trade should increase the value of the token such that it doesn't need to be rebalanced
+		await adapter
+			.connect(accounts[2])
+			.swap(value.div(4), 0, weth.address, tokens[3].address, accounts[2].address, accounts[2].address)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(false)
+		expect(await wrapper.isBalancedInner()).to.equal(false) // inner and outer wrt rebalance threshold
+	})
+
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -630,7 +673,7 @@ describe('StrategyController', function () {
 			await isRevertedWith(
 				controller
 					.connect(accounts[1])
-					.deposit(strategy.address, router.address, 0, 1000, '0x', { value: BigNumber.from('1000') }),
+					.deposit(strategy.address, router.address, 0, 1000, '0x', { value: BigNumber.from('10000') }),
 				'Too much slippage',
 				'StrategyController.sol'
 			)
@@ -779,7 +822,7 @@ describe('StrategyController', function () {
 				.connect(accounts[2])
 				.swap(value, 0, tokens[1].address, weth.address, accounts[2].address, accounts[2].address)
 		} else {
-			const value = WeiPerEther.mul(100)
+			const value = WeiPerEther.mul(1000)
 			await weth.connect(accounts[2]).deposit({ value: value })
 			await weth.connect(accounts[2]).approve(adapter.address, value)
 			await adapter
@@ -796,6 +839,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -858,6 +902,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Transfer reserve token to require rebalance', async function () {
+		await increaseTime(5 * 60 + 1)
 		expect(
 			await isRevertedWith(
 				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
@@ -875,6 +920,7 @@ describe('StrategyController', function () {
 	})
 
 	it('Transfer reserve weth to require rebalance', async function () {
+		await increaseTime(5 * 60 + 1)
 		expect(
 			await isRevertedWith(
 				controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x'),
@@ -883,7 +929,7 @@ describe('StrategyController', function () {
 			)
 		).to.be.true
 
-		const value = WeiPerEther.div(100)
+		const value = WeiPerEther.div(10)
 		await weth.connect(accounts[4]).deposit({ value: value })
 		await weth.connect(accounts[4]).transfer(strategy.address, value)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -913,7 +959,9 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther })
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
 		).to.be.revertedWith('')
 
 		tx = await strategyFactory
@@ -924,7 +972,9 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther })
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
 		).to.be.revertedWith('')
 
 		const EmergencyEstimator = await getContractFactory('EmergencyEstimator')
@@ -938,7 +988,9 @@ describe('StrategyController', function () {
 		await expect(
 			controller
 				.connect(accounts[1])
-				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: WeiPerEther })
+				.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+					value: WeiPerEther,
+				})
 		).to.emit(controller, 'Deposit')
 	})
 

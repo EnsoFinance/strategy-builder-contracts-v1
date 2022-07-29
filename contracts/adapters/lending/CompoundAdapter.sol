@@ -45,8 +45,9 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter, StringUtils {
         if (_checkToken(tokenOut)) {
             ICToken cToken = ICToken(tokenOut);
             require(cToken.underlying() == tokenIn, "Incompatible");
-            IERC20(tokenIn).safeApprove(tokenOut, amount);
+            IERC20(tokenIn).sortaSafeApprove(tokenOut, amount);
             err = cToken.mint(amount);
+            require(IERC20(tokenIn).allowance(address(this), tokenOut) == 0, "Incomplete swap"); // sanity check
         } else {
             require(_checkToken(tokenIn), "No Compound token");
             ICToken cToken = ICToken(tokenIn);

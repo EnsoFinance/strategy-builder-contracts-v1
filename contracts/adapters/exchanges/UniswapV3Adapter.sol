@@ -43,7 +43,9 @@ contract UniswapV3Adapter is BaseAdapter {
         }
         uint24 fee = registry.getFee(tokenIn, tokenOut);
         require(fee > 0, "Pair fee not registered");
-        IERC20(tokenIn).safeApprove(address(router), amount);
+        if (IERC20(tokenIn).allowance(address(this), address(router)) > 0)
+              IERC20(tokenIn).sortaSafeApprove(address(router), 0);
+        IERC20(tokenIn).sortaSafeApprove(address(router), amount);
         router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
             tokenIn,
             tokenOut,

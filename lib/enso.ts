@@ -1,4 +1,4 @@
-import { ethers, waffle } from "hardhat";
+import { ethers, waffle } from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
 import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.json'
@@ -31,13 +31,13 @@ import {
 	deployLoopRouter,
 	deployMulticallRouter,
 	deployBatchDepositRouter,
-	Platform
+	Platform,
 } from './deploy'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from './constants'
 
 const { AddressZero, WeiPerEther } = ethers.constants
 
-const NULL_CONTRACT =  new Contract(AddressZero, [], ethers.provider)
+const NULL_CONTRACT = new Contract(AddressZero, [], ethers.provider)
 
 export const wethPerToken = (numTokens: number) => BigNumber.from(WeiPerEther).mul(100 * (numTokens - 1))
 
@@ -149,35 +149,19 @@ export class EnsoBuilder {
 		let registry = {} as Contract
 		switch (this.network) {
 			case Networks.LocalTestnet:
-				[factory, registry] = await deployBalancer(this.signer, this.tokens)
+				;[factory, registry] = await deployBalancer(this.signer, this.tokens)
 				balancer = new Balancer(factory, registry)
 				break
 			case Networks.Mainnet:
-				factory = new Contract(
-					MAINNET_ADDRESSES.BALANCER_FACTORY,
-					BalancerFactory.abi,
-					this.signer
-				)
-				registry = new Contract(
-					MAINNET_ADDRESSES.BALANCER_REGISTRY,
-					BalancerRegistry.abi,
-					this.signer
-				)
+				factory = new Contract(MAINNET_ADDRESSES.BALANCER_FACTORY, BalancerFactory.abi, this.signer)
+				registry = new Contract(MAINNET_ADDRESSES.BALANCER_REGISTRY, BalancerRegistry.abi, this.signer)
 				balancer = new Balancer(factory, registry)
 				break
 			case Networks.ExternalTestnet:
 				throw Error('External testnet not implemented yet')
 			default:
-				factory = new Contract(
-					MAINNET_ADDRESSES.BALANCER_FACTORY,
-					BalancerFactory.abi,
-					this.signer
-				)
-				registry = new Contract(
-					MAINNET_ADDRESSES.BALANCER_REGISTRY,
-					BalancerRegistry.abi,
-					this.signer
-				)
+				factory = new Contract(MAINNET_ADDRESSES.BALANCER_FACTORY, BalancerFactory.abi, this.signer)
+				registry = new Contract(MAINNET_ADDRESSES.BALANCER_REGISTRY, BalancerRegistry.abi, this.signer)
 				balancer = new Balancer(factory, registry)
 				break
 		}
@@ -204,9 +188,12 @@ export class EnsoBuilder {
 			case Networks.LocalTestnet:
 				this.tokens = await deployTokens(this.signer, this.defaults.numTokens, this.defaults.wethSupply)
 				if (this.tokens === undefined) throw Error('Failed to deploy erc20 tokens')
-				uniswapV2Factory = await deployUniswapV2(this.signer, this.tokens);
-				[uniswapV3Factory, ] = await deployUniswapV3(this.signer, this.tokens)
-				uniswapV3Router = await waffle.deployContract(this.signer, UniswapV3Router, [uniswapV3Factory.address, this.tokens[0].address])
+				uniswapV2Factory = await deployUniswapV2(this.signer, this.tokens)
+				;[uniswapV3Factory] = await deployUniswapV3(this.signer, this.tokens)
+				uniswapV3Router = await waffle.deployContract(this.signer, UniswapV3Router, [
+					uniswapV3Factory.address,
+					this.tokens[0].address,
+				])
 				break
 			case Networks.Mainnet:
 				this.tokens[0] = new Contract(MAINNET_ADDRESSES.WETH, WETH9.abi, this.signer)
@@ -248,8 +235,8 @@ export class EnsoBuilder {
 			this.addRouter('batch')
 		}
 		this.routers = await Promise.all(
-			this.routers.map(async r => {
-				await r.deploy(this.signer, ensoPlatform.controller, ensoPlatform.library)
+			this.routers.map(async (r) => {
+				await r.deploy(this.signer, ensoPlatform.controller, ensoPlatform.strategyLibrary)
 				await ensoPlatform.administration.whitelist.connect(this.signer).approve(r.contract?.address)
 				return r
 			})
@@ -269,45 +256,86 @@ export class EnsoBuilder {
 		}
 		// Deploy adapters
 		if (this.adapters?.aaveV2 !== undefined) {
-			await this.adapters.aaveV2.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), ensoPlatform.controller, weth, ensoPlatform.oracles.registries.tokenRegistry, ESTIMATOR_CATEGORY.AAVE_V2])
+			await this.adapters.aaveV2.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer),
+				ensoPlatform.controller,
+				weth,
+				ensoPlatform.oracles.registries.tokenRegistry,
+				ESTIMATOR_CATEGORY.AAVE_V2,
+			])
 		}
 		if (this.adapters?.aaveV2Debt !== undefined) {
-			await this.adapters.aaveV2Debt.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer), weth])
+			await this.adapters.aaveV2Debt.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer),
+				weth,
+			])
 		}
 		if (this.adapters?.balancer !== undefined) {
 			balancer = await this.deployBalancer()
-			await this.adapters.balancer.deploy(this.signer, ensoPlatform.administration.whitelist, [balancer.registry, weth])
+			await this.adapters.balancer.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				balancer.registry,
+				weth,
+			])
 		}
 		if (this.adapters?.compound !== undefined) {
-			await this.adapters.compound.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], this.signer), weth, ensoPlatform.oracles.registries.tokenRegistry, ESTIMATOR_CATEGORY.COMPOUND])
+			await this.adapters.compound.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], this.signer),
+				weth,
+				ensoPlatform.oracles.registries.tokenRegistry,
+				ESTIMATOR_CATEGORY.COMPOUND,
+			])
 		}
 		if (this.adapters?.curve !== undefined) {
-			await this.adapters.curve.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer), weth])
+			await this.adapters.curve.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
+				weth,
+			])
 		}
 		if (this.adapters?.curveLP !== undefined) {
 			await this.adapters.curveLP.deploy(this.signer, ensoPlatform.administration.whitelist, [
 				new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
 				ensoPlatform.oracles.registries.curveDepositZapRegistry,
-				weth
+				weth,
 			])
 		}
 		if (this.adapters?.curveGauge !== undefined) {
-			await this.adapters.curveGauge.deploy(this.signer, ensoPlatform.administration.whitelist, [weth, ensoPlatform.oracles.registries.tokenRegistry, ESTIMATOR_CATEGORY.CURVE_GAUGE])
+			await this.adapters.curveGauge.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				weth,
+				ensoPlatform.oracles.registries.tokenRegistry,
+				ESTIMATOR_CATEGORY.CURVE_GAUGE,
+			])
 		}
 		if (this.adapters?.synthetix !== undefined) {
-			await this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer), weth])
+			await this.adapters.synthetix.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], this.signer),
+				weth,
+			])
 		}
 		if (this.adapters?.uniswap !== undefined) {
-			await this.adapters.uniswap.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
+			await this.adapters.uniswap.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				uniswapV2Factory,
+				weth,
+			])
 		}
 		if (this.adapters?.uniswapV2 !== undefined) {
-			await this.adapters.uniswapV2.deploy(this.signer, ensoPlatform.administration.whitelist, [uniswapV2Factory, weth])
+			await this.adapters.uniswapV2.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				uniswapV2Factory,
+				weth,
+			])
 		}
 		if (this.adapters?.uniswapV3 !== undefined) {
-			await this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.oracles.registries.uniswapV3Registry, uniswapV3Router, weth])
+			await this.adapters.uniswapV3.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				ensoPlatform.oracles.registries.uniswapV3Registry,
+				uniswapV3Router,
+				weth,
+			])
 		}
 		if (this.adapters?.yearnV2 !== undefined) {
-			await this.adapters.yearnV2.deploy(this.signer, ensoPlatform.administration.whitelist, [weth, ensoPlatform.oracles.registries.tokenRegistry, ESTIMATOR_CATEGORY.YEARN_V2])
+			await this.adapters.yearnV2.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				weth,
+				ensoPlatform.oracles.registries.tokenRegistry,
+				ESTIMATOR_CATEGORY.YEARN_V2,
+			])
 		}
 		// Goes last since it depends on other adapters
 		if (this.adapters?.leverage !== undefined) {
@@ -317,12 +345,16 @@ export class EnsoBuilder {
 				this.adapters?.aaveV2Debt.contract || NULL_CONTRACT,
 				new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer),
 				usdc,
-				weth
+				weth,
 			])
 		}
-		const fullRouterIndex = this.routers.findIndex(router => router.type == Routers.Full)
+		const fullRouterIndex = this.routers.findIndex((router) => router.type == Routers.Full)
 		if (this.adapters?.metastrategy !== undefined && fullRouterIndex > -1) {
-			await this.adapters.metastrategy.deploy(this.signer, ensoPlatform.administration.whitelist, [ensoPlatform.controller, this.routers[fullRouterIndex].contract || NULL_CONTRACT, weth])
+			await this.adapters.metastrategy.deploy(this.signer, ensoPlatform.administration.whitelist, [
+				ensoPlatform.controller,
+				this.routers[fullRouterIndex].contract || NULL_CONTRACT,
+				weth,
+			])
 		}
 
 		// Safety check
@@ -409,7 +441,7 @@ export enum Adapters {
 	Uniswap = 'uniswap',
 	UniswapV2 = 'uniswapv2',
 	UniswapV3 = 'uniswapv3',
-	YEarnV2 = 'yearnv2'
+	YEarnV2 = 'yearnv2',
 }
 
 export class Adapter {
@@ -418,7 +450,7 @@ export class Adapter {
 	constructor(adapterType: string) {
 		const isAdapter = Object.values(Adapters).findIndex((v: string) => v === adapterType.toLowerCase()) !== -1
 		if (isAdapter) {
-			this.type = <Adapters> adapterType.toLowerCase()
+			this.type = <Adapters>adapterType.toLowerCase()
 		} else {
 			throw Error('Invalid adapter selected!')
 		}
@@ -430,16 +462,28 @@ export class Adapter {
 				this.contract = await deployAaveV2DebtAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.AaveV2) {
 			if (parameters.length == 5)
-				this.contract = await deployAaveV2Adapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4])
+				this.contract = await deployAaveV2Adapter(
+					signer,
+					parameters[0],
+					parameters[1],
+					parameters[2],
+					parameters[3],
+					parameters[4]
+				)
 		} else if (this.type === Adapters.Balancer) {
 			if (parameters.length == 2)
 				this.contract = await deployBalancerAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.Compound) {
 			if (parameters.length == 4)
-				this.contract = await deployCompoundAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3])
+				this.contract = await deployCompoundAdapter(
+					signer,
+					parameters[0],
+					parameters[1],
+					parameters[2],
+					parameters[3]
+				)
 		} else if (this.type === Adapters.Curve) {
-			if (parameters.length == 2)
-				this.contract = await deployCurveAdapter(signer, parameters[0], parameters[1])
+			if (parameters.length == 2) this.contract = await deployCurveAdapter(signer, parameters[0], parameters[1])
 		} else if (this.type === Adapters.CurveLP) {
 			if (parameters.length == 3)
 				this.contract = await deployCurveLPAdapter(signer, parameters[0], parameters[1], parameters[2])
@@ -448,11 +492,19 @@ export class Adapter {
 				this.contract = await deployCurveGaugeAdapter(signer, parameters[0], parameters[1], parameters[2])
 		} else if (this.type === Adapters.Leverage) {
 			if (parameters.length == 6)
-				this.contract = await deployLeverage2XAdapter(signer, parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5])
+				this.contract = await deployLeverage2XAdapter(
+					signer,
+					parameters[0],
+					parameters[1],
+					parameters[2],
+					parameters[3],
+					parameters[4],
+					parameters[5]
+				)
 		} else if (this.type === Adapters.Synthetix) {
 			if (parameters.length == 2)
 				this.contract = await deploySynthetixAdapter(signer, parameters[0], parameters[1])
-		} else if (this.type === Adapters.MetaStrategy){
+		} else if (this.type === Adapters.MetaStrategy) {
 			if (parameters.length == 3)
 				this.contract = await deployMetaStrategyAdapter(signer, parameters[0], parameters[1], parameters[2])
 		} else if (this.type === Adapters.Uniswap) {
@@ -476,7 +528,7 @@ export enum Routers {
 	Multicall,
 	Loop,
 	Full,
-	Batch
+	Batch,
 }
 
 // TODO: implement encoding for each Router (chain calldata for each type of router MulticallRouter is IRouter, LoopRouter is IRouter etc..)
@@ -508,7 +560,12 @@ export class Router {
 		if (this.type == Routers.Multicall) {
 			this.contract = await deployMulticallRouter(signer, controller)
 		} else if (this.type == Routers.Full) {
-			this.contract = await deployFullRouter(signer, new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], ethers.provider), controller, library)
+			this.contract = await deployFullRouter(
+				signer,
+				new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], ethers.provider),
+				controller,
+				library
+			)
 		} else if (this.type == Routers.Batch) {
 			this.contract = await deployBatchDepositRouter(signer, controller, library)
 		} else {

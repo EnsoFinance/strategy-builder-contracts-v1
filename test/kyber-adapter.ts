@@ -22,6 +22,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import IDMMFactory from '../artifacts/contracts/interfaces/kyber/IDMMFactory.sol/IDMMFactory.json'
 import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.sol/IDMMRouter02.json'
+import { increaseTime } from '../lib/utils'
 
 chai.use(solidity)
 
@@ -37,7 +38,7 @@ describe('KyberSwapAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		kyberAdapter: Contract,
 		uniswapV2Adapter: Contract,
 		strategy: Contract,
@@ -63,7 +64,7 @@ describe('KyberSwapAdapter', function () {
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 
 		const { curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } = platform.oracles.registries
 		await tokens.registerTokens(
@@ -74,7 +75,7 @@ describe('KyberSwapAdapter', function () {
 			curveDepositZapRegistry
 		)
 
-		router = await deployLoopRouter(owner, controller, library)
+		router = await deployLoopRouter(owner, controller, platform.strategyLibrary)
 		await whitelist.connect(owner).approve(router.address)
 		kyberAdapter = await deployKyberSwapAdapter(owner, kyberFactory, kyberRouter, weth)
 		await whitelist.connect(owner).approve(kyberAdapter.address)
@@ -115,10 +116,11 @@ describe('KyberSwapAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -148,6 +150,7 @@ describe('KyberSwapAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -168,6 +171,7 @@ describe('KyberSwapAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

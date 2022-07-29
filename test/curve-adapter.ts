@@ -26,6 +26,7 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
+import { increaseTime } from '../lib/utils'
 
 chai.use(solidity)
 
@@ -48,7 +49,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapV2Adapter: Contract,
 		uniswapV2Factory: Contract,
 		uniswapV3Adapter: Contract,
@@ -81,7 +82,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 
 		const { tokenRegistry, curveDepositZapRegistry, chainlinkRegistry, uniswapV3Registry } =
 			platform.oracles.registries
@@ -95,7 +96,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		)
 
 		const addressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapV2Adapter = await deployUniswapV2Adapter(accounts[0], uniswapV2Factory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapV2Adapter.address)
@@ -362,10 +363,11 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -571,7 +573,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
-			rebalanceSlippage: BigNumber.from(997),
+			rebalanceSlippage: BigNumber.from(990),
 			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
 			managementFee: BigNumber.from(0),
 			social: false,
@@ -593,10 +595,11 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -605,7 +608,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
+		const value = WeiPerEther.mul(800)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -617,6 +620,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -672,6 +676,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -723,10 +728,11 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -735,7 +741,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
+		const value = WeiPerEther.mul(800)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -747,6 +753,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -767,6 +774,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -812,10 +820,11 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -824,7 +833,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(500)
+		const value = WeiPerEther.mul(1000)
 		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
 		await uniswapV2Adapter
@@ -836,6 +845,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -856,6 +866,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

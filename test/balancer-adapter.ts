@@ -6,6 +6,7 @@ import * as deployer from '../lib/deploy'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { increaseTime } from '../lib/utils'
 
 const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const NUM_TOKENS = 3
@@ -21,7 +22,7 @@ describe('BalancerAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		router: Contract,
 		balancerAdapter: Contract,
 		uniswapAdapter: Contract,
@@ -44,13 +45,13 @@ describe('BalancerAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const whitelist = platform.administration.whitelist
 		uniswapAdapter = await deployer.deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
-		router = await deployer.deployLoopRouter(accounts[0], controller, library)
+		router = await deployer.deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -85,10 +86,11 @@ describe('BalancerAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)
@@ -155,6 +157,7 @@ describe('BalancerAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
