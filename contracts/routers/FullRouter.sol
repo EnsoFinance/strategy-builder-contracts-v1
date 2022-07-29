@@ -480,8 +480,12 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         if (data.path[data.path.length-1] != weth) {
             // Convert amount into the first token's currency
             if (amount < type(uint256).max)
-                amount = amount.mul(_1e18).div(uint256(oracle.estimateItem(_1e18, data.path[data.path.length-1])));
-        } else if (data.cache.length != 0) {
+                amount = amount.mul(_1e18).div(uint256(oracle.estimateItem(
+                    IStrategy(strategy),
+                    data.path[data.path.length-1],
+                    _1e18
+                )));
+        } else if (data.cache.length > 0) {
             // Deleverage tokens
             leverageItems = abi.decode(data.cache, (LeverageItem[]));
             leverageLiquidity = new uint256[](leverageItems.length);
@@ -509,7 +513,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                             strategy,
                             token,
                             oracle.estimateItem(
-                                IERC20(token).balanceOf(strategy),
+                                IStrategy(strategy),
                                 token
                             )
                         );
@@ -545,7 +549,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             address _tokenOut;
             address _from;
             address _to;
-            if (data.adapters.length != 0) 
+            if (data.adapters.length != 0)
                 for (uint256 i = data.adapters.length-1; ; --i) {
                     _tokenIn = data.path[i];
                     if (i == data.adapters.length-1) {
@@ -754,7 +758,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
     ) internal view returns (uint256) {
         int256 expected = StrategyLibrary.getExpectedTokenValue(total, strategy, leverageItem);
         int256 estimate = oracle.estimateItem(
-            IERC20(leverageItem).balanceOf(strategy),
+            IStrategy(strategy),
             leverageItem
         );
         if (isLeveraging) {
@@ -811,7 +815,7 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         );
         // Update temp estimates with new value since tokens have been sold (it will be needed on later sell loops)
         _setTempEstimate(mm, strategy, leverageItem, oracle.estimateItem(
-            IERC20(leverageItem).balanceOf(strategy),
+            IStrategy(strategy),
             leverageItem
         ));
         return leverageAmount;
