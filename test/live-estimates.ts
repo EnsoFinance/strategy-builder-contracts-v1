@@ -1,3 +1,5 @@
+const runAll = false
+
 import chai from 'chai'
 const { expect } = chai
 import { ethers, network, waffle } from 'hardhat'
@@ -8,10 +10,14 @@ import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
 import { deployFullRouter, deployUniswapV3Adapter, deployAaveV2Adapter, deployAaveV2DebtAdapter } from '../lib/deploy'
+import { createLink, linkBytecode } from '../lib/link'
 import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
@@ -44,38 +50,38 @@ describe('Live Estimates', function () {
 		newAdapters: string[]
 
 	async function updateAdapters(strategy: Contract) {
-			// Impersonate manager
-			const managerAddress = await strategy.manager()
-			await network.provider.request({
-				method: 'hardhat_impersonateAccount',
-				params: [managerAddress],
-			})
-			const manager = await ethers.getSigner(managerAddress)
+		// Impersonate manager
+		const managerAddress = await strategy.manager()
+		await network.provider.request({
+			method: 'hardhat_impersonateAccount',
+			params: [managerAddress],
+		})
+		const manager = await ethers.getSigner(managerAddress)
 
-			// Send funds to manager
-			await accounts[19].sendTransaction({to: managerAddress, value: WeiPerEther})
+		// Send funds to manager
+		await accounts[19].sendTransaction({ to: managerAddress, value: WeiPerEther })
 
-			const items = await strategy.items()
-			for (let i = 0; i < items.length; i++) {
-					let tradeData = await strategy.getTradeData(items[i])
-					let adapters = [...tradeData.adapters]
-					let shouldUpdate = false;
-					for (let j = 0; j < adapters.length; j++) {
-					 	for (let k = 0; k < oldAdapters.length; k++) {
-								if (adapters[j].toLowerCase() == oldAdapters[k].toLowerCase()) {
-										adapters[j] = newAdapters[k];
-										shouldUpdate = true;
-										break;
-								}
-						}
+		const items = await strategy.items()
+		for (let i = 0; i < items.length; i++) {
+			let tradeData = await strategy.getTradeData(items[i])
+			let adapters = [...tradeData.adapters]
+			let shouldUpdate = false
+			for (let j = 0; j < adapters.length; j++) {
+				for (let k = 0; k < oldAdapters.length; k++) {
+					if (adapters[j].toLowerCase() == oldAdapters[k].toLowerCase()) {
+						adapters[j] = newAdapters[k]
+						shouldUpdate = true
+						break
 					}
-					if (shouldUpdate) {
-						 await strategy.connect(manager).updateTradeData(items[i], {
-							 ...tradeData,
-							 adapters: adapters
-						 })
-					}
+				}
 			}
+			if (shouldUpdate) {
+				await strategy.connect(manager).updateTradeData(items[i], {
+					...tradeData,
+					adapters: adapters,
+				})
+			}
+		}
 	}
 
 	before('Setup Uniswap + Factory', async function () {
@@ -89,7 +95,7 @@ describe('Live Estimates', function () {
 		const owner = await ethers.getSigner(ownerAddress)
 
 		// Send funds to owner
-		await accounts[19].sendTransaction({to: ownerAddress, value: WeiPerEther.mul(5)})
+		await accounts[19].sendTransaction({ to: ownerAddress, value: WeiPerEther.mul(5) })
 
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -122,7 +128,8 @@ describe('Live Estimates', function () {
 		const uniswapV3Router = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], owner)
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], owner)
 		uniswapV3 = await deployUniswapV3Adapter(
-			owner, enso.platform.oracles.registries.uniswapV3Registry,
+			owner,
+			enso.platform.oracles.registries.uniswapV3Registry,
 			uniswapV3Router,
 			weth
 		)
@@ -172,33 +179,54 @@ describe('Live Estimates', function () {
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
-    const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
+		const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
 
-    const strategyFactory = enso.platform.strategyFactory
+		const strategyFactory = enso.platform.strategyFactory
 
-    // update to latest `Strategy`
+		// update to latest `Strategy`
 		const newImplementation = await Strategy.deploy(
 			strategyFactory.address,
 			controller.address,
 			AddressZero,
 			AddressZero
 		)
-    
- 		const version = await strategyFactory.callStatic.version()
-    await strategyFactory
-			.connect(owner)
-			.updateImplementation(newImplementation.address, (version + 1).toString())
 
-    const admin = await strategyFactory.admin()
+		const version = await strategyFactory.callStatic.version()
+		await strategyFactory.connect(owner).updateImplementation(newImplementation.address, (version + 1).toString())
+
+		const admin = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		const strategyAdmin = await StrategyAdmin.attach(admin)
 
+		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		await strategyLibrary.deployed()
+		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
+
+		const controllerLibrary = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+			[]
+		)
+		await controllerLibrary.deployed()
+		const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
+		const newControllerImplementation = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(StrategyController, [controllerLibraryLink]),
+			[strategyFactory.address]
+		)
+
+		await newControllerImplementation.deployed()
+		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
+		await platformProxyAdmin
+			.connect(await impersonate(await platformProxyAdmin.owner()))
+			.upgrade(controller.address, newControllerImplementation.address)
+
 		strategies.forEach(async (s: Contract) => {
 			await strategyAdmin.connect(await impersonate(await s.manager())).upgrade(s.address)
-			await controller.connect(accounts[0]).migrateStrategy(s.address, [])
 		})
 
-    await updateAdapters(eDPI)
+		await updateAdapters(eDPI)
 		await updateAdapters(eYETI)
 		await updateAdapters(eYLA)
 		await updateAdapters(eNFTP)
@@ -215,7 +243,7 @@ describe('Live Estimates', function () {
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 	})
 
-  it('Should be initialized.', async function () {
+	it('Should be initialized.', async function () {
 		/*
 		 * if the latest `Strategy` implementation incorrectly updates storage
 		 * then the deployed instance would incorrectly (and dangerously)
@@ -241,154 +269,156 @@ describe('Live Estimates', function () {
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
 
-	it('Should estimate withdraw eETH2X', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eETH2X.address)
-		const withdrawAmount = await eETH2X.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eETH2X.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eETH2X, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eETH2X.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-	})
+	if (runAll) {
+		it('Should estimate withdraw eETH2X', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eETH2X.address)
+			const withdrawAmount = await eETH2X.balanceOf(accounts[1].address)
+			const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+			const totalSupply = await eETH2X.totalSupply()
+			const wethBefore = await weth.balanceOf(accounts[1].address)
+			const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+			console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+			const estimatedWithdrawValue = await estimator.withdraw(eETH2X, withdrawAmountAfterFee)
+			console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+			let tx = await controller
+				.connect(accounts[1])
+				.withdrawWETH(eETH2X.address, router.address, withdrawAmount, 0, '0x')
+			const receipt = await tx.wait()
+			console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+			const wethAfter = await weth.balanceOf(accounts[1].address)
+			console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		})
 
-	it('Should estimate deposit eDPI', async function () {
-		const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await estimator.deposit(eDPI, depositAmount)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-		await controller
-			.connect(accounts[1])
-			.deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eDPI.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-	})
+		it('Should estimate deposit eDPI', async function () {
+			const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
+			const depositAmount = WeiPerEther
+			const estimatedDepositValue = await estimator.deposit(eDPI, depositAmount)
+			console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+			await controller
+				.connect(accounts[1])
+				.deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
+			const [totalAfter] = await oracle.estimateStrategy(eDPI.address)
+			console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		})
 
-	it('Should estimate withdraw eDPI', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
-		const withdrawAmount = await eDPI.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eDPI.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eDPI, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-	})
+		it('Should estimate withdraw eDPI', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
+			const withdrawAmount = await eDPI.balanceOf(accounts[1].address)
+			const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+			const totalSupply = await eDPI.totalSupply()
+			const wethBefore = await weth.balanceOf(accounts[1].address)
+			const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+			console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+			const estimatedWithdrawValue = await estimator.withdraw(eDPI, withdrawAmountAfterFee)
+			console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+			let tx = await controller
+				.connect(accounts[1])
+				.withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
+			const receipt = await tx.wait()
+			console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+			const wethAfter = await weth.balanceOf(accounts[1].address)
+			console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		})
 
-	it('Should estimate deposit eYETI', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await estimator.deposit(eYETI, depositAmount)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-		await controller
-			.connect(accounts[1])
-			.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-	})
+		it('Should estimate deposit eYETI', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
+			const depositAmount = WeiPerEther
+			const estimatedDepositValue = await estimator.deposit(eYETI, depositAmount)
+			console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+			await controller
+				.connect(accounts[1])
+				.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
+			const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
+			console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		})
 
-	it('Should estimate withdraw eYETI', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
-		const withdrawAmount = await eYETI.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eYETI.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eYETI, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-	})
+		it('Should estimate withdraw eYETI', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
+			const withdrawAmount = await eYETI.balanceOf(accounts[1].address)
+			const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+			const totalSupply = await eYETI.totalSupply()
+			const wethBefore = await weth.balanceOf(accounts[1].address)
+			const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+			console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+			const estimatedWithdrawValue = await estimator.withdraw(eYETI, withdrawAmountAfterFee)
+			console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+			let tx = await controller
+				.connect(accounts[1])
+				.withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
+			const receipt = await tx.wait()
+			console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+			const wethAfter = await weth.balanceOf(accounts[1].address)
+			console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		})
 
-	it('Should estimate deposit eYLA', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await estimator.deposit(eYLA, depositAmount)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-		await controller
-			.connect(accounts[1])
-			.deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eYLA.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-	})
+		it('Should estimate deposit eYLA', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
+			const depositAmount = WeiPerEther
+			const estimatedDepositValue = await estimator.deposit(eYLA, depositAmount)
+			console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+			await controller
+				.connect(accounts[1])
+				.deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
+			const [totalAfter] = await oracle.estimateStrategy(eYLA.address)
+			console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		})
 
-	it('Should estimate withdraw eYLA', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
-		const withdrawAmount = await eYLA.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eYLA.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eYLA, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-	})
+		it('Should estimate withdraw eYLA', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
+			const withdrawAmount = await eYLA.balanceOf(accounts[1].address)
+			const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+			const totalSupply = await eYLA.totalSupply()
+			const wethBefore = await weth.balanceOf(accounts[1].address)
+			const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+			console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+			const estimatedWithdrawValue = await estimator.withdraw(eYLA, withdrawAmountAfterFee)
+			console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+			let tx = await controller
+				.connect(accounts[1])
+				.withdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
+			const receipt = await tx.wait()
+			console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+			const wethAfter = await weth.balanceOf(accounts[1].address)
+			console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		})
 
-	it('Should estimate deposit eNFTP', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eNFTP.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await estimator.deposit(eNFTP, depositAmount)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-		await controller
-			.connect(accounts[1])
-			.deposit(eNFTP.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eNFTP.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-	})
+		it('Should estimate deposit eNFTP', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eNFTP.address)
+			const depositAmount = WeiPerEther
+			const estimatedDepositValue = await estimator.deposit(eNFTP, depositAmount)
+			console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+			await controller
+				.connect(accounts[1])
+				.deposit(eNFTP.address, router.address, 0, 0, '0x', { value: depositAmount })
+			const [totalAfter] = await oracle.estimateStrategy(eNFTP.address)
+			console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		})
 
-	it('Should estimate withdraw eNFTP', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eNFTP.address)
-		const withdrawAmount = await eNFTP.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eNFTP.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eNFTP, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-	})
+		it('Should estimate withdraw eNFTP', async function () {
+			await increaseTime(1)
+			const [totalBefore] = await oracle.estimateStrategy(eNFTP.address)
+			const withdrawAmount = await eNFTP.balanceOf(accounts[1].address)
+			const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+			const totalSupply = await eNFTP.totalSupply()
+			const wethBefore = await weth.balanceOf(accounts[1].address)
+			const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+			console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+			const estimatedWithdrawValue = await estimator.withdraw(eNFTP, withdrawAmountAfterFee)
+			console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+			let tx = await controller
+				.connect(accounts[1])
+				.withdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')
+			const receipt = await tx.wait()
+			console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+			const wethAfter = await weth.balanceOf(accounts[1].address)
+			console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		})
+	}
 })
