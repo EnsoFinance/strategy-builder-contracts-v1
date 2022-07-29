@@ -446,7 +446,7 @@ library ControllerLibrary {
         length = strategyDebt.length;
         for (uint256 i; i < length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
-            uint256 index = length + i;
+            uint256 index = strategyItems.length + i;
             if (estimates[index] > expectedValue) {
                 amount = amount.add(uint256(estimates[index].sub(expectedValue)));
             } else if (estimates[index] < expectedValue) {
