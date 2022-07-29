@@ -270,6 +270,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     }
 
     function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external override {
+        (rebalanceTimelockPeriod, rebalanceThresholdScalar);
         revert("StrategyControllerPaused.");
     }
 

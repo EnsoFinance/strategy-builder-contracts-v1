@@ -7,7 +7,7 @@ library AddressArrays {
     using BinaryTree for BinaryTree.Tree;
 
     // @notice Returns all values from array0 and array1 (without duplicates)
-    function with(address[] calldata array0, address[] calldata array1) internal view returns (address[] memory result) {
+    function with(address[] calldata array0, address[] calldata array1) internal pure returns (address[] memory result) {
         BinaryTree.Tree memory tree = BinaryTree.newNode();
         uint256 count;
         uint256 length = array0.length;
@@ -25,7 +25,7 @@ library AddressArrays {
     }
 
     // @notice Returns all values in array0 that are not also in array1
-    function without(address[] memory array0, address[] calldata array1) internal view returns (address[] memory result) {
+    function without(address[] memory array0, address[] calldata array1) internal pure returns (address[] memory result) {
         BinaryTree.Tree memory tree1 = BinaryTree.newNode();
         uint256 length = array1.length;
         for (uint256 i; i < length; ++i) {

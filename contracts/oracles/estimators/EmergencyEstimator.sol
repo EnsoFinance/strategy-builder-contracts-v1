@@ -18,7 +18,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
 
     constructor() public {
         _setTimelock(
-          keccak256(abi.encode(this.updateEstimate.selector)), // identifier
+          keccak256(abi.encode(EmergencyEstimator.updateEstimate.selector)), // identifier
           5 minutes);
     }
 
