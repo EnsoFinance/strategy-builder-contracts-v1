@@ -2,6 +2,8 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -171,6 +173,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     function updateRegistry(address newRegistry) external noZeroAddress(newRegistry) onlyOwner {
+      console.log("debug updateRegistry");
         _registry = newRegistry;
         emit NewOracle(newRegistry);
     }
@@ -394,6 +397,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         TradeData memory tradeData,
         bool isClaimable
     ) internal {
+      console.log("_addItemDetailedToRegistry");
         ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
     }
 }

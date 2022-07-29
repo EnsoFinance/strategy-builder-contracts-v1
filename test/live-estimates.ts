@@ -10,14 +10,18 @@ import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
 import { deployFullRouter, deployUniswapV3Adapter, deployAaveV2Adapter, deployAaveV2DebtAdapter } from '../lib/deploy'
+import { TradeData } from '../lib/encode'
 import { createLink, linkBytecode } from '../lib/link'
-import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
+import { DIVISOR, MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
+import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
+import AaveV2Estimator from '../artifacts/contracts/oracles/estimators/AaveV2Estimator.sol/AaveV2Estimator.json'
 
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
@@ -241,6 +245,42 @@ describe('Live Estimates', function () {
 		)
 		// Whitelist
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
+
+		// Factory Implementation
+		const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controller.address])
+		await factoryImplementation.deployed()
+		await platformProxyAdmin
+			.connect(await impersonate(await platformProxyAdmin.owner()))
+			.upgrade(strategyFactory.address, factoryImplementation.address)
+
+		console.log('debug before before')
+		const newTokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
+		await newTokenRegistry.deployed()
+
+		const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
+		await newTokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
+
+		await newTokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
+
+		console.log('debug before before 1')
+		await strategyFactory
+			.connect(await impersonate(await strategyFactory.owner()))
+			.updateRegistry(newTokenRegistry.address)
+
+		console.log('debug before before 2')
+
+		let tradeData: TradeData = {
+			adapters: [],
+			path: [],
+			cache: '0x',
+		}
+		console.log('debug ', tradeData, ITEM_CATEGORY.BASIC)
+
+		await strategyFactory
+			.connect(await impersonate(await strategyFactory.owner()))
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
+
+		console.log('debug after before')
 	})
 
 	it('Should be initialized.', async function () {
@@ -261,6 +301,7 @@ describe('Live Estimates', function () {
 		const [totalBefore] = await oracle.estimateStrategy(eETH2X.address)
 		const depositAmount = WeiPerEther
 		const estimatedDepositValue = await estimator.deposit(eETH2X, depositAmount)
+		console.log('debug')
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
 		await controller
 			.connect(accounts[1])

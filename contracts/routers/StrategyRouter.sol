@@ -2,6 +2,8 @@
 pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
+import "hardhat/console.sol";
+
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../libraries/SafeERC20.sol";
@@ -130,6 +132,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     ) internal {
         if (amount > 0) {
             for (uint256 i = 0; i < data.adapters.length; i++) {
+              console.log(i);
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut;
@@ -151,6 +154,9 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
                     _tokenOut = data.path[i];
                     _to = address(this);
                 }
+                console.log(data.adapters[i]);
+                console.log(_tokenIn);
+                console.log(_tokenOut);
                 _delegateSwap(
                     data.adapters[i],
                     _amount,

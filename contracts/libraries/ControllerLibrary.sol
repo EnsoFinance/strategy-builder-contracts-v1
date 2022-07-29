@@ -12,6 +12,8 @@ import "./SafeERC20.sol";
 import "./AddressArrays.sol";
 import "./StrategyLibrary.sol";
 
+import "hardhat/console.sol";
+
 library ControllerLibrary {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -222,21 +224,34 @@ library ControllerLibrary {
         address weth,
         bytes memory data
     ) public {
+      console.log("..deposit 0");
         _onlyApproved(address(router));
         _checkDivisor(slippage);
+
+      console.log("..deposit 1");
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
+
+      console.log("..deposit 2");
         IOracle o = IStrategyController(address(this)).oracle();
+
+      console.log("..deposit 3");
         if (weth != address(0)) {
+      console.log("..deposit 3a");
             IERC20(weth).safeApprove(address(router), amount);
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
                 data = abi.encode(address(this), amount);
+      console.log("..deposit 3a 0");
             router.deposit(address(strategy), data);
+      console.log("..deposit 3a 1");
             IERC20(weth).safeApprove(address(router), 0);
+      console.log("..deposit 3a 2");
         } else {
+      console.log("..deposit 3b");
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
                 data = abi.encode(account, amount);
             router.deposit(address(strategy), data);
         }
+      console.log("..deposit 4");
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), 0);
         // Recheck total
         (uint256 totalAfter, int256[] memory estimates) = o.estimateStrategy(strategy);

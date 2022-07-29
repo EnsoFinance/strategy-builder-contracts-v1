@@ -11,6 +11,8 @@ import "../../interfaces/IRewardsAdapter.sol";
 import "../../interfaces/IERC20NonStandard.sol";
 import "../ProtocolAdapter.sol";
 
+import "hardhat/console.sol";
+
 contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
     using SafeERC20 for IERC20;
 
@@ -39,6 +41,7 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
         address from,
         address to
     ) public override {
+      console.log("aavev2 swap");
         require(tokenIn != tokenOut, "Tokens cannot match");
         if (from != address(this)){
             uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));

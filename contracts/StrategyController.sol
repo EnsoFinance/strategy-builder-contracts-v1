@@ -14,6 +14,8 @@ import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
 import "./StrategyControllerStorage.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @notice This contract controls multiple Strategy contracts.
  * @dev Whitelisted routers are able to execute different swapping strategies as long as total strategy value doesn't drop below the defined slippage amount
@@ -115,17 +117,31 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy);
         _socialOrManager(strategy);
+        console.log("deposit 0");
         strategy.claimAll();
+        console.log("deposit 1");
         Timelock memory lock = _timelocks[address(strategy)];
         _require(
           lock.timestamp == 0 || lock.category != TimelockCategory.RESTRUCTURE,
           uint256(0x1bb63a90056c02) /* error_macro_for("Strategy restructuring") */
         );
+
+        console.log("deposit 2");
         strategy.settleSynths();
+
+        console.log("deposit 3");
         strategy.issueStreamingFee();
+
+        console.log("deposit 4");
         (uint256 totalBefore, int256[] memory estimates) = oracle().estimateStrategy(strategy);
+
+        console.log("deposit 5");
         uint256 balanceBefore = ControllerLibrary.amountOutOfBalance(address(strategy), totalBefore, estimates);
+
+        console.log("deposit 6");
         _deposit(strategy, router, msg.sender, amount, slippage, totalBefore, balanceBefore, data);
+
+        console.log("deposit 7");
         _removeStrategyLock(strategy);
     }
 
@@ -506,7 +522,10 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             weth = _weth;
             IWETH(weth).deposit{value: amount}();
         }
+        console.log("_deposit 0");
         ControllerLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth, data);
+
+        console.log("_deposit 1");
     }
 
     /**
