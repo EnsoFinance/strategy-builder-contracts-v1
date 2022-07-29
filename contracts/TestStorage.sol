@@ -11,6 +11,7 @@ contract TestStorage is StrategyTokenStorage {
     }
 
     function test() external {
+        _version = "hakuna matata";
         _streamingFeeRate = 123;
     }
 }

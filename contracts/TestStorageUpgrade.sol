@@ -14,6 +14,7 @@ contract TestStorageUpgrade is OtherStrategyTokenStorage {
 
     function test() external {
         console.log("testing");
+        require(keccak256(abi.encodePacked(_version)) == keccak256(abi.encodePacked("hakuna matata")), "not ok");
         require(_streamingFeeRate == uint224(123), "WRONG");
     }
 }
