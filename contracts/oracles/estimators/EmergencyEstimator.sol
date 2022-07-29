@@ -29,7 +29,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit UpdateTimelock(delay, false);
     }
 
-    function finalizeTimelock() external override {
+    function finalizeTimelock() external {
         bytes32 key = keccak256(abi.encode(this.updateTimelock.selector));
         if (!_timelockIsReady(key)) {
             TimelockData memory td = _timelockData(key);
