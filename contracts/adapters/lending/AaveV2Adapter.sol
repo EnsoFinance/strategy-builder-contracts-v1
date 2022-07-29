@@ -50,8 +50,9 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
         if (_checkToken(tokenOut)) {
             require(IAToken(tokenOut).UNDERLYING_ASSET_ADDRESS() == tokenIn, "Incompatible");
             address lendingPool = addressesProvider.getLendingPool();
-            IERC20(tokenIn).safeApprove(lendingPool, amount);
+            IERC20(tokenIn).sortaSafeApprove(lendingPool, amount);
             ILendingPool(lendingPool).deposit(tokenIn, amount, to, 0);
+            require(IERC20(tokenIn).allowance(address(this), lendingPool) == 0, "Incomplete swap"); // sanity check
             if (strategyController.initialized(to)) {
                 //Add as collateral if strategy supports debt
                 IStrategy strategy = IStrategy(to);
@@ -69,7 +70,7 @@ contract AaveV2Adapter is ProtocolAdapter, IRewardsAdapter {
     }
 
     // Intended to be called via delegateCall
-    function claim(address[] memory tokens) external override {
+    function claim(address[] calldata tokens) external override {
         uint256 amount = _ic.getRewardsBalance(tokens, address(this));
         _ic.claimRewards(tokens, amount, address(this));
     }

@@ -41,7 +41,7 @@ describe('SynthetixAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapAdapter: Contract,
 		compoundAdapter: Contract,
 		curveAdapter: Contract,
@@ -80,7 +80,7 @@ describe('SynthetixAdapter', function () {
 		strategyFactory = platform.strategyFactory
 		controller = platform.controller
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 
 		const synthetixResolver = new Contract(
 			'0x823bE81bbF96BEc0e25CA13170F5AaCb5B79ba83',
@@ -90,7 +90,12 @@ describe('SynthetixAdapter', function () {
 		const curveAddressProvider = new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], accounts[0])
 
 		const whitelist = platform.administration.whitelist
-		router = await deployFullRouter(accounts[10], new Contract(AddressZero, [], accounts[0]), controller, library)
+		router = await deployFullRouter(
+			accounts[10],
+			new Contract(AddressZero, [], accounts[0]),
+			controller,
+			platform.strategyLibrary
+		)
 		await whitelist.connect(accounts[10]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(uniswapAdapter.address)
@@ -210,10 +215,11 @@ describe('SynthetixAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

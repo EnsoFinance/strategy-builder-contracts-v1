@@ -57,13 +57,29 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         address recipient,
         uint256 amount
     ) external virtual override returns (bool) {
+        _spendAllowance(sender, msg.sender, amount);
         _transfer(sender, recipient, amount);
-        _approve(
-            sender,
-            msg.sender,
-            _allowances[sender][msg.sender].sub(amount, "ERC20: allowance too low")
-        );
         return true;
+    }
+
+    /**
+     * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
+     *
+     * Does not update the allowance amount in case of infinite allowance.
+     * Revert if not enough allowance is available.
+     *
+     * Might emit an {Approval} event.
+     */
+    function _spendAllowance(
+        address owner,
+        address spender,
+        uint256 amount
+    ) internal virtual {
+        uint256 currentAllowance = _allowances[owner][spender];
+        if (currentAllowance != type(uint256).max) {
+            require(currentAllowance >= amount, "ERC20: insufficient allowance");
+            _approve(owner, spender, currentAllowance - amount);
+        }
     }
 
     /**
@@ -99,7 +115,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) external virtual override returns (bool) {
         uint256 currentAllowance = _allowances[msg.sender][spender];
-        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
+        require(currentAllowance >= subtractedValue, "ERC20: decreased allowance < 0");
         _approve(msg.sender, spender, currentAllowance.sub(subtractedValue));
 
         return true;
@@ -113,7 +129,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public override {
+    ) external override {
         require(block.timestamp <= deadline, "Expired deadline");
 
         bytes32 digest =
@@ -230,7 +246,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
         _validAddress(sender);
         _validAddress(recipient);
         _balances[sender] = _balances[sender].sub(amount, BALANCE_LOW);
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[recipient] += amount;
         emit Transfer(sender, recipient, amount);
     }
 
@@ -246,7 +262,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     function _mint(address account, uint256 amount) internal virtual {
         _validAddress(account);
         _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _balances[account] += amount;
         emit Transfer(address(0), account, amount);
     }
 
@@ -264,7 +280,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     function _burn(address account, uint256 amount) internal virtual {
         _validAddress(account);
         _balances[account] = _balances[account].sub(amount, BALANCE_LOW);
-        _totalSupply = _totalSupply.sub(amount);
+        _totalSupply -= amount;
         emit Transfer(account, address(0), amount);
     }
 

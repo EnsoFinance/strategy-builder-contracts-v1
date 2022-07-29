@@ -26,6 +26,7 @@ import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/con
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import { increaseTime } from '../lib/utils'
 
 chai.use(solidity)
 
@@ -51,7 +52,7 @@ describe('AaveAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		whitelist: Contract,
 		uniswapAdapter: Contract,
 		aaveV2Adapter: Contract,
@@ -85,7 +86,7 @@ describe('AaveAdapter', function () {
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		whitelist = platform.administration.whitelist
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0])
 		const synthetixAddressProvider = new Contract(MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER, [], accounts[0])
@@ -96,12 +97,14 @@ describe('AaveAdapter', function () {
 		collateralToken = tokens.aWETH
 		collateralToken2 = tokens.aCRV
 
-		fullRouter = await deployFullRouter(accounts[0], aaveAddressProvider, controller, library)
+		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
+		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
+
+		fullRouter = await deployFullRouter(accounts[0], aaveAddressProvider, controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(fullRouter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
-		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
-		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
+
 		aaveV2Adapter = await deployAaveV2Adapter(
 			accounts[0],
 			aaveAddressProvider,
@@ -199,7 +202,7 @@ describe('AaveAdapter', function () {
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
-			rebalanceSlippage: BigNumber.from(997),
+			rebalanceSlippage: BigNumber.from(990),
 			restructureSlippage: BigNumber.from(980), // Restucturing from this strategy requires higher slippage tolerance
 			managementFee: BigNumber.from(0),
 			social: false,
@@ -222,10 +225,11 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -247,6 +251,7 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
+		// simulates a large sway in the market over some period
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(5000)
 		await weth.connect(accounts[19]).deposit({ value: value })
@@ -260,6 +265,7 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller
 			.connect(accounts[1])
 			.rebalance(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
@@ -296,6 +302,7 @@ describe('AaveAdapter', function () {
 		// so during this rebalance, this stkAAVE is just sold on uniswap for WETH.
 		// If later, we register stkAAVE itself as a "claimable", the strategy
 		// could maintain a balance in stkAAVE from which it would claim rewards in AAVE
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller
 			.connect(accounts[1])
 			.rebalance(strategy.address, fullRouter.address, '0x', { gasLimit: '5000000' })
@@ -333,7 +340,7 @@ describe('AaveAdapter', function () {
 			strategy.address,
 			fullRouter.address,
 			amount,
-			'979', // note the high slippage!
+			'977', // note the high slippage!
 			'0x',
 			{ gasLimit: '5000000' }
 		)
@@ -352,7 +359,7 @@ describe('AaveAdapter', function () {
 			strategy.address,
 			fullRouter.address,
 			amount,
-			'963', // note the high slippage!
+			'960', // note the high slippage!
 			'0x',
 			{ gasLimit: '5000000' }
 		)
@@ -364,20 +371,7 @@ describe('AaveAdapter', function () {
 	})
 
 	it('Should restructure - basic', async function () {
-		const positions = [
-			{
-				token: collateralToken,
-				percentage: BigNumber.from(500),
-				adapters: [aaveV2Adapter.address],
-				path: [],
-			},
-			{
-				token: collateralToken2,
-				percentage: BigNumber.from(500),
-				adapters: [uniswapAdapter.address, aaveV2Adapter.address],
-				path: [tokens.crv],
-			},
-		]
+		const positions = [{ token: tokens.usdt, percentage: BigNumber.from(1000), adapters: [uniswapAdapter.address] }]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 	})
@@ -472,6 +466,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const ethBalanceBefore = await accounts[1].getBalance()
+		// note the high slippage!
 		const tx = await controller
 			.connect(accounts[1])
 			.withdrawETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
@@ -486,9 +481,10 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const amount = BigNumber.from('5000000000000000')
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
+		// note the high slippage!
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, fullRouter.address, amount, '950', '0x', { gasLimit: '5000000' }) // Slippage has to set really low, not sure why
+			.withdrawWETH(strategy.address, fullRouter.address, amount, '960', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -550,10 +546,11 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -633,10 +630,11 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -723,10 +721,11 @@ describe('AaveAdapter', function () {
 		strategy = await Strategy.attach(strategyAddress)
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -814,10 +813,15 @@ describe('AaveAdapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
+		let metaWrapper = await LibraryWrapper.connect(accounts[0]).deploy(
+			oracle.address,
+			strategyAddress,
+			controller.address
+		)
 		await metaWrapper.deployed()
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)

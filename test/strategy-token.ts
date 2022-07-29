@@ -33,7 +33,6 @@ describe('StrategyToken', function () {
 		whitelist: Contract,
 		router: Contract,
 		oracle: Contract,
-		library: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -50,10 +49,9 @@ describe('StrategyToken', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 		const Strategy = await platform.getStrategyContractFactory()
 		const strategyImplementation = await Strategy.connect(accounts[10]).deploy(
@@ -164,7 +162,9 @@ describe('StrategyToken', function () {
 	it('Should transferFrom tokens', async function () {
 		expect(await strategy.balanceOf(accounts[1].address)).to.eq(amount)
 		expect(await strategy.allowance(accounts[1].address, accounts[2].address)).to.eq(amount)
-		await strategy.connect(accounts[2]).transferFrom(accounts[1].address, accounts[2].address, amount)
+		const tx = await strategy.connect(accounts[2]).transferFrom(accounts[1].address, accounts[2].address, amount)
+		const receipt = await tx.wait()
+		console.log('Gas usage', receipt.gasUsed.toString())
 		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(amount.mul(2))).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
 	})
@@ -286,7 +286,7 @@ describe('StrategyToken', function () {
 
 	it('Should fail to decrease allowance: more than allowed', async function () {
 		await expect(strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith(
-			'ERC20: decreased allowance below zero'
+			'ERC20: decreased allowance < 0'
 		)
 	})
 

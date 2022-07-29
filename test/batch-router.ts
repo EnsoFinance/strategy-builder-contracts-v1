@@ -18,6 +18,7 @@ import {
 import { displayBalances } from '../lib/logging'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { increaseTime } from '../lib/utils'
 
 const NUM_TOKENS = 15
 
@@ -34,7 +35,7 @@ describe('BatchDepositRouter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
@@ -50,10 +51,10 @@ describe('BatchDepositRouter', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployBatchDepositRouter(accounts[0], controller, library)
+		router = await deployBatchDepositRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -119,10 +120,11 @@ describe('BatchDepositRouter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		await displayBalances(
@@ -150,6 +152,7 @@ describe('BatchDepositRouter', function () {
 	})
 
 	it('Should fail to rebalance: router revert', async function () {
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Rebalance not supported')

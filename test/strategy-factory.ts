@@ -15,6 +15,7 @@ import { isRevertedWith } from '../lib/errors'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
+import { increaseTime } from '../lib/utils'
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -36,7 +37,6 @@ describe('StrategyProxyFactory', function () {
 		newOracle: Contract,
 		newWhitelist: Contract,
 		whitelist: Contract,
-		library: Contract,
 		adapter: Contract,
 		newRouter: Contract,
 		strategy: Contract,
@@ -53,10 +53,9 @@ describe('StrategyProxyFactory', function () {
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 	})
 
@@ -70,7 +69,7 @@ describe('StrategyProxyFactory', function () {
 		newFactory = platform.strategyFactory
 		newOracle = platform.oracles.ensoOracle
 		newWhitelist = platform.administration.whitelist
-		newRouter = await deployLoopRouter(accounts[10], controller, library)
+		newRouter = await deployLoopRouter(accounts[10], controller, platform.strategyLibrary)
 		await newWhitelist.connect(accounts[10]).approve(adapter.address)
 		await newWhitelist.connect(accounts[10]).approve(newRouter.address)
 		newImplementationAddress = await newFactory.implementation()
@@ -122,6 +121,34 @@ describe('StrategyProxyFactory', function () {
 		expect(await controller.oracle()).to.equal(oracle.address)
 		await controller.updateAddresses()
 		expect(await controller.oracle()).to.equal(newOracle.address)
+	})
+
+	it('Should update rebalanceParameters', async function () {
+		expect(
+			await isRevertedWith(
+				// sanity check
+				controller.connect(accounts[5]).finalizeRebalanceParameters(),
+				'updateRebalanceParameters timelock not ready.',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		let rebalanceTimelockPeriod = 5 * 60
+		let rebalanceThresholdScalar = 1000
+		await strategyFactory
+			.connect(accounts[10])
+			.updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar)
+		await increaseTime(5 * 60 + 1)
+		await controller.connect(accounts[5]).finalizeRebalanceParameters()
+		expect(await controller.callStatic.rebalanceThresholdScalar()).to.eq(rebalanceThresholdScalar)
+
+		// settle on this value
+		rebalanceThresholdScalar = 2000
+		await strategyFactory
+			.connect(accounts[10])
+			.updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar)
+		await increaseTime(5 * 60 + 1)
+		await controller.connect(accounts[5]).finalizeRebalanceParameters()
+		expect(await controller.callStatic.rebalanceThresholdScalar()).to.eq(rebalanceThresholdScalar)
 	})
 
 	it('Should fail to update whitelist: not owner', async function () {

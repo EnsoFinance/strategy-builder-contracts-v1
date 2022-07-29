@@ -28,11 +28,12 @@ let tokens: Contract[],
 	strategyFactory: Contract,
 	controller: Contract,
 	oracle: Contract,
-	library: Contract,
+	controllerLibrary: Contract,
 	uniswapOracle: Contract,
 	adapter: Contract,
 	router: Contract,
 	strategy: Contract,
+	strategyLibrary: Contract,
 	strategyClaim: Contract,
 	wrapper: Contract,
 	uniswapRegistry: Contract,
@@ -118,21 +119,17 @@ describe('UniswapV3Adapter', function () {
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
 
-		const StrategyLibraryFactory = await getContractFactory('StrategyLibrary')
-		library = await StrategyLibraryFactory.connect(owner).deploy()
-		await library.deployed()
-
 		const PlatformProxyAdmin = await getContractFactory('PlatformProxyAdmin')
 		const platformProxyAdmin = await PlatformProxyAdmin.connect(owner).deploy()
 		await platformProxyAdmin.deployed()
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
 
-		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
 		await strategyLibrary.deployed()
 		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
-		const controllerLibrary = await waffle.deployContract(
+		controllerLibrary = await waffle.deployContract(
 			accounts[0],
 			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
 			[]
@@ -183,7 +180,7 @@ describe('UniswapV3Adapter', function () {
 		adapter = await deployUniswapV3Adapter(owner, uniswapRegistry, uniswapRouter, weth)
 		await whitelist.connect(owner).approve(adapter.address)
 
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, strategyLibrary)
 		await whitelist.connect(owner).approve(router.address)
 
 		uniswapQuoter = await deployContract(trader, Quoter, [uniswapV3Factory.address, weth.address])
@@ -231,10 +228,11 @@ describe('UniswapV3Adapter', function () {
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address,
+				StrategyLibrary: strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
 			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
@@ -257,6 +255,7 @@ describe('UniswapV3Adapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
@@ -271,6 +270,7 @@ describe('UniswapV3Adapter', function () {
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

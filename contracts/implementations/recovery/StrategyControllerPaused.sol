@@ -226,7 +226,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         public
         view
         override
-        returns (bool)
     {
         require(newItems.length > 0, "Cannot set empty structure");
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught by the ordering requirement below
@@ -253,7 +252,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
             total = total.add(percentage);
         }
         require(total == int256(DIVISOR), "Total percentage wrong");
-        return true;
     }
 
     /**
@@ -271,6 +269,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         }
     }
 
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external override {
+        revert("StrategyControllerPaused.");
+    }
+
     function oracle() public view override returns (IOracle) {
         return IOracle(_oracle);
     }
@@ -285,6 +287,10 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
 
     function pool() external view override returns(address) {
         return _pool;
+    }
+
+    function rebalanceThresholdScalar() external view override returns(uint256) {
+        return _rebalanceThresholdScalar;
     }
 
     // Internal Strategy Functions
