@@ -32,7 +32,7 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
         AggregatorV3Interface oracle = AggregatorV3Interface(oracleData.oracle);
         (uint80 roundId, int256 price, , uint256 updatedAt, uint80 answeredInRound) = oracle.latestRoundData();
         require(price != 0, "_traversePairs: price == 0.");
-        require(updatedAt != 0, "_traversePairs: updatedAt != 0.");
+        require(updatedAt != 0, "_traversePairs: updatedAt == 0.");
         require(answeredInRound >= roundId, "_traversePairs: Stale price.");
         if (oracleData.inverse) {
             value = amount.mul(10**uint256(oracle.decimals())).div(uint256(price));
