@@ -20,7 +20,7 @@ import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.so
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { WeiPerEther, AddressZero } = constants
+const { WeiPerEther } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
@@ -187,8 +187,8 @@ describe('Live Estimates', function () {
 		const newImplementation = await Strategy.deploy(
 			strategyFactory.address,
 			controller.address,
-			AddressZero,
-			AddressZero
+			MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
+			MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER
 		)
 
 		const version = await strategyFactory.callStatic.version()
