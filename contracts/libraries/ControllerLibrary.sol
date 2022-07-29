@@ -194,7 +194,7 @@ library ControllerLibrary {
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
             length = synths.length;
-            for (uint256 i; i < synths.length; ++i) {
+            for (uint256 i; i < length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
                 if (amount != 0) {
                     strategy.delegateSwap(
@@ -444,9 +444,9 @@ library ControllerLibrary {
         }
         address[] memory strategyDebt = IStrategy(strategy).debt();
         length = strategyDebt.length;
-        for (uint256 i; i < strategyDebt.length; ++i) {
+        for (uint256 i; i < length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
-            uint256 index = strategyItems.length + i;
+            uint256 index = length + i;
             if (estimates[index] > expectedValue) {
                 amount = amount.add(uint256(estimates[index].sub(expectedValue)));
             } else if (estimates[index] < expectedValue) {
