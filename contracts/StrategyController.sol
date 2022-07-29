@@ -414,12 +414,12 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         }
     }
 
-    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external override {
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external override {
         _require(msg.sender == factory, uint256(0x1bb63a90056c11) /* error_macro_for("Not factory") */);
         _startTimelock(
           keccak256(abi.encode(this.updateRebalanceParameters.selector)), // identifier
-          abi.encode(rebalanceTimelockPeriod, rebalanceThresholdScalar)); // payload
-        emit RebalanceParametersUpdated(rebalanceTimelockPeriod, rebalanceThresholdScalar, false);
+          abi.encode(rebalanceTimelockPeriod, rebalanceThresholdScalar_)); // payload
+        emit RebalanceParametersUpdated(rebalanceTimelockPeriod, rebalanceThresholdScalar_, false);
     }
 
     function finalizeRebalanceParameters() public {

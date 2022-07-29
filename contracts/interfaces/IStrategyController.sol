@@ -70,7 +70,7 @@ interface IStrategyController is StrategyTypes {
         uint256 newValue
     ) external;
 
-    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external;
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external;
 
     function finalizeValue(IStrategy strategy) external;
 
