@@ -23,6 +23,7 @@ contract Leverage2XAdapter is BaseAdapter {
 
     ILendingPoolAddressesProvider public immutable addressesProvider;
     IPriceOracleGetter private immutable _po;
+    bytes32 immutable UNDERLYING_ASSET_ADDRESS_SELECTOR;
 
     constructor(
         address defaultAdapter_,
@@ -39,6 +40,7 @@ contract Leverage2XAdapter is BaseAdapter {
         gasCostProvider = new GasCostProvider(6000, msg.sender); // estimated gas cost
         addressesProvider = ILendingPoolAddressesProvider(addressesProvider_);
         _po = IPriceOracleGetter(ILendingPoolAddressesProvider(addressesProvider_).getPriceOracle());
+        UNDERLYING_ASSET_ADDRESS_SELECTOR = keccak256("UNDERLYING_ASSET_ADDRESS()");
     }
 
     // Swap to support 2X leverage called from multicall router
@@ -117,7 +119,7 @@ contract Leverage2XAdapter is BaseAdapter {
     }
 
     function _checkAToken(address token) internal view returns (bool) {
-        bytes32 selector = keccak256("UNDERLYING_ASSET_ADDRESS()");
+        bytes32 selector = UNDERLYING_ASSET_ADDRESS_SELECTOR;
         uint256 gasCost = gasCostProvider.gasCost();
 
         bool success;
