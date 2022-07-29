@@ -36,7 +36,7 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         uint256 balance
     ) public view override returns (int256) {
         if (address(strategy) != address(0))
-            require(strategy.lockType() != 3, "Cannot deposit into blocked token");
+            require(strategy.lockType() != LockType.DEPOSIT, "Cannot deposit into blocked token");
         return int256(balance).mul(estimates[token]) / int256(10**uint256(IERC20NonStandard(token).decimals()));
     }
 

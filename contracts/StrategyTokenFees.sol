@@ -64,7 +64,7 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
      * @notice Withdraws the streaming fee to the fee pool
      */
     function withdrawStreamingFee() external override {
-        _setLock(1);
+        _setLock(LockType.STANDARD);
         _issueStreamingFee(_pool, _manager);
         _removeLock();
     }
