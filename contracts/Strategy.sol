@@ -438,11 +438,11 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function locked() external view override returns (bool) {
-        return _locked > 1;
+        return _locked > LockType.UNLOCKED;
     }
 
     function lockType() external view override returns (LockType) {
-        return LockType(_locked);
+        return _locked;
     }
 
     function items() external view override returns (address[] memory) {
