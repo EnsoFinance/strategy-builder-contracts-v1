@@ -52,15 +52,15 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit EstimateSet(token, amount, false);
     }
 
-    function finalizeSetEstimate() external {
-        require(_timelockIsReady(keccak256(abi.encode(this.updateEstimate.selector))), "finalizeSetEstimate: timelock not ready.");
+    function finalizeEstimate() external {
+        require(_timelockIsReady(keccak256(abi.encode(this.updateEstimate.selector))), "finalizeEstimate: timelock not ready.");
         (address token, int256 amount) = abi.decode(_getTimelockValue(keccak256(abi.encode(this.updateEstimate.selector))), (address, int256));
         _resetTimelock(keccak256(abi.encode(this.updateEstimate.selector)));
         estimates[token] = amount;
         emit EstimateSet(token, amount, true);
     }
 
-    function estimateItem(address user, address token) external view override returns (int256) { 
+    function estimateItem(address user, address token) external view override returns (int256) {
         uint256 balance = IERC20(token).balanceOf(address(user));
         return _estimateItem(balance, token);
     }

@@ -59,7 +59,7 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function updateTradeData(address item, TradeData memory data) external;
 
-    function finalizeUpdateTradeData() external;
+    function finalizeTradeData() external;
 
     function updateClaimables() external;
 

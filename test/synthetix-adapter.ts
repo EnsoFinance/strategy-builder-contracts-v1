@@ -302,13 +302,13 @@ describe('SynthetixAdapter', function () {
 		// sanity check
 		expect(
 			await isRevertedWith(
-				strategy.connect(accounts[1]).finalizeUpdateTradeData(),
-				'finalizeUpdateTradeData: timelock not ready.',
+				strategy.connect(accounts[1]).finalizeTradeData(),
+				'finalizeTradeData: timelock not ready.',
 				'Strategy.sol'
 			)
 		).to.be.true
 		await increaseTime(5 * 60)
-		await strategy.connect(accounts[1]).finalizeUpdateTradeData()
+		await strategy.connect(accounts[1]).finalizeTradeData()
 
 		let [adaptersAfter] = await strategy.getTradeData(tokens.sUSD)
 		expect(adaptersAfter.length).to.be.equal(1)

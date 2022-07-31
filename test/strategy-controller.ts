@@ -983,7 +983,7 @@ describe('StrategyController', function () {
 
 		await increaseTime(10 * 60)
 
-		await emergencyEstimator.finalizeSetEstimate()
+		await emergencyEstimator.finalizeEstimate()
 
 		await expect(
 			controller
