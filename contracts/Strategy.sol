@@ -61,9 +61,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
     function initialize(
-        string calldata name_,
-        string calldata symbol_,
-        string calldata version_,
+        string memory name_,
+        string memory symbol_,
+        string memory version_,
         address manager_,
         StrategyItem[] memory strategyItems_
     ) external override initializer returns (bool) {
@@ -106,7 +106,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @param amount The amount to be approved
      */
     function approveTokens(
-        address[] calldata tokens,
+        address[] memory tokens,
         address account,
         uint256 amount
     ) external override {
@@ -124,7 +124,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @param amount The amount to be approved
      */
     function approveDebt(
-        address[] calldata tokens,
+        address[] memory tokens,
         address account,
         uint256 amount
     ) external override {
@@ -365,7 +365,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     /**
         @notice Update an item's trade data
      */
-    function updateTradeData(address item, TradeData calldata data) external override {
+    function updateTradeData(address item, TradeData memory data) external override {
         _onlyManager();
         _startTimelock(
           keccak256(abi.encode(this.updateTradeData.selector)), // identifier
@@ -420,7 +420,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     /**
      * @dev Updates implementation version
      */
-    function updateVersion(string calldata newVersion) external override {
+    function updateVersion(string memory newVersion) external override {
         _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _setDomainSeperator();

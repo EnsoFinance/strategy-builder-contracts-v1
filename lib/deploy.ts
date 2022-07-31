@@ -355,6 +355,11 @@ export async function deployPlatform(
 	await controllerLibrary.deployed()
 	const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
 
+	console.log('controller size:', StrategyController.bytecode.length/2-1)
+	console.log('strategyLibrary size:', StrategyLibrary.bytecode.length/2-1)
+	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length/2-1)
+	console.log('strategy size:', Strategy.bytecode.length/2-1)
+
 	// Setup Oracle infrastructure - registries, estimators, protocol oracles
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
 	await tokenRegistry.deployed()
@@ -399,10 +404,6 @@ export async function deployPlatform(
 	const controllerAddress = await platformProxyAdmin.controller()
 	const factoryAddress = await platformProxyAdmin.factory()
 
-	console.log('controller size:', StrategyController.bytecode.length)
-	console.log('strategyLibrary size:', StrategyLibrary.bytecode.length)
-	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length)
-	console.log('strategy size:', Strategy.bytecode.length)
 	// Controller Implementation
 	const controllerImplementation = await waffle.deployContract(
 		owner,
