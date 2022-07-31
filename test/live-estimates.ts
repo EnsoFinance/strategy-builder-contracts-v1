@@ -88,7 +88,7 @@ describe('Live Estimates', function () {
 					adapters: adapters,
 				})
 				await increaseTime(5 * 60)
-				await strategy.connect(manager).finalizeUpdateTradeData()
+				await strategy.connect(manager).finalizeTradeData()
 			}
 		}
 	}
