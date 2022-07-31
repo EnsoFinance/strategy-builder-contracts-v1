@@ -2,8 +2,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { expect } = require('chai')
 
 const { ethers, waffle } = require('hardhat')
-// import { BigNumber as BN } from 'bignumber.js'
-//const bn = require('bignumber.js')
+const bn = require('bignumber.js')
 import { Contract, BigNumber } from 'ethers'
 const { deployContract, provider } = waffle
 const { constants, getContractFactory, getSigners } = ethers
@@ -14,7 +13,7 @@ const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline } = r
 const { UNI_V3_FEE } = require('../lib/constants')
 
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
-//const UniswapV3Pool = require('@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json')
+const UniswapV3Pool = require('@uniswap/v3-core/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json')
 const SwapRouter = require('@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json')
 
 const NUM_TOKENS = 3
@@ -55,13 +54,12 @@ async function exactInput(tokens: string[], amountIn: number, amountOutMinimum: 
 		? uniswapRouter.connect(trader).exactInput(params, { value })
 		: uniswapRouter.connect(trader).multicall(data, { value })
 }
-/*
+
 async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 	const poolAddress = await uniswapV3Factory.getPool(weth.address, input, UNI_V3_FEE)
 	const pool = new Contract(poolAddress, JSON.stringify(UniswapV3Pool.abi), provider)
 	const [tickCumulatives] = await pool.observe([ORACLE_TIME_WINDOW, 0])
-	const tick = bn(tickCumulatives[1].toString()).minus(tickCumulatives[0].toString()).dividedBy(ORACLE_TIME_WINDOW)
-	console.log("Tick: ", tick.toString())
+	const tick = bn(tickCumulatives[1].toString()).minus(tickCumulatives[0].toString()).dividedBy(ORACLE_TIME_WINDOW).toFixed(0, 1)
 
 	const aNum = ethers.BigNumber.from(weth.address)
 	const bNum = ethers.BigNumber.from(input)
@@ -72,7 +70,6 @@ async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 		return bn(amount.toString()).multipliedBy(bn(1.0001).exponentiatedBy(tick)).toFixed(0, 1)
 	}
 }
-*/
 
 describe('UniswapV3Oracle', function () {
 	before('Setup Uniswap V3 + Oracle', async function () {
@@ -192,16 +189,14 @@ describe('UniswapV3Oracle', function () {
 
 	it('Should consult oracle: token 1', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens[1].address)
-		console.log("Price: ", price.toString())
-		//const estimate = await calcTWAP(WeiPerEther, tokens[1].address)
-		//expect(price.eq(estimate)).to.equal(true)
+		const estimate = await calcTWAP(WeiPerEther, tokens[1].address)
+		expect(price.eq(estimate)).to.equal(true)
 	})
 
 	it('Should consult oracle: token 2', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens[2].address)
-		console.log("Price: ", price.toString())
-		//const estimate = await calcTWAP(WeiPerEther, tokens[2].address)
-		//expect(price.eq(estimate)).to.equal(true)
+		const estimate = await calcTWAP(WeiPerEther, tokens[2].address)
+		expect(price.eq(estimate)).to.equal(true)
 	})
 
 	it('Should estimate total', async function () {
