@@ -22,6 +22,7 @@ contract StrategyEstimator is IEstimator {
         address token,
         uint256 balance
     ) public view override returns (int256) {
+        (strategy);
         require(!IStrategy(token).locked(), "Strategy locked"); // Prevents inflating value of child strategy temporarily
         uint256 totalSupply = IStrategy(token).totalSupply();
         (uint256 totalValue, ) = IOracle(msg.sender).estimateStrategy(IStrategy(token));
