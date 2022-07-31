@@ -26,7 +26,7 @@ contract CurveGaugeEstimator is IEstimator {
         address knownUnderlyingToken;
         if (address(strategy) != address(0)) {
             StrategyTypes.TradeData memory td = strategy.getTradeData(token);
-            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
+            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 2];
         }
         return IOracle(msg.sender).estimateItem(strategy, lpToken, knownUnderlyingToken, balance);
     }
