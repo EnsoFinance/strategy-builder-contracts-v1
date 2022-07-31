@@ -3,6 +3,8 @@ pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 interface IStrategyFees {
+    function managementFee() external view returns (uint256);
+
     function issueStreamingFee() external;
 
     function updatePerformanceFee(uint16 fee) external;
@@ -11,4 +13,5 @@ interface IStrategyFees {
 
     function updateTokenValue(uint256 total, uint256 supply) external;
 
+    function withdrawStreamingFee() external;
 }

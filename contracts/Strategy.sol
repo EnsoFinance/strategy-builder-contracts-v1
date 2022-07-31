@@ -61,9 +61,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @dev Should be called from the StrategyProxyFactory  (see StrategyProxyFactory._createProxy())
      */
     function initialize(
-        string memory name_,
-        string memory symbol_,
-        string memory version_,
+        string calldata name_,
+        string calldata symbol_,
+        string calldata version_,
         address manager_,
         StrategyItem[] memory strategyItems_
     ) external override initializer returns (bool) {
@@ -77,7 +77,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _setDomainSeperator();
         updateAddresses();
         // Set structure
-        if (strategyItems_.length > 0) {
+        if (strategyItems_.length != 0) {
             IStrategyController(_controller).verifyStructure(address(this), strategyItems_);
             _setStructure(strategyItems_);
         }
@@ -106,12 +106,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @param amount The amount to be approved
      */
     function approveTokens(
-        address[] memory tokens,
+        address[] calldata tokens,
         address account,
         uint256 amount
     ) external override {
         _onlyController();
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             IERC20(tokens[i]).sortaSafeApprove(account, amount);
         }
     }
@@ -123,12 +124,13 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      * @param amount The amount to be approved
      */
     function approveDebt(
-        address[] memory tokens,
+        address[] calldata tokens,
         address account,
         uint256 amount
     ) external override {
         _onlyController();
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             IDebtToken(tokens[i]).approveDelegation(account, amount);
         }
     }
@@ -204,7 +206,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     function withdrawAll(uint256 amount) external override {
         _setLock();
         _require(_debt.length == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("Cannot withdraw debt") */);
-        _require(amount > 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
+        _require(amount != 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
         settleSynths();
         uint256 percentage;
         {
@@ -218,8 +220,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             percentage, _items, _synths, IERC20(_weth), IERC20(_susd)
         );
         // Transfer amounts
-        for (uint256 i; i < tokens.length; ++i) {
-            if (amounts[i] > 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
+            if (amounts[i] != 0) tokens[i].safeTransfer(msg.sender, amounts[i]);
         }
         emit Withdraw(msg.sender, amount, amounts);
         _removeLock();
@@ -236,10 +239,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         // is needed to determine the mint amount, it is called earlier in StrategyController.deposit()
         // so it unnecessary to call here.
         address pool = _pool;
-        address manager = _manager;
-        if (account != manager && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
+        address manager_ = _manager;
+        if (account != manager_ && account != pool) _updatePaidTokenValue(account, amount, _lastTokenValue);
         _mint(account, amount);
-        _updateStreamingFeeRate(pool, manager);
+        _updateStreamingFeeRate(pool, manager_);
     }
 
     /**
@@ -253,9 +256,9 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         if (account == pool) {
           _burn(account, amount);
         } else {
-          address manager = _manager;
-          if (account != manager) _removePaidTokenValue(account, amount);
-          _issueStreamingFeeAndBurn(pool, manager, account, amount);
+          address manager_ = _manager;
+          if (account != manager_) _removePaidTokenValue(account, amount);
+          _issueStreamingFeeAndBurn(pool, manager_, account, amount);
         }
         return amount;
     }
@@ -306,7 +309,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return _factory;
     }
 
-    function getAllRewardTokens() external view returns(address[] memory rewardTokens) {
+    function getAllRewardTokens() external view override returns(address[] memory rewardTokens) {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         return StrategyClaim.getAllRewardTokens(tokenRegistry);
     }
@@ -330,7 +333,8 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             IExchanger exchanger = IExchanger(synthetixResolver.getAddress("Exchanger"));
             IIssuer issuer = IIssuer(synthetixResolver.getAddress("Issuer"));
             exchanger.settle(address(this), "sUSD");
-            for (uint256 i; i < _synths.length; ++i) {
+            uint256 length = _synths.length;
+            for (uint256 i; i < length; ++i) {
                 exchanger.settle(address(this), issuer.synthsByAddress(ISynth(_synths[i]).target()));
             }
         }
@@ -346,12 +350,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
      */
     function updateManager(address newManager) external override {
         _onlyManager();
-        address manager = _manager;
+        address manager_ = _manager;
         address pool = _pool;
-        _issueStreamingFee(pool, manager);
-        _require(newManager != manager, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
+        _issueStreamingFee(pool, manager_);
+        _require(newManager != manager_, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
         // Reset paid token values
-        _paidTokenValues[manager] = _lastTokenValue;
+        _paidTokenValues[manager_] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
         _manager = newManager;
         _updateStreamingFeeRate(pool, newManager);
@@ -361,7 +365,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     /**
         @notice Update an item's trade data
      */
-    function updateTradeData(address item, TradeData memory data) external override {
+    function updateTradeData(address item, TradeData calldata data) external override {
         _onlyManager();
         _startTimelock(
           keccak256(abi.encode(this.updateTradeData.selector)), // identifier
@@ -369,7 +373,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit UpdateTradeData(item, false);
     }
 
-    function finalizeUpdateTradeData() external {
+    function finalizeUpdateTradeData() external override {
         bytes32 key = keccak256(abi.encode(this.updateTradeData.selector));
         _require(_timelockIsReady(key), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(key), (address, TradeData));
@@ -381,7 +385,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     /**
      * @dev Updates implementation version
      */
-    function updateVersion(string memory newVersion) external override {
+    function updateVersion(string calldata newVersion) external override {
         _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _setDomainSeperator();
@@ -399,7 +403,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function locked() external view override returns (bool) {
-        return _locked % 2 == 1;
+        return _locked == 1;
     }
 
     function items() external view override returns (address[] memory) {
@@ -431,17 +435,17 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function supportsSynths() public view override returns (bool) {
-        return _synths.length > 0;
+        return _synths.length != 0;
     }
 
-    function supportsDebt() public view override returns (bool) {
-        return _debt.length > 0;
+    function supportsDebt() external view override returns (bool) {
+        return _debt.length != 0;
     }
 
     function _deletePercentages(address[] storage assets) private {
         address[] memory _assets = assets;
-        uint256 assetsLength = _assets.length;
-        for (uint256 i; i < assetsLength; ++i) {
+        uint256 length = _assets.length;
+        for (uint256 i; i < length; ++i) {
             delete _percentage[_assets[i]];
         }
     }
@@ -468,11 +472,12 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         // Set new items
         int256 virtualPercentage;
         BinaryTree.Tree memory exists = BinaryTree.newNode();
-        for (uint256 i; i < newItems.length; ++i) {
+        uint256 length = newItems.length;
+        for (uint256 i; i < length; ++i) {
             virtualPercentage = virtualPercentage.add(_setItem(newItems[i], tokenRegistry));
-            exists.add(bytes32(uint256(newItems[i].item)));
+            exists.push(bytes32(uint256(newItems[i].item)));
         }
-        if (_synths.length > 0) {
+        if (_synths.length != 0) {
             // Add SUSD percentage
             virtualPercentage = virtualPercentage.add(_percentage[susd]);
             _percentage[address(-1)] = virtualPercentage;
@@ -509,9 +514,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _updateClaimables(tokenRegistry);
         address[] memory rewardTokens = StrategyClaim.getAllRewardTokens(tokenRegistry);
         StrategyItem memory item;
-        for (uint256 i; i < rewardTokens.length; ++i) {
+        uint256 length = rewardTokens.length;
+        for (uint256 i; i < length; ++i) {
             if (_tokenExists(exists, rewardTokens[i])) continue;
-            exists.add(bytes32(uint256(rewardTokens[i])));
+            exists.push(bytes32(uint256(rewardTokens[i])));
             item = StrategyItem({item: rewardTokens[i], percentage: 0, data: tokenRegistry.itemDetails(rewardTokens[i]).tradeData});
             _setItem(item, tokenRegistry);
         }
@@ -520,27 +526,28 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     function _updateClaimables(ITokenRegistry tokenRegistry) internal {
         delete _claimables;
         (, bytes[] memory values) = StrategyClaim.getAllToClaim(tokenRegistry);
-        for (uint256 i; i < values.length; ++i) {
+        uint256 length = values.length;
+        for (uint256 i; i < length; ++i) {
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
         emit ClaimablesUpdated();
     }
 
-    function updateClaimables() external {
+    function updateClaimables() external override {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         _updateClaimables(tokenRegistry);
     }
 
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
         address newPool = f.pool();
         address currentPool = _pool;
         if (newPool != currentPool) {
             // If pool has been initialized but is now changing update paidTokenValue
             if (currentPool != address(0)) {
-                address manager = _manager;
-                _issueStreamingFee(currentPool, manager);
-                _updateStreamingFeeRate(newPool, manager);
+                address manager_ = _manager;
+                _issueStreamingFee(currentPool, manager_);
+                _updateStreamingFeeRate(newPool, manager_);
                 _paidTokenValues[currentPool] = _lastTokenValue;
             }
             _paidTokenValues[newPool] = uint256(-1);
@@ -551,7 +558,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _susd = ensoOracle.susd();
     }
 
-    function updateRewards() external {
+    function updateRewards() external override {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
         BinaryTree.Tree memory exists = BinaryTree.newNode();
         _setTokensExists(exists, _items);
@@ -562,9 +569,10 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     }
 
     function _setTokensExists(BinaryTree.Tree memory exists, address[] memory tokens) private pure {
-        for (uint256 i; i < tokens.length; ++i) {
+        uint256 length = tokens.length;
+        for (uint256 i; i < length; ++i) {
             if (_tokenExists(exists, tokens[i])) continue;
-            exists.add(bytes32(uint256(tokens[i])));
+            exists.push(bytes32(uint256(tokens[i])));
         }
     }
 

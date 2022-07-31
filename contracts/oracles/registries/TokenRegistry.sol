@@ -36,16 +36,16 @@ contract TokenRegistry is ITokenRegistry, Ownable {
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);  
     }
 
-    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable) external override onlyOwner {
+    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable_) external override onlyOwner {
         ItemDetails storage id = _itemDetails[token];
-        id.isClaimable = isClaimable;
+        id.isClaimable = isClaimable_;
         id.tradeData = tradeData;
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);    
     }
 
     function addItems(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata token) external override onlyOwner {
         uint numItems = itemCategoryIndex.length; 
-        require(estimatorCategoryIndex.length == numItems && numItems == token.length, "Mismatched array lengths");
+        require(estimatorCategoryIndex.length == numItems && token.length == numItems, "Mismatched array lengths");
         for (uint i; i < numItems; ++i) {
            _addItem(itemCategoryIndex[i], estimatorCategoryIndex[i], token[i]);
         }

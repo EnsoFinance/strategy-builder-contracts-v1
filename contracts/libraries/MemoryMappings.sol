@@ -14,7 +14,7 @@ library MemoryMappings {
         if (!node.exists) {
             arr = new bytes32[](1);
             arr[0] = value;
-            mm.add(uint256(key), abi.encode(arr));
+            mm.push(uint256(key), abi.encode(arr));
             return true; // isNew
         }
         (arr) = abi.decode(node.payload, (bytes32[]));
@@ -26,28 +26,28 @@ library MemoryMappings {
         mm.replace(uint256(key), abi.encode(arr));
     }
 
-    function add(BinaryTree.Tree memory mm, bytes32 key) internal pure {
-        mm.add(uint256(key)); 
+    function push(BinaryTree.Tree memory mm, bytes32 key) internal pure {
+        mm.push(uint256(key)); 
     }
 
-    function add(BinaryTree.Tree memory mm, bytes memory key) internal pure {
-        add(mm, keccak256(key)); 
+    function push(BinaryTree.Tree memory mm, bytes memory key) internal pure {
+        push(mm, keccak256(key)); 
     }
 
-    function add(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes32 value) internal pure {
-        mm.add(uint256(key), abi.encode(value)); 
+    function push(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes32 value) internal pure {
+        mm.push(uint256(key), abi.encode(value)); 
     }
 
-    function add(BinaryTreeWithPayload.Tree memory mm, bytes memory key, bytes memory value) internal pure {
-        add(mm, keccak256(key), value); 
+    function push(BinaryTreeWithPayload.Tree memory mm, bytes memory key, bytes memory value) internal pure {
+        push(mm, keccak256(key), value); 
     }
 
-    function add(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes memory value) internal pure {
-        mm.add(uint256(key), value); 
+    function push(BinaryTreeWithPayload.Tree memory mm, bytes32 key, bytes memory value) internal pure {
+        mm.push(uint256(key), value); 
     }
 
-    function add(BinaryTreeWithPayload.Tree memory mm, bytes memory key, bytes32 value) internal pure {
-        add(mm, keccak256(key), abi.encode(value)); 
+    function push(BinaryTreeWithPayload.Tree memory mm, bytes memory key, bytes32 value) internal pure {
+        push(mm, keccak256(key), abi.encode(value)); 
     }
 
     function doesExist(BinaryTree.Tree memory mm, bytes32 key) internal pure returns(bool ok) {

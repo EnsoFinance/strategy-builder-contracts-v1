@@ -51,6 +51,8 @@ interface IStrategyController is StrategyTypes {
         IStrategy strategy
     ) external;
 
+    function repositionSynths(IStrategy strategy, address token) external;
+
     function restructure(
         IStrategy strategy,
         StrategyItem[] memory strategyItems
@@ -68,7 +70,7 @@ interface IStrategyController is StrategyTypes {
         uint256 newValue
     ) external;
 
-    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external;
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external;
 
     function finalizeValue(IStrategy strategy) external;
 
@@ -80,10 +82,9 @@ interface IStrategyController is StrategyTypes {
 
     function strategyState(address strategy) external view returns (StrategyState memory);
 
-    function verifyStructure(address strategy, StrategyItem[] memory newItems)
-        external
-        view
-        returns (bool);
+    function updateAddresses() external;
+
+    function verifyStructure(address strategy, StrategyItem[] memory newItems) external view;
 
     function oracle() external view returns (IOracle);
 

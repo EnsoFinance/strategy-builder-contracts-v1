@@ -18,6 +18,6 @@ contract Whitelist is IWhitelist, Ownable {
    }
 
    function approved(address account) external view override returns (bool) {
-       return _approvals[account] > 0;
+       return _approvals[account] != 0;
    }
 }

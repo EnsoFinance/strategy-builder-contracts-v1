@@ -15,9 +15,10 @@ contract ChainlinkRegistry is IChainlinkRegistry, Ownable {
         address[] memory oracles,
         bool[] memory inverse
     ) external override onlyOwner {
-        require(tokens.length == pairs.length, "Array mismatch");
-        require(tokens.length == oracles.length, "Array mismatch");
-        for (uint256 i = 0; i < tokens.length; i++) {
+        uint256 tokensLength = tokens.length;
+        require(tokensLength == pairs.length, "Array mismatch");
+        require(tokensLength == oracles.length, "Array mismatch");
+        for (uint256 i; i < tokensLength; ++i) {
             ChainlinkOracleData storage oracleData = _chainlinkOracles[tokens[i]];
             oracleData.pair = pairs[i];
             oracleData.oracle = oracles[i];

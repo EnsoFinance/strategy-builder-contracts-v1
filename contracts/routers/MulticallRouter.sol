@@ -103,7 +103,7 @@ contract MulticallRouter is StrategyRouter, Multicall {
     ) public {
         _onlyInternal();
         uint256 amount = IERC20(tokenIn).balanceOf(from);
-        if (amount > 0)
+        if (amount != 0)
             _delegateSwap(adapter, amount, expected, tokenIn, tokenOut, from, to);
     }
 
@@ -114,7 +114,7 @@ contract MulticallRouter is StrategyRouter, Multicall {
         _onlyInternal();
         IERC20 erc20 = IERC20(token);
         uint256 amount = erc20.balanceOf(address(this));
-        if (amount > 0) erc20.safeTransfer(to, amount);
+        if (amount != 0) erc20.safeTransfer(to, amount);
     }
 
     function settleTransferFrom(
@@ -125,7 +125,7 @@ contract MulticallRouter is StrategyRouter, Multicall {
         _onlyInternal();
         IERC20 erc20 = IERC20(token);
         uint256 amount = erc20.balanceOf(from);
-        if (amount > 0) erc20.safeTransferFrom(from, to, amount);
+        if (amount != 0) erc20.safeTransferFrom(from, to, amount);
     }
 
     function _onlyInternal() internal view {

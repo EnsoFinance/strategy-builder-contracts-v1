@@ -16,6 +16,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
     using SafeERC20 for IERC20;
 
     uint256 internal constant DIVISOR = 1000;
+    uint256 internal constant _1e18 = 1e18;
 
     RouterCategory public override immutable category;
     IStrategyController public override immutable controller;
@@ -85,31 +86,32 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address token,
         address strategy
     ) internal {
-        if (amount > 0) {
-            for (int256 i = int256(data.adapters.length-1); i >= 0; i--) { //this doesn't work with uint256?? wtf solidity
+        uint256 length = data.adapters.length - 1;
+        if (amount != 0 && length != uint256(-1)) {
+            for (uint256 i = length; ; --i) {
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut;
                 address _from;
                 address _to;
-                if (uint256(i) == data.adapters.length-1) {
+                if (i == length) {
                     _tokenIn = token;
                     _amount = amount;
                     _from = strategy;
                 } else {
-                    _tokenIn = data.path[uint256(i)];
+                    _tokenIn = data.path[i];
                     _from = address(this);
                     _amount = IERC20(_tokenIn).balanceOf(_from);
                 }
-                if (uint256(i) == 0) {
+                if (i == 0) {
                     _tokenOut = weth;
                     _to = strategy;
                 } else {
-                    _tokenOut = data.path[uint256(i-1)];
+                    _tokenOut = data.path[i-1];
                     _to = address(this);
                 }
                 _delegateSwap(
-                    data.adapters[uint256(i)],
+                    data.adapters[i],
                     _amount,
                     1,
                     _tokenIn,
@@ -117,6 +119,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
                     _from,
                     _to
                 );
+                if (i == 0) break;
             }
         }
     }
@@ -128,8 +131,9 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         address strategy,
         address from
     ) internal {
-        if (amount > 0) {
-            for (uint256 i = 0; i < data.adapters.length; i++) {
+        if (amount != 0) {
+            uint256 length = data.adapters.length;
+            for (uint256 i; i < length; ++i) {
                 uint256 _amount;
                 address _tokenIn;
                 address _tokenOut;
@@ -188,7 +192,7 @@ abstract contract StrategyRouter is IStrategyRouter, StrategyTypes {
         uint256 percentage;
         (percentage, total, estimates) =
             abi.decode(data, (uint256, uint256, int256[]));
-        expectedWeth = total.mul(percentage).div(10**18);
+        expectedWeth = total.mul(percentage) / _1e18;
         total = total.sub(expectedWeth);
     }
 }

@@ -20,7 +20,7 @@ contract StrategyCommon is StrategyTokenStorage {
     /**
      * @dev Throws if called by any account other than the controller.
      */
-    function _onlyController() internal {
+    function _onlyController() internal view {
         if (msg.sender != _controller) revert("Controller only");
     }
 
@@ -32,7 +32,7 @@ contract StrategyCommon is StrategyTokenStorage {
      * @notice Sets Reentrancy guard
      */
     function _setLock() internal {
-        if (_locked % 2 == 1) revert("No Reentrancy");
+        if (_locked == 1) revert("No Reentrancy");
         _locked = 1;
     }
 
