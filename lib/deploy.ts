@@ -60,7 +60,7 @@ import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import NFTDescriptor from '@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json'
 import NonfungiblePositionManager from '@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json'
-import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, ORACLE_TIME_WINDOW, UNI_V3_FEE } from './constants'
+import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, UNI_V3_FEE } from './constants'
 const { ethers, waffle } = hre
 const { constants, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
@@ -366,7 +366,6 @@ export async function deployPlatform(
 	const curveDepositZapRegistry = await waffle.deployContract(owner, CurveDepositZapRegistry, [])
 	await curveDepositZapRegistry.deployed()
 	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [
-		ORACLE_TIME_WINDOW,
 		uniswapV3Factory.address,
 		weth.address,
 	])
