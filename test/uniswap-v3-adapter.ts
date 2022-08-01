@@ -86,7 +86,6 @@ describe('UniswapV3Adapter', function () {
 
 		const UniswapV3Registry = await getContractFactory('UniswapV3Registry')
 		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(
-			ORACLE_TIME_WINDOW,
 			uniswapV3Factory.address,
 			weth.address
 		)
@@ -188,7 +187,7 @@ describe('UniswapV3Adapter', function () {
 
 	it('Should initialize all tokens', async function () {
 		for (let i = 1; i < tokens.length; i++) {
-			await uniswapRegistry.addPool(tokens[i].address, weth.address, UNI_V3_FEE)
+			await uniswapRegistry.addPool(tokens[i].address, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)
 		}
 	})
 
