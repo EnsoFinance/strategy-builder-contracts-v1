@@ -96,14 +96,14 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address pool_
     ) external
         initializer
-        noZeroAddress(owner_)
-        noZeroAddress(implementation_)
-        noZeroAddress(oracle_)
-        noZeroAddress(registry_)
-        noZeroAddress(whitelist_)
-        noZeroAddress(pool_)
         returns (bool)
     {
+        _noZeroAddress(owner_);
+        _noZeroAddress(implementation_);
+        _noZeroAddress(oracle_);
+        _noZeroAddress(registry_);
+        _noZeroAddress(whitelist_);
+        _noZeroAddress(pool_);
         admin = address(new StrategyProxyAdmin());
         owner = owner_;
         _implementation = implementation_;
@@ -113,12 +113,12 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _pool = pool_;
         _streamingFee = uint256(1001001001001001); // 0.1% inflation
         _version = "1";
-        emit Update(_implementation, _version);
-        emit NewOracle(_oracle);
-        emit NewWhitelist(_whitelist);
-        emit NewPool(_pool);
+        emit Update(implementation_, "1");
+        emit NewOracle(oracle_);
+        emit NewWhitelist(whitelist_);
+        emit NewPool(pool_);
         emit NewStreamingFee(uint256(1));
-        emit OwnershipTransferred(address(0), owner);
+        emit OwnershipTransferred(address(0), owner_);
         return true;
     }
 
@@ -133,8 +133,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         @dev Can send ETH with this call to automatically deposit items into the strategy
     */
     function createStrategy(
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
@@ -145,45 +145,49 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     function createStrategyFor(
         address manager,
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
         bytes memory data,
-        bytes memory signature
+        bytes calldata signature
     ) external payable override returns (address) {
         bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, keccak256(bytes(name)), keccak256(bytes(symbol))));
         bytes32 digest = _hashTypedDataV4(structHash);
         address signer = ECDSA.recover(digest, signature);
-        require(signer == manager, "createStrategyFor: not signed by manager.");
+        require(signer == manager, "createStrategyFor: invalid.");
         return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
     }
 
-    function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
+    function updateImplementation(address newImplementation, string calldata newVersion) external onlyOwner {
+        _noZeroAddress(newImplementation);
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
         _version = newVersion;
-        emit Update(newImplementation, _version);
+        emit Update(newImplementation, newVersion);
     }
 
-    function updateOracle(address newOracle) external noZeroAddress(newOracle) onlyOwner {
+    function updateOracle(address newOracle) external onlyOwner {
+        _noZeroAddress(newOracle);
         _oracle = newOracle;
         emit NewOracle(newOracle);
     }
 
-    function updateRegistry(address newRegistry) external noZeroAddress(newRegistry) onlyOwner {
-      console.log("debug updateRegistry");
+    function updateRegistry(address newRegistry) external onlyOwner {
+        _noZeroAddress(newRegistry);
         _registry = newRegistry;
         emit NewOracle(newRegistry);
     }
 
-    function updateWhitelist(address newWhitelist) external noZeroAddress(newWhitelist) onlyOwner {
+    function updateWhitelist(address newWhitelist) external onlyOwner {
+        _noZeroAddress(newWhitelist);
         _whitelist = newWhitelist;
         emit NewWhitelist(newWhitelist);
     }
 
-    function updatePool(address newPool) external noZeroAddress(newPool) onlyOwner {
+    function updatePool(address newPool) external onlyOwner {
+        _noZeroAddress(newPool); 
         _pool = newPool;
         emit NewPool(newPool);
     }
@@ -245,7 +249,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public onlyOwner {
+    function renounceOwnership() external onlyOwner {
         emit OwnershipTransferred(owner, address(0));
         owner = address(0);
     }
@@ -254,12 +258,13 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public noZeroAddress(newOwner) onlyOwner {
+    function transferOwnership(address newOwner) external onlyOwner {
+        _noZeroAddress(newOwner); 
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
 
-    function salt(address manager, string memory name, string memory symbol) public pure override returns (bytes32) {
+    function salt(address manager, string calldata name, string calldata symbol) public pure override returns (bytes32) {
       return keccak256(abi.encode(manager, name, symbol));
     }
 
@@ -312,8 +317,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     function _createStrategy(
         address manager,
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
@@ -342,10 +347,10 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         @notice Creates a Strategy proxy and makes a delegate call to initialize items + percentages on the proxy
     */
     function _createProxy(
-        address manager, string memory name, string memory symbol, StrategyItem[] memory strategyItems
+        address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
-        require(!_proxyExists[salt_], "_createProxy: proxy already exists.");
+        require(!_proxyExists[salt_], "_createProxy: already exists.");
         TransparentUpgradeableProxy proxy =
             new TransparentUpgradeableProxy{salt: salt_}(
                     _implementation,

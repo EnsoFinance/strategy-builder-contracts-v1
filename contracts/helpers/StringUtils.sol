@@ -51,7 +51,7 @@ contract StringUtils {
             return "0x00";
         }
         uint256 temp = value;
-        uint256 length = 0;
+        uint256 length;
         while (temp != 0) {
             length++;
             temp >>= 8;

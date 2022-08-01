@@ -162,7 +162,9 @@ describe('StrategyToken', function () {
 	it('Should transferFrom tokens', async function () {
 		expect(await strategy.balanceOf(accounts[1].address)).to.eq(amount)
 		expect(await strategy.allowance(accounts[1].address, accounts[2].address)).to.eq(amount)
-		await strategy.connect(accounts[2]).transferFrom(accounts[1].address, accounts[2].address, amount)
+		const tx = await strategy.connect(accounts[2]).transferFrom(accounts[1].address, accounts[2].address, amount)
+		const receipt = await tx.wait()
+		console.log('Gas usage', receipt.gasUsed.toString())
 		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(amount.mul(2))).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
 	})
@@ -284,7 +286,7 @@ describe('StrategyToken', function () {
 
 	it('Should fail to decrease allowance: more than allowed', async function () {
 		await expect(strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith(
-			'ERC20: decreased allowance below zero'
+			'ERC20: decreased allowance < 0'
 		)
 	})
 

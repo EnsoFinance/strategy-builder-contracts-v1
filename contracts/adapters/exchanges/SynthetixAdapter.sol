@@ -25,7 +25,7 @@ contract SynthetixAdapter is BaseAdapter {
         address to
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
-        require(from == to, "Synth exchanges must return to same address");
+        require(from == to, "Synth exchanges need from == to.");
 
         ISynthetix synthetix = _resolveSynthetix();
         (bytes32 nameIn, bytes32 nameOut) = _resolveTokens(synthetix, tokenIn, tokenOut);
@@ -42,17 +42,14 @@ contract SynthetixAdapter is BaseAdapter {
         ISynthetix synthetix,
         address tokenIn,
         address tokenOut
-    ) internal view returns (bytes32, bytes32) {
-        bytes32 nameIn = synthetix.synthsByAddress(ISynth(tokenIn).target());
-        bytes32 nameOut = synthetix.synthsByAddress(ISynth(tokenOut).target());
+    ) internal view returns (bytes32 nameIn, bytes32 nameOut) {
+        nameIn = synthetix.synthsByAddress(ISynth(tokenIn).target());
+        nameOut = synthetix.synthsByAddress(ISynth(tokenOut).target());
         require(nameIn != bytes32(0) && nameOut != bytes32(0), "No synths");
-
-        return (nameIn, nameOut);
     }
 
-    function _resolveSynthetix() internal view returns (ISynthetix) {
-        address synthetix = resolver.getAddress("Synthetix");
-        require(synthetix != address(0), "Missing from Synthetix resolver");
-        return ISynthetix(synthetix);
+    function _resolveSynthetix() internal view returns (ISynthetix synthetix) {
+        synthetix = ISynthetix(resolver.getAddress("Synthetix"));
+        require(address(synthetix) != address(0), "Missing from Synthetix resolver");
     }
 }

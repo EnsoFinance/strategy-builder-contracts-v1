@@ -22,7 +22,6 @@ import StrategyController from '../artifacts/contracts/StrategyController.sol/St
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
 import AaveV2Estimator from '../artifacts/contracts/oracles/estimators/AaveV2Estimator.sol/AaveV2Estimator.json'
-
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
 

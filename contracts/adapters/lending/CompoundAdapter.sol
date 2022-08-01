@@ -64,11 +64,12 @@ contract CompoundAdapter is ProtocolAdapter, IRewardsAdapter, StringUtils {
     }
 
     // Intended to be called via delegateCall
-    function claim(address[] memory tokens) external override {
+    function claim(address[] calldata tokens) external override {
         comptroller.claimComp(address(this), tokens);
     }
 
     function rewardsTokens(address token) external view override returns(address[] memory) {
+        token; // shh baby compiler
         address[] memory ret = new address[](1);
         ret[0] = comptroller.getCompAddress();
         return ret;

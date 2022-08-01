@@ -45,7 +45,7 @@ library ControllerLibrary {
         function(address, bytes memory) external routerAction,
         address weth,
         bytes memory data
-    ) public {
+    ) external {
         _useRouter(strategy, router, routerAction, weth, data);
     }
 
@@ -66,7 +66,7 @@ library ControllerLibrary {
         address[] memory strategyItems,
         address[] memory strategyDebt,
         bytes memory data
-    ) public {
+    ) external {
         _useRouter(strategy, router, routerAction, weth, strategyItems, strategyDebt, data);
     }
 
@@ -111,7 +111,7 @@ library ControllerLibrary {
         uint256 amount
     ) private {
         strategy.approveToken(weth, router, amount);
-        if (strategyItems.length > 0) strategy.approveTokens(strategyItems, router, amount);
+        if (strategyItems.length != 0) strategy.approveTokens(strategyItems, router, amount);
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
@@ -124,10 +124,10 @@ library ControllerLibrary {
      */
     function approveSynthsAndDebt(
         IStrategy strategy,
-        address[] memory strategyDebt,
+        address[] calldata strategyDebt,
         address router,
         uint256 amount
-    ) public {
+    ) external {
         _approveSynthsAndDebt(strategy, strategyDebt, router, amount);
     }
 
@@ -137,7 +137,7 @@ library ControllerLibrary {
         address router,
         uint256 amount
     ) private {
-        if (strategyDebt.length > 0) strategy.approveDebt(strategyDebt, router, amount);
+        if (strategyDebt.length != 0) strategy.approveDebt(strategyDebt, router, amount);
         if (strategy.supportsDebt()) {
             if (amount == 0) {
                 strategy.setRouter(address(0));
@@ -157,7 +157,7 @@ library ControllerLibrary {
         uint256 rebalanceSlippage,
         uint256 rebalanceThresholdScalar,
         bytes memory data
-    ) public {
+    ) external {
         _onlyApproved(address(router));
         strategy.settleSynths();
         (bool balancedBefore, uint256 totalBefore, int256[] memory estimates) = verifyBalance(strategy, oracle, rebalanceThresholdScalar);
@@ -176,11 +176,13 @@ library ControllerLibrary {
 
     function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
         strategy.settleSynths();
+        uint256 length;
         if (token == susd) {
             address[] memory synths = strategy.synths();
-            for (uint256 i; i < synths.length; ++i) {
+            length = synths.length;
+            for (uint256 i; i < length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
-                if (amount > 0) {
+                if (amount != 0) {
                     strategy.delegateSwap(
                         adapter,
                         amount,
@@ -193,9 +195,10 @@ library ControllerLibrary {
             uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
-            for (uint256 i; i < synths.length; ++i) {
+            length = synths.length;
+            for (uint256 i; i < length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
-                if (amount > 0) {
+                if (amount != 0) {
                     strategy.delegateSwap(
                         adapter,
                         amount,
@@ -223,8 +226,7 @@ library ControllerLibrary {
         uint256 balanceBefore,
         address weth,
         bytes memory data
-    ) public {
-      console.log("..deposit 0");
+    ) external {
         _onlyApproved(address(router));
         _checkDivisor(slippage);
 
@@ -263,8 +265,8 @@ library ControllerLibrary {
         {
             uint256 totalSupply = strategy.totalSupply();
             relativeTokens =
-                totalSupply > 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
-            require(relativeTokens > 0, "Insuffient tokens");
+                totalSupply != 0 ? totalSupply.mul(valueAdded).div(totalBefore) : totalAfter;
+            require(relativeTokens != 0, "Insuffient tokens");
             strategy.updateTokenValue(totalAfter, totalSupply.add(relativeTokens));
             strategy.mint(account, relativeTokens);
         }
@@ -281,9 +283,9 @@ library ControllerLibrary {
         uint256 amount,
         uint256 slippage,
         bytes memory data
-    ) public returns (address weth, uint256 wethAmount) {
+    ) external returns (address weth, uint256 wethAmount) {
         _onlyApproved(address(router));
-        require(amount > 0, "0 amount");
+        require(amount != 0, "0 amount");
         _checkDivisor(slippage);
         strategy.settleSynths();
         address pool = IStrategyController(address(this)).pool();
@@ -307,7 +309,7 @@ library ControllerLibrary {
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC){
                 {
                     uint256 poolBalance = strategy.balanceOf(pool);
-                    if (poolBalance > 0) {
+                    if (poolBalance != 0) {
                         // Have fee pool tokens piggy-back on the trades as long as they are within an acceptable percentage
                         uint256 feePercentage = poolBalance.mul(PRECISION).div(amount.add(poolBalance));
                         if (feePercentage > WITHDRAW_LOWER_BOUND && feePercentage < WITHDRAW_UPPER_BOUND) {
@@ -353,7 +355,7 @@ library ControllerLibrary {
         strategy.updateTokenValue(totalAfter, strategy.totalSupply());
         // Approve weth
         strategy.approveToken(weth, address(this), wethAmount.add(poolWethAmount));
-        if (poolWethAmount > 0) {
+        if (poolWethAmount != 0) {
             IERC20(weth).transferFrom(address(strategy), pool, poolWethAmount);
         }
         emit Withdraw(address(strategy), msg.sender, wethAmount, amount);
@@ -366,10 +368,11 @@ library ControllerLibrary {
     }
 
     // @notice Checks that there is no debt remaining for tokens that are no longer part of the strategy
-    function verifyFormerDebt(address strategy, address[] memory newDebt, address[] memory formerDebt) public view {
+    function verifyFormerDebt(address strategy, address[] calldata newDebt, address[] memory formerDebt) external view {
         formerDebt = formerDebt.without(newDebt);
         uint256 balance;
-        for (uint256 i; i < formerDebt.length; ++i) {
+        uint256 length = formerDebt.length;
+        for (uint256 i; i < length; ++i) {
             balance = IERC20(formerDebt[i]).balanceOf(strategy);
             require(balance == 0, "Former debt remaining");
         }
@@ -394,7 +397,7 @@ library ControllerLibrary {
 
         bool balanced = true;
         address[] memory strategyItems = strategy.items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        for (uint256 i; i < strategyItems.length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyItems[i]);
             if (expectedValue > 0) {
                 int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
@@ -418,7 +421,7 @@ library ControllerLibrary {
         }
         if (balanced) {
             address[] memory strategyDebt = strategy.debt();
-            for (uint256 i = 0; i < strategyDebt.length; i++) {
+            for (uint256 i; i < strategyDebt.length; ++i) {
               int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, address(strategy), strategyDebt[i]);
               int256 rebalanceRange = StrategyLibrary.getRange(expectedValue, threshold);
               uint256 index = strategyItems.length + i;
@@ -442,9 +445,10 @@ library ControllerLibrary {
      */
     function amountOutOfBalance(address strategy, uint256 total, int256[] memory estimates) public view returns (uint256) {
         if (total == 0) return 0;
-        uint256 amount = 0;
+        uint256 amount;
         address[] memory strategyItems = IStrategy(strategy).items();
-        for (uint256 i = 0; i < strategyItems.length; i++) {
+        uint256 length = strategyItems.length;
+        for (uint256 i; i < length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i]);
             if (estimates[i] > expectedValue) {
                 amount = amount.add(uint256(estimates[i].sub(expectedValue)));
@@ -453,7 +457,8 @@ library ControllerLibrary {
             }
         }
         address[] memory strategyDebt = IStrategy(strategy).debt();
-        for (uint256 i = 0; i < strategyDebt.length; i++) {
+        length = strategyDebt.length;
+        for (uint256 i; i < length; ++i) {
             int256 expectedValue = StrategyLibrary.getExpectedTokenValue(total, strategy, strategyDebt[i]);
             uint256 index = strategyItems.length + i;
             if (estimates[index] > expectedValue) {
@@ -462,21 +467,20 @@ library ControllerLibrary {
                 amount = amount.add(uint256(expectedValue.sub(estimates[index])));
             }
         }
-        return (amount.mul(10**18).div(total));
+        return (amount.mul(PRECISION).div(total));
     }
 
     function checkBalance(address strategy, uint256 balanceBefore, uint256 total, int256[] memory estimates) public view {
         uint256 balanceAfter = amountOutOfBalance(strategy, total, estimates);
-        if (balanceAfter > uint256(10**18).mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
+        if (balanceAfter > PRECISION.mul(IStrategy(strategy).rebalanceThreshold()).div(uint256(DIVISOR)))
             require(balanceAfter <= balanceBefore, "Lost balance");
     }
 
     function verifyStructure(address strategy, StrategyTypes.StrategyItem[] memory newItems)
         public
         view
-        returns (bool)
     {
-        require(newItems.length > 0, "Cannot set empty structure");
+        require(newItems.length != 0, "Cannot set empty structure");
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will be caught by the ordering _requirement below
         require(newItems[newItems.length-1].item != address(-1), "Invalid item addr"); //Reserved space for virtual item
 
@@ -487,7 +491,8 @@ library ControllerLibrary {
 
         int256 total;
         address item;
-        for (uint256 i; i < newItems.length; ++i) {
+        uint256 length = newItems.length;
+        for (uint256 i; i < length; ++i) {
             item = newItems[i].item;
             require(i == 0 || newItems[i].item > newItems[i - 1].item, "Item ordering");
             int256 percentage = newItems[i].percentage;
@@ -510,7 +515,6 @@ library ControllerLibrary {
         }
         require(!(supportsSynths && supportsDebt), "No synths and debt");
         require(total == int256(DIVISOR), "Total percentage wrong");
-        return true;
     }
 
     /**
@@ -531,7 +535,8 @@ library ControllerLibrary {
         require(address(strategy) != test, "Cyclic dependency");
         require(!strategy.supportsSynths(), "Synths not supported");
         address[] memory strategyItems = strategy.items();
-        for (uint256 i; i < strategyItems.length; ++i) {
+        uint256 length = strategyItems.length;
+        for (uint256 i; i < length; ++i) {
           if (registry.estimatorCategories(strategyItems[i]) == uint256(StrategyTypes.EstimatorCategory.STRATEGY))
               _checkCyclicDependency(test, IStrategy(strategyItems[i]), registry);
         }

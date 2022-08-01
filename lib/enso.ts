@@ -343,7 +343,7 @@ export class EnsoBuilder {
 				this.adapters?.uniswap.contract || NULL_CONTRACT,
 				this.adapters?.aaveV2.contract || NULL_CONTRACT,
 				this.adapters?.aaveV2Debt.contract || NULL_CONTRACT,
-				new Contract(MAINNET_ADDRESSES.CURVE_ADDRESS_PROVIDER, [], this.signer),
+				new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], this.signer),
 				usdc,
 				weth,
 			])

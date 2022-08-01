@@ -29,6 +29,11 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
     address public constant TRICRYPTO2 = 0xc4AD29ba4B3c580e6D59105FFf484999997675Ff;
     address public constant TRICRYPTO2_ORACLE = 0xE8b2989276E2Ca8FDEA2268E3551b2b4B2418950;
     uint256 private constant TRICRYPTO2_PRECISION = 10**30; // lpPrice_precision + (lp_precision - usdt_precision) = 18 + (18 - 6) = 30
+    uint256 private immutable _1e18;
+
+    constructor() public {
+        _1e18 = 10**18;
+    }
 
     function estimateItem(uint256 balance, address token) public view override returns (int256) {
         return _estimateItem(balance, token, address(0));
@@ -51,7 +56,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
         if (balance == 0) return 0;
         if (token == TRICRYPTO2) { //Hack because tricrypto2 is not registered
             uint256 lpPrice = ICurveCrypto(TRICRYPTO2_ORACLE).lp_price();
-            return IOracle(msg.sender).estimateItem(lpPrice.mul(balance).div(TRICRYPTO2_PRECISION), USDT);
+            return IOracle(msg.sender).estimateItem(lpPrice.mul(balance) / TRICRYPTO2_PRECISION, USDT);
         } else {
             ICurveRegistry registry = ICurveRegistry(ADDRESS_PROVIDER.get_registry());
             address pool = registry.get_pool_from_lp_token(token);
@@ -81,7 +86,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                 uint256 virtualBalance =
                     balance.mul(
                         virtualPrice
-                    ).div(10**18);
+                    ) / _1e18;
                 if (assetType == 0) {
                     // USD
                     return IOracle(msg.sender).estimateItem(virtualBalance, SUSD);
@@ -100,7 +105,7 @@ contract CurveLPEstimator is IEstimator, IEstimatorKnowing {
                         uint256 decimals = uint256(IERC20NonStandard(underlyingToken).decimals());
                         uint256 convertedBalance = virtualBalance;
                         if (decimals < 18) {
-                          convertedBalance = convertedBalance.div(10**(18-decimals));
+                          convertedBalance = convertedBalance / 10**(18-decimals);
                         } else if (decimals > 18) {
                           convertedBalance = convertedBalance.mul(10**(decimals-18));
                         }
