@@ -31,6 +31,7 @@ export class Tokens {
 	sAAVE: string
 	sDOT: string
 	sADA: string
+	sDEFI: string
 	// Aave
 	aWETH: string
 	aWBTC: string
@@ -108,6 +109,7 @@ export class Tokens {
 		this.sLINK = '0xbBC455cb4F1B9e4bFC4B73970d360c8f032EfEE6'
     this.sDOT = '0x1715ac0743102bf5cd58efbb6cf2dc2685d967b6'
     this.sADA = '0xe36e2d3c7c34281fa3bc737950a68571736880a1'
+		this.sDEFI = '0xe1aFe1Fd76Fd88f78cBf599ea1846231B8bA3B6B'
 		// Aave Tokens
 		this.aWETH = '0x030bA81f1c18d280636F32af80b9AAd02Cf0854e'
 		this.aWBTC = '0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656'
@@ -170,6 +172,7 @@ export class Tokens {
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sBTC),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDOT),
 			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sADA),
+			strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDEFI),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWETH),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWBTC),
       strategyFactory.connect(owner).addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aDAI),
