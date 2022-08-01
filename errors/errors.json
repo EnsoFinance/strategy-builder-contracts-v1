@@ -123,6 +123,10 @@
     "contractName": "SynthetixAdapter.sol"
   },
   {
+    "contractId": "aa5c78241e51",
+    "contractName": "SynthRedeemerAdapter.sol"
+  },
+  {
     "contractId": "d6cf01c8393b",
     "contractName": "UniswapV2Adapter.sol"
   },
