@@ -2,7 +2,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { expect } = require('chai')
 
 const { ethers, waffle } = require('hardhat')
-// import { BigNumber as BN } from 'bignumber.js'
 const bn = require('bignumber.js')
 import { Contract, BigNumber } from 'ethers'
 const { deployContract, provider } = waffle
@@ -18,7 +17,7 @@ const UniswapV3Pool = require('@uniswap/v3-core/artifacts/contracts/UniswapV3Poo
 const SwapRouter = require('@uniswap/v3-periphery/artifacts/contracts/SwapRouter.sol/SwapRouter.json')
 
 const NUM_TOKENS = 3
-const ORACLE_TIME_WINDOW = 1
+const ORACLE_TIME_WINDOW = 30
 const HIGH_FEE = 10000
 
 let tokens: Contract[],
@@ -60,7 +59,7 @@ async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 	const poolAddress = await uniswapV3Factory.getPool(weth.address, input, UNI_V3_FEE)
 	const pool = new Contract(poolAddress, JSON.stringify(UniswapV3Pool.abi), provider)
 	const [tickCumulatives] = await pool.observe([ORACLE_TIME_WINDOW, 0])
-	const tick = bn(tickCumulatives[1].toString()).minus(tickCumulatives[0].toString()).dividedBy(ORACLE_TIME_WINDOW)
+	const tick = bn(tickCumulatives[1].toString()).minus(tickCumulatives[0].toString()).dividedBy(ORACLE_TIME_WINDOW).toFixed(0, 1)
 
 	const aNum = ethers.BigNumber.from(weth.address)
 	const bNum = ethers.BigNumber.from(input)
@@ -113,15 +112,15 @@ describe('UniswapV3Oracle', function () {
 		})
 
 		const Registry = await getContractFactory('UniswapV3Registry')
-		registry = await Registry.connect(trader).deploy(ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address)
+		registry = await Registry.connect(trader).deploy(uniswapV3Factory.address, weth.address)
 		await registry.deployed()
 		const Oracle = await getContractFactory('UniswapV3Oracle')
 		oracle = await Oracle.connect(trader).deploy(registry.address, weth.address)
 		await oracle.deployed()
 	})
 
-	it('Should add pool', async function () {
-		await registry.addPool(tokens[1].address, weth.address, UNI_V3_FEE)
+	it('Should add pool', async function() {
+		await registry.addPool(tokens[1].address, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)
 		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
 		expect(pool).to.equal(await uniswapV3Factory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
@@ -131,9 +130,9 @@ describe('UniswapV3Oracle', function () {
 		await expect(registry.getPoolData(tokens[2].address)).to.be.revertedWith('Pool not found')
 	})
 
-	it('Should fail to add pool: not owner', async function () {
+	it('Should fail to add pool: not owner', async function() {
 		await expect(
-			registry.connect(accounts[1]).addPool(tokens[2].address, weth.address, UNI_V3_FEE)
+			registry.connect(accounts[1]).addPool(tokens[2].address, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)
 		).to.be.revertedWith('Ownable: caller is not the owner')
 	})
 
@@ -141,19 +140,23 @@ describe('UniswapV3Oracle', function () {
 		const poolTokens = tokens.slice(1).map((token) => token.address)
 		const pairTokens = Array(poolTokens.length).fill(weth.address)
 		const fees = Array(poolTokens.length).fill(UNI_V3_FEE)
-		await registry.batchAddPools(poolTokens, pairTokens, fees)
+		const timeWindows = Array(poolTokens.length).fill(ORACLE_TIME_WINDOW)
+		await registry.batchAddPools(poolTokens, pairTokens, fees, timeWindows)
 	})
 
-	it('Should fail to add pool: not valid', async function () {
-		await expect(registry.addPool(AddressZero, weth.address, UNI_V3_FEE)).to.be.revertedWith('Not valid pool')
+	it('Should fail to add pool: not valid', async function() {
+		await expect(
+			registry.addPool(AddressZero, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)
+		).to.be.revertedWith('Not valid pool')
 	})
 
-	it('Should swap on uniswap', async function () {
+	it('Should swap on uniswap', async function() {
+		await increaseTime(15)
 		await exactInput([weth.address, tokens[1].address], WeiPerEther, 0)
-		await increaseTime(60)
+
 
 		await exactInput([weth.address, tokens[1].address], WeiPerEther, 0)
-		await increaseTime(60)
+		await increaseTime(15)
 	})
 
 	it('Should consult oracle: weth', async function () {
@@ -171,8 +174,8 @@ describe('UniswapV3Oracle', function () {
 		expect((await oracle.consult(amount, nonWethPair.address)).eq(amount)).to.equal(true)
 	})
 
-	it('Add non weth pool', async function () {
-		await registry.addPool(nonWethPair.address, tokens[2].address, HIGH_FEE)
+	it('Add non weth pool', async function() {
+		await registry.addPool(nonWethPair.address, tokens[2].address, HIGH_FEE, ORACLE_TIME_WINDOW)
 		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
 	})

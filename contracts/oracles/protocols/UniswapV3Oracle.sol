@@ -21,7 +21,7 @@ contract UniswapV3Oracle is ProtocolOracle {
     function consult(uint256 amount, address input) public view override returns (uint256) {
         if (input == weth || amount == 0) return amount;
         IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(input);
-        return _traversePairs(amount, input, poolData.pair, poolData.pool, registry.timeWindow());
+        return _traversePairs(amount, input, poolData.pair, poolData.pool, poolData.timeWindow);
     }
 
     function _traversePairs(
@@ -35,7 +35,7 @@ contract UniswapV3Oracle is ProtocolOracle {
         uint256 value = OracleLibrary.getQuoteAtTick(tick, uint128(amount), token, pair);
         if (pair != weth) {
             IUniswapV3Registry.PoolData memory poolData = registry.getPoolData(pair);
-            value = _traversePairs(value, pair, poolData.pair, poolData.pool, timeWindow);
+            value = _traversePairs(value, pair, poolData.pair, poolData.pool, poolData.timeWindow);
         }
         return value;
     }

@@ -1,6 +1,6 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
-import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from "./constants"
+import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM, ORACLE_TIME_WINDOW } from "./constants"
 
 export class Tokens {
   // Basic
@@ -211,13 +211,13 @@ export class Tokens {
 			await strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [synthetixAdapter.address], path: [], cache: '0x'}, false)
 		}
 		if (uniswapV3Registry) {
-			await uniswapV3Registry.connect(owner).addPool(this.wbtc, this.weth, '3000') //0.3%
-			await uniswapV3Registry.connect(owner).addPool(this.usdc, this.weth, '3000') //0.3%
-			await uniswapV3Registry.connect(owner).addPool(this.usdt, this.weth, '3000') //0.3%
-			await uniswapV3Registry.connect(owner).addPool(this.dai, this.weth, '3000') //0.3%
-			await uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000') //1%
-			await uniswapV3Registry.connect(owner).addPool(this.eurs, this.usdc, '500') //0.05%
-			await uniswapV3Registry.connect(owner).addPool(this.yfi, this.weth, '3000') //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.wbtc, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.usdc, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.usdt, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.dai, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000', ORACLE_TIME_WINDOW) //1%
+			await uniswapV3Registry.connect(owner).addPool(this.eurs, this.usdc, '500', ORACLE_TIME_WINDOW) //0.05%
+			await uniswapV3Registry.connect(owner).addPool(this.yfi, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
 		}
 		if (chainlinkRegistry) {
 			await chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);

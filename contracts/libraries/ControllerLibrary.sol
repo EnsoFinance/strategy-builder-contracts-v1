@@ -227,8 +227,10 @@ library ControllerLibrary {
     ) external {
         _onlyApproved(address(router));
         _checkDivisor(slippage);
+
         _approveSynthsAndDebt(strategy, strategy.debt(), address(router), uint256(-1));
         IOracle o = IStrategyController(address(this)).oracle();
+
         if (weth != address(0)) {
             IERC20(weth).safeApprove(address(router), amount);
             if (router.category() != IStrategyRouter.RouterCategory.GENERIC)
