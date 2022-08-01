@@ -172,7 +172,7 @@ library ControllerLibrary {
         emit Balanced(address(strategy), totalBefore, totalAfter);
     }
 
-    function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
+    function repositionSynths(IStrategy strategy, address token, address susd) external {
         strategy.settleSynths();
         uint256 length;
         if (token == susd) {
@@ -182,7 +182,7 @@ library ControllerLibrary {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount != 0) {
                     strategy.delegateSwap(
-                        adapter,
+                        _getSynthetixAdapter(0), // SynthetixAdapter
                         amount,
                         synths[i],
                         susd
@@ -198,7 +198,7 @@ library ControllerLibrary {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
                 if (amount != 0) {
                     strategy.delegateSwap(
-                        adapter,
+                        _getSynthetixAdapter(0), // SynthetixAdapter
                         amount,
                         susd,
                         synths[i]
@@ -206,7 +206,16 @@ library ControllerLibrary {
                 }
             }
         } else {
-            revert("Unsupported token");
+            // Attempt to redeem token for sUSD
+            uint256 synthBalance = IERC20(token).balanceOf(address(strategy));
+            if (synthBalance != 0) {
+                strategy.delegateSwap(
+                    _getSynthetixAdapter(1), // SynthRedeemerAdapter
+                    synthBalance,
+                    token,
+                    susd
+                );
+            }
         }
     }
 
@@ -532,5 +541,12 @@ library ControllerLibrary {
 
     function _checkDivisor(uint256 value) private pure {
         require(value <= uint256(DIVISOR), "Out of bounds");
+    }
+
+    function _getSynthetixAdapter(uint256 idx) private view returns (address adapter) {
+        ITokenRegistry.ItemDetails memory itemDetails = IStrategyController(address(this)).oracle().tokenRegistry().itemDetails(address(-1));
+        require(idx < itemDetails.tradeData.adapters.length, "Invalid adapter index");
+        address adapter = itemDetails.tradeData.adapters[idx];
+        require(adapter != address(0), "Invalid adapter");
     }
 }
