@@ -12,8 +12,6 @@ import "../libraries/MemoryMappings.sol";
 import "./StrategyRouter.sol";
 import "../interfaces/aave/IAToken.sol";
 
-import "hardhat/console.sol";
-
 struct LeverageItem {
   address token;
   uint16 percentage;
@@ -38,15 +36,11 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         override
         onlyController
     {
-      console.log("rdeposit 0");
         (address depositor, uint256 amount) =
             abi.decode(data, (address, uint256));
-      console.log("rdeposit 1");
         address[] memory strategyItems = IStrategy(strategy).items();
         address[] memory strategyDebt = IStrategy(strategy).debt();
         int256[] memory estimates = new int256[](strategyItems.length + strategyDebt.length + 1);
-
-      console.log("rdeposit 2");
         _batchBuy(
           strategy,
           depositor,
@@ -56,8 +50,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
           strategyDebt,
           BinaryTreeWithPayload.newNode() // memory mapping
         );
-
-      console.log("rdeposit 3");
     }
 
     function withdraw(address strategy, bytes calldata data)
@@ -272,7 +264,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         address[] memory strategyDebt,
         BinaryTreeWithPayload.Tree memory mm
     ) internal {
-      console.log("_batchBuy 0");
         for (uint256 i; i < strategyItems.length; ++i) {
             _buyToken(
                 strategy,
@@ -282,7 +273,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 StrategyLibrary.getExpectedTokenValue(total, strategy, strategyItems[i])
             );
         }
-      console.log("_batchBuy 1");
         if (IStrategy(strategy).supportsSynths()) {
             // Purchase SUSD
             uint256 susdBalanceBefore = from == strategy ? 0 : IERC20(susd).balanceOf(strategy); // If from strategy it is rebalance or restructure, we want to use all SUSD
@@ -296,8 +286,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
             uint256 susdBalanceAfter = IERC20(susd).balanceOf(strategy);
             _batchBuySynths(strategy, susdBalanceAfter.sub(susdBalanceBefore));
         }
-
-      console.log("_batchBuy 2");
         for (uint256 i; i < strategyDebt.length; ++i) {
             _borrowToken(
                 strategy,
@@ -307,8 +295,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 mm
             );
         }
-
-      console.log("_batchBuy 3");
         int256 percentage = IStrategy(strategy).getPercentage(weth);
         if (percentage > 0 && from != strategy) {
             if (from == address(this)) {
@@ -383,7 +369,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
         int256 estimatedValue,
         int256 expectedValue
     ) internal {
-      console.log("_buyToken %s", token);
         int256 amount;
         // Note: it is possible for a restructure to have an estimated value of zero,
         // but only if it's expected value is also zero, in which case this function
@@ -400,7 +385,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 amount = expectedValue.sub(estimatedValue);
             }
         }
-      console.log("_buyToken 0");
         if (amount > 0) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
             if (tradeData.cache.length != 0) {
@@ -409,7 +393,6 @@ contract FullRouter is StrategyTypes, StrategyRouter {
                 amount = amount.mul(int256(multiplier)) / int256(DIVISOR);
             }
             uint256 balance = IERC20(weth).balanceOf(from);
-      console.log("_buyToken 1");
             _buyPath(
                 tradeData,
                 uint256(amount) > balance ? balance : uint256(amount),
