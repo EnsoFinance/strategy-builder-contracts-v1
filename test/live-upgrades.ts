@@ -82,13 +82,13 @@ describe('Live Upgrades', function () {
 		// sanity check
 		expect(
 			await isRevertedWith(
-				eDPI.connect(accounts[1]).finalizeUpdateTradeData(),
-				'finalizeUpdateTradeData: timelock not ready.',
+				eDPI.connect(accounts[1]).finalizeTradeData(),
+				'finalizeTradeData: timelock not ready.',
 				'Strategy.sol'
 			)
 		).to.be.true
 		await increaseTime(5 * 60)
-		await eDPI.connect(accounts[1]).finalizeUpdateTradeData()
+		await eDPI.connect(accounts[1]).finalizeTradeData()
 
 		const tradeDataAfter = await eDPI.getTradeData(items[0])
 		expect(tradeDataAfter.adapters[0]).to.deep.equal(AddressZero)

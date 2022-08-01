@@ -373,13 +373,48 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         emit UpdateTradeData(item, false);
     }
 
-    function finalizeUpdateTradeData() external override {
+    function finalizeTradeData() external override {
         bytes32 key = keccak256(abi.encode(this.updateTradeData.selector));
-        _require(_timelockIsReady(key), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeUpdateTradeData: timelock not ready.") */);
+        _require(_timelockIsReady(key), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeTradeData: timelock not ready.") */);
         (address item, TradeData memory data) = abi.decode(_getTimelockValue(key), (address, TradeData));
         _tradeData[item] = data;
         _resetTimelock(key);
         emit UpdateTradeData(item, true);
+    }
+
+    function updateClaimables() external override {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
+        _updateClaimables(tokenRegistry);
+    }
+
+    function updateRewards() external override {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
+        BinaryTree.Tree memory exists = BinaryTree.newNode();
+        _setTokensExists(exists, _items);
+        _setTokensExists(exists, _debt);
+        _setTokensExists(exists, _synths);
+        _updateRewards(exists, tokenRegistry);
+        emit RewardsUpdated();
+    }
+
+    function updateAddresses() public override {
+        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
+        address newPool = f.pool();
+        address currentPool = _pool;
+        if (newPool != currentPool) {
+            // If pool has been initialized but is now changing update paidTokenValue
+            if (currentPool != address(0)) {
+                address manager_ = _manager;
+                _issueStreamingFee(currentPool, manager_);
+                _updateStreamingFeeRate(newPool, manager_);
+                _paidTokenValues[currentPool] = _lastTokenValue;
+            }
+            _paidTokenValues[newPool] = uint256(-1);
+            _pool = newPool;
+        }
+        IOracle ensoOracle = IOracle(f.oracle());
+        _weth = ensoOracle.weth();
+        _susd = ensoOracle.susd();
     }
 
     /**
@@ -531,41 +566,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
             _claimables.push(values[i]); // grouped by rewardsAdapter
         }
         emit ClaimablesUpdated();
-    }
-
-    function updateClaimables() external override {
-        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
-        _updateClaimables(tokenRegistry);
-    }
-
-    function updateAddresses() public override {
-        IStrategyProxyFactory f = IStrategyProxyFactory(_factory);
-        address newPool = f.pool();
-        address currentPool = _pool;
-        if (newPool != currentPool) {
-            // If pool has been initialized but is now changing update paidTokenValue
-            if (currentPool != address(0)) {
-                address manager_ = _manager;
-                _issueStreamingFee(currentPool, manager_);
-                _updateStreamingFeeRate(newPool, manager_);
-                _paidTokenValues[currentPool] = _lastTokenValue;
-            }
-            _paidTokenValues[newPool] = uint256(-1);
-            _pool = newPool;
-        }
-        IOracle ensoOracle = IOracle(f.oracle());
-        _weth = ensoOracle.weth();
-        _susd = ensoOracle.susd();
-    }
-
-    function updateRewards() external override {
-        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(_factory).tokenRegistry());
-        BinaryTree.Tree memory exists = BinaryTree.newNode();
-        _setTokensExists(exists, _items);
-        _setTokensExists(exists, _debt);
-        _setTokensExists(exists, _synths);
-        _updateRewards(exists, tokenRegistry);
-        emit RewardsUpdated();
     }
 
     function _setTokensExists(BinaryTree.Tree memory exists, address[] memory tokens) private pure {

@@ -502,7 +502,7 @@
       "b3e5dea2190e03": "0 amount",
       "b3e5dea2190e04": "claimAll: caller must be controller or manager.",
       "b3e5dea2190e05": "Manager already set",
-      "b3e5dea2190e06": "finalizeUpdateTradeData: timelock not ready.",
+      "b3e5dea2190e06": "finalizeTradeData: timelock not ready.",
       "b3e5dea2190e07": "Only StrategyProxyFactory"
     }
   },
