@@ -120,6 +120,10 @@ describe('Live Estimates', function () {
 			curveDepositZapRegistry
 		} = enso.platform.oracles.registries
 
+		// Deploy test UniswapV3RegistryWRapper
+		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
+		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address);
+		await uniswapV3RegistryWrapper.deployed()
 		// Deploy new oracle
 		const uniswapV3Factory: Contract = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, [], accounts[0])
 		oracle = (await deployOracle(
@@ -127,7 +131,7 @@ describe('Live Estimates', function () {
 			uniswapV3Factory,
 			uniswapV3Factory,
 			tokenRegistry,
-			uniswapV3Registry,
+			uniswapV3RegistryWrapper,
 			chainlinkRegistry,
 			weth,
 			new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
