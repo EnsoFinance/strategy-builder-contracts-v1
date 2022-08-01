@@ -333,14 +333,14 @@ export class Tokens {
 					'0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E'
 				), //TUSD second address
 		])
-		if (synthetixAdapter) {
+		if (synthetixAdapters) {
 			await strategyFactory
 				.connect(owner)
 				.addItemDetailedToRegistry(
 					ITEM_CATEGORY.RESERVE,
 					ESTIMATOR_CATEGORY.BLOCKED,
 					VIRTUAL_ITEM,
-					{ adapters: [synthetixAdapter.address], path: [], cache: '0x' },
+					{ adapters: synthetixAdapters, path: [], cache: '0x' },
 					AddressZero
 				)
 		}

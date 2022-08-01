@@ -9,7 +9,7 @@ import {
 	deployOracle,
 	deployFullRouter
 } from '../lib/deploy'
-import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
+import { DIVISOR, MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 
@@ -26,6 +26,7 @@ const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
 describe('Remove sDEFI from live contracts', function () {
 	let accounts: SignerWithAddress[],
 		owner: SignerWithAddress,
+		manager: SignerWithAddress,
 		tokens: Tokens,
 		weth: Contract,
 		router: Contract,
@@ -44,7 +45,7 @@ describe('Remove sDEFI from live contracts', function () {
 		owner = await ethers.getSigner(ownerAddress)
 
 		// Send funds to owner
-		await accounts[19].sendTransaction({to: ownerAddress, value: WeiPerEther.mul(5)})
+		await accounts[19].sendTransaction({ to: ownerAddress, value: WeiPerEther.mul(5) })
 
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -52,32 +53,12 @@ describe('Remove sDEFI from live contracts', function () {
 		const enso = getLiveContracts(accounts[0])
 		controller = enso.platform.controller
 
-		const factory = enso.platform.strategyFactory
+		//chainlinkRegistry = enso.platform.oracles.registries.chainlinkRegistry
 
-		chainlinkRegistry = enso.platform.oracles.registries.chainlinkRegistry
-
-		const {
-			tokenRegistry,
-			uniswapV3Registry
-		} = enso.platform.oracles.registries
-
-		// Deploy new oracle
-		const uniswapV3Factory: Contract = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, [], accounts[0])
-		oracle = (await deployOracle(
-			owner,
-			uniswapV3Factory,
-			uniswapV3Factory,
-			tokenRegistry,
-			uniswapV3Registry,
-			chainlinkRegistry,
-			weth,
-			new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
-			(estimatorCategory: number, estimatorAddress: string) => {
-				return factory.connect(owner).addEstimatorToRegistry(estimatorCategory, estimatorAddress)
-			}
-		))[0]
-		await factory.connect(owner).updateOracle(oracle.address)
-		await controller.connect(owner).updateAddresses()
+		// Deploy SynthRedeemerAdapter
+		const SynthRedeemerAdapter = await getContractFactory('SynthRedeemerAdapter')
+		const synthRedeemerAdapter = await SynthRedeemerAdapter.deploy(synthRedeemer, tokens.sUSD, weth.address)
+		await synthRedeemerAdapter.deployed()
 		// Deploy new router
 		router = await deployFullRouter(
 			accounts[0],
@@ -86,49 +67,12 @@ describe('Remove sDEFI from live contracts', function () {
 			enso.platform.strategyLibrary
 		)
 		// Whitelist
+		await enso.platform.administration.whitelist.connect(owner).approve(synthRedeemerAdapter.address)
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
-		/*
-		let {
-			aaveV2,
-			aaveV2Debt,
-			compound,
-			curve,
-			curveLP,
-			curveGauge,
-			kyberSwap,
-			metastrategy,
-			sushiSwap,
-			synthetix,
-			uniswapV2,
-			uniswapV3,
-			yearnV2,
-		} = enso.adapters
 
-		// Store old adapter addresses
-		//oldAdapters = [uniswapV3.address, aaveV2.address, aaveV2Debt.address]
-		// Deploy and whitelist new adapters
-		const uniswapV3Router = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], owner)
-		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], owner)
-		uniswapV3 = await deployUniswapV3Adapter(
-			owner, enso.platform.oracles.registries.uniswapV3Registry,
-			uniswapV3Router,
-			weth
-		)
-		await enso.platform.administration.whitelist.connect(owner).approve(uniswapV3.address)
-		aaveV2 = await deployAaveV2Adapter(
-			accounts[0],
-			aaveAddressProvider,
-			enso.platform.controller,
-			weth,
-			enso.platform.oracles.registries.tokenRegistry,
-			ESTIMATOR_CATEGORY.AAVE_V2
-		)
-		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2.address)
-		aaveV2Debt = await deployAaveV2DebtAdapter(owner, aaveAddressProvider, weth)
-		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2Debt.address)
-		// Store new adapter addresses
-		newAdapters = [uniswapV3.address, aaveV2.address, aaveV2Debt.address]
-		*/
+		// Set synthetix adapters
+		await enso.platform.strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [ enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x'}, false)
+
 		const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
 		await strategyClaim.deployed()
 
@@ -138,35 +82,36 @@ describe('Remove sDEFI from live contracts', function () {
 		eDTOP = await Strategy.attach('0x0CF65Dcf23c3a67D1A220A2732B5c2F7921A30c4')
 	})
 
+	/*
 	it('Should update Chainlink registry', async function () {
-			//await expect(oracle.estimateStrategy(eDTOP.address)).to.be.revertedWith('');
-			//await chainlinkRegistry.connect(owner).addOracle(tokens.sDEFI, tokens.sUSD, sDEFIAggregator, false);
-			//console.log("ChainlinkRegistry: ", chainlinkRegistry.address)
+			await expect(oracle.estimateStrategy(eDTOP.address)).to.be.revertedWith('');
+			await chainlinkRegistry.connect(owner).addOracle(tokens.sDEFI, tokens.sUSD, sDEFIAggregator, false);
 			const [ total, ] = await oracle.estimateStrategy(eDTOP.address)
 			console.log("eDTOP Total: ", total.toString())
 	})
+	*/
 
-	/*
 	it('Should reposition', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eETH2X.address)
-		const withdrawAmount = await eETH2X.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eETH2X.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eETH2X, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		// Impersonate manager
+		const managerAddress = await eDTOP.manager()
+		await network.provider.request({
+			method: 'hardhat_impersonateAccount',
+			params: [managerAddress],
+		})
+		manager = await ethers.getSigner(managerAddress)
+
+		const [ totalBefore, ] = await oracle.estimateStrategy(eDTOP.address)
+		console.log("eDTOP Total Before: ", totalBefore.toString())
 		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eETH2X.address, router.address, withdrawAmount, 0, '0x')
+			.connect(manager)
+			.repositionSynths(eDTOP.address, tokens.sDEFI)
 		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		console.log('Redeem Gas Used: ', receipt.gasUsed.toString())
+		const [ totalAfter, ] = await oracle.estimateStrategy(eDTOP.address)
+		console.log("eDTOP Total After: ", totalAfter.toString())
 	})
 
+	/*
 	it('Should finalize structure', async function () {
 		const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
 		const depositAmount = WeiPerEther

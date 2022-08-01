@@ -1,19 +1,25 @@
 //SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity 0.6.12;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+import "../../libraries/SafeERC20.sol";
 import "../../interfaces/synthetix/ISynthRedeemer.sol";
 import "../BaseAdapter.sol";
 
 contract SynthRedeemerAdapter is BaseAdapter {
+    using SafeMath for uint256;
+    using SafeERC20 for IERC20;
+
     ISynthRedeemer public immutable redeemer;
-    address public constant susd = 0x57Ab1ec28D129707052df4dF418D58a2D46d5f51;
+    address public immutable susd;
 
     constructor(
         address redeemer_,
-        address susd_
+        address susd_,
         address weth_
     ) public BaseAdapter(weth_) {
-        redeemer = IAddressResolver(resolver_);
+        redeemer = ISynthRedeemer(redeemer_);
+        susd = susd_;
     }
 
     function swap(
@@ -33,7 +39,7 @@ contract SynthRedeemerAdapter is BaseAdapter {
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
         uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
-        redeemer.redeemPartial(tokenIn, amount);
+        redeemer.redeemPartial(IERC20(tokenIn), amount);
         uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
         uint256 received = afterBalance.sub(beforeBalance);
         require(received >= expected, "Insufficient tokenOut amount");
