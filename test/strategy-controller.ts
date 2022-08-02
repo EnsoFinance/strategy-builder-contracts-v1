@@ -50,7 +50,7 @@ describe('StrategyController', function () {
 		wrapper: Contract,
 		newThreshold: BigNumber
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -63,9 +63,7 @@ describe('StrategyController', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))

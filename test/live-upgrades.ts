@@ -29,7 +29,7 @@ describe('Live Upgrades', function () {
 		strategyClaim: Contract,
 		eDPI: Contract
 
-	before('Resetting network', async function () {
+	before('Setup contracts', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -42,9 +42,7 @@ describe('Live Upgrades', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup contracts', async function () {
 		accounts = await getSigners()
 
 		const enso = getLiveContracts(accounts[0])

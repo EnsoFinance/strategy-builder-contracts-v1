@@ -94,7 +94,7 @@ describe('Live Estimates', function () {
 		}
 	}
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -107,9 +107,7 @@ describe('Live Estimates', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		// Impersonate owner
 		await network.provider.request({

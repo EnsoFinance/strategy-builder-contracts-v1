@@ -54,7 +54,7 @@ describe('StrategyToken Fees', function () {
 		return BigNumber.from(total).mul(balance).div(totalSupply)
 	}
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -67,9 +67,7 @@ describe('StrategyToken Fees', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		owner = accounts[10]
 		manager = accounts[1]

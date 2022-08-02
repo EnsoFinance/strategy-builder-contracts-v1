@@ -12,7 +12,7 @@ const { AddressZero, WeiPerEther } = constants
 let accounts: SignerWithAddress[], owner: SignerWithAddress, oracle: Contract, registry: Contract, tokens: Tokens
 
 describe('ChainlinkOracle', function () {
-	before('Resetting network', async function () {
+	before('Setup Oracle', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -25,9 +25,7 @@ describe('ChainlinkOracle', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Oracle', async function () {
 		accounts = await getSigners()
 		owner = accounts[0]
 

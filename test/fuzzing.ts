@@ -10,7 +10,7 @@ chai.use(solidity)
 describe('Fuzzing Libraries', function () {
 	let accounts: SignerWithAddress[], testBinaryTree: Contract
 
-	before('Resetting network', async function () {
+	before('Setup signers etc.', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -23,9 +23,7 @@ describe('Fuzzing Libraries', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup signers etc.', async function () {
 		accounts = await getSigners()
 		const TestBinaryTree = await getContractFactory('TestBinaryTree')
 		testBinaryTree = await TestBinaryTree.deploy()

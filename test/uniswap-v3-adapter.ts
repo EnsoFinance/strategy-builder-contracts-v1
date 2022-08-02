@@ -70,7 +70,7 @@ async function exactInput(tokens: string[], amountIn: number, amountOutMinimum: 
 }
 
 describe('UniswapV3Adapter', function () {
-	before('Resetting network', async function () {
+	before('Setup Uniswap V3 + Platform', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -83,9 +83,7 @@ describe('UniswapV3Adapter', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap V3 + Platform', async function () {
 		accounts = await getSigners()
 		owner = accounts[5]
 		trader = accounts[6]

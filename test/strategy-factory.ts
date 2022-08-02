@@ -44,7 +44,7 @@ describe('StrategyProxyFactory', function () {
 		strategyItems: StrategyItem[],
 		newImplementationAddress: string
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -57,9 +57,7 @@ describe('StrategyProxyFactory', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]

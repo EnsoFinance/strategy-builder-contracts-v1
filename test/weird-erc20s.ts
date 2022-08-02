@@ -75,7 +75,7 @@ describe('Weird ERC20s', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -88,9 +88,7 @@ describe('Weird ERC20s', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		const defaultSupply = WeiPerEther.mul(10000)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))

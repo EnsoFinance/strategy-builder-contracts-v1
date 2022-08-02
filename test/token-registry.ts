@@ -20,7 +20,7 @@ chai.use(solidity)
 describe('TokenRegistry', function () {
 	let platform: Platform
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -33,9 +33,7 @@ describe('TokenRegistry', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		this.accounts = await getSigners()
 		this.tokens = new Tokens()
 		this.weth = new Contract(this.tokens.weth, WETH9.abi, this.accounts[0])

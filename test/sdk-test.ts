@@ -12,7 +12,7 @@ describe('SDK', function () {
 	let mainnetForkEnso: typeof EnsoEnvironment
 	let localTestnetEnso: typeof EnsoEnvironment
 
-	before('Resetting network', async function () {
+	before('minimal mainnet-fork setup', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -25,9 +25,7 @@ describe('SDK', function () {
 				},
 			],
 		})
-	})
 
-	before('minimal mainnet-fork setup', async function () {
 		accounts = await getSigners()
 	})
 

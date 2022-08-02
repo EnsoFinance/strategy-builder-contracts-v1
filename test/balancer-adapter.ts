@@ -30,7 +30,7 @@ describe('BalancerAdapter', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
-	before('Resetting network', async function () {
+	it('Setup Balancer, Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -43,9 +43,7 @@ describe('BalancerAdapter', function () {
 				},
 			],
 		})
-	})
 
-	it('Setup Balancer, Factory', async function () {
 		accounts = await getSigners()
 		tokens = await deployer.deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200 * (NUM_TOKENS - 1)))
 		weth = tokens[0]

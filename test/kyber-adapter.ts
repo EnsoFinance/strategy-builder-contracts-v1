@@ -47,7 +47,7 @@ describe('KyberSwapAdapter', function () {
 		wrapper: Contract,
 		tokens: Tokens
 
-	before('Resetting network', async function () {
+	before('Setup Kyber + factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -60,9 +60,7 @@ describe('KyberSwapAdapter', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Kyber + factory', async function () {
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = new Tokens()

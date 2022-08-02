@@ -43,7 +43,7 @@ describe('Estimator', function () {
 		uniswapV3AdapterAddress: string,
 		yearnV2AdapterAddress: string
 
-	before('Resetting network', async function () {
+	before('Setup Enso + Estimator', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -56,9 +56,7 @@ describe('Estimator', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Enso + Estimator', async function () {
 		accounts = await getSigners()
 		const owner = accounts[0]
 

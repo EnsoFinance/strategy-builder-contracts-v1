@@ -66,7 +66,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		wrapper: Contract,
 		tokens: Tokens
 
-	before('Resetting network', async function () {
+	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -79,9 +79,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])

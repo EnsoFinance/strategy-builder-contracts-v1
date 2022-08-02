@@ -75,7 +75,7 @@ async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 }
 
 describe('UniswapV3Oracle', function () {
-	before('Resetting network', async function () {
+	before('Setup Uniswap V3 + Oracle', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -88,9 +88,7 @@ describe('UniswapV3Oracle', function () {
 				},
 			],
 		})
-	})
 
-	before('Setup Uniswap V3 + Oracle', async function () {
 		accounts = await getSigners()
 		trader = accounts[7]
 		// Need to deploy these tokens before WETH to get the correct arrangement of token address where some are bigger and some smaller (for sorting)

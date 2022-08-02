@@ -8,7 +8,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 describe('Whitelist', function () {
 	let accounts: SignerWithAddress[], whitelist: Contract
 
-	before('Resetting network', async function () {
+	before('Deploy Whitelist', async function () {
 		const _config: any = hre.network.config
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
@@ -21,9 +21,7 @@ describe('Whitelist', function () {
 				},
 			],
 		})
-	})
 
-	before('Deploy Whitelist', async function () {
 		accounts = await getSigners()
 		const Whitelist = await getContractFactory('Whitelist')
 		whitelist = await Whitelist.connect(accounts[0]).deploy()
