@@ -279,32 +279,6 @@ describe('Live Estimates', function () {
 			.connect(await impersonate(await platformProxyAdmin.owner()))
 			.upgrade(controller.address, newControllerImplementation.address)
 
-		strategies.forEach(async (s: Contract) => {
-			const mgr = await impersonate(await s.manager())
-			await strategyAdmin.connect(mgr).upgrade(s.address)
-			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
-			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
-			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
-
-			await s.connect(accounts[3]).updateRewards() // anyone calls
-		})
-
-		await updateAdapters(eDPI)
-		await updateAdapters(eYETI)
-		await updateAdapters(eYLA)
-		await updateAdapters(eNFTP)
-		await updateAdapters(eETH2X)
-
-		// Deploy new router
-		router = await deployFullRouter(
-			accounts[0],
-			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
-			controller,
-			enso.platform.strategyLibrary
-		)
-		// Whitelist
-		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
-
 		// Factory Implementation
 		const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controller.address])
 		await factoryImplementation.deployed()
@@ -323,6 +297,34 @@ describe('Live Estimates', function () {
 		await strategyFactory
 			.connect(await impersonate(await strategyFactory.owner()))
 			.updateRegistry(newTokenRegistry.address)
+
+		let s: Contract // strategy
+		for (let i = 0; i < strategies.length; ++i) {
+			s = strategies[i]
+			const mgr = await impersonate(await s.manager())
+			await strategyAdmin.connect(mgr).upgrade(s.address)
+			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
+			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
+			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
+
+			await s.connect(accounts[3]).updateRewards() // anyone calls
+		}
+
+		await updateAdapters(eDPI)
+		await updateAdapters(eYETI)
+		await updateAdapters(eYLA)
+		await updateAdapters(eNFTP)
+		await updateAdapters(eETH2X)
+
+		// Deploy new router
+		router = await deployFullRouter(
+			accounts[0],
+			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
+			controller,
+			enso.platform.strategyLibrary
+		)
+		// Whitelist
+		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 
 		let tradeData: TradeData = {
 			adapters: [],
