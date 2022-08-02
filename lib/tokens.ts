@@ -18,6 +18,8 @@ export class Tokens {
 	knc: string
 	yfi: string
 	cream: string
+	aave: string
+	stkAAVE: string
 	// Ren
 	renBTC: string
 	// Synth
@@ -93,6 +95,8 @@ export class Tokens {
 		this.knc = '0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202'
 		this.yfi = '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e'
 		this.cream = '0x2ba592F78dB6436527729929AAf6c908497cB200'
+		this.aave = '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9'
+		this.stkAAVE = '0x4da27a545c0c5B758a6BA100e3a049001de870f5'
 		// Ren
 		this.renBTC = '0xeb4c2781e4eba804ce9a9803c67d0893436bb27d'
 		// Synthetix
@@ -218,6 +222,8 @@ export class Tokens {
 			await uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000', ORACLE_TIME_WINDOW) //1%
 			await uniswapV3Registry.connect(owner).addPool(this.eurs, this.usdc, '500', ORACLE_TIME_WINDOW) //0.05%
 			await uniswapV3Registry.connect(owner).addPool(this.yfi, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.aave, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
+			await uniswapV3Registry.connect(owner).addPool(this.stkAAVE, this.aave, '3000', ORACLE_TIME_WINDOW) //0.3%
 		}
 		if (chainlinkRegistry) {
 			await chainlinkRegistry.connect(owner).addOracle(this.sUSD, this.weth, '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419', true);

@@ -26,7 +26,6 @@ import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.so
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
 import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
-import AaveV2Estimator from '../artifacts/contracts/oracles/estimators/AaveV2Estimator.sol/AaveV2Estimator.json'
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
 
@@ -42,6 +41,7 @@ async function impersonate(address: string): Promise<SignerWithAddress> {
 
 describe('Live Estimates', function () {
 	let accounts: SignerWithAddress[],
+		owner: SignerWithAddress,
 		estimator: Estimator,
 		tokens: Tokens,
 		weth: Contract,
@@ -53,18 +53,13 @@ describe('Live Estimates', function () {
 		eYLA: Contract,
 		eNFTP: Contract,
 		eETH2X: Contract,
-		strategyClaim: Contract,
 		oldAdapters: string[],
 		newAdapters: string[]
 
 	async function updateAdapters(strategy: Contract) {
 		// Impersonate manager
 		const managerAddress = await strategy.manager()
-		await network.provider.request({
-			method: 'hardhat_impersonateAccount',
-			params: [managerAddress],
-		})
-		const manager = await ethers.getSigner(managerAddress)
+		const manager = await impersonate(managerAddress)
 
 		// Send funds to manager
 		await accounts[19].sendTransaction({ to: managerAddress, value: WeiPerEther })
@@ -93,14 +88,32 @@ describe('Live Estimates', function () {
 		}
 	}
 
+	async function updateTokenRegistry(strategyFactory: Contract, oldTokenRegistry: Contract, strategy: Contract, tokens: string[]) {
+			let itemCategory, estimatorCategory;
+		for (let i = 0; i < tokens.length; i++) {
+			// Set token
+			estimatorCategory = await oldTokenRegistry.estimatorCategories(tokens[i]);
+			if (estimatorCategory.gt(0)) {
+				itemCategory = await oldTokenRegistry.itemCategories(tokens[i]);
+				await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, tokens[i])
+			}
+			// Set path
+			const tradeData = await strategy.getTradeData(tokens[i])
+			let path = [...tradeData.path]
+			for (let j = 0; j < path.length; j++) {
+				estimatorCategory = await oldTokenRegistry.estimatorCategories(path[j]);
+				if (estimatorCategory.gt(0)) {
+					itemCategory = await oldTokenRegistry.itemCategories(path[j]);
+					await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, path[j])
+				}
+			}
+		}
+	}
+
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		// Impersonate owner
-		await network.provider.request({
-			method: 'hardhat_impersonateAccount',
-			params: [ownerAddress],
-		})
-		const owner = await ethers.getSigner(ownerAddress)
+		owner = await impersonate(ownerAddress)
 
 		// Send funds to owner
 		await accounts[19].sendTransaction({ to: ownerAddress, value: WeiPerEther.mul(5) })
@@ -109,21 +122,25 @@ describe('Live Estimates', function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 
 		const enso = getLiveContracts(accounts[0])
+
 		controller = enso.platform.controller
-
-		const factory = enso.platform.strategyFactory
-
+		const strategyFactory = enso.platform.strategyFactory
 		const {
-			tokenRegistry,
 			uniswapV3Registry,
 			chainlinkRegistry,
 			curveDepositZapRegistry
 		} = enso.platform.oracles.registries
 
-		// Deploy test UniswapV3RegistryWRapper
+		// Deploy test UniswapV3RegistryWrapper
 		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
 		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address);
 		await uniswapV3RegistryWrapper.deployed()
+		await uniswapV3Registry.connect(owner).transferOwnership(uniswapV3RegistryWrapper.address)
+
+		// Deploy new token registry
+		const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
+		await tokenRegistry.deployed()
+
 		// Deploy new oracle
 		const uniswapV3Factory: Contract = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, [], accounts[0])
 		oracle = (await deployOracle(
@@ -136,11 +153,13 @@ describe('Live Estimates', function () {
 			weth,
 			new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
 			(estimatorCategory: number, estimatorAddress: string) => {
-				return factory.connect(owner).addEstimatorToRegistry(estimatorCategory, estimatorAddress)
+				return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
 			}
 		))[0]
-		await factory.connect(owner).updateOracle(oracle.address)
-		await controller.connect(owner).updateAddresses()
+
+		// Transfer token registry
+		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
+
 		// Deploy new router
 		router = await deployFullRouter(
 			accounts[0],
@@ -174,7 +193,7 @@ describe('Live Estimates', function () {
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], owner)
 		uniswapV3 = await deployUniswapV3Adapter(
 			owner,
-			enso.platform.oracles.registries.uniswapV3Registry,
+			uniswapV3RegistryWrapper,
 			uniswapV3Router,
 			weth
 		)
@@ -182,9 +201,9 @@ describe('Live Estimates', function () {
 		aaveV2 = await deployAaveV2Adapter(
 			accounts[0],
 			aaveAddressProvider,
-			enso.platform.controller,
+			controller,
 			weth,
-			enso.platform.oracles.registries.tokenRegistry,
+			tokenRegistry,
 			ESTIMATOR_CATEGORY.AAVE_V2
 		)
 		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2.address)
@@ -213,7 +232,7 @@ describe('Live Estimates', function () {
 			yearnV2.address
 		)
 
-		strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
+		const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
 		await strategyClaim.deployed()
 
 		const Strategy = await getContractFactory('Strategy', {
@@ -225,8 +244,6 @@ describe('Live Estimates', function () {
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
 		const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
-
-		const strategyFactory = enso.platform.strategyFactory
 
 		// update to latest `Strategy`
 		const newImplementation = await Strategy.deploy(
@@ -243,6 +260,7 @@ describe('Live Estimates', function () {
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		const strategyAdmin = await StrategyAdmin.attach(admin)
 
+		// Libraries
 		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
 		await strategyLibrary.deployed()
 		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
@@ -255,6 +273,7 @@ describe('Live Estimates', function () {
 		await controllerLibrary.deployed()
 		const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
 
+		// Controller Implementation
 		const newControllerImplementation = await waffle.deployContract(
 			accounts[0],
 			linkBytecode(StrategyController, [controllerLibraryLink]),
@@ -264,63 +283,49 @@ describe('Live Estimates', function () {
 		await newControllerImplementation.deployed()
 		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
 		await platformProxyAdmin
-			.connect(await impersonate(await platformProxyAdmin.owner()))
+			.connect(owner)
 			.upgrade(controller.address, newControllerImplementation.address)
-
-		strategies.forEach(async (s: Contract) => {
-			const mgr = await impersonate(await s.manager())
-			await strategyAdmin.connect(mgr).upgrade(s.address)
-			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
-			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
-			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
-
-      await s.connect(accounts[3]).updateRewards() // anyone calls
-		})
-
-		await updateAdapters(eDPI)
-		await updateAdapters(eYETI)
-		await updateAdapters(eYLA)
-		await updateAdapters(eNFTP)
-		await updateAdapters(eETH2X)
-
-		// Deploy new router
-		router = await deployFullRouter(
-			accounts[0],
-			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
-			controller,
-			enso.platform.strategyLibrary
-		)
-		// Whitelist
-		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 
 		// Factory Implementation
 		const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controller.address])
 		await factoryImplementation.deployed()
 		await platformProxyAdmin
-			.connect(await impersonate(await platformProxyAdmin.owner()))
+			.connect(owner)
 			.upgrade(strategyFactory.address, factoryImplementation.address)
 
-		const newTokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
-		await newTokenRegistry.deployed()
-
-		const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
-		await newTokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
-
-		await newTokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
-
+		// Update factory/controller addresses
 		await strategyFactory
-			.connect(await impersonate(await strategyFactory.owner()))
-			.updateRegistry(newTokenRegistry.address)
+			.connect(owner)
+			.updateRegistry(tokenRegistry.address)
+		await strategyFactory
+			.connect(owner)
+			.updateOracle(oracle.address)
+		await controller.connect(owner).updateAddresses()
 
+		// Update token registry
+		await tokens.registerTokens(owner, strategyFactory, uniswapV3RegistryWrapper)
 		let tradeData: TradeData = {
-			adapters: [],
+			adapters: [aaveV2.address],
 			path: [],
 			cache: '0x',
 		}
-
 		await strategyFactory
-			.connect(await impersonate(await strategyFactory.owner()))
+			.connect(owner)
 			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
+
+		for (let i = 0; i < strategies.length; i++) {
+			const s = strategies[i]
+			const mgr = await impersonate(await s.manager())
+			await strategyAdmin.connect(mgr).upgrade(s.address)
+			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
+			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
+			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
+			await updateAdapters(s)
+			await s.connect(accounts[3]).updateRewards() // anyone calls
+			// Update token registry using old token registry
+			await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, s, await s.items())
+			await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, s, await s.debt())
+		}
 	})
 
 	it('Should be initialized.', async function () {
