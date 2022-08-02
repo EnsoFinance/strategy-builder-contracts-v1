@@ -266,6 +266,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
 		// add claimables
+		tradeData.adapters.push(curveGaugeAdapter.address)
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(
@@ -275,6 +276,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				tradeData,
 				true
 			)
+		tradeData.adapters[0] = compoundAdapter.address
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
@@ -283,7 +285,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
 
 		// add rewards tokens
-		tradeData.adapters.push(uniswapV2Adapter.address)
+		tradeData.adapters[0] = uniswapV2Adapter.address
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(
@@ -515,7 +517,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			path: [],
 			cache: '0x',
 		}
-
+		tradeData.adapters[0] = uniswapV2Adapter.address
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(

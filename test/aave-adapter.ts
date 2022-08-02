@@ -126,6 +126,7 @@ describe('AaveAdapter', function () {
 			path: [],
 			cache: '0x',
 		}
+		tradeData.adapters.push(aaveV2Adapter.address)
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(
@@ -144,7 +145,7 @@ describe('AaveAdapter', function () {
 				tradeData,
 				true
 			)
-		tradeData.adapters.push(uniswapAdapter.address)
+		tradeData.adapters[0] = uniswapAdapter.address
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(

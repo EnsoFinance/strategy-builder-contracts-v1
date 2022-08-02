@@ -78,13 +78,14 @@ describe('CompoundAdapter', function () {
 			path: [],
 			cache: '0x',
 		}
+		tradeData.adapters.push(compoundAdapter.address)
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
-		tradeData.adapters.push(uniswapAdapter.address)
+		tradeData.adapters[0] = uniswapAdapter.address
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(

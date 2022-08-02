@@ -231,7 +231,7 @@ describe('Live Estimates', function () {
 			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
 			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
 
-      await s.connect(accounts[3]).updateRewards() // anyone calls
+			await s.connect(accounts[3]).updateRewards() // anyone calls
 		})
 
 		await updateAdapters(eDPI)
@@ -274,10 +274,10 @@ describe('Live Estimates', function () {
 			path: [],
 			cache: '0x',
 		}
-
+		tradeData.adapters.push(aaveV2.address)
 		await strategyFactory
 			.connect(await impersonate(await strategyFactory.owner()))
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
+			.addItemRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
 	})
 
 	it('Should be initialized.', async function () {

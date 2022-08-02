@@ -19,7 +19,8 @@ library StrategyClaim {
 
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
 
-    function claimAll(ITokenRegistry tokenRegistry, bytes[] calldata claimables) public {
+    function claimAll(address factory, bytes[] calldata claimables) public {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(factory).tokenRegistry());
         address[] memory tokens;
         StrategyTypes.TradeData memory tradeData;
         uint256 adaptersLength;
