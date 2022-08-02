@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber, Event } from 'ethers'
 import {
@@ -37,6 +38,21 @@ describe('StrategyProxyAdmin', function () {
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[]
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()

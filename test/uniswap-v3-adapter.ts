@@ -1,4 +1,5 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import hre from 'hardhat'
 const { expect } = require('chai')
 
 const { ethers, waffle } = require('hardhat')
@@ -69,6 +70,21 @@ async function exactInput(tokens: string[], amountIn: number, amountOutMinimum: 
 }
 
 describe('UniswapV3Adapter', function () {
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
+
 	before('Setup Uniswap V3 + Platform', async function () {
 		accounts = await getSigners()
 		owner = accounts[5]
@@ -85,10 +101,7 @@ describe('UniswapV3Adapter', function () {
 		uniswapRouter = await deployContract(owner, SwapRouter, [uniswapV3Factory.address, weth.address])
 
 		const UniswapV3Registry = await getContractFactory('UniswapV3Registry')
-		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(
-			uniswapV3Factory.address,
-			weth.address
-		)
+		uniswapRegistry = await UniswapV3Registry.connect(owner).deploy(uniswapV3Factory.address, weth.address)
 		await uniswapRegistry.deployed()
 
 		const UniswapOracle = await getContractFactory('UniswapV3Oracle')

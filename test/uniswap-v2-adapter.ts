@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import hre from 'hardhat'
 import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
@@ -13,6 +14,21 @@ const NUM_TOKENS = 2
 
 describe('UniswapV2Adapter', function () {
 	let tokens: Contract[], accounts: SignerWithAddress[], uniswapFactory: Contract, adapter: Contract
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()

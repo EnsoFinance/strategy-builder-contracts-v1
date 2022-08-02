@@ -1,4 +1,5 @@
 import chai from 'chai'
+import hre from 'hardhat'
 const { expect } = chai
 import { ethers } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
@@ -47,6 +48,21 @@ describe('Experimental Strategy', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
 		tokens: Tokens
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
@@ -171,7 +187,9 @@ describe('Experimental Strategy', function () {
 
 	it('Should rebalance strategy', async function () {
 		await increaseTime(5 * 60 + 1)
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const tx = await controller
+			.connect(accounts[1])
+			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

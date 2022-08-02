@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import hre from 'hardhat'
 import { solidity } from 'ethereum-waffle'
 const chai = require('chai')
 chai.use(solidity)
@@ -73,6 +74,21 @@ describe('Weird ERC20s', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup Uniswap + Factory', async function () {
 		const defaultSupply = WeiPerEther.mul(10000)

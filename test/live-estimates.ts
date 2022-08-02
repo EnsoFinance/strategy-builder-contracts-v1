@@ -1,4 +1,5 @@
 import chai from 'chai'
+import hre from 'hardhat'
 const { expect } = chai
 import { ethers, network, waffle } from 'hardhat'
 import { Contract } from 'ethers'
@@ -12,7 +13,7 @@ import {
 	deployFullRouter,
 	deployUniswapV3Adapter,
 	deployAaveV2Adapter,
-	deployAaveV2DebtAdapter
+	deployAaveV2DebtAdapter,
 } from '../lib/deploy'
 import { TradeData } from '../lib/encode'
 import { createLink, linkBytecode } from '../lib/link'
@@ -93,6 +94,21 @@ describe('Live Estimates', function () {
 		}
 	}
 
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
+
 	before('Setup Uniswap + Factory', async function () {
 		accounts = await getSigners()
 		// Impersonate owner
@@ -113,32 +129,30 @@ describe('Live Estimates', function () {
 
 		const factory = enso.platform.strategyFactory
 
-		const {
-			tokenRegistry,
-			uniswapV3Registry,
-			chainlinkRegistry,
-			curveDepositZapRegistry
-		} = enso.platform.oracles.registries
+		const { tokenRegistry, uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry } =
+			enso.platform.oracles.registries
 
 		// Deploy test UniswapV3RegistryWRapper
 		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
-		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address);
+		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address)
 		await uniswapV3RegistryWrapper.deployed()
 		// Deploy new oracle
 		const uniswapV3Factory: Contract = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, [], accounts[0])
-		oracle = (await deployOracle(
-			owner,
-			uniswapV3Factory,
-			uniswapV3Factory,
-			tokenRegistry,
-			uniswapV3RegistryWrapper,
-			chainlinkRegistry,
-			weth,
-			new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
-			(estimatorCategory: number, estimatorAddress: string) => {
-				return factory.connect(owner).addEstimatorToRegistry(estimatorCategory, estimatorAddress)
-			}
-		))[0]
+		oracle = (
+			await deployOracle(
+				owner,
+				uniswapV3Factory,
+				uniswapV3Factory,
+				tokenRegistry,
+				uniswapV3RegistryWrapper,
+				chainlinkRegistry,
+				weth,
+				new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
+				(estimatorCategory: number, estimatorAddress: string) => {
+					return factory.connect(owner).addEstimatorToRegistry(estimatorCategory, estimatorAddress)
+				}
+			)
+		)[0]
 		await factory.connect(owner).updateOracle(oracle.address)
 		await controller.connect(owner).updateAddresses()
 		// Deploy new router
@@ -274,7 +288,7 @@ describe('Live Estimates', function () {
 			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
 			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
 
-      await s.connect(accounts[3]).updateRewards() // anyone calls
+			await s.connect(accounts[3]).updateRewards() // anyone calls
 		})
 
 		await updateAdapters(eDPI)

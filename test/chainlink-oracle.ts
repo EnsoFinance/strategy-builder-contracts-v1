@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -11,6 +12,21 @@ const { AddressZero, WeiPerEther } = constants
 let accounts: SignerWithAddress[], owner: SignerWithAddress, oracle: Contract, registry: Contract, tokens: Tokens
 
 describe('ChainlinkOracle', function () {
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
+
 	before('Setup Oracle', async function () {
 		accounts = await getSigners()
 		owner = accounts[0]

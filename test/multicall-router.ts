@@ -1,4 +1,5 @@
 // const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
+import hre from 'hardhat'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber } from 'ethers'
@@ -58,6 +59,21 @@ describe('MulticallRouter', function () {
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()

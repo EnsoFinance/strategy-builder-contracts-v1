@@ -1,4 +1,5 @@
 import chai from 'chai'
+import hre from 'hardhat'
 const { expect } = chai
 import { ethers, network, waffle } from 'hardhat'
 import { Contract } from 'ethers'
@@ -27,6 +28,21 @@ describe('Live Upgrades', function () {
 		strategyFactory: Contract,
 		strategyClaim: Contract,
 		eDPI: Contract
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup contracts', async function () {
 		accounts = await getSigners()

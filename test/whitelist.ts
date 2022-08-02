@@ -1,4 +1,5 @@
 const { expect } = require('chai')
+import hre from 'hardhat'
 const { ethers } = require('hardhat')
 const { getContractFactory, getSigners } = ethers
 import { Contract } from 'ethers'
@@ -6,6 +7,21 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 
 describe('Whitelist', function () {
 	let accounts: SignerWithAddress[], whitelist: Contract
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Deploy Whitelist', async function () {
 		accounts = await getSigners()

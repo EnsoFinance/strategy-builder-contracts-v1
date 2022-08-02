@@ -1,4 +1,5 @@
 import chai from 'chai'
+import hre from 'hardhat'
 const { expect } = chai
 import { ethers } from 'hardhat'
 import { BigNumber, Event } from 'ethers'
@@ -18,6 +19,21 @@ chai.use(solidity)
 
 describe('TokenRegistry', function () {
 	let platform: Platform
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup Uniswap + Factory', async function () {
 		this.accounts = await getSigners()

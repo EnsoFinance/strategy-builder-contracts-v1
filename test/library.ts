@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import hre from 'hardhat'
 import { ethers } from 'hardhat'
 import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployLoopRouter } from '../lib/deploy'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
@@ -23,6 +24,21 @@ describe('ControllerLibrary', function () {
 		adapter: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
+
+	before('Resetting network', async function () {
+		const _config: any = hre.network.config
+		await hre.network.provider.request({
+			method: 'hardhat_reset',
+			params: [
+				{
+					forking: {
+						jsonRpcUrl: _config.forking.url,
+						blockNuber: _config.forking.blockNumber,
+					},
+				},
+			],
+		})
+	})
 
 	before('Setup LibraryWrapper', async function () {
 		accounts = await getSigners()
