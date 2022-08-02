@@ -3,66 +3,85 @@
 ### Must redeploy
 
 ```
-contracts/Strategy.sol                             | 735 ++++++------------
-contracts/StrategyController.sol                   | 520 ++++---------
-contracts/StrategyProxyFactory.sol                 | 142 +++-
-contracts/adapters/borrow/AaveV2DebtAdapter.sol    |  37 +-
-contracts/adapters/borrow/Leverage2XAdapter.sol    |  11 +-
-contracts/adapters/exchanges/CurveAdapter.sol      |   7 +-
-contracts/adapters/exchanges/UniswapV3Adapter.sol  |   7 +-
-contracts/adapters/lending/AaveV2Adapter.sol       |  63 +-
-contracts/adapters/lending/CompoundAdapter.sol     |  62 +-
-contracts/adapters/liquidity/CurveLPAdapter.sol    |   8 +-
-contracts/adapters/vaults/CurveGaugeAdapter.sol    |  65 +-
-contracts/adapters/vaults/YEarnV2Adapter.sol       |  51 +-
-.../recovery/StrategyControllerPaused.sol          |  16 +
-contracts/libraries/ControllerLibrary.sol          | 520 +++++++++++++
-contracts/libraries/StrategyClaim.sol              | 177 +++++
-contracts/libraries/StrategyLibrary.sol            |  90 +--
-contracts/oracles/EnsoOracle.sol                   |   4 +
-.../oracles/estimators/CurveGaugeEstimator.sol     |  14 +-
-contracts/oracles/estimators/CurveLPEstimator.sol  |  47 +-
-.../oracles/estimators/EmergencyEstimator.sol      |  41 +-
-contracts/oracles/protocols/ChainlinkOracle.sol    |   5 +-
-contracts/oracles/registries/TokenRegistry.sol     |  24 +-
-contracts/routers/FullRouter.sol                   | 510 +++++++-----
-contracts/routers/LoopRouter.sol                   |  83 +-
-contracts/routers/MulticallRouter.sol              |  15 +-
-contracts/routers/StrategyRouter.sol               |  18 +-
+ contracts/Strategy.sol                             | 767 ++++++------------
+ contracts/StrategyController.sol                   | 574 +++++---------
+ contracts/StrategyProxyFactory.sol                 | 198 +++--
+ contracts/adapters/borrow/AaveV2DebtAdapter.sol    |  54 +-
+ contracts/adapters/borrow/Leverage2XAdapter.sol    |  31 +-
+ contracts/adapters/exchanges/BalancerAdapter.sol   |   8 +-
+ contracts/adapters/exchanges/CurveAdapter.sol      |  10 +-
+ contracts/adapters/exchanges/KyberSwapAdapter.sol  |   3 +-
+ contracts/adapters/exchanges/SynthetixAdapter.sol  |  17 +-
+ contracts/adapters/exchanges/UniswapV3Adapter.sol  |  11 +-
+ contracts/adapters/lending/AaveV2Adapter.sol       |  67 +-
+ contracts/adapters/lending/CompoundAdapter.sol     |  66 +-
+ contracts/adapters/liquidity/CurveLPAdapter.sol    |  26 +-
+ .../adapters/strategy/MetaStrategyAdapter.sol      |  10 +-
+ contracts/adapters/vaults/CurveGaugeAdapter.sol    |  68 +-
+ contracts/adapters/vaults/YEarnV2Adapter.sol       |  54 +-
+ .../recovery/StrategyControllerPaused.sol          |  34 +-
+ contracts/libraries/ControllerLibrary.sol          | 536 +++++++++++++
+ contracts/libraries/StrategyClaim.sol              | 184 +++++
+ contracts/libraries/StrategyLibrary.sol            |  90 +--
+ contracts/oracles/EnsoOracle.sol                   |  20 +-
+ .../oracles/estimators/CurveGaugeEstimator.sol     |  14 +-
+ contracts/oracles/estimators/CurveLPEstimator.sol  |  58 +-
+ .../oracles/estimators/EmergencyEstimator.sol      |  54 +-
+ contracts/oracles/protocols/ChainlinkOracle.sol    |  11 +-
+ contracts/oracles/protocols/UniswapV3Oracle.sol    |   4 +-
+ contracts/oracles/registries/ChainlinkRegistry.sol |   7 +-
+ contracts/oracles/registries/TokenRegistry.sol     |  24 +-
+ contracts/oracles/registries/UniswapV3Registry.sol |  69 +-
+ contracts/routers/FullRouter.sol                   | 603 +++++++++------
+ contracts/routers/LoopRouter.sol                   |  89 ++-
+ contracts/routers/MulticallRouter.sol              |  21 +-
+ contracts/routers/StrategyRouter.sol               |  40 +-
 ```
-
 
 -------------------------------------------------------------------------------
 
 ### Interface updates for Frontend
 
 ```
-
 Strategy
-
-+    function updateTimelock(bytes4 functionSelector, uint256 delay) external;
-+    function finalizeTimelock() external;
-
-+    function updateTradeData(address item, TradeData memory data) external;
-+    function finalizeUpdateTradeData() external {
-
-+    function getAllRewardTokens() external view returns(address[] memory rewardTokens)
 +    function claimAll() external;
-+    function factory() external view returns (address);
++    function updateRebalanceThreshold(uint16 threshold) external;
+-    function updateTokenValue(uint256 total, uint256 supply) external;
++    function updateTradeData(address item, TradeData memory data) external;
++    function finalizeTradeData() external;
+-    function updateRebalanceThreshold(uint16 threshold) external;
++    function updateClaimables() external;
+-    function updateTradeData(address item, TradeData memory data) external;
++    function updateAddresses() external;
++    function updateRewards() external;
 -    function performanceFee() external view returns (uint256);
 -    function getPerformanceFeeOwed(address account) external view returns (uint256);
 -    function controller() external view returns (address);
 -    function oracle() external view returns (IOracle);
 -    function whitelist() external view returns (IWhitelist);
--    function supportsSynths() external view returns (bool);
++    function factory() external view returns (address);
++    function getAllRewardTokens() external view returns(address[] memory rewardTokens);
++    function managementFee() external view returns (uint256);
++    function updateManagementFee(uint16 fee) external;
++    function updateTokenValue(uint256 total, uint256 supply) external;
++    function withdrawStreamingFee() external;
++    function version() external view returns (string memory);
 
 StrategyController
 +    function claimAll(
 +        IStrategy strategy
 +    ) external;
-
++    function repositionSynths(IStrategy strategy, address token) external;
++    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external;
+-    function verifyStructure(address strategy, StrategyItem[] memory newItems)
+-        external
+-        view
+-        returns (bool);
++    function updateAddresses() external;
++    function verifyStructure(address strategy, StrategyItem[] memory newItems) external view;
 +    function weth() external view returns (address);
 +    function pool() external view returns (address);
++    function rebalanceThresholdScalar() external view returns(uint256);
 
 StrategyProxyFactory
      function createStrategy(
@@ -75,6 +94,7 @@ StrategyProxyFactory
          address router,
          bytes memory data
      ) external payable returns (address);
+ 
 +    function createStrategyFor(
 +        address manager,
 +        string memory name,
@@ -85,6 +105,8 @@ StrategyProxyFactory
 +        bytes memory data,
 +        bytes memory signature
 +    ) external payable returns (address);
++    function tokenRegistry() external view returns (address);
++    function streamingFee() external view returns (uint256);
 
 TokenRegistry
 +    struct ItemDetails {
@@ -93,17 +115,16 @@ TokenRegistry
 +    }
 +    function itemDetails(address item) external view returns(ItemDetails memory);
 +    function isClaimable(address item) external view returns(bool);
-+    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable) external;
+ 
++    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable_) external;
 
 EmergencyEstimator
-+    function updateTimelock(bytes4 functionSelector, uint256 delay) external;
-+    function finalizeTimelock() external;
-+    function estimateItem(uint256 balance, address token) public view returns (int256);
-+    function updateEstimate(address token, int256 amount) external;
-+    function finalizeSetEstimate() external;
++    event EstimateSet(address token, int256 amount, bool finalized);
 ```
 
 -------------------------------------------------------------------------------
+
+// FIXME pending PR 230
 
 commit dd7dd46a29cc39041213943e92f0df286485bd36 (HEAD -> develop, origin/develop, origin/HEAD)
 Author: George Carder <georgercarder@gmail.com>
