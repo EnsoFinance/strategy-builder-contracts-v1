@@ -78,7 +78,7 @@ describe('UniswapV3Adapter', function () {
 				{
 					forking: {
 						jsonRpcUrl: _config.forking.url,
-						blockNuber: _config.forking.blockNumber,
+						blockNumber: _config.forking.blockNumber,
 					},
 				},
 			],

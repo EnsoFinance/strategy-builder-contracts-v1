@@ -70,13 +70,14 @@ describe('AaveAdapter', function () {
 
 	before('Setup Uniswap + Factory', async function () {
 		const _config: any = hre.network.config
+    console.log(_config.forking)
 		await hre.network.provider.request({
 			method: 'hardhat_reset',
 			params: [
 				{
 					forking: {
 						jsonRpcUrl: _config.forking.url,
-						blockNuber: _config.forking.blockNumber,
+						blockNumber: _config.forking.blockNumber,
 					},
 				},
 			],
