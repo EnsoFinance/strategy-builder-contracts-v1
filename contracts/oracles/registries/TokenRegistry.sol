@@ -38,7 +38,10 @@ contract TokenRegistry is ITokenRegistry, Ownable {
 
     function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable_) external override onlyOwner {
         ItemDetails storage id = _itemDetails[token];
-        id.isClaimable = isClaimable_;
+        if (isClaimable_) {
+            id.isClaimable = isClaimable_;
+            require(tradeData.adapters.length > 0, "claimable must have rewardsAdapter.");
+        }
         id.tradeData = tradeData;
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);    
     }
