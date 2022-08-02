@@ -15,7 +15,6 @@ import {
 	deployAaveV2Adapter,
 	deployAaveV2DebtAdapter,
 } from '../lib/deploy'
-import { TradeData } from '../lib/encode'
 import { createLink, linkBytecode } from '../lib/link'
 import { DIVISOR, MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -326,15 +325,9 @@ describe('Live Estimates', function () {
 		// Whitelist
 		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 
-		let tradeData: TradeData = {
-			adapters: [],
-			path: [],
-			cache: '0x',
-		}
-
 		await strategyFactory
 			.connect(await impersonate(await strategyFactory.owner()))
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
+			.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH)
 	})
 
 	it('Should be initialized.', async function () {

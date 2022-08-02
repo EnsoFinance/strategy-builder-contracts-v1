@@ -326,9 +326,9 @@ describe('MetaStrategyAdapter', function () {
 			metaMetaStrategy.address,
 		])
 		expect(estimates.length).to.equal(3)
-		estimates.forEach((estimate: BigNumber) => {
-			expect(estimate.gt(0)).to.equal(true)
-		})
+		for (var i = 0; i < estimates.length; ++i) {
+			await expect(estimates[i].gt(0)).to.equal(true)
+		}
 	})
 
 	it('Should fail to swap to weth with MetaStrategyAdapter: no strategy token', async function () {

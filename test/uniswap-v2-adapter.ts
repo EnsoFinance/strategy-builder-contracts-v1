@@ -33,9 +33,9 @@ describe('UniswapV2Adapter', function () {
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, tokens[0])
-		tokens.forEach(async (token) => {
-			await token.approve(adapter.address, constants.MaxUint256)
-		})
+		for (var i = 0; i < tokens.length; ++i) {
+			await tokens[i].approve(adapter.address, constants.MaxUint256)
+		}
 	})
 
 	it('Should fail to swap: tokens cannot match', async function () {
