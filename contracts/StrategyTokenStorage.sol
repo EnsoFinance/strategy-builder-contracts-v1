@@ -14,7 +14,7 @@ contract StrategyTokenStorage is StrategyTypes {
     string internal _symbol;
     string internal _version;
 
-    uint8 internal _locked;
+    LockType internal _locked;
     uint224 internal _streamingFeeRate;
     uint16 internal _performanceFee;
     uint16 internal _rebalanceThreshold;

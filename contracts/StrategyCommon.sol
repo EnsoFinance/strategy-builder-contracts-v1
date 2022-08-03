@@ -31,15 +31,16 @@ contract StrategyCommon is StrategyTokenStorage {
     /**
      * @notice Sets Reentrancy guard
      */
-    function _setLock() internal {
-        if (_locked == 1) revert("No Reentrancy");
-        _locked = 1;
+    function _setLock(LockType lockType) internal {
+        if (_locked > LockType.UNLOCKED) revert("No Reentrancy");
+        if (lockType < LockType.STANDARD) revert("Invalid lock type");
+        _locked = lockType;
     }
 
     /**
      * @notice Removes reentrancy guard.
      */
     function _removeLock() internal {
-        _locked = 2;
+        _locked = LockType.UNLOCKED;
     }
 }

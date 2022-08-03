@@ -22,6 +22,24 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
           5 minutes);
     }
 
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        uint256 balance = IERC20(token).balanceOf(address(strategy));
+        return estimateItem(strategy, token, balance);
+    }
+
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
+        if (address(strategy) != address(0))
+            require(strategy.lockType() != LockType.DEPOSIT, "Cannot deposit into blocked token");
+        return int256(balance).mul(estimates[token]) / int256(10**uint256(IERC20NonStandard(token).decimals()));
+    }
+
     function updateTimelock(bytes32 identifier, uint256 delay) external onlyOwner {
         _startTimelock(
           keccak256(abi.encode(this.updateTimelock.selector)), // identifier
@@ -41,10 +59,6 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         emit UpdateTimelock(delay, true);
     }
 
-    function estimateItem(uint256 balance, address token) external view override returns (int256) {
-        return _estimateItem(balance, token);
-    }
-
     function updateEstimate(address token, int256 amount) external onlyOwner {
         _startTimelock(
           keccak256(abi.encode(this.updateEstimate.selector)), // identifier
@@ -58,15 +72,6 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
         _resetTimelock(keccak256(abi.encode(this.updateEstimate.selector)));
         estimates[token] = amount;
         emit EstimateSet(token, amount, true);
-    }
-
-    function estimateItem(address user, address token) external view override returns (int256) {
-        uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token);
-    }
-
-    function _estimateItem(uint256 balance, address token) private view returns (int256) {
-        return int256(balance).mul(estimates[token]) / int256(10**uint256(IERC20NonStandard(token).decimals()));
     }
 
     function _timelockData(bytes32 identifier) internal override returns(TimelockData storage) {

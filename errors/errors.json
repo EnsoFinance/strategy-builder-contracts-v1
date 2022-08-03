@@ -160,6 +160,10 @@
     "contractName": "ICurveStableSwap.sol"
   },
   {
+    "contractId": "7990c2f2c469",
+    "contractName": "IUniswapV3Registry_Deprecated.sol"
+  },
+  {
     "contractId": "91e8076401bf",
     "contractName": "IBaseAdapter.sol"
   },
@@ -573,6 +577,10 @@
   {
     "contractId": "48f342a7366c",
     "contractName": "UniswapNaiveOracle.sol"
+  },
+  {
+    "contractId": "2ffa580db652",
+    "contractName": "UniswapV3RegistryWrapper.sol"
   },
   {
     "contractId": "f354bde5ee5a",
