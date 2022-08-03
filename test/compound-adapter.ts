@@ -80,10 +80,22 @@ describe('CompoundAdapter', function () {
 		}
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, compoundAdapter.address)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.COMPOUND,
+				tokens.cUSDT,
+				tradeData,
+				compoundAdapter.address
+			)
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, compoundAdapter.address)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.COMPOUND,
+				tokens.cDAI,
+				tradeData,
+				compoundAdapter.address
+			)
 		tradeData.adapters[0] = uniswapAdapter.address
 		await strategyFactory
 			.connect(accounts[0])
@@ -92,7 +104,7 @@ describe('CompoundAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				comp.address,
 				tradeData,
-			  AddressZero	
+				AddressZero
 			)
 	})
 

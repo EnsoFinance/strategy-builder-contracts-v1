@@ -133,7 +133,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.AAVE_V2,
 				collateralToken,
 				tradeData,
-			  aaveV2Adapter.address	
+				aaveV2Adapter.address
 			)
 		await strategyFactory
 			.connect(accounts[0])
@@ -142,7 +142,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.AAVE_V2,
 				collateralToken2,
 				tradeData,
-			  aaveV2Adapter.address	
+				aaveV2Adapter.address
 			)
 		tradeData.adapters[0] = uniswapAdapter.address
 		await strategyFactory

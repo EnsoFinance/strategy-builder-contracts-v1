@@ -273,14 +273,26 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.CURVE_GAUGE,
 				tokens.crvLINKGauge,
 				tradeData,
-			  curveGaugeAdapter.address	
+				curveGaugeAdapter.address
 			)
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, compoundAdapter.address)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.COMPOUND,
+				tokens.cUSDT,
+				tradeData,
+				compoundAdapter.address
+			)
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, compoundAdapter.address)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.COMPOUND,
+				tokens.cDAI,
+				tradeData,
+				compoundAdapter.address
+			)
 
 		// add rewards tokens
 		tradeData.adapters[0] = uniswapV2Adapter.address
@@ -291,7 +303,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				comp.address,
 				tradeData,
-        AddressZero
+				AddressZero
 			)
 		tradeData.adapters = [uniswapV2Adapter.address]
 		await strategyFactory
@@ -301,7 +313,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				rewardsToken.address,
 				tradeData,
-			  AddressZero	
+				AddressZero
 			)
 	})
 
@@ -523,7 +535,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				rewardsToken.address,
 				tradeData,
-        AddressZero				
+				AddressZero
 			)
 
 		const oldItems = await strategy.connect(accounts[1]).items()
@@ -654,6 +666,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			const balanceBefore = await rewardsToken.balanceOf(strategy.address)
 			balancesBefore.push(balanceBefore)
 		}
+		await increaseTime(3 * 60) // 3 hrs
 		const tx = await strategy.connect(accounts[1]).claimAll()
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())

@@ -336,7 +336,7 @@ export class Tokens {
 					ESTIMATOR_CATEGORY.BLOCKED,
 					VIRTUAL_ITEM,
 					{ adapters: [synthetixAdapter.address], path: [], cache: '0x' },
-          AddressZero
+					AddressZero
 				)
 		}
 		if (uniswapV3Registry) {

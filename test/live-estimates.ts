@@ -142,19 +142,21 @@ describe('Live Estimates', function () {
 		await tokenRegistry.deployed()
 
 		// Deploy new oracle
-		oracle = (await deployOracle(
-			owner,
-			strategyFactory.address,
-			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-			uniswapV3RegistryWrapper.address,
-			chainlinkRegistry.address,
-			weth.address,
-			tokens.sUSD,
-			(estimatorCategory: number, estimatorAddress: string) => {
-				return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-			}
-		))[0]
+		oracle = (
+			await deployOracle(
+				owner,
+				strategyFactory.address,
+				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+				uniswapV3RegistryWrapper.address,
+				chainlinkRegistry.address,
+				weth.address,
+				tokens.sUSD,
+				(estimatorCategory: number, estimatorAddress: string) => {
+					return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+				}
+			)
+		)[0]
 
 		// Transfer token registry
 		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
@@ -285,12 +287,8 @@ describe('Live Estimates', function () {
 		await platformProxyAdmin.connect(owner).upgrade(strategyFactory.address, factoryImplementation.address)
 
 		// Update factory/controller addresses (NOTE: must update oracle before registry)
-		await strategyFactory
-			.connect(owner)
-			.updateOracle(oracle.address)
-		await strategyFactory
-			.connect(owner)
-			.updateRegistry(tokenRegistry.address)
+		await strategyFactory.connect(owner).updateOracle(oracle.address)
+		await strategyFactory.connect(owner).updateRegistry(tokenRegistry.address)
 		await controller.connect(owner).updateAddresses()
 
 		// Update token registry
@@ -302,7 +300,13 @@ describe('Live Estimates', function () {
 		}
 		await strategyFactory
 			.connect(owner)
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, aaveV2.address)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.AAVE_V2,
+				tokens.aWETH,
+				tradeData,
+				aaveV2.address
+			)
 
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]

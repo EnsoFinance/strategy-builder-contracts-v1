@@ -279,10 +279,7 @@ export async function deployOracle(
 	if (uniswapOracleFactory == uniswapV3Factory) {
 		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry, weth])
 	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [
-			uniswapOracleFactory,
-			weth,
-		])
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapOracleFactory, weth])
 	}
 	await uniswapOracle.deployed()
 
@@ -298,16 +295,9 @@ export async function deployOracle(
 	await uniswapOracle.deployed()
 	*/
 
-	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [
-		chainlinkRegistry,
-		weth,
-	])
+	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [chainlinkRegistry, weth])
 	await chainlinkOracle.deployed()
-	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [
-		strategyProxyFactory,
-		weth,
-		susd,
-	])
+	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [strategyProxyFactory, weth, susd])
 	await ensoOracle.deployed()
 
 	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
