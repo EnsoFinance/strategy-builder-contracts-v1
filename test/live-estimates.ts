@@ -304,17 +304,6 @@ describe('Live Estimates', function () {
 			.connect(owner)
 			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
 
-		const stkAAVE = new Contract('0x4da27a545c0c5B758a6BA100e3a049001de870f5', ERC20.abi, accounts[0])
-		tradeData.adapters[0] = uniswapV2.address
-		await strategyFactory
-			.connect(owner)
-			.addItemDetailedToRegistry(
-				ITEM_CATEGORY.BASIC,
-				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
-				stkAAVE.address,
-				tradeData,
-				false
-			)
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]
 			const mgr = await impersonate(await s.manager())
