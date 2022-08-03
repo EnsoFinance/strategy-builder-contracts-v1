@@ -353,9 +353,9 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
         {
-            bytes memory creationCode = abi.encodePacked(
-              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0)));
-            address predictedProxyAddress = Create2.computeAddress(salt_, keccak256(abi.encodePacked(creationCode)));
+            bytes32 creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0))));
+            address predictedProxyAddress = Create2.computeAddress(salt_, creationCodeHash);
             uint256 codeSize;
             assembly {
                 codeSize := extcodesize(predictedProxyAddress)
