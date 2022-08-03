@@ -14,6 +14,7 @@ import "./helpers/EIP712.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
+import "./interfaces/IOracle.sol";
 import "./interfaces/registries/ITokenRegistry.sol";
 
 /**
@@ -111,6 +112,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _pool = pool_;
         _streamingFee = uint256(1001001001001001); // 0.1% inflation
         _version = "1";
+        IOracle(_oracle).updateAddresses();
         emit Update(implementation_, "1");
         emit NewOracle(oracle_);
         emit NewWhitelist(whitelist_);
@@ -175,7 +177,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function updateRegistry(address newRegistry) external onlyOwner {
         _noZeroAddress(newRegistry);
         _registry = newRegistry;
-        emit NewOracle(newRegistry);
+        IOracle(_oracle).updateAddresses();
+        emit NewRegistry(newRegistry);
     }
 
     function updateWhitelist(address newWhitelist) external onlyOwner {
@@ -185,7 +188,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     function updatePool(address newPool) external onlyOwner {
-        _noZeroAddress(newPool); 
+        _noZeroAddress(newPool);
         _pool = newPool;
         emit NewPool(newPool);
     }
@@ -257,7 +260,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * Can only be called by the current owner.
      */
     function transferOwnership(address newOwner) external onlyOwner {
-        _noZeroAddress(newOwner); 
+        _noZeroAddress(newOwner);
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }

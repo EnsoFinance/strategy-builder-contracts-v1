@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IOracle.sol";
+import "../interfaces/IStrategyProxyFactory.sol";
 import "../helpers/StrategyTypes.sol";
 
 contract EnsoOracle is IOracle, StrategyTypes {
@@ -14,16 +15,17 @@ contract EnsoOracle is IOracle, StrategyTypes {
 
     address public immutable override weth;
     address public immutable override susd;
-    ITokenRegistry public immutable override tokenRegistry;
+    ITokenRegistry public override tokenRegistry;
+    IStrategyProxyFactory internal immutable factory;
 
     event NewPrice(address token, uint256 price);
 
     constructor(
-        address tokenRegistry_,
+        address factory_,
         address weth_,
         address susd_
     ) public {
-        tokenRegistry = ITokenRegistry(tokenRegistry_);
+        factory = IStrategyProxyFactory(factory_);
         weth = weth_;
         susd = susd_;
     }
@@ -106,5 +108,9 @@ contract EnsoOracle is IOracle, StrategyTypes {
             totals[i] = total;
         }
         return totals;
+    }
+
+    function updateAddresses() public override {
+        tokenRegistry = ITokenRegistry(factory.tokenRegistry());
     }
 }

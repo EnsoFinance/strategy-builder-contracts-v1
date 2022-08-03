@@ -266,47 +266,47 @@ export async function deploySushiswap(owner: SignerWithAddress, tokens: Contract
 
 export async function deployOracle(
 	owner: SignerWithAddress,
-	uniswapOracleFactory: Contract,
-	uniswapV3Factory: Contract,
-	tokenRegistry: Contract,
-	uniswapV3Registry: Contract,
-	chainlinkRegistry: Contract,
-	weth: Contract,
-	susd: Contract,
+	strategyProxyFactory: string,
+	uniswapOracleFactory: string,
+	uniswapV3Factory: string,
+	uniswapV3Registry: string,
+	chainlinkRegistry: string,
+	weth: string,
+	susd: string,
 	registerEstimator: (estimatorCategory: number, estimatorAddress: string) => void
 ): Promise<Contract[]> {
 	let uniswapOracle
-	if (uniswapOracleFactory.address == uniswapV3Factory.address) {
-		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
+	if (uniswapOracleFactory == uniswapV3Factory) {
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry, weth])
 	} else {
 		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [
-			uniswapOracleFactory.address,
-			weth.address,
+			uniswapOracleFactory,
+			weth,
 		])
 	}
 	await uniswapOracle.deployed()
 
 	/* TODO switch to this approach once we setup registry script
 	let uniswapOracle: Contract, uniswapV3Registry: Contract;
-	if (uniswapFactory.address === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
-		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address])
+	if (uniswapFactory === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
+		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory, weth])
 		await uniswapV3Registry.deployed()
-		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry, weth])
 	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory.address, weth.address])
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory, weth])
 	}
 	await uniswapOracle.deployed()
 	*/
 
 	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [
-		chainlinkRegistry.address,
-		weth.address,
+		chainlinkRegistry,
+		weth,
 	])
 	await chainlinkOracle.deployed()
 	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [
-		tokenRegistry.address,
-		weth.address,
-		susd.address,
+		strategyProxyFactory,
+		weth,
+		susd,
 	])
 	await ensoOracle.deployed()
 
@@ -360,7 +360,7 @@ export async function deployPlatform(
 	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length/2-1)
 	console.log('strategy size:', Strategy.bytecode.length/2-1)
 
-	// Setup Oracle infrastructure - registries, estimators, protocol oracles
+	// Setup Registries
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
 	await tokenRegistry.deployed()
 	const curveDepositZapRegistry = await waffle.deployContract(owner, CurveDepositZapRegistry, [])
@@ -372,26 +372,6 @@ export async function deployPlatform(
 	await uniswapV3Registry.deployed()
 	const chainlinkRegistry = await waffle.deployContract(owner, ChainlinkRegistry, [])
 	await chainlinkRegistry.deployed()
-
-	const [ensoOracle, uniswapOracle, chainlinkOracle] = await deployOracle(
-		owner,
-		uniswapOracleFactory,
-		uniswapV3Factory,
-		tokenRegistry,
-		uniswapV3Registry,
-		chainlinkRegistry,
-		weth,
-		susd || new Contract(AddressZero, [], owner),
-		(estimatorCategory: number, estimatorAddress: string) => {
-			return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-		}
-	)
-
-	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
-	if (susd)
-		await tokenRegistry
-			.connect(owner)
-			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
 
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
@@ -430,6 +410,27 @@ export async function deployPlatform(
 		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
 	])
 	await strategyImplementation.deployed()
+
+	// Setup Oracle
+	const [ensoOracle, uniswapOracle, chainlinkOracle] = await deployOracle(
+		owner,
+		factoryAddress,
+		uniswapOracleFactory.address,
+		uniswapV3Factory.address,
+		uniswapV3Registry.address,
+		chainlinkRegistry.address,
+		weth.address,
+		susd?.address || AddressZero,
+		(estimatorCategory: number, estimatorAddress: string) => {
+			return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+		}
+	)
+
+	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
+	if (susd)
+		await tokenRegistry
+			.connect(owner)
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
 
 	await platformProxyAdmin
 		.connect(owner)
