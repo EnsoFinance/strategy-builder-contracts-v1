@@ -123,7 +123,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
@@ -132,7 +132,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
@@ -141,7 +141,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
@@ -150,7 +150,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
@@ -159,7 +159,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
@@ -168,7 +168,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
@@ -177,7 +177,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 60,
+						runs: 40,
 					},
 				},
 			},
