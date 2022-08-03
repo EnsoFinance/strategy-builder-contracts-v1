@@ -171,7 +171,9 @@ describe('Experimental Strategy', function () {
 
 	it('Should rebalance strategy', async function () {
 		await increaseTime(5 * 60 + 1)
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
+		const tx = await controller
+			.connect(accounts[1])
+			.rebalance(strategy.address, router.address, '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

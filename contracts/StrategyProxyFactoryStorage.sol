@@ -11,7 +11,7 @@ contract StrategyProxyFactoryStorage {
     address internal _registry;
     address internal _implementation;
     string internal _version;
-    mapping(bytes32 => bool) internal _proxyExists;
+    mapping(bytes32 => bool) internal DEPRECATED_proxyExists;
 
     uint256 _streamingFee;
 

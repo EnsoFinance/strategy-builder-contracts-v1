@@ -12,7 +12,7 @@ import {
 	deployFullRouter,
 	deployUniswapV3Adapter,
 	deployAaveV2Adapter,
-	deployAaveV2DebtAdapter
+	deployAaveV2DebtAdapter,
 } from '../lib/deploy'
 import { TradeData } from '../lib/encode'
 import { createLink, linkBytecode } from '../lib/link'
@@ -87,22 +87,27 @@ describe('Live Estimates', function () {
 		}
 	}
 
-	async function updateTokenRegistry(strategyFactory: Contract, oldTokenRegistry: Contract, strategy: Contract, tokens: string[]) {
-			let itemCategory, estimatorCategory;
+	async function updateTokenRegistry(
+		strategyFactory: Contract,
+		oldTokenRegistry: Contract,
+		strategy: Contract,
+		tokens: string[]
+	) {
+		let itemCategory, estimatorCategory
 		for (let i = 0; i < tokens.length; i++) {
 			// Set token
-			estimatorCategory = await oldTokenRegistry.estimatorCategories(tokens[i]);
+			estimatorCategory = await oldTokenRegistry.estimatorCategories(tokens[i])
 			if (estimatorCategory.gt(0)) {
-				itemCategory = await oldTokenRegistry.itemCategories(tokens[i]);
+				itemCategory = await oldTokenRegistry.itemCategories(tokens[i])
 				await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, tokens[i])
 			}
 			// Set path
 			const tradeData = await strategy.getTradeData(tokens[i])
 			let path = [...tradeData.path]
 			for (let j = 0; j < path.length; j++) {
-				estimatorCategory = await oldTokenRegistry.estimatorCategories(path[j]);
+				estimatorCategory = await oldTokenRegistry.estimatorCategories(path[j])
 				if (estimatorCategory.gt(0)) {
-					itemCategory = await oldTokenRegistry.itemCategories(path[j]);
+					itemCategory = await oldTokenRegistry.itemCategories(path[j])
 					await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, path[j])
 				}
 			}
@@ -124,15 +129,11 @@ describe('Live Estimates', function () {
 
 		controller = enso.platform.controller
 		const strategyFactory = enso.platform.strategyFactory
-		const {
-			uniswapV3Registry,
-			chainlinkRegistry,
-			curveDepositZapRegistry
-		} = enso.platform.oracles.registries
+		const { uniswapV3Registry, chainlinkRegistry, curveDepositZapRegistry } = enso.platform.oracles.registries
 
 		// Deploy test UniswapV3RegistryWrapper
 		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
-		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address);
+		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address)
 		await uniswapV3RegistryWrapper.deployed()
 		await uniswapV3Registry.connect(owner).transferOwnership(uniswapV3RegistryWrapper.address)
 
@@ -141,19 +142,21 @@ describe('Live Estimates', function () {
 		await tokenRegistry.deployed()
 
 		// Deploy new oracle
-		oracle = (await deployOracle(
-			owner,
-			strategyFactory.address,
-			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-			uniswapV3RegistryWrapper.address,
-			chainlinkRegistry.address,
-			weth.address,
-			tokens.sUSD,
-			(estimatorCategory: number, estimatorAddress: string) => {
-				return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-			}
-		))[0]
+		oracle = (
+			await deployOracle(
+				owner,
+				strategyFactory.address,
+				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+				uniswapV3RegistryWrapper.address,
+				chainlinkRegistry.address,
+				weth.address,
+				tokens.sUSD,
+				(estimatorCategory: number, estimatorAddress: string) => {
+					return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+				}
+			)
+		)[0]
 
 		// Transfer token registry
 		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
@@ -189,12 +192,7 @@ describe('Live Estimates', function () {
 		// Deploy and whitelist new adapters
 		const uniswapV3Router = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], owner)
 		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], owner)
-		uniswapV3 = await deployUniswapV3Adapter(
-			owner,
-			uniswapV3RegistryWrapper,
-			uniswapV3Router,
-			weth
-		)
+		uniswapV3 = await deployUniswapV3Adapter(owner, uniswapV3RegistryWrapper, uniswapV3Router, weth)
 		await enso.platform.administration.whitelist.connect(owner).approve(uniswapV3.address)
 		aaveV2 = await deployAaveV2Adapter(
 			accounts[0],
@@ -280,24 +278,16 @@ describe('Live Estimates', function () {
 
 		await newControllerImplementation.deployed()
 		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
-		await platformProxyAdmin
-			.connect(owner)
-			.upgrade(controller.address, newControllerImplementation.address)
+		await platformProxyAdmin.connect(owner).upgrade(controller.address, newControllerImplementation.address)
 
 		// Factory Implementation
 		const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controller.address])
 		await factoryImplementation.deployed()
-		await platformProxyAdmin
-			.connect(owner)
-			.upgrade(strategyFactory.address, factoryImplementation.address)
+		await platformProxyAdmin.connect(owner).upgrade(strategyFactory.address, factoryImplementation.address)
 
 		// Update factory/controller addresses (NOTE: must update oracle before registry)
-		await strategyFactory
-			.connect(owner)
-			.updateOracle(oracle.address)
-		await strategyFactory
-			.connect(owner)
-			.updateRegistry(tokenRegistry.address)
+		await strategyFactory.connect(owner).updateOracle(oracle.address)
+		await strategyFactory.connect(owner).updateRegistry(tokenRegistry.address)
 		await controller.connect(owner).updateAddresses()
 
 		// Update token registry
@@ -321,8 +311,18 @@ describe('Live Estimates', function () {
 			await updateAdapters(s)
 			await s.connect(accounts[3]).updateRewards() // anyone calls
 			// Update token registry using old token registry
-			await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, s, await s.items())
-			await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, s, await s.debt())
+			await updateTokenRegistry(
+				strategyFactory,
+				enso.platform.oracles.registries.tokenRegistry,
+				s,
+				await s.items()
+			)
+			await updateTokenRegistry(
+				strategyFactory,
+				enso.platform.oracles.registries.tokenRegistry,
+				s,
+				await s.debt()
+			)
 		}
 	})
 

@@ -2,6 +2,7 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -351,14 +352,22 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
-        require(!_proxyExists[salt_], "_createProxy: already exists.");
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy{salt: salt_}(
+        {
+            bytes memory creationCode = abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0)));
+            address predictedProxyAddress = Create2.computeAddress(salt_, keccak256(abi.encodePacked(creationCode)));
+            uint256 codeSize;
+            assembly {
+                codeSize := extcodesize(predictedProxyAddress)
+            }
+            require(codeSize == 0, "_createProxy: proxy already exists.");
+        }
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy{salt: salt_}(
                     _implementation,
                     admin,
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
-        _proxyExists[salt_] = true;
+
         _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy));
         // Instead we initialize it directly in the Strategy contract
         IStrategyManagement(address(proxy)).initialize(
