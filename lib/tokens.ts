@@ -1,6 +1,10 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM, ORACLE_TIME_WINDOW } from './constants'
+import hre from 'hardhat'
+const { ethers } = hre
+const { constants } = ethers
+const { AddressZero } = constants
 
 export class Tokens {
 	// Basic
@@ -332,7 +336,7 @@ export class Tokens {
 					ESTIMATOR_CATEGORY.BLOCKED,
 					VIRTUAL_ITEM,
 					{ adapters: [synthetixAdapter.address], path: [], cache: '0x' },
-					false
+          AddressZero
 				)
 		}
 		if (uniswapV3Registry) {

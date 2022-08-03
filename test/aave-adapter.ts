@@ -126,7 +126,6 @@ describe('AaveAdapter', function () {
 			path: [],
 			cache: '0x',
 		}
-		tradeData.adapters.push(aaveV2Adapter.address)
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(
@@ -134,7 +133,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.AAVE_V2,
 				collateralToken,
 				tradeData,
-				true
+			  aaveV2Adapter.address	
 			)
 		await strategyFactory
 			.connect(accounts[0])
@@ -143,7 +142,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.AAVE_V2,
 				collateralToken2,
 				tradeData,
-				true
+			  aaveV2Adapter.address	
 			)
 		tradeData.adapters[0] = uniswapAdapter.address
 		await strategyFactory

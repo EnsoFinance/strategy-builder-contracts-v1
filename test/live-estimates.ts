@@ -296,13 +296,13 @@ describe('Live Estimates', function () {
 		// Update token registry
 		await tokens.registerTokens(owner, strategyFactory, uniswapV3RegistryWrapper)
 		let tradeData: TradeData = {
-			adapters: [aaveV2.address],
+			adapters: [],
 			path: [],
 			cache: '0x',
 		}
 		await strategyFactory
 			.connect(owner)
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, aaveV2.address)
 
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]

@@ -266,7 +266,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
 		// add claimables
-		tradeData.adapters.push(curveGaugeAdapter.address)
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(
@@ -274,15 +273,14 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.CURVE_GAUGE,
 				tokens.crvLINKGauge,
 				tradeData,
-				true
+			  curveGaugeAdapter.address	
 			)
-		tradeData.adapters[0] = compoundAdapter.address
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, true)
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cUSDT, tradeData, compoundAdapter.address)
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, true)
+			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.COMPOUND, tokens.cDAI, tradeData, compoundAdapter.address)
 
 		// add rewards tokens
 		tradeData.adapters[0] = uniswapV2Adapter.address
@@ -293,7 +291,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				comp.address,
 				tradeData,
-				false
+        AddressZero
 			)
 		tradeData.adapters = [uniswapV2Adapter.address]
 		await strategyFactory
@@ -303,7 +301,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				rewardsToken.address,
 				tradeData,
-				false
+			  AddressZero	
 			)
 	})
 
@@ -525,7 +523,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				rewardsToken.address,
 				tradeData,
-				false
+        AddressZero				
 			)
 
 		const oldItems = await strategy.connect(accounts[1]).items()
