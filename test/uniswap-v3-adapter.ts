@@ -107,10 +107,6 @@ describe('UniswapV3Adapter', function () {
 			.connect(owner)
 			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
 
-		const EnsoOracle = await getContractFactory('EnsoOracle')
-		oracle = await EnsoOracle.connect(owner).deploy(tokenRegistry.address, weth.address, AddressZero)
-		await oracle.deployed()
-
 		const Whitelist = await getContractFactory('Whitelist')
 		const whitelist = await Whitelist.connect(owner).deploy()
 		await whitelist.deployed()
@@ -120,6 +116,10 @@ describe('UniswapV3Adapter', function () {
 		await platformProxyAdmin.deployed()
 		const controllerAddress = await platformProxyAdmin.controller()
 		const factoryAddress = await platformProxyAdmin.factory()
+
+		const EnsoOracle = await getContractFactory('EnsoOracle')
+		oracle = await EnsoOracle.connect(owner).deploy(factoryAddress, weth.address, AddressZero)
+		await oracle.deployed()
 
 		strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
 		await strategyLibrary.deployed()

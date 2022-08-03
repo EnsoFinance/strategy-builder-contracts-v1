@@ -31,4 +31,6 @@ interface IOracle {
         address underlyingToken,
         uint256 balance
     ) external view returns (int256);
+
+    function updateAddresses() external;
 }

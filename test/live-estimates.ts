@@ -18,7 +18,6 @@ import { TradeData } from '../lib/encode'
 import { createLink, linkBytecode } from '../lib/link'
 import { DIVISOR, MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
-import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
@@ -143,22 +142,19 @@ describe('Live Estimates', function () {
 		await tokenRegistry.deployed()
 
 		// Deploy new oracle
-		const uniswapV3Factory: Contract = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_FACTORY, [], accounts[0])
-		oracle = (
-			await deployOracle(
-				owner,
-				uniswapV3Factory,
-				uniswapV3Factory,
-				tokenRegistry,
-				uniswapV3RegistryWrapper,
-				chainlinkRegistry,
-				weth,
-				new Contract(tokens.sUSD, ERC20.abi, accounts[0]),
-				(estimatorCategory: number, estimatorAddress: string) => {
-					return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-				}
-			)
-		)[0]
+		oracle = (await deployOracle(
+			owner,
+			strategyFactory.address,
+			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+			uniswapV3RegistryWrapper.address,
+			chainlinkRegistry.address,
+			weth.address,
+			tokens.sUSD,
+			(estimatorCategory: number, estimatorAddress: string) => {
+				return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+			}
+		))[0]
 
 		// Transfer token registry
 		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
@@ -288,9 +284,13 @@ describe('Live Estimates', function () {
 		await factoryImplementation.deployed()
 		await platformProxyAdmin.connect(owner).upgrade(strategyFactory.address, factoryImplementation.address)
 
-		// Update factory/controller addresses
-		await strategyFactory.connect(owner).updateRegistry(tokenRegistry.address)
-		await strategyFactory.connect(owner).updateOracle(oracle.address)
+		// Update factory/controller addresses (NOTE: must update oracle before registry)
+		await strategyFactory
+			.connect(owner)
+			.updateOracle(oracle.address)
+		await strategyFactory
+			.connect(owner)
+			.updateRegistry(tokenRegistry.address)
 		await controller.connect(owner).updateAddresses()
 
 		// Update token registry
