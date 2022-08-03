@@ -67,11 +67,13 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
 
     function updateRewards() external;
 
-    function lock() external;
+    function lock(LockType lockType) external;
 
     function unlock() external;
 
     function locked() external view returns (bool);
+
+    function lockType() external view returns (LockType);
 
     function items() external view returns (address[] memory);
 

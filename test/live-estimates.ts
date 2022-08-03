@@ -315,9 +315,6 @@ describe('Live Estimates', function () {
 				tradeData,
 				false
 			)
-		//let fee = 10000
-		//await uniswapV3RegistryWrapper.addPool(stkAAVE.address, weth.address, fee, ORACLE_TIME_WINDOW)
-
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]
 			const mgr = await impersonate(await s.manager())

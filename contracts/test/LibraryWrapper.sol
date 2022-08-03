@@ -66,21 +66,24 @@ contract LibraryWrapper is StrategyTypes{
             int256 estimate = 0;
             for (uint256 i = 0; i < synths.length; i++) {
               estimate = estimate.add(oracle.estimateItem(
-                IERC20(synths[i]).balanceOf(address(s)),
-                synths[i]
+                s,
+                synths[i],
+                IERC20(synths[i]).balanceOf(address(s))
               ));
             }
             estimate = estimate.add(oracle.estimateItem(
-              IERC20(oracle.susd()).balanceOf(address(s)),
-              oracle.susd()
+              s,
+              oracle.susd(),
+              IERC20(oracle.susd()).balanceOf(address(s))
             ));
             return estimate;
         } else if (token == oracle.weth()) {
             return int256(IERC20(token).balanceOf(address(s)));
         } else {
             return oracle.estimateItem(
-                IERC20(token).balanceOf(address(s)),
-                token
+                s,
+                token,
+                IERC20(token).balanceOf(address(s))
             );
         }
     }

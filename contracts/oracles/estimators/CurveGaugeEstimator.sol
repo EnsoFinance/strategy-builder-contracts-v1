@@ -9,21 +9,25 @@ import "../../interfaces/IOracle.sol";
 import "../../interfaces/curve/ICurveGauge.sol";
 
 contract CurveGaugeEstimator is IEstimator {
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token, address(0)); 
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        uint256 balance = IERC20(token).balanceOf(address(strategy));
+        return estimateItem(strategy, token, balance);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
-        uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token, user);
-    }
-
-    function _estimateItem(uint256 balance, address token, address user) private view returns (int256) {
-        address underlyingToken = ICurveGauge(token).lp_token();
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
+        address lpToken = ICurveGauge(token).lp_token();
         address knownUnderlyingToken;
-        try IStrategy(user).getTradeData(token) returns(StrategyTypes.TradeData memory td) { 
-            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 1];
-        } catch {}
-        return IOracle(msg.sender).estimateItem(balance, underlyingToken, knownUnderlyingToken);
+        if (address(strategy) != address(0)) {
+            StrategyTypes.TradeData memory td = strategy.getTradeData(token);
+            if (td.path.length != 0) knownUnderlyingToken = td.path[td.path.length - 2];
+        }
+        return IOracle(msg.sender).estimateItem(strategy, lpToken, knownUnderlyingToken, balance);
     }
 }

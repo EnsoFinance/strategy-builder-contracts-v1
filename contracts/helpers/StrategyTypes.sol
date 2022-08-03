@@ -21,6 +21,16 @@ interface StrategyTypes {
       MANAGEMENT_FEE
     }
 
+    enum LockType {
+      INIT,
+      UNLOCKED,
+      STANDARD,
+      DEPOSIT,
+      WITHDRAW,
+      REBALANCE,
+      RESTRUCTURE
+    }
+
     struct StrategyItem {
         address item;
         int256 percentage;

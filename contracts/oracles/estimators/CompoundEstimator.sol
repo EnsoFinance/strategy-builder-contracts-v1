@@ -10,18 +10,21 @@ import "../../interfaces/compound/ICToken.sol";
 contract CompoundEstimator is IEstimator {
     using SafeMath for uint256;
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token);
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        uint256 balance = IERC20(token).balanceOf(address(strategy));
+        return estimateItem(strategy, token, balance);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
-        uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token);
-    }
-
-    function _estimateItem(uint256 balance, address token) private view returns (int256) {
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
         address underlyingToken = ICToken(token).underlying();
         uint256 share = balance.mul(ICToken(token).exchangeRateStored()).div(10**18);
-        return IOracle(msg.sender).estimateItem(share, underlyingToken);
+        return IOracle(msg.sender).estimateItem(strategy, underlyingToken, share);
     }
 }
