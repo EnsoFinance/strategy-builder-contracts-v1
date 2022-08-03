@@ -132,11 +132,8 @@ library StrategyClaim {
         bool ok;
         for (uint256 i; i < positions.length; ++i) {
             position = positions[i];
-            if (!tokenRegistry.isClaimable(position)) continue;
-            tradeData = tokenRegistry.itemDetails(position).tradeData;
-            adaptersLength = tradeData.adapters.length;
-            if (adaptersLength < 1) continue;
-            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
+            rewardsAdapter = tokenRegistry.itemDetails(position).rewardsAdapter;
+            if (rewardsAdapter == address(0)) continue;
             key = keccak256(abi.encodePacked(rewardsAdapter, position));
             ok = exists.doesExist(key);
             if (ok) continue;

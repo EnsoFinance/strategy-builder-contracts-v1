@@ -13,8 +13,8 @@ interface ITokenRegistry {
     function estimators(uint256 categoryIndex) external view returns (IEstimator);
 
     struct ItemDetails {
-        bool isClaimable;
         StrategyTypes.TradeData tradeData;
+        address rewardsAdapter;
     }
 
     function itemDetails(address item) external view returns(ItemDetails memory);
@@ -27,7 +27,7 @@ interface ITokenRegistry {
 
     function addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) external;
 
-    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable_) external;
+    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, address rewardsAdapter) external;
 
     function addItems(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata token) external;
 }

@@ -238,9 +238,9 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         uint256 estimatorCategoryIndex,
         address token,
         TradeData memory tradeData,
-        bool isClaimable
+        address rewardsAdapter 
     ) external onlyOwner {
-        _addItemDetailedToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
+        _addItemDetailedToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
     }
 
     /**
@@ -401,8 +401,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         uint256 estimatorCategoryIndex,
         address token,
         TradeData memory tradeData,
-        bool isClaimable
+        address rewardsAdapter 
     ) internal {
-        ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, isClaimable);
+        ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
     }
 }
