@@ -152,7 +152,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				stkAAVE.address,
 				tradeData,
-				false
+				AddressZero
 			)
 	})
 
