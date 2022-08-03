@@ -108,7 +108,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         owner = owner_;
         _implementation = implementation_;
         _creationCodeHash = keccak256(abi.encodePacked(
-              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0))));
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(implementation_, admin, new bytes(0))));
         _oracle = oracle_;
         _registry = registry_;
         _whitelist = whitelist_;
@@ -168,7 +168,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
         _creationCodeHash = keccak256(abi.encodePacked(
-              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0))));
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(newImplementation, admin, new bytes(0))));
         _version = newVersion;
         emit Update(newImplementation, newVersion);
     }
