@@ -22,16 +22,12 @@ library StrategyClaim {
     function claimAll(address factory, bytes[] calldata claimables) public {
         ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(factory).tokenRegistry());
         address[] memory tokens;
-        StrategyTypes.TradeData memory tradeData;
-        uint256 adaptersLength;
         address rewardsAdapter;
         uint256 length = claimables.length;
         for (uint256 i; i < length; ++i) {
             (tokens) = abi.decode(claimables[i], (address[]));
-            tradeData = tokenRegistry.itemDetails(tokens[0]).tradeData; // the tokens are grouped by rewardsAdapter
-            adaptersLength = tradeData.adapters.length;
-            if (adaptersLength < 1) continue;
-            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
+            rewardsAdapter = tokenRegistry.itemDetails(tokens[0]).rewardsAdapter; // the tokens are grouped by rewardsAdapter
+            if (rewardsAdapter == address(0)) continue;
             _delegateClaim(rewardsAdapter, tokens);
         }
     }
