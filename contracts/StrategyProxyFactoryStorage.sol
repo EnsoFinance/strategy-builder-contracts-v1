@@ -14,7 +14,8 @@ contract StrategyProxyFactoryStorage {
     mapping(bytes32 => bool) internal DEPRECATED_proxyExists;
 
     uint256 _streamingFee;
+    bytes32 _creationCodeHash;
 
     // Gap for future storage changes
-    uint256[48] private __gap;
+    uint256[47] private __gap;
 }

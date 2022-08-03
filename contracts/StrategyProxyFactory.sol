@@ -107,6 +107,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         admin = address(new StrategyProxyAdmin());
         owner = owner_;
         _implementation = implementation_;
+        _creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0))));
         _oracle = oracle_;
         _registry = registry_;
         _whitelist = whitelist_;
@@ -165,6 +167,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _noZeroAddress(newImplementation);
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
+        _creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0))));
         _version = newVersion;
         emit Update(newImplementation, newVersion);
     }
@@ -353,9 +357,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
         {
-            bytes32 creationCodeHash = keccak256(abi.encodePacked(
-              type(TransparentUpgradeableProxy).creationCode, abi.encode(_implementation, admin, new bytes(0))));
-            address predictedProxyAddress = Create2.computeAddress(salt_, creationCodeHash);
+            address predictedProxyAddress = Create2.computeAddress(salt_, _creationCodeHash);
             uint256 codeSize;
             assembly {
                 codeSize := extcodesize(predictedProxyAddress)
