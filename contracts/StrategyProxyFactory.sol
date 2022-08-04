@@ -2,6 +2,7 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -106,6 +107,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         admin = address(new StrategyProxyAdmin());
         owner = owner_;
         _implementation = implementation_;
+        _creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(implementation_, admin, new bytes(0))));
         _oracle = oracle_;
         _registry = registry_;
         _whitelist = whitelist_;
@@ -164,6 +167,8 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _noZeroAddress(newImplementation);
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
+        _creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(newImplementation, admin, new bytes(0))));
         _version = newVersion;
         emit Update(newImplementation, newVersion);
     }
@@ -351,14 +356,20 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
         bytes32 salt_ = salt(manager, name, symbol);
-        require(!_proxyExists[salt_], "_createProxy: already exists.");
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy{salt: salt_}(
+        {
+            address predictedProxyAddress = Create2.computeAddress(salt_, _creationCodeHash);
+            uint256 codeSize;
+            assembly {
+                codeSize := extcodesize(predictedProxyAddress)
+            }
+            require(codeSize == 0, "_createProxy: proxy already exists.");
+        }
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy{salt: salt_}(
                     _implementation,
                     admin,
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
-        _proxyExists[salt_] = true;
+
         _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy));
         // Instead we initialize it directly in the Strategy contract
         IStrategyManagement(address(proxy)).initialize(

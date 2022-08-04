@@ -11,9 +11,9 @@ contract StrategyProxyFactoryStorage {
     address internal _registry;
     address internal _implementation;
     string internal _version;
-    mapping(bytes32 => bool) internal _proxyExists;
 
-    uint256 _streamingFee;
+    uint256 internal _streamingFee;
+    bytes32 internal _creationCodeHash;
 
     // Gap for future storage changes
     uint256[48] private __gap;

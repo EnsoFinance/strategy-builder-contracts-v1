@@ -104,6 +104,33 @@ describe('StrategyProxyFactory', function () {
 		strategy = Strategy.attach(strategyAddress)
 	})
 
+	it('Should fail to deploy strategy: already exists', async function () {
+		const positions = [
+			{ token: tokens[1].address, percentage: BigNumber.from(500) },
+			{ token: tokens[2].address, percentage: BigNumber.from(500) },
+		]
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
+			managementFee: BigNumber.from(0),
+			social: false,
+			set: false,
+		}
+
+		const amount = ethers.BigNumber.from('10000000000000000')
+
+		await expect(
+			strategyFactory
+				.connect(accounts[1])
+				.createStrategy('Test Strategy', 'TEST', strategyItems, strategyState, router.address, '0x', {
+					value: amount,
+				})
+		).to.be.revertedWith('_createProxy: proxy already exists.')
+	})
+
 	it('Should check controller value', async function () {
 		expect(await strategyFactory.controller()).to.equal(controller.address)
 	})
