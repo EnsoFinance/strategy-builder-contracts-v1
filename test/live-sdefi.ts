@@ -1,6 +1,6 @@
 import { ethers, network, waffle } from 'hardhat'
 import { expect } from 'chai'
-import { Contract } from 'ethers'
+import { BigNumber, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
@@ -9,19 +9,33 @@ import {
 	deployOracle,
 	deployFullRouter
 } from '../lib/deploy'
+import { createLink, linkBytecode } from '../lib/link'
 import { DIVISOR, MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
-import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
-import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
+import { prepareStrategy } from '../lib/encode'
 
+import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
+import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
+import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
 
 const { constants, getSigners, getContractFactory } = ethers
-const { WeiPerEther } = constants
+const { AddressZero, WeiPerEther } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
 const synthRedeemer = '0xe533139Af961c9747356D947838c98451015e234'
 const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
+
+async function impersonate(address: string): Promise<SignerWithAddress> {
+	await network.provider.request({
+		method: 'hardhat_impersonateAccount',
+		params: [address],
+	})
+	return await ethers.getSigner(address)
+}
 
 describe('Remove sDEFI from live contracts', function () {
 	let accounts: SignerWithAddress[],
@@ -35,14 +49,32 @@ describe('Remove sDEFI from live contracts', function () {
 		chainlinkRegistry: Contract,
 		eDTOP: Contract
 
+	async function updateTokenRegistry(strategyFactory: Contract, oldTokenRegistry: Contract, strategy: Contract, tokens: string[]) {
+			let itemCategory, estimatorCategory;
+		for (let i = 0; i < tokens.length; i++) {
+			// Set token
+			estimatorCategory = await oldTokenRegistry.estimatorCategories(tokens[i]);
+			if (estimatorCategory.gt(0)) {
+				itemCategory = await oldTokenRegistry.itemCategories(tokens[i]);
+				await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, tokens[i])
+			}
+			// Set path
+			const tradeData = await strategy.getTradeData(tokens[i])
+			let path = [...tradeData.path]
+			for (let j = 0; j < path.length; j++) {
+				estimatorCategory = await oldTokenRegistry.estimatorCategories(path[j]);
+				if (estimatorCategory.gt(0)) {
+					itemCategory = await oldTokenRegistry.itemCategories(path[j]);
+					await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, path[j])
+				}
+			}
+		}
+	}
+
 	before('Setup contracts', async function () {
 		accounts = await getSigners()
 		// Impersonate owner
-		await network.provider.request({
-			method: 'hardhat_impersonateAccount',
-			params: [ownerAddress],
-		})
-		owner = await ethers.getSigner(ownerAddress)
+		owner = await impersonate(ownerAddress)
 
 		// Send funds to owner
 		await accounts[19].sendTransaction({ to: ownerAddress, value: WeiPerEther.mul(5) })
@@ -52,34 +84,126 @@ describe('Remove sDEFI from live contracts', function () {
 
 		const enso = getLiveContracts(accounts[0])
 		controller = enso.platform.controller
+		router = enso.routers.multicall
+		const strategyFactory = enso.platform.strategyFactory
+		const {
+			uniswapV3Registry,
+			chainlinkRegistry,
+			curveDepositZapRegistry
+		} = enso.platform.oracles.registries
 
-		//chainlinkRegistry = enso.platform.oracles.registries.chainlinkRegistry
+		// Deploy test UniswapV3RegistryWrapper
+		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
+		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address);
+		await uniswapV3RegistryWrapper.deployed()
+		await uniswapV3Registry.connect(owner).transferOwnership(uniswapV3RegistryWrapper.address)
+
+		// Deploy new token registry
+		const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
+		await tokenRegistry.deployed()
+
+		// Deploy new oracle
+		oracle = (await deployOracle(
+			owner,
+			strategyFactory.address,
+			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+			uniswapV3RegistryWrapper.address,
+			chainlinkRegistry.address,
+			weth.address,
+			tokens.sUSD,
+			(estimatorCategory: number, estimatorAddress: string) => {
+				return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+			}
+		))[0]
+
+		// Transfer token registry
+		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
 
 		// Deploy SynthRedeemerAdapter
 		const SynthRedeemerAdapter = await getContractFactory('SynthRedeemerAdapter')
 		const synthRedeemerAdapter = await SynthRedeemerAdapter.deploy(synthRedeemer, tokens.sUSD, weth.address)
 		await synthRedeemerAdapter.deployed()
-		// Deploy new router
-		router = await deployFullRouter(
-			accounts[0],
-			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
-			controller,
-			enso.platform.strategyLibrary
-		)
+
 		// Whitelist
 		await enso.platform.administration.whitelist.connect(owner).approve(synthRedeemerAdapter.address)
-		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
 
-		// Set synthetix adapters
-		await enso.platform.strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [ enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x'}, false)
+		// Libraries
+		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
+		await strategyLibrary.deployed()
+		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
+		const controllerLibrary = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+			[]
+		)
+		await controllerLibrary.deployed()
+		const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
+		// Controller Implementation
+		const newControllerImplementation = await waffle.deployContract(
+			accounts[0],
+			linkBytecode(StrategyController, [controllerLibraryLink]),
+			[strategyFactory.address]
+		)
+
+		await newControllerImplementation.deployed()
+		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
+		await platformProxyAdmin
+			.connect(owner)
+			.upgrade(controller.address, newControllerImplementation.address)
+
+		// Factory Implementation
+		const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controller.address])
+		await factoryImplementation.deployed()
+		await platformProxyAdmin
+			.connect(owner)
+			.upgrade(strategyFactory.address, factoryImplementation.address)
+
+		// Update to latest Strategy
 		const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
 		await strategyClaim.deployed()
 
 		const Strategy = await getContractFactory('Strategy', {
 			libraries: { StrategyClaim: strategyClaim.address },
 		})
+
+		const newImplementation = await Strategy.deploy(
+			strategyFactory.address,
+			controller.address,
+			MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
+			MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
+		)
+
+		const version = await strategyFactory.callStatic.version()
+		await strategyFactory.connect(owner).updateImplementation(newImplementation.address, (version + 1).toString())
+
+		const admin = await strategyFactory.admin()
+		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
+		const strategyAdmin = await StrategyAdmin.attach(admin)
+
+		// Update factory/controller addresses (NOTE: must update oracle before registry)
+		await strategyFactory
+			.connect(owner)
+			.updateOracle(oracle.address)
+		await strategyFactory
+			.connect(owner)
+			.updateRegistry(tokenRegistry.address)
+		await controller.connect(owner).updateAddresses()
+
+		// Set synthetix adapters
+		await strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [ enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x'}, false)
+
+		// Upgrade strategy
 		eDTOP = await Strategy.attach('0x0CF65Dcf23c3a67D1A220A2732B5c2F7921A30c4')
+		manager = await impersonate(await eDTOP.manager())
+		await strategyAdmin.connect(manager).upgrade(eDTOP.address)
+		// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
+		await eDTOP.connect(manager).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
+		await eDTOP.connect(accounts[3]).finalizeTimelock() // anyone calls
+
+		await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, eDTOP, [tokens.sUSD, ...(await eDTOP.synths())])
 	})
 
 	/*
@@ -92,36 +216,52 @@ describe('Remove sDEFI from live contracts', function () {
 	*/
 
 	it('Should reposition', async function () {
-		// Impersonate manager
-		const managerAddress = await eDTOP.manager()
-		await network.provider.request({
-			method: 'hardhat_impersonateAccount',
-			params: [managerAddress],
-		})
-		manager = await ethers.getSigner(managerAddress)
-
-		const [ totalBefore, ] = await oracle.estimateStrategy(eDTOP.address)
-		console.log("eDTOP Total Before: ", totalBefore.toString())
 		let tx = await controller
 			.connect(manager)
 			.repositionSynths(eDTOP.address, tokens.sDEFI)
 		const receipt = await tx.wait()
 		console.log('Redeem Gas Used: ', receipt.gasUsed.toString())
-		const [ totalAfter, ] = await oracle.estimateStrategy(eDTOP.address)
-		console.log("eDTOP Total After: ", totalAfter.toString())
+		expect((await oracle['estimateItem(address,address)'](eDTOP.address, tokens.sDEFI)).eq(0)).to.equal(true)
 	})
 
-	/*
-	it('Should finalize structure', async function () {
-		const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await estimator.deposit(eDPI, depositAmount)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+	it('Should restructure', async function () {
+		const synths = await eDTOP.synths()
+		const positions = []
+		let totalPercentage = BigNumber.from(0)
+		for (let i = 0; i < synths.length; i++) {
+			if (synths[i] != tokens.sDEFI) {
+				const percentage = await eDTOP.getPercentage(synths[i]);
+				const tradeData = await eDTOP.getTradeData(synths[i]) // NOTE: We should use updated adapters for the real restructure
+				positions.push({
+					token: synths[i],
+					percentage: percentage,
+					adapters: tradeData.adapters,
+					path: tradeData.path,
+					cache: tradeData.cache
+				})
+				totalPercentage = totalPercentage.add(percentage)
+			}
+		}
+		const percentage = BigNumber.from(1000).sub(totalPercentage);
+		const tradeData = await eDTOP.getTradeData(tokens.sUSD)
+		positions.push({
+			token: tokens.sUSD,
+			percentage: percentage,
+			adapters: tradeData.adapters,
+			path: tradeData.path,
+			cache: tradeData.cache
+		})
+		const strategyItems = prepareStrategy(positions, AddressZero)
 		await controller
-			.connect(accounts[1])
-			.deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eDPI.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+			.connect(manager)
+			.restructure(eDTOP.address, strategyItems)
 	})
-	*/
+
+	it('Should finalize structure', async function () {
+		const data = await router.encodeCalls([]) // No calls
+		await controller
+			.connect(manager)
+			.finalizeStructure(eDTOP.address, router.address, data)
+		const [total] = await oracle.estimateStrategy(eDTOP.address)
+	})
 })
