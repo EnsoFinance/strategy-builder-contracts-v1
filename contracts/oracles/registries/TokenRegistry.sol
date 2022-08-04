@@ -24,7 +24,7 @@ contract TokenRegistry is ITokenRegistry, Ownable {
     }
 
     function isClaimable(address item) external view override returns(bool) {
-        return _itemDetails[item].isClaimable;
+        return _itemDetails[item].rewardsAdapter != address(0);
     }
 
     function addEstimator(uint256 estimatorCategoryIndex, address estimator) external override onlyOwner {
@@ -36,10 +36,10 @@ contract TokenRegistry is ITokenRegistry, Ownable {
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);  
     }
 
-    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, bool isClaimable_) external override onlyOwner {
+    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, address rewardsAdapter) external override onlyOwner {
         ItemDetails storage id = _itemDetails[token];
-        id.isClaimable = isClaimable_;
         id.tradeData = tradeData;
+        id.rewardsAdapter = rewardsAdapter;
         _addItem(itemCategoryIndex, estimatorCategoryIndex, token);    
     }
 

@@ -27,7 +27,7 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import { increaseTime } from '../lib/utils'
-    
+  
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {
@@ -133,7 +133,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.AAVE_V2,
 				collateralToken,
 				tradeData,
-				true
+				aaveV2Adapter.address
 			)
 		await strategyFactory
 			.connect(accounts[0])
@@ -142,9 +142,9 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.AAVE_V2,
 				collateralToken2,
 				tradeData,
-				true
+				aaveV2Adapter.address
 			)
-		tradeData.adapters.push(uniswapAdapter.address)
+		tradeData.adapters[0] = uniswapAdapter.address
 		await strategyFactory
 			.connect(accounts[0])
 			.addItemDetailedToRegistry(
@@ -152,7 +152,7 @@ describe('AaveAdapter', function () {
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
 				stkAAVE.address,
 				tradeData,
-				false
+				AddressZero
 			)
 	})
 

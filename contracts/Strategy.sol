@@ -322,6 +322,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
         if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e04) /* error_macro_for("claimAll: caller must be controller or manager.") */);
+
         StrategyClaim.claimAll(_claimables);
     }
 

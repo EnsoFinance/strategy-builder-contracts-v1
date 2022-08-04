@@ -234,6 +234,7 @@ describe('Live Estimates', function () {
 		const Strategy = await getContractFactory('Strategy', {
 			libraries: { StrategyClaim: strategyClaim.address },
 		})
+		console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
@@ -293,13 +294,19 @@ describe('Live Estimates', function () {
 		// Update token registry
 		await tokens.registerTokens(owner, strategyFactory, uniswapV3RegistryWrapper)
 		let tradeData: TradeData = {
-			adapters: [aaveV2.address],
+			adapters: [],
 			path: [],
 			cache: '0x',
 		}
 		await strategyFactory
 			.connect(owner)
-			.addItemDetailedToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, tokens.aWETH, tradeData, true)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.AAVE_V2,
+				tokens.aWETH,
+				tradeData,
+				aaveV2.address
+			)
 
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]

@@ -279,10 +279,7 @@ export async function deployOracle(
 	if (uniswapOracleFactory == uniswapV3Factory) {
 		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry, weth])
 	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [
-			uniswapOracleFactory,
-			weth,
-		])
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapOracleFactory, weth])
 	}
 	await uniswapOracle.deployed()
 
@@ -298,16 +295,9 @@ export async function deployOracle(
 	await uniswapOracle.deployed()
 	*/
 
-	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [
-		chainlinkRegistry,
-		weth,
-	])
+	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [chainlinkRegistry, weth])
 	await chainlinkOracle.deployed()
-	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [
-		strategyProxyFactory,
-		weth,
-		susd,
-	])
+	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [strategyProxyFactory, weth, susd])
 	await ensoOracle.deployed()
 
 	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
@@ -355,10 +345,10 @@ export async function deployPlatform(
 	await controllerLibrary.deployed()
 	const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
 
-	console.log('controller size:', StrategyController.bytecode.length/2-1)
-	console.log('strategyLibrary size:', StrategyLibrary.bytecode.length/2-1)
-	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length/2-1)
-	console.log('strategy size:', Strategy.bytecode.length/2-1)
+	console.log('controller size:', StrategyController.bytecode.length / 2 - 1)
+	console.log('strategyLibrary size:', StrategyLibrary.bytecode.length / 2 - 1)
+	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length / 2 - 1)
+	console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
 
 	// Setup Registries
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
@@ -543,7 +533,11 @@ export async function deployAaveV2Adapter(
 }
 
 export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressProvider: Contract, weth: Contract) {
-	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [addressProvider.address, MAINNET_ADDRESSES.AAVE_INCENTIVES_CONTROLLER, weth.address])
+	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [
+		addressProvider.address,
+		MAINNET_ADDRESSES.AAVE_INCENTIVES_CONTROLLER,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }

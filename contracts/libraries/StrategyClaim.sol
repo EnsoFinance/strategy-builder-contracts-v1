@@ -20,17 +20,14 @@ library StrategyClaim {
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
 
     function claimAll(bytes[] calldata claimables) public {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(IStrategy(address(this)).factory()).tokenRegistry()); // excuse the noise, this is for efficiency
         address[] memory tokens;
-        StrategyTypes.TradeData memory tradeData;
-        uint256 adaptersLength;
         address rewardsAdapter;
         uint256 length = claimables.length;
         for (uint256 i; i < length; ++i) {
             (tokens) = abi.decode(claimables[i], (address[]));
-            tradeData = IStrategy(address(this)).getTradeData(tokens[0]); // the tokens are grouped by rewardsAdapter
-            adaptersLength = tradeData.adapters.length;
-            if (adaptersLength < 1) continue;
-            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
+            rewardsAdapter = tokenRegistry.itemDetails(tokens[0]).rewardsAdapter; // the tokens are grouped by rewardsAdapter
+            if (rewardsAdapter == address(0)) continue;
             _delegateClaim(rewardsAdapter, tokens);
         }
     }
@@ -131,11 +128,8 @@ library StrategyClaim {
         bool ok;
         for (uint256 i; i < positions.length; ++i) {
             position = positions[i];
-            if (!tokenRegistry.isClaimable(position)) continue;
-            tradeData = IStrategy(address(this)).getTradeData(position);
-            adaptersLength = tradeData.adapters.length;
-            if (adaptersLength < 1) continue;
-            rewardsAdapter = tradeData.adapters[adaptersLength - 1];
+            rewardsAdapter = tokenRegistry.itemDetails(position).rewardsAdapter;
+            if (rewardsAdapter == address(0)) continue;
             key = keccak256(abi.encodePacked(rewardsAdapter, position));
             ok = exists.doesExist(key);
             if (ok) continue;
@@ -154,8 +148,6 @@ library StrategyClaim {
      * @param tokens The addresses of the tokens being claimed
      */
     function _delegateClaim(address adapter, address[] memory tokens) private {
-        // Since the adapters are part of the tradeData which could be updated by the manager, for security we check that the adapter is approved.
-        require(IWhitelist(IStrategyProxyFactory(IStrategy(address(this)).factory()).whitelist()).approved(adapter), "adapter not approved.");
         bytes memory data =
             abi.encodeWithSelector(
                 IRewardsAdapter.claim.selector,

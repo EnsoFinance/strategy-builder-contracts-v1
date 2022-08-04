@@ -5,7 +5,6 @@ pragma experimental ABIEncoderV2;
 import "../interfaces/registries/IUniswapV3Registry.sol";
 import "../interfaces/deprecated/IUniswapV3Registry_Deprecated.sol";
 
-
 contract UniswapV3RegistryWrapper is IUniswapV3Registry {
 
     IUniswapV3Registry_Deprecated private immutable registry;
