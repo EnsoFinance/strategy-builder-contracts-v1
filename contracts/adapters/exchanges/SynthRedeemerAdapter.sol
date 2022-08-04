@@ -38,9 +38,9 @@ contract SynthRedeemerAdapter is BaseAdapter {
         // redeemable, so this function may fail unless it is called in a delegate call
         if (from != address(this))
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-        uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
+        uint256 beforeBalance = IERC20(tokenOut).balanceOf(address(this));
         redeemer.redeemPartial(IERC20(tokenIn), amount);
-        uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+        uint256 afterBalance = IERC20(tokenOut).balanceOf(address(this));
         uint256 received = afterBalance.sub(beforeBalance);
         require(received >= expected, "Insufficient tokenOut amount");
         if (to != address(this))
