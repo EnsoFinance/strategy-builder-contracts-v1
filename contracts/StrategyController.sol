@@ -33,18 +33,6 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
 
     address public immutable factory;
 
-    event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
-    event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
-    event StrategyOpen(address indexed strategy);
-    event StrategySet(address indexed strategy);
-    event RebalanceParametersUpdated(uint256 indexed rebalanceTimelockPeriod, uint256 indexed rebalanceThreshold, bool indexed finalized);
-
-    // hack! these events are called in the `ControllerLibrary`
-    // but cannot be tracked unless they are defined here!
-    event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
-    event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-    event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-
     // Initialize constructor to disable implementation
     constructor(address factory_) public initializer {
         factory = factory_;
@@ -188,6 +176,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _startTimelock(key, new bytes(0));
 
         ControllerLibrary.rebalance(strategy, router, oracle(), _weth, _strategyStates[address(strategy)].rebalanceSlippage, _rebalanceThresholdScalar, data);
+        // library emits Balanced event
         _removeStrategyLock(strategy);
     }
 
@@ -215,6 +204,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         address adapter = itemDetails.tradeData.adapters[0];
         _require(adapter != address(0), uint256(0x1bb63a90056c05) /* error_macro_for("Invalid adapter") */);
         ControllerLibrary.repositionSynths(strategy, adapter, token, _susd);
+        // library emits Repositioned event
         _removeStrategyLock(strategy);
     }
 
@@ -463,6 +453,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
         _isInitialized(address(strategy));
         _setStrategyLock(strategy, LockType.WITHDRAW);
         (weth_, wethAmount) = ControllerLibrary.withdraw(strategy, router, amount, slippage, data);
+        // library emits Withdraw event
         IERC20(weth_).safeTransferFrom(address(strategy), to, wethAmount);
     }
 
@@ -507,6 +498,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
             IWETH(weth_).deposit{value: amount}();
         }
         ControllerLibrary.deposit(strategy, router, account, amount, slippage, totalBefore, balanceBefore, weth_, data);
+        // library emits Deposit event
     }
 
     /**

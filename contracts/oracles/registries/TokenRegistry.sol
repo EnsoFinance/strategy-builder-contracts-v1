@@ -12,9 +12,6 @@ contract TokenRegistry is ITokenRegistry, Ownable {
     mapping(uint256 => IEstimator) public override estimators;
     mapping(address => ItemDetails) private _itemDetails;
 
-    event EstimatorAdded(address estimator, uint256 estimatorCategoryIndex);
-    event ItemAdded(address token, uint256 itemCategoryIndex, uint256 estimatorCategoryIndex);
-
     function getEstimator(address token) external view override returns (IEstimator) {
         return estimators[estimatorCategories[token]];
     }

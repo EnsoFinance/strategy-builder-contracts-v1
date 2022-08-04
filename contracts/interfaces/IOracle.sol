@@ -6,6 +6,9 @@ import "./registries/ITokenRegistry.sol";
 import "./IStrategy.sol";
 
 interface IOracle {
+
+    event NewPrice(address token, uint256 price);
+
     function weth() external view returns (address);
 
     function susd() external view returns (address);

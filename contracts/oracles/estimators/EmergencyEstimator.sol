@@ -14,8 +14,6 @@ contract EmergencyEstimator is IEstimator, Ownable, Timelocks {
     mapping(address => int256) public estimates;
     mapping(bytes32 => TimelockData) private __timelockData;
 
-    event EstimateSet(address token, int256 amount, bool finalized);
-
     constructor() public {
         _setTimelock(
           keccak256(abi.encode(EmergencyEstimator.updateEstimate.selector)), // identifier

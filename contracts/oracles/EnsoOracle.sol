@@ -18,8 +18,6 @@ contract EnsoOracle is IOracle, StrategyTypes {
     ITokenRegistry public override tokenRegistry;
     IStrategyProxyFactory internal immutable factory;
 
-    event NewPrice(address token, uint256 price);
-
     constructor(
         address factory_,
         address weth_,

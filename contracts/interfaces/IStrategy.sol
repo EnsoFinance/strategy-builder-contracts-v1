@@ -4,11 +4,20 @@ pragma experimental ABIEncoderV2;
 
 import "./IStrategyFees.sol";
 import "./IStrategyToken.sol";
+import "./IStrategyManagement.sol";
 import "./IOracle.sol";
 import "./IWhitelist.sol";
-import "../helpers/StrategyTypes.sol";
 
-interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
+interface IStrategy is IStrategyFees, IStrategyToken, IStrategyManagement {
+
+    event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
+    event UpdateManager(address manager);
+    event UpdateTradeData(address item, bool finalized);
+    event ClaimablesUpdated();
+    event RewardsUpdated();
+    event RewardsClaimed(address indexed adapter, address[] indexed tokens);
+    event VersionUpdated(string indexed newVersion);
+
     function approveToken(
         address token,
         address account,
@@ -86,8 +95,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, StrategyTypes {
     function getPercentage(address item) external view returns (int256);
 
     function getTradeData(address item) external view returns (TradeData memory);
-
-    function manager() external view returns (address);
 
     function supportsSynths() external view returns (bool);
 

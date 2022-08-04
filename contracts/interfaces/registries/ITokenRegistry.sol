@@ -6,6 +6,10 @@ import "../IEstimator.sol";
 import "../../helpers/StrategyTypes.sol";
 
 interface ITokenRegistry {
+
+    event EstimatorAdded(address estimator, uint256 estimatorCategoryIndex);
+    event ItemAdded(address token, uint256 itemCategoryIndex, uint256 estimatorCategoryIndex);
+
     function itemCategories(address token) external view returns (uint256);
 
     function estimatorCategories(address token) external view returns (uint256);
