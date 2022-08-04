@@ -89,6 +89,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
             PoolAddress.getPoolKey(token, pairData.pair, pairData.fee)
         );
         _updateObservations(IUniswapV3Pool(pool), timeWindow);
+        emit TimeWindowUpdated(token, timeWindow);
     }
 
     function _addPool(address token, address pair, uint24 fee, uint32 timeWindow) internal {
@@ -98,6 +99,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         _pairId[token] = pairId;
         _pairs[pairId] = PairData(pair, fee, timeWindow);
         _updateObservations(IUniswapV3Pool(pool), timeWindow);
+        emit PoolAdded(token, pair, fee, timeWindow);
     }
 
     function _updateObservations(IUniswapV3Pool pool, uint32 timeWindow) internal {
