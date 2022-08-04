@@ -163,7 +163,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         override
     {
         _onlyController();
-        StrategyClaim.claimAll(_factory, _claimables);
+        StrategyClaim.claimAll(_claimables);
         _setStructure(newItems);
     }
 
@@ -323,7 +323,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         **/
         if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e04) /* error_macro_for("claimAll: caller must be controller or manager.") */);
 
-        StrategyClaim.claimAll(_factory, _claimables);
+        StrategyClaim.claimAll(_claimables);
     }
 
     /**

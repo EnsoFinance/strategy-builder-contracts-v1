@@ -19,8 +19,8 @@ library StrategyClaim {
 
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
 
-    function claimAll(address factory, bytes[] calldata claimables) public {
-        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(factory).tokenRegistry());
+    function claimAll(bytes[] calldata claimables) public {
+        ITokenRegistry tokenRegistry = ITokenRegistry(IStrategyProxyFactory(IStrategy(address(this)).factory()).tokenRegistry()); // excuse the noise, this is for efficiency
         address[] memory tokens;
         address rewardsAdapter;
         uint256 length = claimables.length;
