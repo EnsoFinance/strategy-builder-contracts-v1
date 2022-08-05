@@ -114,15 +114,15 @@ describe('Estimator', function () {
 		const name = 'Synth Strategy'
 		const symbol = 'SYNTH'
 		const positions = [
-			{ token: tokens.crv, percentage: BigNumber.from(400) },
+			//{ token: tokens.crv, percentage: BigNumber.from(400) },
 			{
 				token: tokens.sUSD,
-				percentage: BigNumber.from(0),
+				percentage: BigNumber.from(600),
 				adapters: [uniswapV2AdapterAddress, curveAdapterAddress],
 				path: [tokens.usdc],
 			},
 			{ token: tokens.sBTC, percentage: BigNumber.from(400), adapters: [synthetixAdapterAddress], path: [] },
-			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapterAddress], path: [] },
+			//{ token: tokens.sEUR, percentage: BigNumber.from(600), adapters: [synthetixAdapterAddress], path: [] },
 		]
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
 

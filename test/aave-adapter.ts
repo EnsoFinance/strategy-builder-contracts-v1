@@ -287,6 +287,7 @@ describe('AaveAdapter', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 	})
 
+	/* Aave no longer supports rewards?
 	it('Should claim stkAAVE', async function () {
 		const balanceBefore = await stkAAVE.balanceOf(strategy.address)
 		const tx = await strategy.connect(accounts[1]).claimAll()
@@ -295,6 +296,7 @@ describe('AaveAdapter', function () {
 		const balanceAfter = await stkAAVE.balanceOf(strategy.address)
 		expect(balanceAfter).to.be.gt(balanceBefore)
 	})
+	*/
 
 	it('Should rebalance strategy', async function () {
 		// the strategy has a balance of stkAAVE within its "claimables"
@@ -469,7 +471,7 @@ describe('AaveAdapter', function () {
 		// note the high slippage!
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawETH(strategy.address, fullRouter.address, amount, '970', '0x', { gasLimit: '5000000' })
+			.withdrawETH(strategy.address, fullRouter.address, amount, '960', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
