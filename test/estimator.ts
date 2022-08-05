@@ -18,7 +18,7 @@ const strategyState: InitialState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(50),
 	rebalanceSlippage: BigNumber.from(995),
-	restructureSlippage: BigNumber.from(985),
+	restructureSlippage: BigNumber.from(980),
 	managementFee: BigNumber.from(0),
 	social: true,
 	set: false,
