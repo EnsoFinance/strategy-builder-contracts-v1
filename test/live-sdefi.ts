@@ -1,4 +1,4 @@
-import { ethers, network, waffle } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 import { expect } from 'chai'
 import { BigNumber, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
@@ -8,6 +8,7 @@ import { deployOracle } from '../lib/deploy'
 import { createLink, linkBytecode } from '../lib/link'
 import { MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
 import { prepareStrategy } from '../lib/encode'
+import { resetBlockchain, impersonate } from '../lib/utils'
 
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
@@ -24,14 +25,6 @@ const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
 const synthRedeemer = '0xe533139Af961c9747356D947838c98451015e234'
 //const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
-
-async function impersonate(address: string): Promise<SignerWithAddress> {
-	await network.provider.request({
-		method: 'hardhat_impersonateAccount',
-		params: [address],
-	})
-	return await ethers.getSigner(address)
-}
 
 describe('Remove sDEFI from live contracts', function () {
 	let accounts: SignerWithAddress[],
@@ -67,6 +60,8 @@ describe('Remove sDEFI from live contracts', function () {
 	}
 
 	before('Setup contracts', async function () {
+		await resetBlockchain()
+
 		accounts = await getSigners()
 		// Impersonate owner
 		owner = await impersonate(ownerAddress)
