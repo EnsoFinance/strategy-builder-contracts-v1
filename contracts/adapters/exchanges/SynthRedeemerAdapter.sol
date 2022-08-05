@@ -22,6 +22,7 @@ contract SynthRedeemerAdapter is BaseAdapter {
         susd = susd_;
     }
 
+    // Note: Since redeemable tokens are not transferrable this function can only be called via delegate call
     function swap(
         uint256 amount,
         uint256 expected,
@@ -31,13 +32,8 @@ contract SynthRedeemerAdapter is BaseAdapter {
         address to
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
-        require(from == to, "Synth exchanges need from == to");
+        require(from == address(this), "Cannot transfer from another address");
         require(tokenOut == susd, "Can only redeem to sSUSD");
-        // No need to check before/after balance since Synths don't have fees.
-        // However, the synth will likely not be transferrable if it is
-        // redeemable, so this function may fail unless it is called in a delegate call
-        if (from != address(this))
-            IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
         uint256 beforeBalance = IERC20(tokenOut).balanceOf(address(this));
         redeemer.redeemPartial(IERC20(tokenIn), amount);
         uint256 afterBalance = IERC20(tokenOut).balanceOf(address(this));
