@@ -370,11 +370,11 @@ describe('SynthetixAdapter', function () {
 		).to.be.revertedWith('Cannot settle during waiting period')
 	})
 
-	it('Should fail to reposition susd into synths: unsupported address', async function () {
+	it('Should fail to reposition sEUR to sUSD: no redeemer adapter', async function () {
 		await increaseTime(600)
 		await expect(
 			controller.connect(accounts[1]).repositionSynths(strategy.address, tokens.sEUR)
-		).to.be.revertedWith('Unsupported token')
+		).to.be.revertedWith('Invalid adapter index')
 	})
 
 	it('Should reposition synths into susd and back', async function () {
