@@ -4,13 +4,9 @@ import { BigNumber, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
-import { increaseTime } from '../lib/utils'
-import {
-	deployOracle,
-	deployFullRouter
-} from '../lib/deploy'
+import { deployOracle } from '../lib/deploy'
 import { createLink, linkBytecode } from '../lib/link'
-import { DIVISOR, MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
+import { MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
 import { prepareStrategy } from '../lib/encode'
 
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -27,7 +23,7 @@ const { AddressZero, WeiPerEther } = constants
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
 const synthRedeemer = '0xe533139Af961c9747356D947838c98451015e234'
-const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
+//const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
 
 async function impersonate(address: string): Promise<SignerWithAddress> {
 	await network.provider.request({
@@ -46,7 +42,6 @@ describe('Remove sDEFI from live contracts', function () {
 		router: Contract,
 		controller: Contract,
 		oracle: Contract,
-		chainlinkRegistry: Contract,
 		eDTOP: Contract
 
 	async function updateTokenRegistry(strategyFactory: Contract, oldTokenRegistry: Contract, strategy: Contract, tokens: string[]) {
@@ -88,8 +83,7 @@ describe('Remove sDEFI from live contracts', function () {
 		const strategyFactory = enso.platform.strategyFactory
 		const {
 			uniswapV3Registry,
-			chainlinkRegistry,
-			curveDepositZapRegistry
+			chainlinkRegistry
 		} = enso.platform.oracles.registries
 
 		// Deploy test UniswapV3RegistryWrapper
@@ -262,6 +256,5 @@ describe('Remove sDEFI from live contracts', function () {
 		await controller
 			.connect(manager)
 			.finalizeStructure(eDTOP.address, router.address, data)
-		const [total] = await oracle.estimateStrategy(eDTOP.address)
 	})
 })
