@@ -1,12 +1,12 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers, network, waffle } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
-import { increaseTime } from '../lib/utils'
+import { increaseTime, resetBlockchain, impersonate } from '../lib/utils'
 import {
 	deployOracle,
 	deployFullRouter,
@@ -29,14 +29,6 @@ const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
-
-async function impersonate(address: string): Promise<SignerWithAddress> {
-	await network.provider.request({
-		method: 'hardhat_impersonateAccount',
-		params: [address],
-	})
-	return await ethers.getSigner(address)
-}
 
 describe('Live Estimates', function () {
 	let accounts: SignerWithAddress[],
@@ -110,6 +102,8 @@ describe('Live Estimates', function () {
 	}
 
 	before('Setup Uniswap + Factory', async function () {
+		await resetBlockchain()
+
 		accounts = await getSigners()
 		// Impersonate owner
 		owner = await impersonate(ownerAddress)

@@ -1,6 +1,6 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers, waffle, network } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
@@ -26,17 +26,9 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
-import { increaseTime } from '../lib/utils'
+import { increaseTime, impersonate } from '../lib/utils'
 
 chai.use(solidity)
-
-async function impersonate(address: string): Promise<SignerWithAddress> {
-	await network.provider.request({
-		method: 'hardhat_impersonateAccount',
-		params: [address],
-	})
-	return await ethers.getSigner(address)
-}
 
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 	let platform: Platform,
