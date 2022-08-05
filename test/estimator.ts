@@ -6,7 +6,7 @@ import { EnsoBuilder, EnsoEnvironment } from '../lib/enso'
 import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, InitialState } from '../lib/encode'
-import { increaseTime } from '../lib/utils'
+import { increaseTime, resetBlockchain } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -18,7 +18,7 @@ const strategyState: InitialState = {
 	timelock: BigNumber.from(60),
 	rebalanceThreshold: BigNumber.from(50),
 	rebalanceSlippage: BigNumber.from(995),
-	restructureSlippage: BigNumber.from(980),
+	restructureSlippage: BigNumber.from(985),
 	managementFee: BigNumber.from(0),
 	social: true,
 	set: false,
@@ -47,6 +47,9 @@ describe('Estimator', function () {
 
 	before('Setup Enso + Estimator', async function () {
 		proofCounter = initializeTestLogging(this, __dirname)
+
+		await resetBlockchain()
+
 		accounts = await getSigners()
 		const owner = accounts[0]
 
@@ -117,15 +120,15 @@ describe('Estimator', function () {
 		const name = 'Synth Strategy'
 		const symbol = 'SYNTH'
 		const positions = [
-			//{ token: tokens.crv, percentage: BigNumber.from(400) },
+			{ token: tokens.crv, percentage: BigNumber.from(400) },
 			{
 				token: tokens.sUSD,
-				percentage: BigNumber.from(600),
+				percentage: BigNumber.from(0),
 				adapters: [uniswapV2AdapterAddress, curveAdapterAddress],
 				path: [tokens.usdc],
 			},
 			{ token: tokens.sBTC, percentage: BigNumber.from(400), adapters: [synthetixAdapterAddress], path: [] },
-			//{ token: tokens.sEUR, percentage: BigNumber.from(600), adapters: [synthetixAdapterAddress], path: [] },
+			{ token: tokens.sEUR, percentage: BigNumber.from(200), adapters: [synthetixAdapterAddress], path: [] },
 		]
 		const strategyItems = prepareStrategy(positions, uniswapV3AdapterAddress)
 
