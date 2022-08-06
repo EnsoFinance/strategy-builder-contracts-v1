@@ -58,6 +58,7 @@ describe('Reentrancy    ', function () {
 		await whitelist.connect(accounts[0]).approve(adapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'
@@ -124,6 +125,7 @@ describe('Reentrancy    ', function () {
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('fail to reenter deposit fn', async function () {
@@ -154,6 +156,7 @@ describe('Reentrancy    ', function () {
 				.connect(accounts[1])
 				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('fail to siphon tokens with settle swap', async function () {
@@ -204,5 +207,6 @@ describe('Reentrancy    ', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await tokens[1].balanceOf(accounts[1].address)).to.equal(token1Balance)
 		expect(await tokens[2].balanceOf(accounts[1].address)).to.equal(token2Balance)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

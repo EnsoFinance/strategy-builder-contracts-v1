@@ -106,10 +106,12 @@ describe('StrategyProxyAdmin', function () {
 		expect(await strategyFactory.implementation()).to.equal(newImplementation.address)
 		expect(ethers.BigNumber.from(await strategyFactory.version()).eq(MaxUint256.toString())).to.equal(true)
 		expect(await strategyAdmin.getProxyImplementation(strategy.address)).to.not.equal(newImplementation.address)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to upgrade strategy proxy: not manager', async function () {
 		await expect(strategyAdmin.connect(accounts[10]).upgrade(strategy.address)).to.be.revertedWith('Not manager')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to upgrade Strategy proxy: calling to strategy directly', async function () {
@@ -120,6 +122,7 @@ describe('StrategyProxyAdmin', function () {
 				'Strategy.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should upgrade strategy proxy', async function () {
@@ -128,17 +131,21 @@ describe('StrategyProxyAdmin', function () {
 		await strategyAdmin.connect(accounts[1]).upgrade(strategy.address)
 		expect(await strategyAdmin.getProxyImplementation(strategy.address)).to.equal(newImplementation.address)
 		expect(await strategy.version()).to.eq(factoryVersion)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to get implementation: not proxy admin', async function () {
 		await expect(newAdmin.getProxyImplementation(strategy.address)).to.be.revertedWith('')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to get proxy admin: not proxy admin', async function () {
 		await expect(newAdmin.getProxyAdmin(strategy.address)).to.be.revertedWith('')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get proxy admin', async function () {
 		expect(await strategyAdmin.getProxyAdmin(strategy.address)).to.equal(strategyAdmin.address)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })
