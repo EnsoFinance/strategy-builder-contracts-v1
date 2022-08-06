@@ -2,7 +2,7 @@ export function initializeTestLogging(_this : any, _dirname : string) : number {
     const __root = _dirname.replace('/test', '')
     let filepathArray = (_this.currentTest.file)?.split('/') as string[]
     require('fs').writeFileSync(__root+'/.convincer/'+filepathArray[filepathArray.length-1]+"_", "")
-    return 0 // to assign proofCounter on the same line
+    return 1 // to assign proofCounter on the same line, must start at "1" because of "cat -n" set in convincer
 }
 
 export function logTestComplete(_this : any, _dirname : string, proofCounter : number) {
