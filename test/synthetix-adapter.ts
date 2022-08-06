@@ -20,6 +20,7 @@ import {
 } from '../lib/deploy'
 import { isRevertedWith } from '../lib/errors'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import IAddressResolver from '../artifacts/contracts/interfaces/synthetix/IAddressResolver.sol/IAddressResolver.json'
@@ -30,6 +31,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('SynthetixAdapter', function () {
+	let proofCounter: number
 	let platform: Platform,
 		weth: Contract,
 		crv: Contract,
@@ -63,6 +65,7 @@ describe('SynthetixAdapter', function () {
 	}
 
 	before('Setup Synthetix, Uniswap, Curve, Enso', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -142,6 +145,7 @@ describe('SynthetixAdapter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: blocked token', async function () {

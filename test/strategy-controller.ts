@@ -12,6 +12,7 @@ import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/en
 import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/constants'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import {
 	Platform,
 	deployTokens,
@@ -31,6 +32,7 @@ const TIMELOCK = BigNumber.from(2592000) // 30 days
 chai.use(solidity)
 
 describe('StrategyController', function () {
+	let proofCounter: number
 	let tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
@@ -51,6 +53,7 @@ describe('StrategyController', function () {
 		newThreshold: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
@@ -72,6 +75,7 @@ describe('StrategyController', function () {
 	it('Should get implementation', async function () {
 		const implementation = await platform.administration.platformProxyAdmin.controllerImplementation()
 		expect(implementation).to.not.equal(AddressZero)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: threshold too high', async function () {

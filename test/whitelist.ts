@@ -3,11 +3,14 @@ const { ethers } = require('hardhat')
 const { getContractFactory, getSigners } = ethers
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 describe('Whitelist', function () {
+	let proofCounter: number
 	let accounts: SignerWithAddress[], whitelist: Contract
 
 	before('Deploy Whitelist', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		const Whitelist = await getContractFactory('Whitelist')
 		whitelist = await Whitelist.connect(accounts[0]).deploy()
@@ -17,6 +20,7 @@ describe('Whitelist', function () {
 	it('Should add to whitelist', async function () {
 		await whitelist.approve(accounts[1].address)
 		expect(await whitelist.approved(accounts[1].address)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add to whitelist: already approved', async function () {

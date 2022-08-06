@@ -15,6 +15,7 @@ import {
 	deployLoopRouter,
 } from '../lib/deploy'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
@@ -33,6 +34,7 @@ const STRATEGY_STATE: InitialState = {
 }
 
 describe('StrategyController - Social', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -50,6 +52,7 @@ describe('StrategyController - Social', function () {
 		wrapper: Contract
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -97,6 +100,7 @@ describe('StrategyController - Social', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more', async function () {

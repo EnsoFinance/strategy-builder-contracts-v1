@@ -31,6 +31,7 @@ import {
 import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -43,6 +44,7 @@ export type BuyLoop = {
 }
 
 describe('MulticallRouter', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -60,6 +62,7 @@ describe('MulticallRouter', function () {
 		wrapper: Contract
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -140,6 +143,7 @@ describe('MulticallRouter', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {

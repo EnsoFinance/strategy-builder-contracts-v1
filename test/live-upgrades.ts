@@ -5,6 +5,7 @@ import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { isRevertedWith } from '../lib/errors'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
@@ -21,6 +22,7 @@ async function impersonate(address: string): Promise<SignerWithAddress> {
 }
 
 describe('Live Upgrades', function () {
+	let proofCounter: number
 	let accounts: SignerWithAddress[],
 		manager: SignerWithAddress,
 		controller: Contract,
@@ -29,6 +31,7 @@ describe('Live Upgrades', function () {
 		eDPI: Contract
 
 	before('Setup contracts', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 
 		const enso = getLiveContracts(accounts[0])
@@ -92,5 +95,6 @@ describe('Live Upgrades', function () {
 
 		const tradeDataAfter = await eDPI.getTradeData(items[0])
 		expect(tradeDataAfter.adapters[0]).to.deep.equal(AddressZero)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

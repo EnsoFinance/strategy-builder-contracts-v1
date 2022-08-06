@@ -4,6 +4,7 @@ import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Tokens } from '../lib/tokens'
 import { MAINNET_ADDRESSES } from '../lib/constants'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -11,7 +12,9 @@ const { AddressZero, WeiPerEther } = constants
 let accounts: SignerWithAddress[], owner: SignerWithAddress, oracle: Contract, registry: Contract, tokens: Tokens
 
 describe('ChainlinkOracle', function () {
+	let proofCounter: number
 	before('Setup Oracle', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[0]
 
@@ -41,6 +44,7 @@ describe('ChainlinkOracle', function () {
 					[true, false, false]
 				)
 		).to.be.revertedWith('Ownable: caller is not the owner')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should add pairs', async function () {

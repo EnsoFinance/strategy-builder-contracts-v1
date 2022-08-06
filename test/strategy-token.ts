@@ -18,11 +18,13 @@ import {
 	deployLoopRouter,
 } from '../lib/deploy'
 import { isRevertedWith } from '../lib/errors'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const NUM_TOKENS = 15
 
 chai.use(solidity)
 describe('StrategyToken', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -40,6 +42,7 @@ describe('StrategyToken', function () {
 		total: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -107,6 +110,7 @@ describe('StrategyToken', function () {
 		;[total] = await oracle.estimateStrategy(strategy.address)
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get name', async function () {
@@ -177,16 +181,6 @@ describe('StrategyToken', function () {
 		await strategy.connect(accounts[1]).updateManager(accounts[2].address)
 		expect(await strategy.manager()).to.equal(accounts[2].address)
 	})
-	/*
-	  it('Should fail to renounce ownership: not owner', async function() {
-	    await expect(strategy.connect(accounts[1]).renounceOwnership()).to.be.revertedWith()
-	  })
-
-	  it('Should renounce ownership', async function() {
-	    await strategy.connect(accounts[2]).renounceOwnership()
-	    expect(await strategy.owner()).to.equal(AddressZero)
-	  })
-	  */
 
 	it('Should fail to permit: signer not owner', async function () {
 		const owner = accounts[2]

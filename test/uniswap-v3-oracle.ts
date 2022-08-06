@@ -10,6 +10,7 @@ const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const { deployTokens, deployUniswapV3 } = require('../lib/deploy')
 const { encodePath } = require('../lib/encode')
 const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline } = require('../lib/utils')
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 const { UNI_V3_FEE } = require('../lib/constants')
 
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
@@ -75,7 +76,9 @@ async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 }
 
 describe('UniswapV3Oracle', function () {
+	let proofCounter: number
 	before('Setup Uniswap V3 + Oracle', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		trader = accounts[7]
 		// Need to deploy these tokens before WETH to get the correct arrangement of token address where some are bigger and some smaller (for sorting)
@@ -127,6 +130,7 @@ describe('UniswapV3Oracle', function () {
 		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
 		expect(pool).to.equal(await uniswapV3Factory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get empty pool', async function () {

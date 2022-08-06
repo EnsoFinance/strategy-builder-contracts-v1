@@ -23,10 +23,12 @@ import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Fact
 import IDMMFactory from '../artifacts/contracts/interfaces/kyber/IDMMFactory.sol/IDMMFactory.json'
 import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.sol/IDMMRouter02.json'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 
 describe('KyberSwapAdapter', function () {
+	let proofCounter: number
 	let platform: Platform,
 		weth: Contract,
 		dai: Contract,
@@ -47,6 +49,7 @@ describe('KyberSwapAdapter', function () {
 		tokens: Tokens
 
 	before('Setup Kyber + factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = new Tokens()
@@ -125,6 +128,7 @@ describe('KyberSwapAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {

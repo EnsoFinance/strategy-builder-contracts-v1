@@ -27,6 +27,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 
@@ -39,6 +40,7 @@ async function impersonate(address: string): Promise<SignerWithAddress> {
 }
 
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
+	let proofCounter: number
 	let platform: Platform,
 		weth: Contract,
 		crv: Contract,
@@ -66,6 +68,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		tokens: Tokens
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -315,6 +318,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 				tradeData,
 				AddressZero
 			)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {

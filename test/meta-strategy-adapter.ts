@@ -32,6 +32,7 @@ import {
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const NUM_TOKENS = 15
 const STRATEGY_STATE: InitialState = {
@@ -47,6 +48,7 @@ const STRATEGY_STATE: InitialState = {
 chai.use(solidity)
 
 describe('MetaStrategyAdapter', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -72,6 +74,7 @@ describe('MetaStrategyAdapter', function () {
 		metaMetaWrapper: Contract
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -129,6 +132,7 @@ describe('MetaStrategyAdapter', function () {
 		await basicWrapper.deployed()
 
 		expect(await basicWrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy meta strategy', async function () {

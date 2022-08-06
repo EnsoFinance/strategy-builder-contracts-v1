@@ -7,6 +7,7 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, InitialState } from '../lib/encode'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
@@ -24,6 +25,7 @@ const strategyState: InitialState = {
 }
 
 describe('Estimator', function () {
+	let proofCounter: number
 	let accounts: SignerWithAddress[],
 		enso: EnsoEnvironment,
 		tokens: Tokens,
@@ -44,6 +46,7 @@ describe('Estimator', function () {
 		yearnV2AdapterAddress: string
 
 	before('Setup Enso + Estimator', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		const owner = accounts[0]
 
@@ -145,6 +148,7 @@ describe('Estimator', function () {
 
 		const [total] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
 		console.log('Actual deposit value: ', total.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit', async function () {

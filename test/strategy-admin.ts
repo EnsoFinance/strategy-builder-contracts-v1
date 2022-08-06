@@ -14,6 +14,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { MaxUint256, WeiPerEther, AddressZero } = constants
 import { isRevertedWith } from '../lib/errors'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -22,6 +23,7 @@ chai.use(solidity)
 const NUM_TOKENS = 15
 
 describe('StrategyProxyAdmin', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -39,6 +41,7 @@ describe('StrategyProxyAdmin', function () {
 		strategyItems: StrategyItem[]
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -90,6 +93,7 @@ describe('StrategyProxyAdmin', function () {
 		let receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		strategy = Strategy.attach(strategyAddress)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update implementation to version uint256.max()', async function () {

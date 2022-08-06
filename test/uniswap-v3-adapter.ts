@@ -9,6 +9,7 @@ const { WeiPerEther, AddressZero } = constants
 import { deployTokens, deployUniswapV3, deployUniswapV3Adapter, deployLoopRouter } from '../lib/deploy'
 import { encodePath, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { increaseTime, getDeadline } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/constants'
 import { createLink, linkBytecode } from '../lib/link'
 
@@ -69,7 +70,9 @@ async function exactInput(tokens: string[], amountIn: number, amountOutMinimum: 
 }
 
 describe('UniswapV3Adapter', function () {
+	let proofCounter: number
 	before('Setup Uniswap V3 + Platform', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[5]
 		trader = accounts[6]
@@ -186,6 +189,7 @@ describe('UniswapV3Adapter', function () {
 		for (let i = 1; i < tokens.length; i++) {
 			await uniswapRegistry.addPool(tokens[i].address, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)
 		}
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {

@@ -19,6 +19,7 @@ import {
 	deployLoopRouter,
 } from '../lib/deploy'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 
 const NUM_TOKENS = 15
@@ -26,6 +27,7 @@ const YEAR = 331556952
 
 chai.use(solidity)
 describe('StrategyToken Fees', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -55,6 +57,7 @@ describe('StrategyToken Fees', function () {
 	}
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[10]
 		manager = accounts[1]
@@ -120,6 +123,7 @@ describe('StrategyToken Fees', function () {
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should progress blocks and collect streaming fee', async function () {

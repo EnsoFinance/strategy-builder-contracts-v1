@@ -16,6 +16,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getSigners } = ethers
 const { AddressZero, MaxUint256, WeiPerEther } = constants
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const chai = require('chai')
 import { solidity } from 'ethereum-waffle'
@@ -24,6 +25,7 @@ chai.use(solidity)
 const NUM_TOKENS = 15
 
 describe('StrategyProxyFactory', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -44,6 +46,7 @@ describe('StrategyProxyFactory', function () {
 		newImplementationAddress: string
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -102,6 +105,7 @@ describe('StrategyProxyFactory', function () {
 		let receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		strategy = Strategy.attach(strategyAddress)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: already exists', async function () {

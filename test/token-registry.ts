@@ -14,12 +14,15 @@ import { Platform, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } fr
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 chai.use(solidity)
 
 describe('TokenRegistry', function () {
+	let proofCounter: number
 	let platform: Platform
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		this.accounts = await getSigners()
 		this.tokens = new Tokens()
 		this.weth = new Contract(this.tokens.weth, WETH9.abi, this.accounts[0])
@@ -61,6 +64,7 @@ describe('TokenRegistry', function () {
 		const newEnum = ESTIMATOR_CATEGORY.YEARN_V2 + 1
 		await this.factory.addEstimatorToRegistry(newEnum, estimator)
 		await this.factory.addItemToRegistry(ITEM_CATEGORY.BASIC, newEnum, this.tokens.usdt)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {

@@ -24,10 +24,12 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const NUM_TOKENS = 4
 
 describe('Flash Loan', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -45,6 +47,10 @@ describe('Flash Loan', function () {
 		uniswapAdapter: Contract,
 		strategy: Contract,
 		wrapper: Contract
+
+	before('Setup', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
+  })
 
 	it('Setup Uniswap, Sushiswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
@@ -64,6 +70,7 @@ describe('Flash Loan', function () {
 		await whitelist.connect(accounts[0]).approve(sushiAdapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {

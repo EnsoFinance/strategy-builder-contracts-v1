@@ -7,6 +7,7 @@ import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import {
 	deployOracle,
 	deployFullRouter,
@@ -39,6 +40,7 @@ async function impersonate(address: string): Promise<SignerWithAddress> {
 }
 
 describe('Live Estimates', function () {
+	let proofCounter: number
 	let accounts: SignerWithAddress[],
 		owner: SignerWithAddress,
 		estimator: Estimator,
@@ -115,6 +117,7 @@ describe('Live Estimates', function () {
 	}
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		// Impersonate owner
 		owner = await impersonate(ownerAddress)
@@ -345,6 +348,7 @@ describe('Live Estimates', function () {
 		await expect(
 			eDPI.initialize('anyName', 'anySymbol', 'anyVersion', someMaliciousAddress, [])
 		).to.be.revertedWith('Initializable: contract is already initialized')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eETH2X', async function () {

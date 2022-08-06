@@ -24,10 +24,12 @@ import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 
 describe('Experimental Strategy', function () {
+	let proofCounter: number
 	let platform: Platform,
 		weth: Contract,
 		crv: Contract,
@@ -49,6 +51,7 @@ describe('Experimental Strategy', function () {
 		tokens: Tokens
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -145,6 +148,7 @@ describe('Experimental Strategy', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
