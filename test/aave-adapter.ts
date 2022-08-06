@@ -933,5 +933,6 @@ describe('AaveAdapter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

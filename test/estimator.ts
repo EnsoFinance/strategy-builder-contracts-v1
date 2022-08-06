@@ -162,6 +162,7 @@ describe('Estimator', function () {
 			.deposit(strategy.address, routerAddress, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy lending strategy', async function () {
@@ -208,6 +209,7 @@ describe('Estimator', function () {
 
 		const [total] = await enso.platform.oracles.ensoOracle.estimateStrategy(strategy.address)
 		console.log('Actual deposit value: ', total.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw', async function () {
@@ -226,6 +228,7 @@ describe('Estimator', function () {
 			.withdrawWETH(strategy.address, routerAddress, withdrawAmount, slippage, '0x')
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy meta strategy', async function () {
@@ -262,6 +265,7 @@ describe('Estimator', function () {
 
 		const [total] = await enso.platform.oracles.ensoOracle.estimateStrategy(metaStrategy.address)
 		console.log('Actual deposit value: ', total.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw', async function () {
@@ -281,5 +285,6 @@ describe('Estimator', function () {
 			.withdrawWETH(metaStrategy.address, routerAddress, withdrawAmount, slippage, '0x')
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

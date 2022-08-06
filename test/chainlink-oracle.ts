@@ -61,16 +61,19 @@ describe('ChainlinkOracle', function () {
 				],
 				[true, false, false]
 			)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to remove pair: not owner', async function () {
 		await expect(registry.connect(accounts[1]).removeOracle(tokens.sLINK)).to.be.revertedWith(
 			'Ownable: caller is not the owner'
 		)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should remove pair', async function () {
 		await registry.connect(owner).removeOracle(tokens.sLINK)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add single pair: not owner', async function () {
@@ -79,36 +82,43 @@ describe('ChainlinkOracle', function () {
 				.connect(accounts[1])
 				.addOracle(tokens.sLINK, MAINNET_ADDRESSES.WETH, '0xDC530D9457755926550b59e8ECcdaE7624181557', false)
 		).to.be.revertedWith('Ownable: caller is not the owner')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should add single pair', async function () {
 		await registry
 			.connect(owner)
 			.addOracle(tokens.sLINK, MAINNET_ADDRESSES.WETH, '0xDC530D9457755926550b59e8ECcdaE7624181557', false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: weth', async function () {
 		const amount = WeiPerEther
 		expect((await oracle.consult(amount, MAINNET_ADDRESSES.WETH)).eq(amount)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: no amount', async function () {
 		const amount = 0
 		expect((await oracle.consult(amount, AddressZero)).eq(amount)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: sEUR', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens.sEUR)
 		console.log('Price: ', price.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: sUSD', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens.sUSD)
 		console.log('Price: ', price.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: sLINK', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens.sLINK)
 		console.log('Price: ', price.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

@@ -101,10 +101,12 @@ describe('ControllerLibrary', function () {
 	it('Should not have ETH token value', async function () {
 		const value = await wrapper.getTokenValue(AddressZero)
 		expect(value.eq(0)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should return range of 0', async function () {
 		const value = await wrapper.getRange(100, 0)
 		expect(value.eq(0)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

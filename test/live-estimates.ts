@@ -361,6 +361,7 @@ describe('Live Estimates', function () {
 			.deposit(eETH2X.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eETH2X.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eETH2X', async function () {
@@ -381,6 +382,7 @@ describe('Live Estimates', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eDPI', async function () {
@@ -393,6 +395,7 @@ describe('Live Estimates', function () {
 			.deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eDPI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eDPI', async function () {
@@ -413,6 +416,7 @@ describe('Live Estimates', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eYETI', async function () {
@@ -426,6 +430,7 @@ describe('Live Estimates', function () {
 			.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eYETI', async function () {
@@ -446,6 +451,7 @@ describe('Live Estimates', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eYLA', async function () {
@@ -459,6 +465,7 @@ describe('Live Estimates', function () {
 			.deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eYLA.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eYLA', async function () {
@@ -479,6 +486,7 @@ describe('Live Estimates', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eNFTP', async function () {
@@ -492,6 +500,7 @@ describe('Live Estimates', function () {
 			.deposit(eNFTP.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eNFTP.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eNFTP', async function () {
@@ -512,5 +521,6 @@ describe('Live Estimates', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

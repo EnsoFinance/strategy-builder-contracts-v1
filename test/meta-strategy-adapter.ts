@@ -458,5 +458,6 @@ describe('MetaStrategyAdapter', function () {
 		console.log('Stolen value: ', addedValue.sub(depositAmount).toString());
 		expect(addedValue.gt(depositAmount)).to.equal(true)
 		*/
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

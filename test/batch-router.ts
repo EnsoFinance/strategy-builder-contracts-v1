@@ -189,5 +189,6 @@ describe('BatchDepositRouter', function () {
 		await expect(
 			controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Restructure not supported')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

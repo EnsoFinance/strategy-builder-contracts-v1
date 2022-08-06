@@ -109,6 +109,7 @@ describe('CompoundAdapter', function () {
 				tradeData,
 				AddressZero
 			)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -184,6 +185,7 @@ describe('CompoundAdapter', function () {
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -193,6 +195,7 @@ describe('CompoundAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -205,6 +208,7 @@ describe('CompoundAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -214,6 +218,7 @@ describe('CompoundAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more: ETH', async function () {
@@ -229,6 +234,7 @@ describe('CompoundAdapter', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should claim rewards', async function () {
@@ -238,5 +244,6 @@ describe('CompoundAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await comp.balanceOf(strategy.address)
 		expect(balanceAfter).to.be.gt(balanceBefore)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

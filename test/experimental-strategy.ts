@@ -158,6 +158,7 @@ describe('Experimental Strategy', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -171,6 +172,7 @@ describe('Experimental Strategy', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -182,6 +184,7 @@ describe('Experimental Strategy', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw', async function () {
@@ -196,5 +199,6 @@ describe('Experimental Strategy', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })
