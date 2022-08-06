@@ -185,6 +185,7 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with HighDecimals token', async function () {
@@ -217,6 +218,7 @@ describe('Weird ERC20s', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance HighDecimals strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -231,6 +233,7 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with LowDecimals token', async function () {
@@ -263,6 +266,7 @@ describe('Weird ERC20s', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance LowDecimals strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -277,6 +281,7 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with RevertToZero token', async function () {
@@ -309,6 +314,7 @@ describe('Weird ERC20s', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance RevertToZero strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -323,6 +329,7 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with RevertZero token', async function () {
@@ -355,6 +362,7 @@ describe('Weird ERC20s', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance RevertZero strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -369,6 +377,7 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with TransferFee token', async function () {
@@ -401,6 +410,7 @@ describe('Weird ERC20s', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance TransferFeeToken strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -415,6 +425,7 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with Uint96 token', async function () {
@@ -447,6 +458,7 @@ describe('Weird ERC20s', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance Uint96Token strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -461,5 +473,6 @@ describe('Weird ERC20s', function () {
 		// Rebalance
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

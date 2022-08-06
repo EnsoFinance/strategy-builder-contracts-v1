@@ -174,6 +174,7 @@ describe('SynthetixAdapter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -228,6 +229,7 @@ describe('SynthetixAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: meta cannot support synths', async function () {
@@ -254,6 +256,7 @@ describe('SynthetixAdapter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdrawAll on a portion of tokens', async function () {
@@ -265,6 +268,7 @@ describe('SynthetixAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const tokenBalanceAfter = await seur.balanceOf(strategy.address)
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -278,12 +282,14 @@ describe('SynthetixAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw synths into reserve', async function () {
 		await increaseTime(600)
 		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -293,6 +299,7 @@ describe('SynthetixAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update SUSD trade data', async function () {
@@ -316,6 +323,7 @@ describe('SynthetixAdapter', function () {
 
 		let [adaptersAfter] = await strategy.getTradeData(tokens.sUSD)
 		expect(adaptersAfter.length).to.be.equal(1)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -328,12 +336,14 @@ describe('SynthetixAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw synths into reserve', async function () {
 		await increaseTime(600)
 		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -343,6 +353,7 @@ describe('SynthetixAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -359,6 +370,7 @@ describe('SynthetixAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -366,12 +378,14 @@ describe('SynthetixAdapter', function () {
 		await controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		await increaseTime(600)
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to reposition synths into susd: within waiting period', async function () {
 		await expect(
 			controller.connect(accounts[1]).repositionSynths(strategy.address, susd.address)
 		).to.be.revertedWith('Cannot settle during waiting period')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to reposition susd into synths: unsupported address', async function () {
@@ -379,6 +393,7 @@ describe('SynthetixAdapter', function () {
 		await expect(
 			controller.connect(accounts[1]).repositionSynths(strategy.address, tokens.sEUR)
 		).to.be.revertedWith('Unsupported token')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should reposition synths into susd and back', async function () {
@@ -393,6 +408,7 @@ describe('SynthetixAdapter', function () {
 			.repositionSynths(strategy.address, '0xffffffffffffffffffffffffffffffffffffffff')
 
 		expect(await susd.balanceOf(strategy.address)).to.be.equal(0)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -407,6 +423,7 @@ describe('SynthetixAdapter', function () {
 		]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -415,5 +432,6 @@ describe('SynthetixAdapter', function () {
 		await increaseTime(600)
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		expect((await strategy.synths()).length).to.be.equal(0)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

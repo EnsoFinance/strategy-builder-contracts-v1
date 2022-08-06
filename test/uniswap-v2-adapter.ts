@@ -47,6 +47,7 @@ describe('UniswapV2Adapter', function () {
 				accounts[0].address
 			)
 		).to.be.revertedWith('Insufficient tokenOut amount')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token for token', async function () {
@@ -59,5 +60,6 @@ describe('UniswapV2Adapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

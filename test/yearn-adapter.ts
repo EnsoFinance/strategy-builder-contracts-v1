@@ -167,6 +167,7 @@ describe('YEarnV2Adapter', function () {
 
 		//await displayBalances(wrapper, strategyTokens, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -175,6 +176,7 @@ describe('YEarnV2Adapter', function () {
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -185,6 +187,7 @@ describe('YEarnV2Adapter', function () {
 			.connect(accounts[19])
 			.swap(value, 0, crv.address, weth.address, accounts[19].address, accounts[19].address)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -193,5 +196,6 @@ describe('YEarnV2Adapter', function () {
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

@@ -44,6 +44,7 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 		await expect(
 			adapter.swap(amount, MaxUint256, weth.address, cream.address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Insufficient tokenOut amount')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token for token', async function () {
@@ -57,5 +58,6 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 		const creamBalanceAfter = await cream.balanceOf(accounts[0].address)
 		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
 		expect(creamBalanceBefore.lt(creamBalanceAfter)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

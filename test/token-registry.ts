@@ -106,6 +106,7 @@ describe('TokenRegistry', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await this.wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Only owner can call', async function () {
@@ -117,6 +118,7 @@ describe('TokenRegistry', function () {
 				.connect(this.accounts[5].address)
 				.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
 		).to.be.revertedWith('Not owner')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should add a batch of tokens', async function () {
@@ -134,6 +136,7 @@ describe('TokenRegistry', function () {
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
 		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should change estimator categories on a batch of tokens', async function () {
@@ -151,6 +154,7 @@ describe('TokenRegistry', function () {
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.CURVE_GAUGE)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
 		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it("Should fail if array lengths don't match", async function () {
@@ -166,5 +170,6 @@ describe('TokenRegistry', function () {
 		await expect(this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)).to.be.revertedWith(
 			'Mismatched array lengths'
 		)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

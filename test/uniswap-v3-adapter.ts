@@ -236,11 +236,13 @@ describe('UniswapV3Adapter', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap on uniswap, requiring rebalance', async function () {
 		await exactInput([weth.address, tokens[1].address], WeiPerEther.mul(20), 0)
 		await increaseTime(60)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should check oracle price', async function () {
@@ -252,6 +254,7 @@ describe('UniswapV3Adapter', function () {
 		const oraclePrice = await uniswapOracle.consult(WeiPerEther, tokens[1].address)
 		console.log('Oracle Price: ', oraclePrice.toString())
 		expect(oraclePrice.gt(0)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -261,12 +264,14 @@ describe('UniswapV3Adapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyTokens, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap on uniswap, requiring rebalance', async function () {
 		const balance = await tokens[1].balanceOf(trader.address)
 		await exactInput([weth.address, tokens[1].address], balance, 0)
 		await increaseTime(60)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -276,5 +281,6 @@ describe('UniswapV3Adapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyTokens, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })
