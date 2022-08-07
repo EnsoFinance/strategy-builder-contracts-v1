@@ -65,7 +65,6 @@ describe('BatchDepositRouter', function () {
 		const token2Balance = await tokens[2].balanceOf(accounts[0].address)
 		await tokens[1].connect(accounts[0]).transfer(accounts[1].address, token1Balance)
 		await tokens[2].connect(accounts[0]).transfer(accounts[1].address, token2Balance)
-    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, causing price disparity', async function () {

@@ -95,7 +95,6 @@ describe('ControllerLibrary', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should not have ETH token value', async function () {

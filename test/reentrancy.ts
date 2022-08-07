@@ -58,7 +58,6 @@ describe('Reentrancy    ', function () {
 		await whitelist.connect(accounts[0]).approve(adapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
-    logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should deploy strategy', async function () {
 		const name = 'Test Strategy'

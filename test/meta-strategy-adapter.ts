@@ -179,6 +179,7 @@ describe('MetaStrategyAdapter', function () {
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy meta strategy: reentry', async function () {
@@ -204,6 +205,7 @@ describe('MetaStrategyAdapter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy a meta meta strategy', async function () {
@@ -243,6 +245,7 @@ describe('MetaStrategyAdapter', function () {
 			controller.address
 		)
 		await metaMetaWrapper.deployed()
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of basic strategy and meta strategy', async function () {
@@ -256,6 +259,7 @@ describe('MetaStrategyAdapter', function () {
 		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(false)
 		expect(await basicWrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy: selling basic strategy tokens', async function () {
@@ -269,6 +273,7 @@ describe('MetaStrategyAdapter', function () {
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.lt(balanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy: selling meta strategy tokens', async function () {
@@ -285,6 +290,7 @@ describe('MetaStrategyAdapter', function () {
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		expect(await metaMetaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.lt(balanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, causing reduction in basic strategy value', async function () {
@@ -296,6 +302,7 @@ describe('MetaStrategyAdapter', function () {
 			.swap(value, 0, tokens[2].address, weth.address, accounts[0].address, accounts[0].address)
 		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy: buying basic strategy tokens', async function () {
@@ -308,6 +315,7 @@ describe('MetaStrategyAdapter', function () {
 		////await displayBalances(wrapper, strategyTokens, weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate all strategies', async function () {
@@ -320,6 +328,7 @@ describe('MetaStrategyAdapter', function () {
 		estimates.forEach((estimate: BigNumber) => {
 			expect(estimate.gt(0)).to.equal(true)
 		})
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap to weth with MetaStrategyAdapter: no strategy token', async function () {
@@ -330,6 +339,7 @@ describe('MetaStrategyAdapter', function () {
 				.connect(accounts[2])
 				.swap(value, 0, tokens[1].address, weth.address, accounts[2].address, accounts[2].address)
 		).to.be.revertedWith('')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap from weth with MetaStrategyAdapter: no strategy token', async function () {
@@ -341,6 +351,7 @@ describe('MetaStrategyAdapter', function () {
 				.connect(accounts[2])
 				.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		).to.be.revertedWith('')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap from weth with MetaStrategyAdapter: tokens match', async function () {
@@ -350,6 +361,7 @@ describe('MetaStrategyAdapter', function () {
 				.connect(accounts[2])
 				.swap(value, 0, weth.address, weth.address, accounts[2].address, accounts[2].address)
 		).to.be.revertedWith('Tokens cannot match')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap from weth with MetaStrategyAdapter: no weth', async function () {
@@ -359,6 +371,7 @@ describe('MetaStrategyAdapter', function () {
 				.connect(accounts[2])
 				.swap(value, 0, tokens[1].address, basicStrategy.address, accounts[2].address, accounts[2].address)
 		).to.be.revertedWith('No WETH')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap from weth with MetaStrategyAdapter: insufficient', async function () {
@@ -368,6 +381,7 @@ describe('MetaStrategyAdapter', function () {
 				.connect(accounts[2])
 				.swap(value, MaxUint256, weth.address, basicStrategy.address, accounts[2].address, accounts[2].address)
 		).to.be.revertedWith('Insufficient tokenOut amount')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap for meta token using MetaStrategyAdapter', async function () {
@@ -382,6 +396,7 @@ describe('MetaStrategyAdapter', function () {
 		//await displayBalances(metaWrapper, metaStrategyItems.map((item) => item.item), weth)
 		const balanceAfter = await metaStrategy.balanceOf(accounts[2].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should attempt steal from metaStrategy using basicStrategy + multicallRouter', async function () {

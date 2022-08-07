@@ -93,7 +93,6 @@ describe('StrategyProxyAdmin', function () {
 		let receipt = await tx.wait()
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
 		strategy = Strategy.attach(strategyAddress)
-    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update implementation to version uint256.max()', async function () {

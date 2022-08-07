@@ -65,7 +65,6 @@ describe('StrategyToken', function () {
 		)
 		await strategyImplementation.deployed()
 		await strategyFactory.connect(accounts[10]).updateImplementation(strategyImplementation.address, '2')
-    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {

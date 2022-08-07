@@ -109,7 +109,6 @@ describe('CompoundAdapter', function () {
 				tradeData,
 				AddressZero
 			)
-    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {

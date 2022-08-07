@@ -31,7 +31,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 chai.use(solidity)
 
 describe('SynthetixAdapter', function () {
-	//let proofCounter: number
+	let proofCounter: number
 	let platform: Platform,
 		weth: Contract,
 		crv: Contract,

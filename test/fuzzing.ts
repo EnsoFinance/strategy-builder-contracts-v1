@@ -31,5 +31,6 @@ describe('Fuzzing Libraries', function () {
 		const tx = await testBinaryTree.connect(accounts[0]).fuzzBinaryTreeWithPayloadReadInto()
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })
