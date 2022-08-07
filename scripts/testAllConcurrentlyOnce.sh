@@ -24,8 +24,11 @@ else
 fi
 
 writeTestLog() {
-    git rev-parse HEAD~1 > .convincer/testreport.txt
-    cat .convincer/* | sort | sha256sum | awk '{ print $1 }' >> .convincer/testreport.txt
+    touch .convincer/testreport.txt
+    rm .convincer/testreport.txt
+    reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
+    git rev-parse HEAD > .convincer/testreport.txt
+    echo $reportHash >> .convincer/testreport.txt
 }
 
 if [ -z "$testFiles" ]; then

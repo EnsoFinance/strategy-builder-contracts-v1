@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# FIXME git commit idx's could be one later!!
-
 getProofFromTest() {
     echo "$1"
 }
@@ -42,7 +40,7 @@ main() {
 }
 
 debug() {
-    lastGitCommitHash=$(git rev-parse HEAD~1)
+    lastGitCommitHash=$(git rev-parse HEAD)
     testFile=$(echo "$1" | sed 's/test\///')  
     testFiles=$(ls test)
     for file in $testFiles; do
@@ -71,7 +69,7 @@ debug() {
 }
 
 localRun() {
-    lastGitCommitHash=$(git rev-parse HEAD~1)
+    lastGitCommitHash=$(git rev-parse HEAD)
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
