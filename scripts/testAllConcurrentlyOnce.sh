@@ -23,8 +23,13 @@ else
     testFiles=$(cat .notTested.txt)
 fi
 
+writeTestLog() {
+    cat .convincer/* | sort | sha256sum | awk '{ print $1 }' > .convincer/testreport.txt
+}
+
 if [ -z "$testFiles" ]; then
     echo "no files to test"
+    writeTestLog
     exit 0
 fi
 
@@ -58,6 +63,10 @@ for file in $testFiles; do
     if [ $timeLapsed -lt 0 ]; then
        echo $file >> $notTestedFilename
     fi
+done
+
+if [ $exitCode == 0 ]; do
+    writeTestLog
 done
 
 exit $exitCode
