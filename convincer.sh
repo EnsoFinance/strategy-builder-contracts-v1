@@ -25,12 +25,17 @@ export -f getProofsFromFile
 main() {
 
     lastGitCommitHash=$(cat .git/logs/HEAD | tail -2 | head -1 | awk '{ print $1 }')
+
+    #debug
+    cat .git/logs/HEAD
+    echo $lastGitCommandHash
+
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
 
-    touch .convincer/testreport.txt
     reportHash=$(cat .convincer/testreport.txt)
+    echo $reportHash
 
     if [ "$reportHash" == "$expectedHash" ]; then
         echo "convincing."
