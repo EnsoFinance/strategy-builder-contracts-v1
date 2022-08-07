@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# FIXME must be commit before
+# FIXME git commit idx's could be one later!!
 
 getProofFromTest() {
     echo "$1"
@@ -24,18 +24,13 @@ export -f getProofsFromFile
 
 main() {
 
-    lastGitCommitHash=$(git rev-parse HEAD~2)
-
-    #debug
-    cat .git/logs/HEAD
-    echo $lastGitCommandHash
+    lastGitCommitHash=$(cat .convincer/testreport.txt | head -1)
 
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
 
-    reportHash=$(cat .convincer/testreport.txt)
-    echo $reportHash
+    reportHash=$(cat .convincer/testreport.txt | tail -1)
 
     if [ "$reportHash" == "$expectedHash" ]; then
         echo "convincing."
@@ -47,7 +42,6 @@ main() {
 }
 
 debug() {
-    #lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
     lastGitCommitHash=$(git rev-parse HEAD~1)
     testFile=$(echo "$1" | sed 's/test\///')  
     testFiles=$(ls test)
@@ -77,17 +71,16 @@ debug() {
 }
 
 localRun() {
-
-    #lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
     lastGitCommitHash=$(git rev-parse HEAD~1)
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
 
     touch .convincer/testreport.txt
+    testReport=$(cat .convincer/testreport.txt)
     rm .convincer/testreport.txt
     reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
-    echo "$reportHash" > .convincer/testreport.txt
+    echo "$testReport" > .convincer/testreport.txt
 
     if [ "$reportHash" == "$expectedHash" ]; then
         echo "convincing."
