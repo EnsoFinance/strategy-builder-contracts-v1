@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# FIXME must be commit before
+
 getProofFromTest() {
     echo "$1"
 }
@@ -19,10 +21,10 @@ export -f getProofsFromFile
 
 # by the sort step should all be unique since H(idxWithinFile, filename, testName)
 
-lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
 
 main() {
 
+    lastGitCommitHash=$(cat .git/logs/HEAD | tail -2 | head -1 | awk '{ print $1 }')
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
@@ -40,6 +42,7 @@ main() {
 }
 
 debug() {
+    lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
     testFile=$(echo "$1" | sed 's/test\///')  
     testFiles=$(ls test)
     for file in $testFiles; do
@@ -69,6 +72,7 @@ debug() {
 
 localRun() {
 
+    lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
@@ -89,9 +93,12 @@ localRun() {
 
 help() {
     echo "help:"
+    echo "  The workflow is after a passing commit, run ./convincer.sh -local"
+    echo "  if 'convincing' then add commit, and push .convincer/testreport.txt."
+    echo "  The ci then will run ./convincer.sh without a flag"
+    echo ""
     echo "  to run in debugging mode or localRun"
     echo "  ./convincer.sh -debug"
-    echo "  ./convincer.sh -localRun"
     echo ""
     echo "troubleshooting:"
     echo "  be sure 2nd to last git commit matches those in .convincer/*"
