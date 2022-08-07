@@ -80,6 +80,9 @@ help() {
     echo "  or ./scripts/testAllConcurrently."
     echo ""
     echo "  be sure to commit and push .convincer/testreport.txt"
+    echo ""
+    echo "  commented out tests must have 'convincer-ignore' as comment in same"
+    echo "  line as it('Should..',... clause."
     exit 0
 }
 

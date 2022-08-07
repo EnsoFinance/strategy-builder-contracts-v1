@@ -65,8 +65,8 @@ for file in $testFiles; do
     fi
 done
 
-if [ $exitCode == 0 ]; do
+if [ $exitCode == 0 ]; then 
     writeTestLog
-done
+fi
 
 exit $exitCode
