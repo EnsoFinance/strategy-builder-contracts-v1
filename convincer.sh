@@ -28,9 +28,7 @@ main() {
       | sort | sha256sum | awk '{ print $1 }')
 
     touch .convincer/testreport.txt
-    rm .convincer/testreport.txt
-    reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
-    echo "$reportHash" > .convincer/testreport.txt
+    reportHash=$(cat .convincer/testreport.txt)
 
     if [ "$reportHash" == "$expectedHash" ]; then
         echo "convincing."
@@ -69,10 +67,31 @@ debug() {
     exit 0
 }
 
+localRun() {
+
+    expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
+      | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
+      | sort | sha256sum | awk '{ print $1 }')
+
+    touch .convincer/testreport.txt
+    rm .convincer/testreport.txt
+    reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
+    echo "$reportHash" > .convincer/testreport.txt
+
+    if [ "$reportHash" == "$expectedHash" ]; then
+        echo "convincing."
+        exit 0
+    else
+        echo "not convincing."
+        exit 1
+    fi
+}
+
 help() {
     echo "help:"
-    echo "  to run in debugging mode"
+    echo "  to run in debugging mode or localRun"
     echo "  ./convincer.sh -debug"
+    echo "  ./convincer.sh -localRun"
     echo ""
     echo "troubleshooting:"
     echo "  be sure 2nd to last git commit matches those in .convincer/*"
@@ -86,10 +105,13 @@ help() {
     exit 0
 }
 
-while getopts ":hd:m:" arg; do
+while getopts ":hdl::" arg; do
   case "$arg" in
       d)
         debug
+        ;;
+      l)
+        localRun 
         ;;
       h | *)
         help
