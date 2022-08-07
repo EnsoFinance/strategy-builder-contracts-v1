@@ -23,43 +23,11 @@ export -f getProofsFromFile
 
 lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
 
-#expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
-#  | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
-#  | sort | sha256sum | awk '{ print $1 }')
+expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
+  | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
+  | sort | sha256sum | awk '{ print $1 }')
 
-#testFile=$(echo "$1" | sed 's/test\///')  
-
-testFiles=$(ls test)
-
-for file in $testFiles; do
-
-    expectedHash=$(echo $file | sed "s/$/__delimiter__$lastGitCommitHash/" \
-      | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
-      | sort | sha256sum | awk '{ print $1 }')
-
-    reportHash=$(cat .convincer/$file"_" | sort | sha256sum | awk '{ print $1 }')
-
-    if [ "$reportHash" == "$expectedHash" ]; then
-        echo "convincing."
-    else
-        # for debugging
-        echo "------------------"
-        echo $file | sed "s/$/__delimiter__$lastGitCommitHash/" \
-          | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
-          | sort
-
-        echo "not convincing " $file"."
-        echo "$reportHash" "$expectedHash"
-        echo "------------------"
-        #exit 1
-    fi
-done
-
-
-#reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
-
-echo $expectedHash
-echo $reportHash
+reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
 
 if [ "$reportHash" == "$expectedHash" ]; then
     echo "convincing."
@@ -68,3 +36,32 @@ else
     echo "not convincing."
     exit 1
 fi
+
+# debugging
+#testFile=$(echo "$1" | sed 's/test\///')  
+#testFiles=$(ls test)
+#for file in $testFiles; do
+
+ #   expectedHash=$(echo $file | sed "s/$/__delimiter__$lastGitCommitHash/" \
+  #    | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
+   #   | sort | sha256sum | awk '{ print $1 }')
+
+    #reportHash=$(cat .convincer/$file"_" | sort | sha256sum | awk '{ print $1 }')
+
+    #if [ "$reportHash" == "$expectedHash" ]; then
+     #   echo "convincing."
+    #else
+        # for debugging
+     #   echo "------------------"
+      #  echo $file | sed "s/$/__delimiter__$lastGitCommitHash/" \
+       #   | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
+        #  | sort
+
+        #echo "not convincing " $file"."
+        #echo "$reportHash" "$expectedHash"
+        #echo "------------------"
+        #exit 1
+    #fi
+#done
+
+

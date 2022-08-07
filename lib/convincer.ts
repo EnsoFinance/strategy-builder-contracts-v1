@@ -22,6 +22,7 @@ export function logTestComplete(_this : any, _dirname : string, proofCounter : n
     if (headFileLines[headFileLines.length-1] !== '') console.error('last line of git HEAD file is not empty.')
     let lastGitCommit = headFileLines[headFileLines.length-2].split(' ')[0]
     let _thisTest = _this.currentTest || _this
+    if (_this.ctx) _thisTest = _this.ctx._runnable || _thisTest 
     let file = _thisTest.file || _thisTest.test.file
     let filepathArray : string[] = file.split('/')
     let testName : string = _thisTest.title || _thisTest.test.title
