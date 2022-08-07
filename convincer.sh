@@ -24,7 +24,7 @@ export -f getProofsFromFile
 
 main() {
 
-    lastGitCommitHash=$(cat .git/logs/HEAD | tail -2 | head -1 | awk '{ print $1 }')
+    lastGitCommitHash=$(git rev-parse HEAD~2)
 
     #debug
     cat .git/logs/HEAD
@@ -47,7 +47,8 @@ main() {
 }
 
 debug() {
-    lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
+    #lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
+    lastGitCommitHash=$(git rev-parse HEAD~1)
     testFile=$(echo "$1" | sed 's/test\///')  
     testFiles=$(ls test)
     for file in $testFiles; do
@@ -77,7 +78,8 @@ debug() {
 
 localRun() {
 
-    lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
+    #lastGitCommitHash=$(cat .git/logs/HEAD | tail -1 | awk '{ print $1 }')
+    lastGitCommitHash=$(git rev-parse HEAD~1)
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
       | sort | sha256sum | awk '{ print $1 }')
