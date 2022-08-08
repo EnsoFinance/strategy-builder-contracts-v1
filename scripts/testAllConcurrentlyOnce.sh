@@ -23,8 +23,17 @@ else
     testFiles=$(cat .notTested.txt)
 fi
 
+writeTestLog() {
+    touch .convincer/testreport.txt
+    rm .convincer/testreport.txt
+    reportHash=$(cat .convincer/* | sort | sha256sum | awk '{ print $1 }')
+    git rev-parse HEAD > .convincer/testreport.txt
+    echo $reportHash >> .convincer/testreport.txt
+}
+
 if [ -z "$testFiles" ]; then
     echo "no files to test"
+    writeTestLog
     exit 0
 fi
 
@@ -59,5 +68,9 @@ for file in $testFiles; do
        echo $file >> $notTestedFilename
     fi
 done
+
+if [ $exitCode == 0 ]; then 
+    writeTestLog
+fi
 
 exit $exitCode

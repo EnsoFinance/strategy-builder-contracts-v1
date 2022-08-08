@@ -15,6 +15,7 @@ import {
 	deployLoopRouter,
 } from '../lib/deploy'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
@@ -33,6 +34,7 @@ const STRATEGY_STATE: InitialState = {
 }
 
 describe('StrategyController - Social', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -50,6 +52,7 @@ describe('StrategyController - Social', function () {
 		wrapper: Contract
 
 	before('Setup Uniswap + Factory', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -97,6 +100,7 @@ describe('StrategyController - Social', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more', async function () {
@@ -112,6 +116,7 @@ describe('StrategyController - Social', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase tokens, requiring a rebalance', async function () {
@@ -127,6 +132,7 @@ describe('StrategyController - Social', function () {
 			.swap(value, 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -136,6 +142,7 @@ describe('StrategyController - Social', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw', async function () {
@@ -146,6 +153,7 @@ describe('StrategyController - Social', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const tokenBalanceAfter = BigNumber.from((await tokens[1].balanceOf(strategy.address)).toString())
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -157,6 +165,7 @@ describe('StrategyController - Social', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: time lock active', async function () {
@@ -167,6 +176,7 @@ describe('StrategyController - Social', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update value: time lock active', async function () {
@@ -177,6 +187,7 @@ describe('StrategyController - Social', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to finalize structure: time lock not passed', async function () {
@@ -187,6 +198,7 @@ describe('StrategyController - Social', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -194,6 +206,7 @@ describe('StrategyController - Social', function () {
 
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		//await displayBalances(wrapper, strategyItems, weth)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -205,6 +218,7 @@ describe('StrategyController - Social', function () {
 			.swap(value, 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -214,6 +228,7 @@ describe('StrategyController - Social', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update timelock + fail to finalize: timelock active', async function () {
@@ -225,5 +240,6 @@ describe('StrategyController - Social', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })

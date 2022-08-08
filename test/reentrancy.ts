@@ -21,10 +21,12 @@ import {
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const NUM_TOKENS = 3
 
 describe('Reentrancy    ', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -41,6 +43,7 @@ describe('Reentrancy    ', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
+    proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -108,6 +111,7 @@ describe('Reentrancy    ', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -120,6 +124,7 @@ describe('Reentrancy    ', function () {
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('fail to reenter deposit fn', async function () {
@@ -150,6 +155,7 @@ describe('Reentrancy    ', function () {
 				.connect(accounts[1])
 				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: total })
 		).to.be.revertedWith('')
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('fail to siphon tokens with settle swap', async function () {
@@ -200,5 +206,6 @@ describe('Reentrancy    ', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await tokens[1].balanceOf(accounts[1].address)).to.equal(token1Balance)
 		expect(await tokens[2].balanceOf(accounts[1].address)).to.equal(token2Balance)
+    logTestComplete(this, __dirname, proofCounter++)
 	})
 })
