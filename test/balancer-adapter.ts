@@ -33,8 +33,8 @@ describe('BalancerAdapter', function () {
 		wrapper: Contract
 
 	before('Setup', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
-  })
+		proofCounter = initializeTestLogging(this, __dirname)
+	})
 
 	it('Setup Balancer, Factory', async function () {
 		accounts = await getSigners()
@@ -59,7 +59,7 @@ describe('BalancerAdapter', function () {
 		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
 		router = await deployer.deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -102,14 +102,14 @@ describe('BalancerAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap: tokens cannot match', async function () {
 		await expect(
 			balancerAdapter.swap(1, 0, tokens[0].address, tokens[0].address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap: less than expected', async function () {
@@ -125,7 +125,7 @@ describe('BalancerAdapter', function () {
 				accounts[0].address
 			)
 		).to.be.revertedWith('ERR_LIMIT_OUT')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token for token', async function () {
@@ -145,7 +145,7 @@ describe('BalancerAdapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token on uniswap, requiring a rebalance (since oracle is based off uniswap)', async function () {
@@ -165,7 +165,7 @@ describe('BalancerAdapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -175,7 +175,7 @@ describe('BalancerAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should create a new pool', async function () {
@@ -191,7 +191,7 @@ describe('BalancerAdapter', function () {
 		await pool.finalize()
 		await balancerRegistry.addPoolPair(poolAddress, tokens[0].address, tokens[1].address)
 		await balancerRegistry.sortPools([tokens[0].address, tokens[1].address], 3)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap with multiple pools', async function () {
@@ -210,6 +210,6 @@ describe('BalancerAdapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.gt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.lt(token1BalanceAfter)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

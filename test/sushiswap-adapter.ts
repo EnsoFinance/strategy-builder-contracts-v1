@@ -20,7 +20,7 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 	let accounts: SignerWithAddress[], tokens: Tokens, weth: Contract, cream: Contract, adapter: Contract
 
 	before('Setup SushiSwap, Factory', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -34,7 +34,7 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 		await expect(
 			adapter.swap(1, 0, weth.address, weth.address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap: less than expected', async function () {
@@ -44,7 +44,7 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 		await expect(
 			adapter.swap(amount, MaxUint256, weth.address, cream.address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Insufficient tokenOut amount')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token for token', async function () {
@@ -58,6 +58,6 @@ describe('SushiSwapThroughUniswapV2Adapter', function () {
 		const creamBalanceAfter = await cream.balanceOf(accounts[0].address)
 		expect(wethBalanceBefore.gt(wethBalanceAfter)).to.equal(true)
 		expect(creamBalanceBefore.lt(creamBalanceAfter)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

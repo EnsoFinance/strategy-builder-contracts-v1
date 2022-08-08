@@ -42,7 +42,7 @@ describe('StrategyToken', function () {
 		total: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -110,45 +110,45 @@ describe('StrategyToken', function () {
 		;[total] = await oracle.estimateStrategy(strategy.address)
 		expect(BigNumber.from(await strategy.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(total)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get name', async function () {
 		expect(await strategy.name()).to.equal('Test Strategy')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get symbol', async function () {
 		expect(await strategy.symbol()).to.equal('TEST')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get decimals', async function () {
 		expect(BigNumber.from(await strategy.decimals()).toString()).to.equal('18')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to transfer tokens: insufficient funds', async function () {
 		const tooMuch = total.mul(2)
 		await expect(strategy.connect(accounts[1]).transfer(accounts[2].address, tooMuch)).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to transfer tokens: zero recipient', async function () {
 		await expect(strategy.connect(accounts[1]).transfer(AddressZero, amount)).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transfer tokens', async function () {
 		amount = total.div(2)
 		await strategy.connect(accounts[1]).transfer(accounts[2].address, amount)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(amount)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to approve tokens: zero spender', async function () {
 		await expect(strategy.connect(accounts[1]).approve(AddressZero, amount)).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should approve tokens', async function () {
@@ -156,21 +156,21 @@ describe('StrategyToken', function () {
 		expect(BigNumber.from(await strategy.allowance(accounts[1].address, accounts[2].address)).eq(amount)).to.equal(
 			true
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to transferFrom tokens: zero spender', async function () {
 		await expect(
 			strategy.connect(accounts[2]).transferFrom(AddressZero, accounts[2].address, amount)
 		).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to transferFrom tokens: zero recipient', async function () {
 		await expect(
 			strategy.connect(accounts[2]).transferFrom(accounts[1].address, AddressZero, amount)
 		).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transferFrom tokens', async function () {
@@ -181,18 +181,18 @@ describe('StrategyToken', function () {
 		console.log('Gas usage', receipt.gasUsed.toString())
 		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(amount.mul(2))).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(0)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update manager: not manager', async function () {
 		await expect(strategy.connect(accounts[2]).updateManager(accounts[2].address)).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update manager', async function () {
 		await strategy.connect(accounts[1]).updateManager(accounts[2].address)
 		expect(await strategy.manager()).to.equal(accounts[2].address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to permit: signer not owner', async function () {
@@ -244,7 +244,7 @@ describe('StrategyToken', function () {
 		await expect(
 			strategy.connect(spender).permit(owner.address, spender.address, 1, deadline, v, r, s)
 		).to.be.revertedWith('Invalid signature')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to permit: past deadline', async function () {
@@ -254,7 +254,7 @@ describe('StrategyToken', function () {
 		await expect(strategy.connect(owner).permit(owner.address, spender.address, 1, 0, v, r, s)).to.be.revertedWith(
 			'Expired deadline'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should permit', async function () {
@@ -266,25 +266,25 @@ describe('StrategyToken', function () {
 		const { v, r, s } = await preparePermit(strategy, owner, spender, amount, deadline)
 		await strategy.connect(owner).permit(owner.address, spender.address, amount, deadline, v, r, s)
 		expect(amount.eq(await strategy.allowance(owner.address, spender.address))).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transferFrom tokens', async function () {
 		strategy.connect(accounts[1]).transferFrom(accounts[2].address, accounts[1].address, amount)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[1].address)).eq(amount)).to.equal(true)
 		expect(BigNumber.from(await strategy.balanceOf(accounts[2].address)).eq(0)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdraw: no strategy tokens', async function () {
 		await expect(strategy.connect(accounts[0]).withdrawAll(1)).to.be.revertedWith('Amount exceeds balance')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
 		expect(await isRevertedWith(strategy.connect(accounts[1]).withdrawAll(0), '0 amount', 'Strategy.sol')).to.be
 			.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw', async function () {
@@ -295,26 +295,26 @@ describe('StrategyToken', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const tokenBalanceAfter = BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to decrease allowance: more than allowed', async function () {
 		await expect(strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)).to.be.revertedWith(
 			'ERC20: decreased allowance < 0'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should increase allowance', async function () {
 		await strategy.connect(accounts[1]).increaseAllowance(accounts[2].address, 1)
 		expect((await strategy.allowance(accounts[1].address, accounts[2].address)).eq(1)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should decrease allowance', async function () {
 		await strategy.connect(accounts[1]).decreaseAllowance(accounts[2].address, 1)
 		expect((await strategy.allowance(accounts[1].address, accounts[2].address)).eq(0)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy for', async function () {
@@ -390,6 +390,6 @@ describe('StrategyToken', function () {
 		;[total] = await oracle.estimateStrategy(strategyFor.address)
 		expect(BigNumber.from(await strategyFor.totalSupply()).eq(total)).to.equal(true)
 		expect(BigNumber.from(await strategyFor.balanceOf(forManager.address)).eq(total)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

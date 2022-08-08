@@ -17,7 +17,7 @@ describe('UniswapV2Adapter', function () {
 	let tokens: Contract[], accounts: SignerWithAddress[], uniswapFactory: Contract, adapter: Contract
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
@@ -31,7 +31,7 @@ describe('UniswapV2Adapter', function () {
 		await expect(
 			adapter.swap(1, 0, tokens[0].address, tokens[0].address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap: less than expected', async function () {
@@ -47,7 +47,7 @@ describe('UniswapV2Adapter', function () {
 				accounts[0].address
 			)
 		).to.be.revertedWith('Insufficient tokenOut amount')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token for token', async function () {
@@ -60,6 +60,6 @@ describe('UniswapV2Adapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

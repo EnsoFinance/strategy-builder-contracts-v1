@@ -55,7 +55,7 @@ describe('Leverage2XAdapter', function () {
 		wrapper: Contract
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -173,7 +173,7 @@ describe('Leverage2XAdapter', function () {
 		)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy BTC2X strategy', async function () {
@@ -261,6 +261,6 @@ describe('Leverage2XAdapter', function () {
 		)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

@@ -44,7 +44,7 @@ describe('BatchDepositRouter', function () {
 		wrapper: Contract
 
 	before('Setup Uniswap + Factory', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -60,7 +60,7 @@ describe('BatchDepositRouter', function () {
 		router = await deployBatchDepositRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 
-	  // 'Transfer token balances to account 1'
+		// 'Transfer token balances to account 1'
 		const token1Balance = await tokens[1].balanceOf(accounts[0].address)
 		const token2Balance = await tokens[2].balanceOf(accounts[0].address)
 		await tokens[1].connect(accounts[0]).transfer(accounts[1].address, token1Balance)
@@ -75,7 +75,7 @@ describe('BatchDepositRouter', function () {
 		await adapter
 			.connect(accounts[2])
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -136,7 +136,7 @@ describe('BatchDepositRouter', function () {
 			weth
 		)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -153,7 +153,7 @@ describe('BatchDepositRouter', function () {
 			.swap(value.div(4), 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: router revert', async function () {
@@ -161,7 +161,7 @@ describe('BatchDepositRouter', function () {
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Rebalance not supported')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdraw: router revert', async function () {
@@ -170,7 +170,7 @@ describe('BatchDepositRouter', function () {
 				.connect(accounts[1])
 				.withdrawWETH(strategy.address, router.address, 1, DEFAULT_DEPOSIT_SLIPPAGE, '0x')
 		).to.be.revertedWith('Withdraw not supported')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -181,13 +181,13 @@ describe('BatchDepositRouter', function () {
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to finalize structure: router revert', async function () {
 		await expect(
 			controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		).to.be.revertedWith('Restructure not supported')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

@@ -7,6 +7,8 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 interface IUniswapV3Registry {
 
     event PoolAdded(address indexed token, address indexed pair, uint24 indexed fee, uint32 timeWindow);
+     
+    event PoolRemoved(address indexed token);
 
     event TimeWindowUpdated(address indexed token, uint32 indexed timeWindow);
 

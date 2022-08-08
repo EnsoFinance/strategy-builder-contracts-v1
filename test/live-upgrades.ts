@@ -31,7 +31,7 @@ describe('Live Upgrades', function () {
 		eDPI: Contract
 
 	before('Setup contracts', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 
 		const enso = getLiveContracts(accounts[0])
@@ -95,6 +95,6 @@ describe('Live Upgrades', function () {
 
 		const tradeDataAfter = await eDPI.getTradeData(items[0])
 		expect(tradeDataAfter.adapters[0]).to.deep.equal(AddressZero)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

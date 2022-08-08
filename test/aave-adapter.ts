@@ -28,7 +28,7 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import { increaseTime } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
-       
+
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {
@@ -43,7 +43,7 @@ const STRATEGY_STATE: InitialState = {
 
 describe('AaveAdapter', function () {
 	let proofCounter: number,
-    platform: Platform,
+		platform: Platform,
 		weth: Contract,
 		susd: Contract,
 		usdc: Contract,
@@ -70,7 +70,7 @@ describe('AaveAdapter', function () {
 		stkAAVE: Contract
 
 	before('Setup Uniswap + Factory', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -238,14 +238,14 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should getAllRewardTokens', async function () {
 		const rewardTokens = await strategy.connect(accounts[1]).callStatic.getAllRewardTokens()
 		expect(rewardTokens[0]).to.be.equal(stkAAVE.address)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -255,7 +255,7 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -271,7 +271,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -283,8 +283,8 @@ describe('AaveAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    
-    logTestComplete(this, __dirname, proofCounter++)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -298,7 +298,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should claim stkAAVE', async function () {
@@ -309,7 +309,7 @@ describe('AaveAdapter', function () {
 		const balanceAfter = await stkAAVE.balanceOf(strategy.address)
 		expect(balanceAfter).to.be.gt(balanceBefore)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -327,7 +327,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdrawAll: cannot withdraw debt', async function () {
@@ -340,7 +340,7 @@ describe('AaveAdapter', function () {
 			)
 		).to.be.true
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -351,7 +351,7 @@ describe('AaveAdapter', function () {
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw ETH', async function () {
@@ -372,7 +372,7 @@ describe('AaveAdapter', function () {
 		const ethBalanceAfter = await accounts[1].getBalance()
 		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw WETH', async function () {
@@ -393,7 +393,7 @@ describe('AaveAdapter', function () {
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure - basic', async function () {
@@ -401,7 +401,7 @@ describe('AaveAdapter', function () {
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to finalize structure - debt oracle exploit', async function () {
@@ -420,7 +420,7 @@ describe('AaveAdapter', function () {
 				.finalizeStructure(strategy.address, multicallRouter.address, data, { gasLimit: '5000000' })
 		).to.be.revertedWith('Former debt remaining')
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure - basic', async function () {
@@ -430,8 +430,8 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    
-    logTestComplete(this, __dirname, proofCounter++)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure - debt positions', async function () {
@@ -475,7 +475,7 @@ describe('AaveAdapter', function () {
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure - debt positions', async function () {
@@ -485,8 +485,8 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    
-    logTestComplete(this, __dirname, proofCounter++)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -496,7 +496,7 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw ETH', async function () {
@@ -513,7 +513,7 @@ describe('AaveAdapter', function () {
 		const ethBalanceAfter = await accounts[1].getBalance()
 		expect(ethBalanceAfter.gt(ethBalanceBefore)).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw WETH', async function () {
@@ -530,7 +530,7 @@ describe('AaveAdapter', function () {
 		const wethBalanceAfter = await weth.balanceOf(accounts[1].address)
 		expect(wethBalanceAfter.gt(wethBalanceBefore)).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy new strategy', async function () {
@@ -597,7 +597,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -607,8 +607,8 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    
-    logTestComplete(this, __dirname, proofCounter++)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy another strategy', async function () {
@@ -685,7 +685,7 @@ describe('AaveAdapter', function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -695,7 +695,7 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy ambiguous strategy', async function () {
@@ -778,7 +778,7 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -788,7 +788,7 @@ describe('AaveAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Deposit Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy debt meta strategy', async function () {
@@ -876,7 +876,7 @@ describe('AaveAdapter', function () {
 
 		//await displayBalances(basicWrapper, basicStrategyItems.map((item) => item.item), weth)
 		expect(await metaWrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy synth + debt strategy', async function () {
@@ -933,6 +933,6 @@ describe('AaveAdapter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

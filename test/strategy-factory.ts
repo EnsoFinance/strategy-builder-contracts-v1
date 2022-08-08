@@ -46,7 +46,7 @@ describe('StrategyProxyFactory', function () {
 		newImplementationAddress: string
 
 	before('Setup Uniswap + Factory', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -132,19 +132,19 @@ describe('StrategyProxyFactory', function () {
 					value: amount,
 				})
 		).to.be.revertedWith('_createProxy: proxy already exists.')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should check controller value', async function () {
 		expect(await strategyFactory.controller()).to.equal(controller.address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update oracle: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[1]).updateOracle(newOracle.address)).to.be.revertedWith(
 			'Not owner'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update oracle', async function () {
@@ -154,7 +154,7 @@ describe('StrategyProxyFactory', function () {
 		expect(await controller.oracle()).to.equal(oracle.address)
 		await controller.updateAddresses()
 		expect(await controller.oracle()).to.equal(newOracle.address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update rebalanceParameters', async function () {
@@ -183,14 +183,14 @@ describe('StrategyProxyFactory', function () {
 		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[5]).finalizeRebalanceParameters()
 		expect(await controller.callStatic.rebalanceThresholdScalar()).to.eq(rebalanceThresholdScalar)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update whitelist: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[1]).updateWhitelist(newWhitelist.address)).to.be.revertedWith(
 			'Not owner'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update whitelist', async function () {
@@ -216,94 +216,94 @@ describe('StrategyProxyFactory', function () {
 			})
 		const newBalance = await strategy.balanceOf(accounts[1].address)
 		expect(ethers.BigNumber.from(newBalance).gt(oldBalance)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update pool: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[1]).updatePool(accounts[1].address)).to.be.revertedWith(
 			'Not owner'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update pool', async function () {
 		await strategyFactory.connect(accounts[10]).updatePool(accounts[0].address)
 		expect(await strategyFactory.pool()).to.equal(accounts[0].address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add item: not owner', async function () {
 		await expect(
 			strategyFactory.connect(accounts[1]).addItemToRegistry(0, 0, tokens[1].address)
 		).to.be.revertedWith('Not owner')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add item: invalid category', async function () {
 		await expect(
 			strategyFactory.connect(accounts[10]).addItemToRegistry(0, 100, tokens[1].address)
 		).to.be.revertedWith('Invalid category')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update implementation: not owner', async function () {
 		await expect(
 			strategyFactory.connect(accounts[1]).updateImplementation(newImplementationAddress, '2')
 		).to.be.revertedWith('Not owner')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update implementation to 1', async function () {
 		await expect(
 			strategyFactory.connect(accounts[10]).updateImplementation(newImplementationAddress, '1')
 		).to.be.revertedWith('Invalid version')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update implementation to 0', async function () {
 		await expect(
 			strategyFactory.connect(accounts[10]).updateImplementation(newImplementationAddress, '0')
 		).to.be.revertedWith('Invalid version')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update minor version 2.1', async function () {
 		await expect(
 			strategyFactory.connect(accounts[10]).updateImplementation(newImplementationAddress, '2.1')
 		).to.be.revertedWith('Invalid string integer')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update proxy version: not admin', async function () {
 		await expect(strategyFactory.connect(accounts[1]).updateProxyVersion(strategy.address)).to.be.revertedWith(
 			'Only admin'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to transfer ownership: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[2]).transferOwnership(accounts[2].address)).to.be.revertedWith(
 			'Not owner'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to transfer ownership: zero address', async function () {
 		await expect(strategyFactory.connect(accounts[10]).transferOwnership(AddressZero)).to.be.revertedWith(
 			'Zero address provided'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transfer ownership', async function () {
 		await strategyFactory.connect(accounts[10]).transferOwnership(accounts[2].address)
 		expect(await strategyFactory.owner()).to.equal(accounts[2].address)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to renounce ownership: not owner', async function () {
 		await expect(strategyFactory.connect(accounts[1]).renounceOwnership()).to.be.revertedWith('Not owner')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update implementation to version uint256.max()', async function () {
@@ -313,12 +313,12 @@ describe('StrategyProxyFactory', function () {
 		await strategyFactory.connect(accounts[2]).updateImplementation(newImplementationAddress, MaxUint256.toString())
 		expect(await strategyFactory.implementation()).to.equal(newImplementationAddress)
 		expect(ethers.BigNumber.from(await strategyFactory.version()).eq(MaxUint256.toString())).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transfer ownership', async function () {
 		await strategyFactory.connect(accounts[2]).renounceOwnership()
 		expect(await strategyFactory.owner()).to.equal(AddressZero)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

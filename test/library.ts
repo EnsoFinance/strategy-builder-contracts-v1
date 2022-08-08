@@ -27,7 +27,7 @@ describe('ControllerLibrary', function () {
 		wrapper: Contract
 
 	before('Setup LibraryWrapper', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -100,12 +100,12 @@ describe('ControllerLibrary', function () {
 	it('Should not have ETH token value', async function () {
 		const value = await wrapper.getTokenValue(AddressZero)
 		expect(value.eq(0)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should return range of 0', async function () {
 		const value = await wrapper.getRange(100, 0)
 		expect(value.eq(0)).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

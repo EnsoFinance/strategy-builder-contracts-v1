@@ -62,7 +62,7 @@ describe('MulticallRouter', function () {
 		wrapper: Contract
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
-    proofCounter = initializeTestLogging(this, __dirname)
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
@@ -143,7 +143,7 @@ describe('MulticallRouter', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -156,7 +156,7 @@ describe('MulticallRouter', function () {
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: total slipped', async function () {
@@ -173,7 +173,7 @@ describe('MulticallRouter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: no reentrancy', async function () {
@@ -204,7 +204,7 @@ describe('MulticallRouter', function () {
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: not balanced', async function () {
@@ -228,7 +228,7 @@ describe('MulticallRouter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to delegateSwap: swap failed', async function () {
@@ -248,7 +248,7 @@ describe('MulticallRouter', function () {
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		).to.be.revertedWith('') //Revert in calldata
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: total slipped', async function () {
@@ -348,7 +348,7 @@ describe('MulticallRouter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy with multicall', async function () {
@@ -361,7 +361,7 @@ describe('MulticallRouter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdraw: too much slippage', async function () {
@@ -389,7 +389,7 @@ describe('MulticallRouter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to call delegateSwap: only internal', async function () {
@@ -404,7 +404,7 @@ describe('MulticallRouter', function () {
 				strategy.address
 			)
 		).to.be.revertedWith('Only internal')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to call settleSwap: only internal', async function () {
@@ -418,7 +418,7 @@ describe('MulticallRouter', function () {
 				accounts[1].address
 			)
 		).to.be.revertedWith('Only internal')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should succeed in calling settleSwap, settleTransfer and settleTransferFrom when there is no balance', async function () {
@@ -455,7 +455,7 @@ describe('MulticallRouter', function () {
 		await controller
 			.connect(accounts[1])
 			.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: calling settleTransferFrom without approval', async function () {
@@ -480,14 +480,14 @@ describe('MulticallRouter', function () {
 					value: amount,
 				})
 		).to.be.revertedWith('')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure to just token', async function () {
 		const positions = [{ token: tokens[1].address, percentage: BigNumber.from(1000) }] as Position[]
 		const newItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, newItems)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: too much slippage', async function () {
@@ -532,7 +532,7 @@ describe('MulticallRouter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: out of balance', async function () {
@@ -566,7 +566,7 @@ describe('MulticallRouter', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -605,7 +605,7 @@ describe('MulticallRouter', function () {
 		const data = await multicallRouter.encodeCalls(calls)
 
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, multicallRouter.address, data)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: out of balance', async function () {
@@ -622,7 +622,7 @@ describe('MulticallRouter', function () {
 					value: amount,
 				})
 		).to.be.revertedWith('Lost balance')
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to call router directly', async function () {
@@ -632,6 +632,6 @@ describe('MulticallRouter', function () {
 		await expect(multicallRouter.connect(accounts[1]).deposit(strategy.address, data)).to.be.revertedWith(
 			'Only controller'
 		)
-    logTestComplete(this, __dirname, proofCounter++)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })
