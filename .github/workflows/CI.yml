@@ -35,7 +35,7 @@ jobs:
           path: "**/node_modules"
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       - run: |
-          echo "$GITHUB_CONTEXT" | jq
+          echo "$GITHUB_CONTEXT" | jq '.event.before' | sed 's/\"//g'
       - run: yarn install --frozen-lockfile
       - run: yarn build
       - run: yarn test
