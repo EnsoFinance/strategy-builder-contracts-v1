@@ -4,6 +4,7 @@ pragma solidity >=0.6.0 <0.9.0;
 import "./IStrategy.sol";
 
 interface IEstimator {
+
     function estimateItem(
         IStrategy strategy,
         address token

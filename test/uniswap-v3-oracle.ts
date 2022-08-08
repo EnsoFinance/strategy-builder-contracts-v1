@@ -10,6 +10,7 @@ const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const { deployTokens, deployUniswapV3 } = require('../lib/deploy')
 const { encodePath } = require('../lib/encode')
 const { encodePriceSqrt, getMaxTick, getMinTick, increaseTime, getDeadline } = require('../lib/utils')
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 const { UNI_V3_FEE } = require('../lib/constants')
 
 const ERC20 = require('@uniswap/v2-core/build/ERC20.json')
@@ -75,7 +76,9 @@ async function calcTWAP(amount: number, input: string): Promise<typeof bn> {
 }
 
 describe('UniswapV3Oracle', function () {
+	let proofCounter: number
 	before('Setup Uniswap V3 + Oracle', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		trader = accounts[7]
 		// Need to deploy these tokens before WETH to get the correct arrangement of token address where some are bigger and some smaller (for sorting)
@@ -127,16 +130,19 @@ describe('UniswapV3Oracle', function () {
 		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
 		expect(pool).to.equal(await uniswapV3Factory.getPool(tokens[1].address, weth.address, UNI_V3_FEE))
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should get empty pool', async function () {
 		await expect(registry.getPoolData(tokens[2].address)).to.be.revertedWith('Pool not found')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add pool: not owner', async function () {
 		await expect(
 			registry.connect(accounts[1]).addPool(tokens[2].address, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)
 		).to.be.revertedWith('Ownable: caller is not the owner')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should batch add pools', async function () {
@@ -145,12 +151,14 @@ describe('UniswapV3Oracle', function () {
 		const fees = Array(poolTokens.length).fill(UNI_V3_FEE)
 		const timeWindows = Array(poolTokens.length).fill(ORACLE_TIME_WINDOW)
 		await registry.batchAddPools(poolTokens, pairTokens, fees, timeWindows)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add pool: not valid', async function () {
 		await expect(registry.addPool(AddressZero, weth.address, UNI_V3_FEE, ORACLE_TIME_WINDOW)).to.be.revertedWith(
 			'Not valid pool'
 		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap on uniswap', async function () {
@@ -159,27 +167,32 @@ describe('UniswapV3Oracle', function () {
 
 		await exactInput([weth.address, tokens[1].address], WeiPerEther, 0)
 		await increaseTime(15)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: weth', async function () {
 		const amount = WeiPerEther
 		expect((await oracle.consult(amount, weth.address)).eq(amount)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: no amount', async function () {
 		const amount = 0
 		expect((await oracle.consult(amount, AddressZero)).eq(amount)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: no amount', async function () {
 		const amount = 0
 		expect((await oracle.consult(amount, nonWethPair.address)).eq(amount)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Add non weth pool', async function () {
 		await registry.addPool(nonWethPair.address, tokens[2].address, HIGH_FEE, ORACLE_TIME_WINDOW)
 		const { pool } = await registry.getPoolData(tokens[1].address)
 		expect(pool).to.not.equal(AddressZero)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: non weth pair', async function () {
@@ -187,18 +200,21 @@ describe('UniswapV3Oracle', function () {
 		const token2Price = await oracle.consult(WeiPerEther, tokens[2].address)
 		const nonWethPairPrice = await oracle.consult(WeiPerEther, nonWethPair.address)
 		expect(nonWethPairPrice).to.equal(token2Price)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: token 1', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens[1].address)
 		const estimate = await calcTWAP(WeiPerEther, tokens[1].address)
 		expect(price.eq(estimate)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should consult oracle: token 2', async function () {
 		const price = await oracle.consult(WeiPerEther, tokens[2].address)
 		const estimate = await calcTWAP(WeiPerEther, tokens[2].address)
 		expect(price.eq(estimate)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate total', async function () {
@@ -211,5 +227,6 @@ describe('UniswapV3Oracle', function () {
 			(await oracle.consult(await tokens[1].balanceOf(accounts[0].address), tokens[1].address)).eq(estimates[2])
 		).to.equal(true)
 		expect(estimates.reduce((a: BigNumber, b: BigNumber) => a.add(b)).eq(total)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

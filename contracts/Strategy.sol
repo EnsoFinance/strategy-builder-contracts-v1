@@ -12,7 +12,6 @@ import "./libraries/BinaryTree.sol";
 import "./interfaces/IOracle.sol";
 import "./interfaces/IBaseAdapter.sol";
 import "./interfaces/IStrategy.sol";
-import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/synthetix/IDelegateApprovals.sol";
 import "./interfaces/synthetix/IExchanger.sol";
@@ -35,7 +34,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -43,12 +42,6 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
 
     ISynthetixAddressResolver private immutable synthetixResolver;
     IAaveAddressResolver private immutable aaveResolver;
-
-    event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
-    event UpdateManager(address manager);
-    event UpdateTradeData(address item, bool finalized);
-    event ClaimablesUpdated();
-    event RewardsUpdated();
 
     // Initialize constructor to disable implementation
     constructor(address factory_, address controller_, address synthetixResolver_, address aaveResolver_) public initializer StrategyCommon(factory_, controller_) {
@@ -324,6 +317,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e04) /* error_macro_for("claimAll: caller must be controller or manager.") */);
 
         StrategyClaim.claimAll(_claimables);
+        // library emits RewardsClaimed for all claimables
     }
 
     /**
@@ -344,6 +338,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
     function updateRebalanceThreshold(uint16 threshold) external override {
         _onlyController();
         _rebalanceThreshold = threshold;
+        // event emitted in StrategyController
     }
 
     /**
@@ -426,6 +421,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
+        emit VersionUpdated(newVersion);
     }
 
     function lock(LockType lockType) external override {
@@ -470,7 +466,7 @@ contract Strategy is IStrategy, IStrategyManagement, StrategyTokenFees, Initiali
         return _tradeData[item];
     }
 
-    function manager() external view override(IStrategy, IStrategyManagement) returns (address) {
+    function manager() external view override returns (address) {
         return _manager;
     }
 

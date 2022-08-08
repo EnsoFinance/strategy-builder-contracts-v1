@@ -13,9 +13,6 @@ abstract contract StrategyTokenFees is IStrategyFees, StrategyToken, StrategyCom
     uint256 private constant YEAR = 331556952; //365.2425 days
     uint256 internal constant DIVISOR = 1000;
 
-    event StreamingFee(uint256 amount);
-    event ManagementFee(uint256 amount);
-
     function managementFee() external view override returns (uint256) {
         uint256 managementFee_ = _managementFee;
         return managementFee_ / (managementFee_.add(PRECISION) / DIVISOR); // divisors cannot be 0

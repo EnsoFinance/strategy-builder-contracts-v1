@@ -27,6 +27,7 @@ import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 
@@ -39,6 +40,7 @@ async function impersonate(address: string): Promise<SignerWithAddress> {
 }
 
 describe('CurveLPAdapter + CurveGaugeAdapter', function () {
+	let proofCounter: number
 	let platform: Platform,
 		weth: Contract,
 		crv: Contract,
@@ -66,6 +68,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		tokens: Tokens
 
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -384,6 +387,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should set strategy and updateRewards', async function () {
@@ -547,6 +551,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		expect(newItemsLength).to.be.gt(oldItemsLength)
 		expect(oldItems.indexOf(rewardsToken.address)).to.be.equal(-1)
 		expect(newItems.indexOf(rewardsToken.address)).to.be.gt(-1)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
@@ -616,6 +621,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -629,6 +635,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -638,6 +645,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more: ETH', async function () {
@@ -654,6 +662,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should claim rewards', async function () {
@@ -674,6 +683,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			const balanceAfter = await rewardsToken.balanceOf(strategy.address)
 			expect(balanceAfter).to.be.gt(balancesBefore[i])
 		}
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -686,6 +696,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -695,6 +706,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {
@@ -750,6 +762,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -763,6 +776,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -772,6 +786,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -784,6 +799,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -793,6 +809,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy with Curve metapool', async function () {
@@ -842,6 +859,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -855,6 +873,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -864,6 +883,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -876,6 +896,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -885,5 +906,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

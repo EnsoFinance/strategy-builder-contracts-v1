@@ -6,6 +6,52 @@ import "../helpers/StrategyTypes.sol";
 
 interface IStrategyProxyFactory is StrategyTypes{
 
+    /**
+     * @notice Log the address of an implementation contract update
+     */
+    event Update(address newImplementation, string version);
+
+    /**
+     * @notice Log the creation of a new strategy
+     */
+    event NewStrategy(
+        address strategy,
+        address manager,
+        string name,
+        string symbol,
+        StrategyItem[] items
+    );
+
+    /**
+     * @notice Log the new Oracle for the strategies
+     */
+    event NewOracle(address newOracle);
+
+    /**
+     * @notice Log the new TokenRegistry for the strategies
+     */
+    event NewRegistry(address newRegistry);
+
+    /**
+     * @notice New default whitelist address
+     */
+    event NewWhitelist(address newWhitelist);
+
+    /**
+     * @notice New default pool address
+     */
+    event NewPool(address newPool);
+
+    /**
+     * @notice New streaming fee percentage
+     */
+    event NewStreamingFee(uint256 newStreamingFee);
+
+    /**
+     * @notice Log ownership transfer
+     */
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     function createStrategy(
         string memory name,
         string memory symbol,

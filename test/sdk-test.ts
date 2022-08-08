@@ -6,12 +6,15 @@ const { getSigners } = ethers
 const { EnsoBuilder, EnsoEnvironment, getLiveContracts } = require('../lib/index')
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { expect } from 'chai'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 describe('SDK', function () {
+	let proofCounter: number
 	let accounts: SignerWithAddress[]
 	let mainnetForkEnso: typeof EnsoEnvironment
 	let localTestnetEnso: typeof EnsoEnvironment
 	before('minimal mainnet-fork setup', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 	})
 
@@ -20,6 +23,7 @@ describe('SDK', function () {
 		expect(mainnetForkEnso.uniswapV2Factory.address.toLowerCase()).to.eq(
 			MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase()
 		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('deploy platform with testnet defaults', async () => {
@@ -27,6 +31,7 @@ describe('SDK', function () {
 		expect(localTestnetEnso.uniswapV2Factory.address.toLowerCase()).to.not.eq(
 			MAINNET_ADDRESSES.UNISWAP_V2_FACTORY.toLowerCase()
 		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('deploy platform with leverage adapter', async () => {
@@ -36,6 +41,7 @@ describe('SDK', function () {
 		expect(mainnetForkEnso.adapters.aaveV2.contract).to.not.eq(undefined)
 		expect(mainnetForkEnso.adapters.aaveV2Debt.contract).to.not.eq(undefined)
 		expect(mainnetForkEnso.adapters.leverage.contract).to.not.eq(undefined)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('initialize live platform', async () => {
@@ -43,6 +49,7 @@ describe('SDK', function () {
 		expect(enso.adapters.aaveV2).to.not.eq(undefined, 'aaveV2 adapter not found')
 		expect(enso.adapters.aaveV2Debt).to.not.eq(undefined)
 		expect(enso.adapters.leverage).to.not.eq(undefined)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	/* 
     // TODO: verify these estimators have been set

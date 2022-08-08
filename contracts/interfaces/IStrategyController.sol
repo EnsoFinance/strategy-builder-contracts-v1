@@ -9,6 +9,20 @@ import "./IWhitelist.sol";
 import "../helpers/StrategyTypes.sol";
 
 interface IStrategyController is StrategyTypes {
+
+    event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
+    event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
+    event StrategyOpen(address indexed strategy);
+    event StrategySet(address indexed strategy);
+    event RebalanceParametersUpdated(uint256 indexed rebalanceTimelockPeriod, uint256 indexed rebalanceThreshold, bool indexed finalized);
+
+    // hack! these events are called in the `ControllerLibrary`
+    // but cannot be tracked unless they are defined here!
+    event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
+    event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
+    event Repositioned(address indexed strategy, address indexed adapter, address indexed token);
+
     function setupStrategy(
         address manager_,
         address strategy_,

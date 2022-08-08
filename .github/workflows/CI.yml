@@ -13,6 +13,7 @@ jobs:
       RINKEBY_PRIVATE_KEY: ${{ secrets.RINKEBY_PRIVATE_KEY }}
       ARCHIVE_NODE: ${{ secrets.ARCHIVE_NODE }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      GITHUB_CONTEXT: ${{ toJson(github) }}
     strategy:
       matrix:
         node: ["14.x"]

@@ -6,36 +6,42 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 interface IUniswapV3Registry {
 
-  struct PairData {
-      address pair;
-      uint24 fee;
-      uint32 timeWindow;
-  }
+    event PoolAdded(address indexed token, address indexed pair, uint24 indexed fee, uint32 timeWindow);
+     
+    event PoolRemoved(address indexed token);
 
-  struct PoolData {
-      address pool;
-      address pair;
-      uint32 timeWindow;
-  }
+    event TimeWindowUpdated(address indexed token, uint32 indexed timeWindow);
 
-  function batchAddPools(
-      address[] memory tokens,
-      address[] memory pairs,
-      uint24[] memory fees,
-      uint32[] memory timeWindows
-  ) external;
+    struct PairData {
+        address pair;
+        uint24 fee;
+        uint32 timeWindow;
+    }
 
-  function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
+    struct PoolData {
+        address pool;
+        address pair;
+        uint32 timeWindow;
+    }
 
-  function removePool(address token) external;
+    function batchAddPools(
+        address[] memory tokens,
+        address[] memory pairs,
+        uint24[] memory fees,
+        uint32[] memory timeWindows
+    ) external;
 
-  function getPoolData(address token) external view returns (PoolData memory);
+    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
 
-  function getFee(address token, address pair) external view returns (uint24);
+    function removePool(address token) external;
 
-  function getTimeWindow(address token, address pair) external view returns (uint32);
+    function getPoolData(address token) external view returns (PoolData memory);
 
-  function weth() external view returns (address);
+    function getFee(address token, address pair) external view returns (uint24);
 
-  function factory() external view returns (IUniswapV3Factory);
+    function getTimeWindow(address token, address pair) external view returns (uint32);
+
+    function weth() external view returns (address);
+
+    function factory() external view returns (IUniswapV3Factory);
 }

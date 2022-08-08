@@ -30,6 +30,8 @@ library ControllerLibrary {
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
 
+    event Repositioned(address indexed strategy, address indexed adapter, address indexed token);
+
     /**
      * @notice Wrap router function with approve and unapprove
      * @param strategy The strategy contract
@@ -208,6 +210,7 @@ library ControllerLibrary {
         } else {
             revert("Unsupported token");
         }
+        emit Repositioned(address(strategy), adapter, token);
     }
 
     /**

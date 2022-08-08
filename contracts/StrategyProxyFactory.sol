@@ -31,51 +31,6 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     address public immutable override controller;
 
-    /**
-     * @notice Log the address of an implementation contract update
-     */
-    event Update(address newImplementation, string version);
-
-    /**
-     * @notice Log the creation of a new strategy
-     */
-    event NewStrategy(
-        address strategy,
-        address manager,
-        string name,
-        string symbol,
-        StrategyItem[] items
-    );
-
-    /**
-     * @notice Log the new Oracle for the strategies
-     */
-    event NewOracle(address newOracle);
-
-    /**
-     * @notice Log the new TokenRegistry for the strategies
-     */
-    event NewRegistry(address newRegistry);
-
-    /**
-     * @notice New default whitelist address
-     */
-    event NewWhitelist(address newWhitelist);
-
-    /**
-     * @notice New default pool address
-     */
-    event NewPool(address newPool);
-
-    /**
-     * @notice New streaming fee percentage
-     */
-    event NewStreamingFee(uint256 newStreamingFee);
-
-    /**
-     * @notice Log ownership transfer
-     */
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     bytes32 private constant _CREATE_TYPEHASH =
       keccak256("Create(string name,string symbol)");
@@ -212,6 +167,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
 
     function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external onlyOwner {
         IStrategyController(controller).updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar);
+        // controller emits RebalanceParametersUpdated event
     }
 
     /*
@@ -220,10 +176,12 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function updateProxyVersion(address proxy) external override {
         require(msg.sender == admin, "Only admin");
         IStrategyManagement(proxy).updateVersion(_version);
+        // proxy (strategy) emits VersionUpdated event
     }
 
     function addEstimatorToRegistry(uint256 estimatorCategoryIndex, address estimator) external onlyOwner {
         ITokenRegistry(_registry).addEstimator(estimatorCategoryIndex, estimator);
+        // registry emits EstimatorAdded event
     }
 
     function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata tokens) external onlyOwner {

@@ -3,6 +3,10 @@ pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 interface IStrategyFees {
+
+    event StreamingFee(uint256 amount);
+    event ManagementFee(uint256 amount);
+
     function managementFee() external view returns (uint256);
 
     function issueStreamingFee() external;

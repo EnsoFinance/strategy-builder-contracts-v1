@@ -38,10 +38,12 @@ contract ChainlinkRegistry is IChainlinkRegistry, Ownable {
         oracleData.pair = pair;
         oracleData.oracle = oracle;
         oracleData.inverse = inverse;
+        emit OracleAdded(token, pair, oracle, inverse);
     }
 
     function removeOracle(address token) external override onlyOwner {
         delete _chainlinkOracles[token];
+        emit OracleRemoved(token);
     }
 
     function getOracle(address token) external view override returns (ChainlinkOracleData memory) {

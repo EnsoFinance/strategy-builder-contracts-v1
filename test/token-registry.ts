@@ -14,12 +14,15 @@ import { Platform, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } fr
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 chai.use(solidity)
 
 describe('TokenRegistry', function () {
+	let proofCounter: number
 	let platform: Platform
 
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		this.accounts = await getSigners()
 		this.tokens = new Tokens()
 		this.weth = new Contract(this.tokens.weth, WETH9.abi, this.accounts[0])
@@ -61,6 +64,7 @@ describe('TokenRegistry', function () {
 		const newEnum = ESTIMATOR_CATEGORY.YEARN_V2 + 1
 		await this.factory.addEstimatorToRegistry(newEnum, estimator)
 		await this.factory.addItemToRegistry(ITEM_CATEGORY.BASIC, newEnum, this.tokens.usdt)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -102,6 +106,7 @@ describe('TokenRegistry', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await this.wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Only owner can call', async function () {
@@ -113,6 +118,7 @@ describe('TokenRegistry', function () {
 				.connect(this.accounts[5].address)
 				.addItemsToRegistry(itemCategories, estimatorCategories, tokens)
 		).to.be.revertedWith('Not owner')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should add a batch of tokens', async function () {
@@ -130,6 +136,7 @@ describe('TokenRegistry', function () {
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.COMPOUND)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
 		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should change estimator categories on a batch of tokens', async function () {
@@ -147,6 +154,7 @@ describe('TokenRegistry', function () {
 		expect(results[1]).to.be.eq(ESTIMATOR_CATEGORY.CURVE_GAUGE)
 		expect(results[2]).to.be.eq(ITEM_CATEGORY.BASIC)
 		expect(results[3]).to.be.eq(ITEM_CATEGORY.BASIC)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it("Should fail if array lengths don't match", async function () {
@@ -162,5 +170,6 @@ describe('TokenRegistry', function () {
 		await expect(this.factory.addItemsToRegistry(itemCategories, estimatorCategories, tokens)).to.be.revertedWith(
 			'Mismatched array lengths'
 		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

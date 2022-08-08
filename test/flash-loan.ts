@@ -24,10 +24,12 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const NUM_TOKENS = 4
 
 describe('Flash Loan', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -45,6 +47,10 @@ describe('Flash Loan', function () {
 		uniswapAdapter: Contract,
 		strategy: Contract,
 		wrapper: Contract
+
+	before('Setup', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
+	})
 
 	it('Setup Uniswap, Sushiswap, Factory, MulticallRouter', async function () {
 		accounts = await getSigners()
@@ -64,6 +70,7 @@ describe('Flash Loan', function () {
 		await whitelist.connect(accounts[0]).approve(sushiAdapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
 		await whitelist.connect(accounts[0]).approve(multicallRouter.address)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -118,12 +125,14 @@ describe('Flash Loan', function () {
 		//await displayBalances(wrapper, strategyConfig.strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy arbitrager contract', async function () {
 		const Arbitrager = await getContractFactory('Arbitrager')
 		arbitrager = await Arbitrager.connect(accounts[1]).deploy()
 		await arbitrager.deployed()
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance and create arbitrage opportunity', async function () {
@@ -139,6 +148,7 @@ describe('Flash Loan', function () {
 			.connect(accounts[2])
 			.swap(tokenBalance, 0, tokens[1].address, weth.address, accounts[2].address, accounts[2].address)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy with multicall + flash loan', async function () {
@@ -163,5 +173,6 @@ describe('Flash Loan', function () {
 		const balanceAfter = await tokens[1].balanceOf(accounts[1].address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
 		console.log('Tokens Earned: ', balanceAfter.sub(balanceBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

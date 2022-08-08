@@ -6,6 +6,7 @@ import "./registries/ITokenRegistry.sol";
 import "./IStrategy.sol";
 
 interface IOracle {
+
     function weth() external view returns (address);
 
     function susd() external view returns (address);

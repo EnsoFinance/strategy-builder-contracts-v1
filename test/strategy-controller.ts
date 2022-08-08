@@ -12,6 +12,7 @@ import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/en
 import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE, ITEM_CATEGORY, ESTIMATOR_CATEGORY, TIMELOCK_CATEGORY } from '../lib/constants'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import {
 	Platform,
 	deployTokens,
@@ -31,6 +32,7 @@ const TIMELOCK = BigNumber.from(2592000) // 30 days
 chai.use(solidity)
 
 describe('StrategyController', function () {
+	let proofCounter: number
 	let tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
@@ -51,6 +53,7 @@ describe('StrategyController', function () {
 		newThreshold: BigNumber
 
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[0]
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
@@ -72,6 +75,7 @@ describe('StrategyController', function () {
 	it('Should get implementation', async function () {
 		const implementation = await platform.administration.platformProxyAdmin.controllerImplementation()
 		expect(implementation).to.not.equal(AddressZero)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: threshold too high', async function () {
@@ -98,6 +102,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
@@ -124,6 +129,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: slippage too high', async function () {
@@ -150,6 +156,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: fee too high', async function () {
@@ -176,6 +183,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deploy strategy: timelock too high', async function () {
@@ -198,6 +206,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy empty strategy', async function () {
@@ -222,6 +231,7 @@ describe('StrategyController', function () {
 		expect((await emptyStrategy.items()).length).to.equal(0)
 		expect((await controller.strategyState(emptyStrategy.address)).social).to.equal(true)
 		expect(BigNumber.from(await emptyStrategy.managementFee()).eq(strategyState.managementFee)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -277,6 +287,7 @@ describe('StrategyController', function () {
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail on any and all external calls: StrategyControllerPaused', async function () {
@@ -302,6 +313,7 @@ describe('StrategyController', function () {
 		// "unpause"
 		await platformProxyAdmin.connect(owner).upgrade(controllerProxy, controllerImplementation)
 		// now all following tests will pass
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to setup strategy: initialized', async function () {
@@ -323,6 +335,7 @@ describe('StrategyController', function () {
 					value: BigNumber.from('10000000000000000'),
 				})
 		).to.be.revertedWith('')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to setup strategy: not factory', async function () {
@@ -342,6 +355,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to verify structure: 0 address', async function () {
@@ -358,6 +372,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to verify structure: out of order', async function () {
@@ -379,16 +394,19 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update value: restructure is invalid option', async function () {
 		await expect(
 			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.RESTRUCTURE, 0)
 		).to.be.revertedWith('')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update value: option out of bounds', async function () {
 		await expect(controller.connect(accounts[1]).updateValue(strategy.address, 7, 0)).to.be.revertedWith('')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update threshold: not manager', async function () {
@@ -399,6 +417,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update threshold: value too large', async function () {
@@ -411,6 +430,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update threshold', async function () {
@@ -418,6 +438,7 @@ describe('StrategyController', function () {
 		await controller
 			.connect(accounts[1])
 			.updateValue(strategy.address, TIMELOCK_CATEGORY.REBALANCE_THRESHOLD, newThreshold)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to finalize restructure: timelock not set for restructure', async function () {
@@ -428,6 +449,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize value', async function () {
@@ -436,6 +458,7 @@ describe('StrategyController', function () {
 		const receipt = await tx.wait()
 		console.log('Gas used', receipt.gasUsed.toString())
 		expect(BigNumber.from(await strategy.rebalanceThreshold()).eq(newThreshold)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update rebalance slippage: not manager', async function () {
@@ -446,6 +469,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update rebalance slippage: value too large', async function () {
@@ -458,6 +482,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update rebalance slippage', async function () {
@@ -469,6 +494,7 @@ describe('StrategyController', function () {
 		expect(
 			BigNumber.from((await controller.strategyState(strategy.address)).rebalanceSlippage).eq(slippage)
 		).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update restructure slippage: not manager', async function () {
@@ -479,6 +505,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update restructure slippage: value too large', async function () {
@@ -491,6 +518,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update restructure slippage', async function () {
@@ -502,6 +530,7 @@ describe('StrategyController', function () {
 		expect(
 			BigNumber.from((await controller.strategyState(strategy.address)).restructureSlippage).eq(slippage)
 		).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update management fee: not manager', async function () {
@@ -512,6 +541,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update management fee: value too large', async function () {
@@ -522,6 +552,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update management fee', async function () {
@@ -529,6 +560,7 @@ describe('StrategyController', function () {
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.MANAGEMENT_FEE, fee)
 		await controller.finalizeValue(strategy.address)
 		expect(BigNumber.from(await strategy.managementFee()).eq(fee)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update timelock: not manager', async function () {
@@ -539,6 +571,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update timelock', async function () {
@@ -546,6 +579,7 @@ describe('StrategyController', function () {
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, timelock)
 		await controller.finalizeValue(strategy.address)
 		expect(BigNumber.from((await controller.strategyState(strategy.address)).timelock).eq(timelock)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance, rebalance timelock not ready.', async function () {
@@ -556,6 +590,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance, already balanced', async function () {
@@ -567,6 +602,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, not quite enough for a rebalance', async function () {
@@ -586,6 +622,7 @@ describe('StrategyController', function () {
 		// note the differences in inner and outer rebalance thresholds
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(await wrapper.isBalancedInner()).to.equal(false) // inner and outer wrt rebalance threshold
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance, router not approved', async function () {
@@ -596,6 +633,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance, balanced', async function () {
@@ -606,6 +644,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -623,6 +662,7 @@ describe('StrategyController', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
 		expect(await wrapper.isBalancedInner()).to.equal(false) // inner and outer wrt rebalance threshold
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -632,6 +672,7 @@ describe('StrategyController', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance, only manager may rebalance', async function () {
@@ -642,6 +683,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: not manager', async function () {
@@ -654,6 +696,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: no funds deposited', async function () {
@@ -666,6 +709,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: too much slippage', async function () {
@@ -678,6 +722,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more: ETH', async function () {
@@ -693,6 +738,7 @@ describe('StrategyController', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more: WETH', async function () {
@@ -709,15 +755,18 @@ describe('StrategyController', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdrawAll: no strategy tokens', async function () {
 		await expect(strategy.connect(accounts[5]).withdrawAll(1)).to.be.revertedWith('ERC20: Amount exceeds balance')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdrawAll: no amount passed', async function () {
 		expect(await isRevertedWith(strategy.connect(accounts[1]).withdrawAll(0), '0 amount', 'Strategy.sol')).to.be
 			.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdraw: no amount passed', async function () {
@@ -730,6 +779,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdrawAll', async function () {
@@ -740,6 +790,7 @@ describe('StrategyController', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const tokenBalanceAfter = new BigNumJs((await tokens[1].balanceOf(strategy.address)).toString())
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: no items', async function () {
@@ -750,6 +801,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: wrong percentages', async function () {
@@ -766,6 +818,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: not manager', async function () {
@@ -782,6 +835,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -794,12 +848,14 @@ describe('StrategyController', function () {
 		const tx = await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
 		const receipt = await tx.wait()
 		console.log('Restructure Gas Used: ', receipt.gasUsed.toString())
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to finalize value: wrong category', async function () {
 		expect(
 			await isRevertedWith(controller.finalizeValue(strategy.address), 'Wrong category', 'StrategyController.sol')
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -807,11 +863,13 @@ describe('StrategyController', function () {
 		const receipt = await tx.wait()
 		console.log('Finalize Structure Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should have no token 3', async function () {
 		const amount = await tokens[3].balanceOf(strategy.address)
 		expect(amount.eq(0)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -832,10 +890,12 @@ describe('StrategyController', function () {
 
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: not controller', async function () {
 		await expect(router.rebalance(strategy.address, '0x')).to.be.revertedWith('Only controller')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -845,6 +905,7 @@ describe('StrategyController', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to open strategy: not manager', async function () {
@@ -855,11 +916,13 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should open strategy', async function () {
 		await controller.connect(accounts[1]).openStrategy(strategy.address)
 		expect((await controller.strategyState(strategy.address)).social).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to open strategy: already open', async function () {
@@ -870,6 +933,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy fail adapter + setup strategy to need rebalance', async function () {
@@ -883,6 +947,7 @@ describe('StrategyController', function () {
 		await adapter
 			.connect(accounts[2])
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -894,11 +959,13 @@ describe('StrategyController', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
 		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		//await displayBalances(wrapper, strategyItems, weth)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Transfer reserve token to require rebalance', async function () {
@@ -917,6 +984,7 @@ describe('StrategyController', function () {
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Transfer reserve weth to require rebalance', async function () {
@@ -936,6 +1004,7 @@ describe('StrategyController', function () {
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to estimate and require emergency estimator', async function () {
@@ -1004,6 +1073,7 @@ describe('StrategyController', function () {
 			controller,
 			'NewStructure'
 		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should set strategy', async function () {
@@ -1017,6 +1087,7 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to set strategy: already set', async function () {
@@ -1027,5 +1098,6 @@ describe('StrategyController', function () {
 				'StrategyController.sol'
 			)
 		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

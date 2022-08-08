@@ -19,6 +19,7 @@ import {
 	deployLoopRouter,
 } from '../lib/deploy'
 import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
 
 const NUM_TOKENS = 15
@@ -26,6 +27,7 @@ const YEAR = 331556952
 
 chai.use(solidity)
 describe('StrategyToken Fees', function () {
+	let proofCounter: number
 	let platform: Platform,
 		tokens: Contract[],
 		weth: Contract,
@@ -55,6 +57,7 @@ describe('StrategyToken Fees', function () {
 	}
 
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		owner = accounts[10]
 		manager = accounts[1]
@@ -120,6 +123,7 @@ describe('StrategyToken Fees', function () {
 		})
 		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should progress blocks and collect streaming fee', async function () {
@@ -146,6 +150,7 @@ describe('StrategyToken Fees', function () {
 
 		expect(actualRatio.dp(5).isEqualTo(expectedRatio.dp(5))).to.equal(true)
 		lastTimestamp = currentTimestamp
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -156,6 +161,7 @@ describe('StrategyToken Fees', function () {
 					value: BigNumber.from('10000000000000000'),
 				})
 		}
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, increasing strategy value', async function () {
@@ -172,6 +178,7 @@ describe('StrategyToken Fees', function () {
 			.connect(accounts[2])
 			.swap(value.div(4), 0, weth.address, tokens[3].address, accounts[2].address, accounts[2].address)
 		expect((await wrapper.getStrategyValue()).gt(valueBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit', async function () {
@@ -186,6 +193,7 @@ describe('StrategyToken Fees', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(someUser.address)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transfer tokens to a non-holder', async function () {
@@ -208,6 +216,7 @@ describe('StrategyToken Fees', function () {
 		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
 		expect(ownerMint.eq(0)).to.equal(true)
 		expect(managerMint.eq(0)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transfer tokens', async function () {
@@ -229,6 +238,7 @@ describe('StrategyToken Fees', function () {
 		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
 		expect(ownerMint.eq(0)).to.equal(true)
 		expect(managerMint.eq(0)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should transfer tokens to manager', async function () {
@@ -249,6 +259,7 @@ describe('StrategyToken Fees', function () {
 		const managerMint = managerBalanceAfter.sub(managerBalanceBefore)
 		expect(ownerMint.gt(0)).to.equal(true)
 		expect(managerMint.gt(amount)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw tokens (including pool tokens)', async function () {
@@ -271,5 +282,6 @@ describe('StrategyToken Fees', function () {
 		const userWithdraw = userBalanceAfter.sub(userBalanceBefore)
 		expect(ownerWithdraw.gt(0)).to.equal(true)
 		expect(userWithdraw.gt(0)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })
