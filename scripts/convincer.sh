@@ -18,7 +18,10 @@ main() {
 
     lastGitCommitHash=$(git log -2 --format=format:"%H"| tail -1)
     git log -2 --format=format:"%H" # debugging
+    
     echo $lastGitCommitHash
+    echo ""
+    git rev-parse HEAD~1 # debugging
     #cat .convincer/testreport.txt | head -1)
 
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
