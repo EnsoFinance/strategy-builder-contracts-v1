@@ -21,12 +21,6 @@ main() {
     
     echo $lastGitCommitHash
     echo ""
-    git rev-parse HEAD~1 # debugging
-    #cat .convincer/testreport.txt | head -1)
-
-    echo "debug after lastgitcommit"
-    echo $LAST_GIT_COMMIT
-    echo "debug after lastgitcommit"
 
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \

@@ -13,6 +13,7 @@ jobs:
       RINKEBY_PRIVATE_KEY: ${{ secrets.RINKEBY_PRIVATE_KEY }}
       ARCHIVE_NODE: ${{ secrets.ARCHIVE_NODE }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      GITHUB_CONTEXT: ${{ toJson(github) }}
     strategy:
       matrix:
         node: ["14.x"]
@@ -33,8 +34,8 @@ jobs:
         with:
           path: "**/node_modules"
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
-          ref: ${{ github.event.push.head.sha }}
-          fetch-depth: 2
+      - run: |
+          echo "$GITHUB_CONTEXT" | jq '.event.commits[].id' | tail -2 | head -1 | sed 's/\"//g'
       - run: yarn install --frozen-lockfile
       - run: yarn build
       - run: yarn test
