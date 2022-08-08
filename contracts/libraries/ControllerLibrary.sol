@@ -550,6 +550,5 @@ library ControllerLibrary {
         ITokenRegistry.ItemDetails memory itemDetails = IStrategyController(address(this)).oracle().tokenRegistry().itemDetails(address(-1));
         require(idx < itemDetails.tradeData.adapters.length, "Invalid adapter index");
         adapter = itemDetails.tradeData.adapters[idx];
-        require(adapter != address(0), "Invalid adapter");
     }
 }
