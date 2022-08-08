@@ -212,7 +212,6 @@ async function main() {
 	const AaveV2DebtAdapter = await hre.ethers.getContractFactory('AaveV2DebtAdapter')
 	const CompoundAdapter = await hre.ethers.getContractFactory('CompoundAdapter')
 	const YEarnV2Adapter = await hre.ethers.getContractFactory('YEarnV2Adapter')
-	const Leverage2XAdapter = await hre.ethers.getContractFactory('Leverage2XAdapter')
 	const KyberSwapAdapter = await hre.ethers.getContractFactory('KyberSwapAdapter')
 
 	let tokenRegistry: Contract
