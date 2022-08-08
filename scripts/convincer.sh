@@ -17,6 +17,7 @@ export -f getProofsFromFile
 main() {
 
     lastGitCommitHash=$(git log -2 --format=format:"%H"| tail -1)
+    git log -2 --format=format:"%H" # debugging
     echo $lastGitCommitHash
     #cat .convincer/testreport.txt | head -1)
 
