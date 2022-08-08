@@ -17,10 +17,11 @@ export -f getProofsFromFile
 main() {
 
     lastGitCommitHash=$(git log -2 --format=format:"%H"| tail -1)
-    git log -2 --format=format:"%H" # debugging
     
     echo $lastGitCommitHash
-    echo ""
+    echo "debug before"
+    echo "$GITHUB_CONTEXT" | jq '.event.before' | sed 's/\"//g'
+    echo "debug after"
 
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
