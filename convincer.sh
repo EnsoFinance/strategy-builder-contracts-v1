@@ -16,7 +16,9 @@ export -f getProofsFromFile
 
 main() {
 
-    lastGitCommitHash=$(cat .convincer/testreport.txt | head -1)
+    lastGitCommitHash=$(git log -2 --format=format:"%H"| tail -1)
+    echo $lastGitCommitHash
+    #cat .convincer/testreport.txt | head -1)
 
     expectedHash=$(ls test | sed "s/$/__delimiter__$lastGitCommitHash/" \
       | xargs -n1 bash -c 'getProofsFromFile "$@"' {} \
