@@ -1,11 +1,5 @@
 #!/bin/bash
 
-getProofFromTest() {
-    echo "$1"
-}
-
-export -f getProofFromTest
-
 getProofsFromFile() {
     filenameWithHash=$(echo "$1" | sed 's/__delimiter__/_/')
     filename=$(echo "$1" | sed 's/__delimiter__.*//')
