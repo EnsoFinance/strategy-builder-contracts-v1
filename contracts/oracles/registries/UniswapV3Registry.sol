@@ -54,7 +54,6 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     function removePool(address token) external override onlyOwner {
         bytes32 pairId = _pairId[token];
         require(pairId != bytes32(0), "Pool not found");
-        PairData memory pairData = _pairs[pairId];
         delete _pairs[pairId];
         delete _pairId[token];
         emit PoolRemoved(token);

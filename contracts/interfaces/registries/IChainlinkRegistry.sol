@@ -6,7 +6,7 @@ interface IChainlinkRegistry {
 
       event OracleAdded(address indexed token, address indexed pair, address indexed oracle, bool inverse);
 
-      event OracleRemoved(address indexed token, address indexed pair, address indexed oracle, bool inverse);
+      event OracleRemoved(address indexed token);
 
       struct ChainlinkOracleData {
           address oracle;
