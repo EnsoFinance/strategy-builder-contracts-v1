@@ -5,8 +5,6 @@ import "./IStrategy.sol";
 
 interface IEstimator {
 
-    event EstimateSet(address token, int256 amount, bool finalized);
-
     function estimateItem(
         IStrategy strategy,
         address token

@@ -4,7 +4,9 @@ pragma experimental ABIEncoderV2;
 
 interface IChainlinkRegistry {
 
-      event OracleChange(address indexed token, address indexed pair, address indexed oracle, bool inverse, bool addOrDelete); // true for add
+      event OracleAdded(address indexed token, address indexed pair, address indexed oracle, bool inverse);
+
+      event OracleRemoved(address indexed token, address indexed pair, address indexed oracle, bool inverse);
 
       struct ChainlinkOracleData {
           address oracle;
