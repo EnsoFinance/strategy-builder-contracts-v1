@@ -35,4 +35,6 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
       - run: yarn install --frozen-lockfile
       - run: yarn build
+      - run: |
+          export LAST_GIT_COMMIT=$(git rev-parse HEAD~1)
       - run: yarn test
