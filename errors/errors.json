@@ -268,6 +268,10 @@
     "contractName": "ISynthetix.sol"
   },
   {
+    "contractId": "11411afbd1e3",
+    "contractName": "ISynthRedeemer.sol"
+  },
+  {
     "contractId": "96c19af48e5b",
     "contractName": "ISynth.sol"
   },

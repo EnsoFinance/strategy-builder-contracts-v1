@@ -169,7 +169,7 @@ export class Tokens {
 		uniswapV3Registry?: Contract,
 		chainlinkRegistry?: Contract,
 		curveDepositZapRegistry?: Contract,
-		synthetixAdapter?: Contract
+		synthetixAdapters?: string[]
 	) {
 		await Promise.all([
 			strategyFactory

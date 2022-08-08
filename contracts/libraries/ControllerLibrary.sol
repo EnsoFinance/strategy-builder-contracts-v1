@@ -176,15 +176,16 @@ library ControllerLibrary {
 
     function repositionSynths(IStrategy strategy, address token, address susd) external {
         strategy.settleSynths();
-        uint256 length;
+        address adapter;
         if (token == susd) {
+            adapter = _getSynthetixAdapter(0); // SynthetixAdapter
             address[] memory synths = strategy.synths();
-            length = synths.length;
+            uint256 length = synths.length;
             for (uint256 i; i < length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount != 0) {
                     strategy.delegateSwap(
-                        _getSynthetixAdapter(0), // SynthetixAdapter
+                        adapter,
                         amount,
                         synths[i],
                         susd
@@ -192,15 +193,16 @@ library ControllerLibrary {
                 }
             }
         } else if (token == address(-1)) {
+            adapter = _getSynthetixAdapter(0); // SynthetixAdapter
             uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
-            length = synths.length;
+            uint256 length = synths.length;
             for (uint256 i; i < length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
                 if (amount != 0) {
                     strategy.delegateSwap(
-                        _getSynthetixAdapter(0), // SynthetixAdapter
+                        adapter,
                         amount,
                         susd,
                         synths[i]
@@ -209,10 +211,11 @@ library ControllerLibrary {
             }
         } else {
             // Attempt to redeem token for sUSD
+            adapter = _getSynthetixAdapter(1); // SynthRedeemerAdapter
             uint256 synthBalance = IERC20(token).balanceOf(address(strategy));
             if (synthBalance != 0) {
                 strategy.delegateSwap(
-                    _getSynthetixAdapter(1), // SynthRedeemerAdapter
+                    adapter,
                     synthBalance,
                     token,
                     susd

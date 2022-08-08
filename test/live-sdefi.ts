@@ -182,7 +182,7 @@ describe('Remove sDEFI from live contracts', function () {
 		await controller.connect(owner).updateAddresses()
 
 		// Set synthetix adapters
-		await strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [ enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x'}, false)
+		await strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [ enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x'}, AddressZero)
 
 		// Upgrade strategy
 		eDTOP = await Strategy.attach('0x0CF65Dcf23c3a67D1A220A2732B5c2F7921A30c4')
