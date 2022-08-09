@@ -6,7 +6,7 @@ import { EnsoBuilder, EnsoEnvironment } from '../lib/enso'
 import { Estimator } from '../lib/estimator'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, InitialState } from '../lib/encode'
-import { increaseTime } from '../lib/utils'
+import { increaseTime, resetBlockchain } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -47,6 +47,9 @@ describe('Estimator', function () {
 
 	before('Setup Enso + Estimator', async function () {
 		proofCounter = initializeTestLogging(this, __dirname)
+
+		await resetBlockchain()
+
 		accounts = await getSigners()
 		const owner = accounts[0]
 

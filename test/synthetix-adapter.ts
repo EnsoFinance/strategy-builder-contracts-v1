@@ -21,7 +21,7 @@ import {
 import { isRevertedWith } from '../lib/errors'
 import { increaseTime } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
-import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY } from '../lib/constants'
+import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
 //import { displayBalances } from '../lib/logging'
 import IAddressResolver from '../artifacts/contracts/interfaces/synthetix/IAddressResolver.sol/IAddressResolver.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
@@ -124,14 +124,14 @@ describe('SynthetixAdapter', function () {
 			undefined,
 			chainlinkRegistry,
 			curveDepositZapRegistry,
-			synthetixAdapter
+			[ synthetixAdapter.address ]
 		)
 	})
 
 	it('Should fail to deploy strategy: virtual item', async function () {
 		const name = 'Fail Strategy'
 		const symbol = 'FAIL'
-		const positions = [{ token: '0xffffffffffffffffffffffffffffffffffffffff', percentage: BigNumber.from(1000) }]
+		const positions = [{ token: VIRTUAL_ITEM, percentage: BigNumber.from(1000) }]
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 
 		expect(
@@ -388,11 +388,11 @@ describe('SynthetixAdapter', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-	it('Should fail to reposition susd into synths: unsupported address', async function () {
+	it('Should fail to reposition sEUR to sUSD: no redeemer adapter', async function () {
 		await increaseTime(600)
 		await expect(
 			controller.connect(accounts[1]).repositionSynths(strategy.address, tokens.sEUR)
-		).to.be.revertedWith('Unsupported token')
+		).to.be.revertedWith('Invalid adapter index')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
@@ -405,7 +405,7 @@ describe('SynthetixAdapter', function () {
 
 		await controller
 			.connect(accounts[1])
-			.repositionSynths(strategy.address, '0xffffffffffffffffffffffffffffffffffffffff')
+			.repositionSynths(strategy.address, VIRTUAL_ITEM)
 
 		expect(await susd.balanceOf(strategy.address)).to.be.equal(0)
 		logTestComplete(this, __dirname, proofCounter++)

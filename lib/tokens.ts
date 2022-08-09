@@ -35,6 +35,7 @@ export class Tokens {
 	sAAVE: string
 	sDOT: string
 	sADA: string
+	sDEFI: string
 	// Aave
 	aWETH: string
 	aWBTC: string
@@ -110,8 +111,9 @@ export class Tokens {
 		this.sBTC = '0xfe18be6b3bd88a2d2a7f928d00292e7a9963cfc6'
 		this.sAAVE = '0xd2df355c19471c8bd7d8a3aa27ff4e26a21b4076'
 		this.sLINK = '0xbBC455cb4F1B9e4bFC4B73970d360c8f032EfEE6'
-		this.sDOT = '0x1715ac0743102bf5cd58efbb6cf2dc2685d967b6'
-		this.sADA = '0xe36e2d3c7c34281fa3bc737950a68571736880a1'
+    this.sDOT = '0x1715ac0743102bf5cd58efbb6cf2dc2685d967b6'
+    this.sADA = '0xe36e2d3c7c34281fa3bc737950a68571736880a1'
+		this.sDEFI = '0xe1aFe1Fd76Fd88f78cBf599ea1846231B8bA3B6B'
 		// Aave Tokens
 		this.aWETH = '0x030bA81f1c18d280636F32af80b9AAd02Cf0854e'
 		this.aWBTC = '0x9ff58f4fFB29fA2266Ab25e75e2A8b3503311656'
@@ -167,7 +169,7 @@ export class Tokens {
 		uniswapV3Registry?: Contract,
 		chainlinkRegistry?: Contract,
 		curveDepositZapRegistry?: Contract,
-		synthetixAdapter?: Contract
+		synthetixAdapters?: string[]
 	) {
 		await Promise.all([
 			strategyFactory
@@ -203,6 +205,9 @@ export class Tokens {
 			strategyFactory
 				.connect(owner)
 				.addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sADA),
+			strategyFactory
+				.connect(owner)
+				.addItemToRegistry(ITEM_CATEGORY.SYNTH, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, this.sDEFI),
 			strategyFactory
 				.connect(owner)
 				.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.AAVE_V2, this.aWETH),
@@ -328,14 +333,14 @@ export class Tokens {
 					'0x8dd5fbCe2F6a956C3022bA3663759011Dd51e73E'
 				), //TUSD second address
 		])
-		if (synthetixAdapter) {
+		if (synthetixAdapters) {
 			await strategyFactory
 				.connect(owner)
 				.addItemDetailedToRegistry(
 					ITEM_CATEGORY.RESERVE,
 					ESTIMATOR_CATEGORY.BLOCKED,
 					VIRTUAL_ITEM,
-					{ adapters: [synthetixAdapter.address], path: [], cache: '0x' },
+					{ adapters: synthetixAdapters, path: [], cache: '0x' },
 					AddressZero
 				)
 		}

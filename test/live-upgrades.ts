@@ -1,10 +1,10 @@
 import chai from 'chai'
 const { expect } = chai
-import { ethers, network, waffle } from 'hardhat'
+import { ethers, waffle } from 'hardhat'
 import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { getLiveContracts } from '../lib/mainnet'
-import { increaseTime } from '../lib/utils'
+import { increaseTime, resetBlockchain, impersonate } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { isRevertedWith } from '../lib/errors'
 
@@ -12,14 +12,6 @@ import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/St
 
 const { constants, getSigners, getContractFactory } = ethers
 const { MaxUint256, /*WeiPerEther,*/ AddressZero } = constants
-
-async function impersonate(address: string): Promise<SignerWithAddress> {
-	await network.provider.request({
-		method: 'hardhat_impersonateAccount',
-		params: [address],
-	})
-	return await ethers.getSigner(address)
-}
 
 describe('Live Upgrades', function () {
 	let proofCounter: number
@@ -32,6 +24,9 @@ describe('Live Upgrades', function () {
 
 	before('Setup contracts', async function () {
 		proofCounter = initializeTestLogging(this, __dirname)
+
+		await resetBlockchain()
+		
 		accounts = await getSigners()
 
 		const enso = getLiveContracts(accounts[0])

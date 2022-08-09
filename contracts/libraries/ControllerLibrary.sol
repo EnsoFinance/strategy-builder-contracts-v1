@@ -29,8 +29,9 @@ library ControllerLibrary {
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-
     event Repositioned(address indexed strategy, address indexed adapter, address indexed token);
+
+    enum SynthetixAdapterType { SYNTHETIX, SYNTH_REDEEMER }
 
     /**
      * @notice Wrap router function with approve and unapprove
@@ -174,12 +175,13 @@ library ControllerLibrary {
         emit Balanced(address(strategy), totalBefore, totalAfter);
     }
 
-    function repositionSynths(IStrategy strategy, address adapter, address token, address susd) external {
+    function repositionSynths(IStrategy strategy, address token, address susd) external {
         strategy.settleSynths();
-        uint256 length;
+        address adapter;
         if (token == susd) {
+            adapter = _getSynthetixAdapter(SynthetixAdapterType.SYNTHETIX);
             address[] memory synths = strategy.synths();
-            length = synths.length;
+            uint256 length = synths.length;
             for (uint256 i; i < length; ++i) {
                 uint256 amount = IERC20(synths[i]).balanceOf(address(strategy));
                 if (amount != 0) {
@@ -192,10 +194,11 @@ library ControllerLibrary {
                 }
             }
         } else if (token == address(-1)) {
+            adapter = _getSynthetixAdapter(SynthetixAdapterType.SYNTHETIX);
             uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
-            length = synths.length;
+            uint256 length = synths.length;
             for (uint256 i; i < length; ++i) {
                 uint256 amount = uint256(int256(susdBalance).mul(strategy.getPercentage(synths[i])).div(percentTotal));
                 if (amount != 0) {
@@ -208,7 +211,17 @@ library ControllerLibrary {
                 }
             }
         } else {
-            revert("Unsupported token");
+            // Attempt to redeem token for sUSD
+            adapter = _getSynthetixAdapter(SynthetixAdapterType.SYNTH_REDEEMER);
+            uint256 synthBalance = IERC20(token).balanceOf(address(strategy));
+            if (synthBalance != 0) {
+                strategy.delegateSwap(
+                    adapter,
+                    synthBalance,
+                    token,
+                    susd
+                );
+            }
         }
         emit Repositioned(address(strategy), adapter, token);
     }
@@ -535,5 +548,12 @@ library ControllerLibrary {
 
     function _checkDivisor(uint256 value) private pure {
         require(value <= uint256(DIVISOR), "Out of bounds");
+    }
+
+    function _getSynthetixAdapter(SynthetixAdapterType adapterType) private view returns (address adapter) {
+        ITokenRegistry.ItemDetails memory itemDetails = IStrategyController(address(this)).oracle().tokenRegistry().itemDetails(address(-1));
+        uint256 idx = uint256(adapterType);
+        require(idx < itemDetails.tradeData.adapters.length, "Invalid adapter index");
+        adapter = itemDetails.tradeData.adapters[idx];
     }
 }

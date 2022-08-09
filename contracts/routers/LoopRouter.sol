@@ -181,12 +181,7 @@ contract LoopRouter is StrategyTypes, StrategyRouter {
         int256 estimatedValue,
         int256 expectedValue
     ) internal returns (bool) {
-        int256 rebalanceRange =
-            StrategyLibrary.getRange(
-                expectedValue,
-                IStrategy(strategy).rebalanceThreshold()
-            );
-        if (estimatedValue > expectedValue.add(rebalanceRange)) {
+        if (estimatedValue > expectedValue) {
             TradeData memory tradeData = IStrategy(strategy).getTradeData(token);
             _sellPath(
                 tradeData,
