@@ -29,8 +29,9 @@ library ControllerLibrary {
     event Balanced(address indexed strategy, uint256 totalBefore, uint256 totalAfter);
     event Deposit(address indexed strategy, address indexed account, uint256 value, uint256 amount);
     event Withdraw(address indexed strategy, address indexed account, uint256 value, uint256 amount);
-
     event Repositioned(address indexed strategy, address indexed adapter, address indexed token);
+
+    enum SynthetixAdapterType { SYNTHETIX, SYNTH_REDEEMER }
 
     /**
      * @notice Wrap router function with approve and unapprove
@@ -178,7 +179,7 @@ library ControllerLibrary {
         strategy.settleSynths();
         address adapter;
         if (token == susd) {
-            adapter = _getSynthetixAdapter(0); // SynthetixAdapter
+            adapter = _getSynthetixAdapter(SynthetixAdapterType.SYNTHETIX);
             address[] memory synths = strategy.synths();
             uint256 length = synths.length;
             for (uint256 i; i < length; ++i) {
@@ -193,7 +194,7 @@ library ControllerLibrary {
                 }
             }
         } else if (token == address(-1)) {
-            adapter = _getSynthetixAdapter(0); // SynthetixAdapter
+            adapter = _getSynthetixAdapter(SynthetixAdapterType.SYNTHETIX);
             uint256 susdBalance = IERC20(susd).balanceOf(address(strategy));
             int256 percentTotal = strategy.getPercentage(address(-1));
             address[] memory synths = strategy.synths();
@@ -211,7 +212,7 @@ library ControllerLibrary {
             }
         } else {
             // Attempt to redeem token for sUSD
-            adapter = _getSynthetixAdapter(1); // SynthRedeemerAdapter
+            adapter = _getSynthetixAdapter(SynthetixAdapterType.SYNTH_REDEEMER);
             uint256 synthBalance = IERC20(token).balanceOf(address(strategy));
             if (synthBalance != 0) {
                 strategy.delegateSwap(
@@ -549,8 +550,9 @@ library ControllerLibrary {
         require(value <= uint256(DIVISOR), "Out of bounds");
     }
 
-    function _getSynthetixAdapter(uint256 idx) private view returns (address adapter) {
+    function _getSynthetixAdapter(SynthetixAdapterType adapterType) private view returns (address adapter) {
         ITokenRegistry.ItemDetails memory itemDetails = IStrategyController(address(this)).oracle().tokenRegistry().itemDetails(address(-1));
+        uint256 idx = uint256(adapterType);
         require(idx < itemDetails.tradeData.adapters.length, "Invalid adapter index");
         adapter = itemDetails.tradeData.adapters[idx];
     }
