@@ -302,7 +302,7 @@ describe('AaveAdapter', function () {
 	})
 
 	/* Aave no longer supports rewards?
-	it('Should claim stkAAVE', async function () {
+	it('Should claim stkAAVE', async function () { // convincer-ignore
 		const balanceBefore = await stkAAVE.balanceOf(strategy.address)
 		const tx = await strategy.connect(accounts[1]).claimAll()
 		const receipt = await tx.wait()

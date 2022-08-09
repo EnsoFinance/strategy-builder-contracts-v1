@@ -9,6 +9,7 @@ import { createLink, linkBytecode } from '../lib/link'
 import { MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
 import { prepareStrategy } from '../lib/encode'
 import { resetBlockchain, impersonate } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
@@ -27,7 +28,8 @@ const synthRedeemer = '0xe533139Af961c9747356D947838c98451015e234'
 //const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
 
 describe('Remove sDEFI from live contracts', function () {
-	let accounts: SignerWithAddress[],
+	let proofCounter: number,
+		accounts: SignerWithAddress[],
 		owner: SignerWithAddress,
 		manager: SignerWithAddress,
 		tokens: Tokens,
@@ -60,6 +62,8 @@ describe('Remove sDEFI from live contracts', function () {
 	}
 
 	before('Setup contracts', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
+
 		await resetBlockchain()
 
 		accounts = await getSigners()
@@ -196,7 +200,7 @@ describe('Remove sDEFI from live contracts', function () {
 	})
 
 	/*
-	it('Should update Chainlink registry', async function () {
+	it('Should update Chainlink registry', async function () { // convincer-ignore
 			await expect(oracle.estimateStrategy(eDTOP.address)).to.be.revertedWith('');
 			await chainlinkRegistry.connect(owner).addOracle(tokens.sDEFI, tokens.sUSD, sDEFIAggregator, false);
 			const [ total, ] = await oracle.estimateStrategy(eDTOP.address)
@@ -211,6 +215,8 @@ describe('Remove sDEFI from live contracts', function () {
 		const receipt = await tx.wait()
 		console.log('Redeem Gas Used: ', receipt.gasUsed.toString())
 		expect((await oracle['estimateItem(address,address)'](eDTOP.address, tokens.sDEFI)).eq(0)).to.equal(true)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -244,6 +250,8 @@ describe('Remove sDEFI from live contracts', function () {
 		await controller
 			.connect(manager)
 			.restructure(eDTOP.address, strategyItems)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -251,5 +259,7 @@ describe('Remove sDEFI from live contracts', function () {
 		await controller
 			.connect(manager)
 			.finalizeStructure(eDTOP.address, router.address, data)
+
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })
