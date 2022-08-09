@@ -250,14 +250,19 @@ describe('Estimator', function () {
 		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
+		//const estimatedWithdrawValue = await estimator.withdraw(strategy, withdrawAmountAfterFee) // NOTE: Fee withdrawn before estimate
+		const estimatedWithdrawValue = await controllerLens.estimateWithdrawWETH(accounts[1].address, strategy.address, routerAddress, withdrawAmountAfterFee, 997, '0x') // NOTE: Fee withdrawn before estimate
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+    console.log(wethBefore)
+    // FIXME continue this test
+    /*
 		const slippage = estimatedWithdrawValue.mul(DIVISOR).div(expectedWithdrawValue).sub(1) // subtract 1 for margin of error
 		await enso.platform.controller
 			.connect(accounts[1])
 			.withdrawWETH(strategy.address, routerAddress, withdrawAmount, slippage, '0x')
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+    */
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
