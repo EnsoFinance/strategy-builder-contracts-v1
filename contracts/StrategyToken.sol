@@ -2,12 +2,10 @@
 pragma solidity 0.6.12;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/IStrategyToken.sol";
-import "./interfaces/IFlashTransferReceiver.sol";
 import "./StrategyTokenStorage.sol";
 
-abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, ReentrancyGuard {
+abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage {
     using SafeMath for uint256;
 
     bytes32 public constant PERMIT_TYPEHASH = keccak256(
@@ -24,7 +22,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) external nonReentrant virtual override returns (bool) {
+    function transfer(address recipient, uint256 amount) external virtual override returns (bool) {
         _transfer(msg.sender, recipient, amount);
         return true;
     }
@@ -36,7 +34,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) external nonReentrant virtual override returns (bool) {
+    function approve(address spender, uint256 amount) external virtual override returns (bool) {
         _approve(msg.sender, spender, amount);
         return true;
     }
@@ -58,12 +56,11 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
         address sender,
         address recipient,
         uint256 amount
-    ) external virtual nonReentrant override returns (bool) {
+    ) external virtual override returns (bool) {
         _spendAllowance(sender, msg.sender, amount);
         _transfer(sender, recipient, amount);
         return true;
     }
-
 
     /**
      * @dev Updates `owner` s allowance for `spender` based on spent `amount`.
@@ -97,7 +94,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue) external nonReentrant virtual override returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) external virtual override returns (bool) {
         _approve(msg.sender, spender, _allowances[msg.sender][spender].add(addedValue));
         return true;
     }
@@ -116,7 +113,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) external nonReentrant virtual override returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) external virtual override returns (bool) {
         uint256 currentAllowance = _allowances[msg.sender][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance < 0");
         _approve(msg.sender, spender, currentAllowance.sub(subtractedValue));
@@ -132,7 +129,7 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) external nonReentrant override {
+    ) external override {
         require(block.timestamp <= deadline, "Expired deadline");
 
         bytes32 digest =
@@ -158,20 +155,6 @@ abstract contract StrategyToken is IStrategyToken, StrategyTokenStorage, Reentra
 
         _nonces[owner]++;
         _approve(owner, spender, value);
-    }
-
-    function setFlashFee(uint256 fee) external nonReentrant override {
-        _flashFees[msg.sender] = fee;
-        emit FlashFeeUpdated(msg.sender, fee); 
-    }
-
-    function flashTransfer(address from, address to, uint256 amount, bytes memory data) external nonReentrant override {
-        uint256 fromBalanceBefore = _balances[from];
-        _transfer(from, to, amount);
-        uint256 repayment = IFlashTransferReceiver(to).receiveFlashTransfer(from, amount, data);
-        _transfer(to, from, repayment);
-        uint256 fromBalanceAfter = _balances[from];
-        require(fromBalanceAfter >= fromBalanceBefore.add(_flashFees[from]), "insufficient repayment.");
     }
 
     /**

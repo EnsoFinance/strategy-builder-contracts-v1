@@ -5,21 +5,21 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./helpers/StringUtils.sol";
 import "./interfaces/IStrategyController.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategy.sol";
 import "./interfaces/IStrategyRouter.sol";
-import "./interfaces/IFlashTransferReceiver.sol";
 import "./helpers/StrategyTypes.sol";
+import "./libraries/SafeERC20.sol";
 
 contract StrategyControllerLensProxy is TransparentUpgradeableProxy {
     constructor(address _logic, address admin_, bytes memory _data) TransparentUpgradeableProxy(_logic, admin_, _data) public {}
 }
 
-contract StrategyControllerLens is StringUtils, Initializable, IFlashTransferReceiver {
+contract StrategyControllerLens is StringUtils, Initializable {
+    using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
     address public platformProxyAdmin;
@@ -103,17 +103,17 @@ contract StrategyControllerLens is StringUtils, Initializable, IFlashTransferRec
         revert("should never happen."); 
     }
 
-    // the try reverts every time! only call with callStatic unless you want to pay for gas
+    // reverts everytime. only call with callStatic unless you want to pay for gas
+    //   Always cancel approves aftewards
     function estimateWithdrawWETH(
-        address account,
         IStrategy strategy,
         IStrategyRouter router,
         uint256 amount,
         uint256 slippage,
         bytes memory data
     ) external returns(string memory) {
-        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data, account) {
-        
+        IERC20(address(strategy)).safeTransferFrom(msg.sender, address(this), amount); 
+        try this._estimateWithdrawWETH(strategy, router, amount, slippage, data) {
         } catch (bytes memory reason) {
             if (reason.length != 100) { // length of abi encoded uint256
                 assembly {
@@ -124,11 +124,11 @@ contract StrategyControllerLens is StringUtils, Initializable, IFlashTransferRec
             assembly {
                 reason := add(reason, 0x04)
             }
-            return abi.decode(reason, (string)); // this should be the wethAmount to be decoded
-        } 
+            return abi.decode(reason, (string)); // this should be the valueAdded to be decoded
+        }
         revert("should never happen."); 
     }
-
+    
     // callable only by self START
 
     // do not call unless you are me!!!
@@ -242,45 +242,14 @@ contract StrategyControllerLens is StringUtils, Initializable, IFlashTransferRec
         IStrategyRouter router,
         uint256 amount,
         uint256 slippage,
-        bytes memory data,
-        address account 
-    ) external returns(uint256) {
-        require(msg.sender == address(this), "estimateWithdrawETH: only callable by self.");
-        //IStrategyToken(strategy).flashTransfer(account, address(this), amount, abi.encode(strategy, router, slippage, data));
-        bytes memory callData = abi.encodeWithSelector(
-          IStrategyToken.flashTransfer.selector, 
-          account, 
-          address(this), 
-          amount, 
-          abi.encode(strategy, router, slippage, data));
-        (bool success,) = address(strategy).call(callData);  
-        if (!success) {
-            assembly {
-                let ptr := mload(0x40)
-                let size := returndatasize()
-                returndatacopy(ptr, 0, size)
-                revert(ptr, size)
-            }
-        }
-        // this always reverts -> receiveFlashTransfer -> _withdrawWETH
-        revert("should never happen.");
-    }
-
-    function receiveFlashTransfer(address from, uint256 amount, bytes memory data) external override returns(uint256 repaymentAmount) {
-        // only one case for now
-        _withdrawWETH(from, amount, data);     
-        // since will revert, don't bother repaying
-        revert("should never happen.");
-        return 0;
-    }
-
-    function _withdrawWETH(address from, uint256 amount, bytes memory data) private {
-        (IStrategy strategy, IStrategyRouter router, uint256 slippage, bytes memory data) = abi.decode(data, (IStrategy, IStrategyRouter, uint256, bytes));
+        bytes memory data
+    ) external returns(string memory) {
+        require(msg.sender == address(this), "estimateWithdrawWETH: only callable by self.");
         uint256 balanceBefore = IERC20(_weth).balanceOf(address(this));
         _controller.withdrawWETH(strategy, router, amount, slippage, data);
         uint256 balanceAfter = IERC20(_weth).balanceOf(address(this));
         uint256 wethAmount = balanceAfter.sub(balanceBefore);
-        revert(toString(wethAmount));  // always reverts!!
+        revert(toString(wethAmount)); // always reverts!!
     }
 
     // callable only by self END
