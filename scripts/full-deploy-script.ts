@@ -609,6 +609,7 @@ async function main() {
 				txArgs
 			)
 		}, signer)
+		add2Deployments('StrategyImplementation', strategyImplementation.address)
 
 		// Initialize platform
 		console.log("Initializing platform...")
