@@ -74,10 +74,7 @@ export class Deployer {
 		if (this.overwrite || !this.contracts[contractName] ) {
 			return this.deploy(contractName, params, libraries)
 		} else {
-			const ContractFactory = await hre.ethers.getContractFactory(contractName, {
-				libraries
-			});
-			return ContractFactory.attach(this.contracts[contractName])
+			return this.getContract(contractName)
 		}
 	}
 
@@ -92,6 +89,22 @@ export class Deployer {
 		} else {
 			return this.contracts[contractName]
 		}
+	}
+
+	async deployAndWhitelist(
+		contractName: string,
+		params: any[],
+		libraries?: {[key: string]: string}
+	): Promise<string> {
+		const contractAddress = await deployOrGetAddress(contractName, params, libraries)
+		if (this.signer.address === this.whitelistOwner) {
+			console.log("Whitelisting...")
+			const whitelist = await this.getContract('Whitelist')
+			await waitForTransaction(async (txArgs: TransactionArgs) => {
+				return whitelist.approve(loopRouter.address, txArgs)
+			}, signer)
+		}
+		return contractAddress
 	}
 
 	async setupEstimators(
@@ -296,6 +309,7 @@ export const contractAliases = {
 	'DefaultEstimator' : 'BasicEstimator',
 	'ChainlinkEstimator' : 'BasicEstimator',
 	'StrategyrImplementation' : 'Strategy',
+	'StrategyProxyFactoryImplementation' : 'StrategyProxyFactory',
 	'StrategyControllerImplementation' : 'StrategyController',
-	'StrategyProxyFactoryImplementation' : 'StrategyProxyFactory'
+	'StrategyControllerPausedImplementation' : 'StrategyControllerPaused',
 }
