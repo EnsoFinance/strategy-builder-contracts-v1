@@ -1,9 +1,20 @@
 import hre from 'hardhat'
+import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
 import deploymentsJSON from '../deployments.json'
 const deployments: {[key: string]: {[key: string]: string}} = deploymentsJSON
 
 const MAX_GAS_PRICE = hre.ethers.BigNumber.from('85000000000') // 85 gWEI
+
+export const contractAliases : {[key: string]: string} = {
+	'SushiSwapAdapter' : 'UniswapV2Adapter',
+	'DefaultEstimator' : 'BasicEstimator',
+	'ChainlinkEstimator' : 'BasicEstimator',
+	'StrategyrImplementation' : 'Strategy',
+	'StrategyProxyFactoryImplementation' : 'StrategyProxyFactory',
+	'StrategyControllerImplementation' : 'StrategyController',
+	'StrategyControllerPausedImplementation' : 'StrategyControllerPaused',
+}
 
 export type TransactionArgs = {
 	maxPriorityFeePerGas: BigNumber;
@@ -12,12 +23,12 @@ export type TransactionArgs = {
 
 export class Deployer {
 	signer: SignerWithAddress;
-	contracts: {[key: string]: string};
+	contracts: {[key: string]: string} = {};
 	network: string;
 	overwrite: boolean;
-	whitelistOwner: string;
-	factoryOwner: string;
-	tokenRegistryOwner: string;
+	whitelistOwner: string = "";
+	factoryOwner: string = "";
+	tokenRegistryOwner: string = "";
 
 	constructor(
 		signer: SignerWithAddress,
@@ -27,7 +38,7 @@ export class Deployer {
 		this.signer = signer;
 		this.network = network;
 		this.overwrite = overwrite;
-
+  
 		if (deployments[network]) this.contracts = deployments[network]
 		if (network === 'mainnet') this.overwrite = false // Don't overwrite on mainnet
 	}
@@ -38,17 +49,17 @@ export class Deployer {
 		this.tokenRegistryOwner = await this.getOwner('TokenRegistry')
 	}
 
-	async getContract(contractName): Promise<Contract> {
+	async getContract(contractName: string): Promise<Contract> {
 		const actualContractName = contractAliases[contractName] || contractName
-		return hre.ethers.getContractAt(actualContractName, contracts[contractName])
+		return hre.ethers.getContractAt(actualContractName, this.contracts[contractName])
 	}
 
-	async getOwner(contractName): Promise<string> {
-		if (contracts[contractName]) {
+	async getOwner(contractName: string): Promise<string> {
+		if (this.contracts[contractName]) {
 			const contract = await this.getContract(contractName)
 			return contract.owner()
 		}
-		return
+		return ""
 	}
 
 	async deploy(
@@ -64,13 +75,14 @@ export class Deployer {
 			return ContractFactory.deploy(...params, txArgs)
 		}, this.signer);
 		this.add2Deployments(contractName, contract.address);
+    return contract
 	}
 
 	async deployOrGetContract(
 		contractName: string,
 		params: any[],
 		libraries?: {[key: string]: string}
-	): Promise<string> {
+	): Promise<Contract> {
 		if (this.overwrite || !this.contracts[contractName] ) {
 			return this.deploy(contractName, params, libraries)
 		} else {
@@ -84,8 +96,7 @@ export class Deployer {
 		libraries?: {[key: string]: string}
 	): Promise<string> {
 		if (this.overwrite || !this.contracts[contractName] ) {
-			contract = await this.deploy(contractName, params, libraries)
-			return contract.address
+			return (await this.deploy(contractName, params, libraries)).address
 		} else {
 			return this.contracts[contractName]
 		}
@@ -96,13 +107,13 @@ export class Deployer {
 		params: any[],
 		libraries?: {[key: string]: string}
 	): Promise<string> {
-		const contractAddress = await deployOrGetAddress(contractName, params, libraries)
+		const contractAddress = await this.deployOrGetAddress(contractName, params, libraries)
 		if (this.signer.address === this.whitelistOwner) {
 			console.log("Whitelisting...")
 			const whitelist = await this.getContract('Whitelist')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(loopRouter.address, txArgs)
-			}, signer)
+				return whitelist.approve(contractAddress, txArgs)
+			}, this.signer)
 		}
 		return contractAddress
 	}
@@ -292,14 +303,4 @@ export const getExpectedBaseFee = (block: any) => {
     }
   }
   return expectedBaseFee
-}
-
-export const contractAliases = {
-	'SushiSwapAdapter' : 'UniswapV2Adapter',
-	'DefaultEstimator' : 'BasicEstimator',
-	'ChainlinkEstimator' : 'BasicEstimator',
-	'StrategyrImplementation' : 'Strategy',
-	'StrategyProxyFactoryImplementation' : 'StrategyProxyFactory',
-	'StrategyControllerImplementation' : 'StrategyController',
-	'StrategyControllerPausedImplementation' : 'StrategyControllerPaused',
 }

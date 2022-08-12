@@ -180,9 +180,11 @@ async function main() {
 	const TokenRegistry = await hre.ethers.getContractFactory('TokenRegistry')
 	const UniswapV3Registry = await hre.ethers.getContractFactory('UniswapV3Registry')
 	const ChainlinkRegistry = await hre.ethers.getContractFactory('ChainlinkRegistry')
+
 	const UniswapOracle = await hre.ethers.getContractFactory('UniswapV3Oracle')
 	const ChainlinkOracle = await hre.ethers.getContractFactory('ChainlinkOracle')
 	const EnsoOracle = await hre.ethers.getContractFactory('EnsoOracle')
+
 	const BasicEstimator = await hre.ethers.getContractFactory('BasicEstimator')
 	const AaveV2Estimator = await hre.ethers.getContractFactory('AaveV2Estimator')
 	const AaveV2DebtEstimator = await hre.ethers.getContractFactory('AaveV2DebtEstimator')
@@ -192,10 +194,17 @@ async function main() {
 	const EmergencyEstimator = await hre.ethers.getContractFactory('EmergencyEstimator')
 	const StrategyEstimator = await hre.ethers.getContractFactory('StrategyEstimator')
 	const YEarnV2Estimator = await hre.ethers.getContractFactory('YEarnV2Estimator')
+
 	const Whitelist = await hre.ethers.getContractFactory('Whitelist')
+	const whitelist = Whitelist.attach(contracts['Whitelist'])
+	const whitelistOwner = await whitelist.owner()
+
 	const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
+
 	const StrategyControllerPaused = await hre.ethers.getContractFactory('StrategyControllerPaused')
+
 	const MulticallRouter = await hre.ethers.getContractFactory('MulticallRouter')
+
 	const BalancerAdapter = await hre.ethers.getContractFactory('BalancerAdapter')
 	const UniswapV2Adapter = await hre.ethers.getContractFactory('UniswapV2Adapter')
 	const UniswapV3Adapter = await hre.ethers.getContractFactory('UniswapV3Adapter')
@@ -214,8 +223,6 @@ async function main() {
 	const factoryAddress = contracts['StrategyProxyFactory']
 	const controllerAddress = contracts['StrategyController']
 	const curveDepositZapRegistryAddress = contracts['CurveDepositZapRegistry']
-	const whitelist = Whitelist.attach(contracts['Whitelist'])
-	const whitelistOwner = await whitelist.owner()
 
 	let tokenRegistry: Contract = TokenRegistry.attach(contracts['TokenRegistry'])
 	if (overwrite || !contracts['TokenRegistry'] ) {
