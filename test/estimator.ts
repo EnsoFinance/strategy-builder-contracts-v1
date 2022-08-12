@@ -121,7 +121,6 @@ describe('Estimator', function () {
 		const depositAmount = BigNumber.from('10000000000000000')
 		const estimatedDepositValue = await controllerLens.callStatic.estimateCreateStrategy(
 			depositAmount,
-			accounts[1].address,
 			name,
 			symbol,
 			strategyItems,
@@ -193,7 +192,6 @@ describe('Estimator', function () {
 		const depositAmount = BigNumber.from('10000000000000000')
 		const estimatedDepositValue = await controllerLens.callStatic.estimateCreateStrategy(
 			depositAmount,
-			accounts[1].address,
 			name,
 			symbol,
 			strategyItems,
@@ -254,7 +252,6 @@ describe('Estimator', function () {
 		const depositAmount = BigNumber.from('10000000000000000')
 		const estimatedDepositValue = await controllerLens.callStatic.estimateCreateStrategy(
 			depositAmount,
-			accounts[1].address,
 			name,
 			symbol,
 			strategyItems,

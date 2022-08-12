@@ -28,7 +28,7 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
 import { increaseTime } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
-                      
+
 chai.use(solidity)
 
 const STRATEGY_STATE: InitialState = {

@@ -55,7 +55,6 @@ contract StrategyControllerLens is StringUtils, Initializable {
     // the try reverts every time! only call with callStatic unless you want to pay for gas
     function estimateCreateStrategy(
         uint256 msgValue,
-        address manager,
         string memory name,
         string memory symbol,
         StrategyTypes.StrategyItem[] memory strategyItems,
@@ -63,7 +62,7 @@ contract StrategyControllerLens is StringUtils, Initializable {
         address router,
         bytes memory data
     ) external returns (string memory value){
-        try this._estimateCreateStrategy(msgValue, manager, name, symbol, strategyItems, strategyState, router, data) { // _estimateCreateStrategy always reverts by design!!
+        try this._estimateCreateStrategy(msgValue, name, symbol, strategyItems, strategyState, router, data) { // _estimateCreateStrategy always reverts by design!!
         } catch (bytes memory reason) {
             if (reason.length != 100) { // length of abi encoded uint256
                 assembly {
@@ -134,7 +133,6 @@ contract StrategyControllerLens is StringUtils, Initializable {
     // do not call unless you are me!!!
     function _estimateCreateStrategy(
         uint256 msgValue,
-        address manager,
         string memory name,
         string memory symbol,
         StrategyTypes.StrategyItem[] memory strategyItems,
@@ -152,7 +150,7 @@ contract StrategyControllerLens is StringUtils, Initializable {
             address(this),
             tokens,
             amounts,
-            abi.encode(Operation.CREATE_STRATEGY, msgValue, manager, name, symbol, strategyItems, strategyState, router, data)
+            abi.encode(Operation.CREATE_STRATEGY, msgValue, name, symbol, strategyItems, strategyState, router, data)
         );
         (bool success,) = _balancerVault.call(data);  
         if (!success) {
@@ -171,14 +169,13 @@ contract StrategyControllerLens is StringUtils, Initializable {
     function _createStrategy(bytes memory userData) private {
         (, 
         uint256 msgValue,
-        address manager, // TODO delete
         string memory name,
         string memory symbol,
         StrategyTypes.StrategyItem[] memory strategyItems,
         StrategyTypes.InitialState memory strategyState,
         address router,
         bytes memory data
-        ) = abi.decode(userData, (Operation, uint256, address, string, string, StrategyTypes.StrategyItem[], StrategyTypes.InitialState, address, bytes));
+        ) = abi.decode(userData, (Operation, uint256, string, string, StrategyTypes.StrategyItem[], StrategyTypes.InitialState, address, bytes));
         // weth unwrap
         IWETH(_weth).withdraw(msgValue);
         _factory.createStrategy{value: msgValue}(name, symbol, strategyItems, strategyState, router, data);
