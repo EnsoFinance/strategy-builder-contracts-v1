@@ -10,11 +10,11 @@ import { waitForDeployment, waitForTransaction, TransactionArgs } from './common
 import { ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 import deploymentsJSON from '../deployments.json'
 
-const deployments: {[key: string]: {[key: string]: string}} = deploymentsJSON
+const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
 // If true it will deploy contract regardless of whether there is an address currently on the network
 let overwrite = false
 
-let contracts: {[key: string]: string} = {}
+let contracts: { [key: string]: string } = {}
 let network: string
 if (process.env.HARDHAT_NETWORK) {
 	network = process.env.HARDHAT_NETWORK
@@ -24,26 +24,26 @@ if (process.env.HARDHAT_NETWORK) {
 }
 
 type Addresses = {
-	weth: string;
-	susd: string;
-	usdc: string;
-	uniswapV2Factory: string;
-	uniswapV3Factory: string;
-	uniswapV3Router: string;
-	kyberFactory: string;
-	kyberRouter: string;
-	sushiFactory: string;
-	aaveIncentivesController: string;
-	aaveAddressProvider: string;
-	curveAddressProvider: string;
-	synthetixAddressProvider: string;
-	synthRedeemer: string;
-	balancerRegistry: string;
-	compoundComptroller: string;
-	ensoPool: string;
+	weth: string
+	susd: string
+	usdc: string
+	uniswapV2Factory: string
+	uniswapV3Factory: string
+	uniswapV3Router: string
+	kyberFactory: string
+	kyberRouter: string
+	sushiFactory: string
+	aaveIncentivesController: string
+	aaveAddressProvider: string
+	curveAddressProvider: string
+	synthetixAddressProvider: string
+	synthRedeemer: string
+	balancerRegistry: string
+	compoundComptroller: string
+	ensoPool: string
 }
 
-const deployedContracts: {[key: string]: Addresses} = {
+const deployedContracts: { [key: string]: Addresses } = {
 	mainnet: {
 		weth: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
 		susd: '0x57Ab1ec28D129707052df4dF418D58a2D46d5f51',
@@ -110,13 +110,13 @@ async function main() {
 	// If this script is run directly using `node` you may want to call compile
 	// manually to make sure everything is compiled
 	// await hre.run('compile');
-	const [ signer ] = await hre.ethers.getSigners()
+	const [signer] = await hre.ethers.getSigners()
 	const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
-	console.log("Owner: ", owner)
+	console.log('Owner: ', owner)
 
 	// Setup libraries
 	let strategyLibraryAddress: string = contracts['StrategyLibrary']
-	if (overwrite || !contracts['StrategyLibrary'] ) {
+	if (overwrite || !contracts['StrategyLibrary']) {
 		const StrategyLibrary = await hre.ethers.getContractFactory('StrategyLibrary')
 		const library = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return StrategyLibrary.deploy(txArgs)
@@ -126,11 +126,11 @@ async function main() {
 	}
 
 	let controllerLibraryAddress: string = contracts['ControllerLibrary']
-	if (overwrite || !contracts['ControllerLibrary'] ) {
+	if (overwrite || !contracts['ControllerLibrary']) {
 		const ControllerLibrary = await hre.ethers.getContractFactory('ControllerLibrary', {
 			libraries: {
 				StrategyLibrary: strategyLibraryAddress,
-			}
+			},
 		})
 		const library = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return ControllerLibrary.deploy(txArgs)
@@ -140,7 +140,7 @@ async function main() {
 	}
 
 	let strategyClaimAddress: string = contracts['StrategyClaim']
-	if (overwrite || !contracts['StrategyClaim'] ) {
+	if (overwrite || !contracts['StrategyClaim']) {
 		const StrategyClaim = await hre.ethers.getContractFactory('StrategyClaim')
 		const library = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return StrategyClaim.deploy(txArgs)
@@ -153,27 +153,27 @@ async function main() {
 	const Strategy = await hre.ethers.getContractFactory('Strategy', {
 		libraries: {
 			StrategyClaim: strategyClaimAddress,
-		}
+		},
 	})
 	const StrategyController = await hre.ethers.getContractFactory('StrategyController', {
 		libraries: {
 			ControllerLibrary: controllerLibraryAddress,
-		}
+		},
 	})
 	const LoopRouter = await hre.ethers.getContractFactory('LoopRouter', {
 		libraries: {
 			StrategyLibrary: strategyLibraryAddress,
-		}
+		},
 	})
 	const FullRouter = await hre.ethers.getContractFactory('FullRouter', {
 		libraries: {
 			StrategyLibrary: strategyLibraryAddress,
-		}
+		},
 	})
 	const BatchDepositRouter = await hre.ethers.getContractFactory('BatchDepositRouter', {
 		libraries: {
 			StrategyLibrary: strategyLibraryAddress,
-		}
+		},
 	})
 
 	// Setup other contract factories
@@ -225,17 +225,17 @@ async function main() {
 	const curveDepositZapRegistryAddress = contracts['CurveDepositZapRegistry']
 
 	let tokenRegistry: Contract = TokenRegistry.attach(contracts['TokenRegistry'])
-	if (overwrite || !contracts['TokenRegistry'] ) {
+	if (overwrite || !contracts['TokenRegistry']) {
 		tokenRegistry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return TokenRegistry.deploy(txArgs)
 		}, signer)
 
 		add2Deployments('TokenRegistry', tokenRegistry.address)
 	}
-  const tokenRegistryOwner = await tokenRegistry.owner()
+	const tokenRegistryOwner = await tokenRegistry.owner()
 
 	let uniswapV3RegistryAddress: string = contracts['UniswapV3Registry']
-	if (overwrite || !contracts['UniswapV3Registry'] ) {
+	if (overwrite || !contracts['UniswapV3Registry']) {
 		const uniswapV3Registry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapV3Registry.deploy(
 				deployedContracts[network].uniswapV3Factory,
@@ -249,7 +249,7 @@ async function main() {
 	}
 
 	let chainlinkRegistryAddress: string = contracts['ChainlinkRegistry']
-	if (overwrite || !contracts['ChainlinkRegistry'] ) {
+	if (overwrite || !contracts['ChainlinkRegistry']) {
 		const chainlinkRegistry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return ChainlinkRegistry.deploy(txArgs)
 		}, signer)
@@ -260,13 +260,9 @@ async function main() {
 
 	// Add oracles
 	let uniswapOracleAddress: string = contracts['UniswapOracle']
-	if (overwrite || !contracts['UniswapOracle'] ) {
+	if (overwrite || !contracts['UniswapOracle']) {
 		const uniswapOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return UniswapOracle.deploy(
-		 		uniswapV3RegistryAddress,
-		 		deployedContracts[network].weth,
-				txArgs
-			)
+			return UniswapOracle.deploy(uniswapV3RegistryAddress, deployedContracts[network].weth, txArgs)
 		}, signer)
 		uniswapOracleAddress = uniswapOracle.address
 
@@ -274,12 +270,9 @@ async function main() {
 	}
 
 	let chainlinkOracleAddress: string = contracts['ChainlinkOracle']
-	if (overwrite || !contracts['ChainlinkOracle'] ) {
+	if (overwrite || !contracts['ChainlinkOracle']) {
 		const chainlinkOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return ChainlinkOracle.deploy(
-				chainlinkRegistryAddress,
-				deployedContracts[network].weth,
-				txArgs)
+			return ChainlinkOracle.deploy(chainlinkRegistryAddress, deployedContracts[network].weth, txArgs)
 		}, signer)
 		chainlinkOracleAddress = chainlinkOracle.address
 
@@ -287,7 +280,7 @@ async function main() {
 	}
 
 	let ensoOracleAddress: string = contracts['EnsoOracle']
-	if (overwrite || !contracts['EnsoOracle'] ) {
+	if (overwrite || !contracts['EnsoOracle']) {
 		const ensoOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return EnsoOracle.deploy(
 				factoryAddress,
@@ -310,7 +303,7 @@ async function main() {
 	}
 
 	// Add token estimators
-	if (overwrite || !contracts['DefaultEstimator'] ) {
+	if (overwrite || !contracts['DefaultEstimator']) {
 		const defaultEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return BasicEstimator.deploy(uniswapOracleAddress, txArgs)
 		}, signer)
@@ -318,19 +311,23 @@ async function main() {
 		add2Deployments('DefaultEstimator', defaultEstimator.address)
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+					defaultEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['ChainlinkEstimator'] ) {
+	if (overwrite || !contracts['ChainlinkEstimator']) {
 		const chainlinkEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return BasicEstimator.deploy(chainlinkOracleAddress, txArgs)
 		}, signer)
@@ -338,19 +335,27 @@ async function main() {
 		add2Deployments('ChainlinkEstimator', chainlinkEstimator.address)
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address, txArgs)
+				return tokenRegistry.addEstimator(
+					ESTIMATOR_CATEGORY.CHAINLINK_ORACLE,
+					chainlinkEstimator.address,
+					txArgs
+				)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.CHAINLINK_ORACLE,
+					chainlinkEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['AaveV2Estimator'] ) {
+	if (overwrite || !contracts['AaveV2Estimator']) {
 		const aaveV2Estimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return AaveV2Estimator.deploy(txArgs)
 		}, signer)
@@ -359,19 +364,23 @@ async function main() {
 		add2Deployments('AaveEstimator', aaveV2Estimator.address) //Alias
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.AAVE_V2,
+					aaveV2Estimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['AaveV2DebtEstimator'] ) {
+	if (overwrite || !contracts['AaveV2DebtEstimator']) {
 		const aaveV2DebtEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return AaveV2DebtEstimator.deploy(txArgs)
 		}, signer)
@@ -380,19 +389,23 @@ async function main() {
 		add2Deployments('AaveDebtEstimator', aaveV2DebtEstimator.address) //Alias
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.AAVE_V2_DEBT,
+					aaveV2DebtEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CompoundEstimator'] ) {
+	if (overwrite || !contracts['CompoundEstimator']) {
 		const compoundEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CompoundEstimator.deploy(txArgs)
 		}, signer)
@@ -400,19 +413,23 @@ async function main() {
 		add2Deployments('CompoundEstimator', compoundEstimator.address)
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.COMPOUND,
+					compoundEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CurveLPEstimator'] ) {
+	if (overwrite || !contracts['CurveLPEstimator']) {
 		const curveLPEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CurveLPEstimator.deploy(txArgs)
 		}, signer)
@@ -421,19 +438,23 @@ async function main() {
 		add2Deployments('CurveEstimator', curveLPEstimator.address) //Alias
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.CURVE_LP,
+					curveLPEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CurveGaugeEstimator'] ) {
+	if (overwrite || !contracts['CurveGaugeEstimator']) {
 		const curveGaugeEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CurveGaugeEstimator.deploy(txArgs)
 		}, signer)
@@ -441,19 +462,23 @@ async function main() {
 		add2Deployments('CurveGaugeEstimator', curveGaugeEstimator.address)
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.CURVE_GAUGE,
+					curveGaugeEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['EmergencyEstimator'] ) {
+	if (overwrite || !contracts['EmergencyEstimator']) {
 		const emergencyEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return EmergencyEstimator.deploy(txArgs)
 		}, signer)
@@ -461,19 +486,23 @@ async function main() {
 		add2Deployments('EmergencyEstimator', emergencyEstimator.address)
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.BLOCKED,
+					emergencyEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['StrategyEstimator'] ) {
+	if (overwrite || !contracts['StrategyEstimator']) {
 		const strategyEstimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return StrategyEstimator.deploy(txArgs)
 		}, signer)
@@ -481,19 +510,23 @@ async function main() {
 		add2Deployments('StrategyEstimator', strategyEstimator.address)
 
 		if (tokenRegistryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.STRATEGY,
+					strategyEstimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['YEarnV2Estimator'] ) {
+	if (overwrite || !contracts['YEarnV2Estimator']) {
 		const yearnV2Estimator = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return YEarnV2Estimator.deploy(txArgs)
 		}, signer)
@@ -502,13 +535,17 @@ async function main() {
 
 		if (tokenRegistryOwner == signer.address) {
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				console.log("Adding estimator...")
+				console.log('Adding estimator...')
 				return tokenRegistry.addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address, txArgs)
 			}, signer)
 		} else if (factoryOwner == signer.address) {
-			console.log("Adding estimator...")
+			console.log('Adding estimator...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return strategyProxyFactory.addEstimatorToRegistry(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address, txArgs)
+				return strategyProxyFactory.addEstimatorToRegistry(
+					ESTIMATOR_CATEGORY.YEARN_V2,
+					yearnV2Estimator.address,
+					txArgs
+				)
 			}, signer)
 		}
 	}
@@ -520,7 +557,7 @@ async function main() {
 	add2Deployments('StrategyControllerImplementation', controllerImplementation.address)
 
 	// ControllerPaused impelemntation
-	if (overwrite || !contracts['StrategyControllerPausedImplementation'] ) {
+	if (overwrite || !contracts['StrategyControllerPausedImplementation']) {
 		const strategyControllerPaused = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return StrategyControllerPaused.deploy(factoryAddress, txArgs)
 		}, signer)
@@ -545,7 +582,7 @@ async function main() {
 	}, signer)
 	add2Deployments('StrategyImplementation', strategyImplementation.address)
 
-	if (overwrite || !contracts['LoopRouter'] ) {
+	if (overwrite || !contracts['LoopRouter']) {
 		const loopRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return LoopRouter.deploy(controllerAddress, txArgs)
 		}, signer)
@@ -553,7 +590,7 @@ async function main() {
 		add2Deployments('LoopRouter', loopRouter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(loopRouter.address, txArgs)
 			}, signer)
@@ -561,7 +598,7 @@ async function main() {
 	}
 
 	let fullRouterAddress: string = contracts['FullRouter']
-	if (overwrite || !contracts['FullRouter'] ) {
+	if (overwrite || !contracts['FullRouter']) {
 		const fullRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return FullRouter.deploy(deployedContracts[network].aaveAddressProvider, controllerAddress, txArgs)
 		}, signer)
@@ -570,14 +607,14 @@ async function main() {
 		add2Deployments('FullRouter', fullRouter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(fullRouter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['MulticallRouter'] ) {
+	if (overwrite || !contracts['MulticallRouter']) {
 		const multicallRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return MulticallRouter.deploy(controllerAddress, txArgs)
 		}, signer)
@@ -586,14 +623,14 @@ async function main() {
 		add2Deployments('GenericRouter', multicallRouter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(multicallRouter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['BatchDepositRouter'] ) {
+	if (overwrite || !contracts['BatchDepositRouter']) {
 		const batchDepositRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return BatchDepositRouter.deploy(controllerAddress, txArgs)
 		}, signer)
@@ -601,14 +638,14 @@ async function main() {
 		add2Deployments('BatchDepositRouter', batchDepositRouter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(batchDepositRouter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['UniswapV3Adapter'] ) {
+	if (overwrite || !contracts['UniswapV3Adapter']) {
 		const uniswapV3Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapV3Adapter.deploy(
 				uniswapV3RegistryAddress,
@@ -621,14 +658,14 @@ async function main() {
 		add2Deployments('UniswapV3Adapter', uniswapV3Adapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(uniswapV3Adapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['MetaStrategyAdapter'] ) {
+	if (overwrite || !contracts['MetaStrategyAdapter']) {
 		const metaStrategyAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return MetaStrategyAdapter.deploy(
 				controllerAddress,
@@ -641,7 +678,7 @@ async function main() {
 		add2Deployments('MetaStrategyAdapter', metaStrategyAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(metaStrategyAdapter.address, txArgs)
 			}, signer)
@@ -649,7 +686,7 @@ async function main() {
 	}
 
 	let synthetixAdapterAddress: string = contracts['SynthetixAdapter']
-	if (overwrite || !contracts['SynthetixAdapter'] ) {
+	if (overwrite || !contracts['SynthetixAdapter']) {
 		const synthetixAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return SynthetixAdapter.deploy(
 				deployedContracts[network].synthetixAddressProvider,
@@ -662,7 +699,7 @@ async function main() {
 		add2Deployments('SynthetixAdapter', synthetixAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(synthetixAdapter.address, txArgs)
 			}, signer)
@@ -670,7 +707,7 @@ async function main() {
 	}
 
 	let synthRedeemerAdapterAddress: string = contracts['SynthRedeemerAdapter']
-	if (overwrite || !contracts['SynthRedeemerAdapter'] ) {
+	if (overwrite || !contracts['SynthRedeemerAdapter']) {
 		const synthRedeemerAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return SynthRedeemerAdapter.deploy(
 				deployedContracts[network].synthRedeemer,
@@ -684,14 +721,14 @@ async function main() {
 		add2Deployments('SynthRedeemerAdapter', synthRedeemerAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(synthRedeemerAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['BalancerAdapter'] ) {
+	if (overwrite || !contracts['BalancerAdapter']) {
 		const balancerAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return BalancerAdapter.deploy(
 				deployedContracts[network].balancerRegistry,
@@ -703,14 +740,14 @@ async function main() {
 		add2Deployments('BalancerAdapter', balancerAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(balancerAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CurveAdapter'] ) {
+	if (overwrite || !contracts['CurveAdapter']) {
 		const curveAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CurveAdapter.deploy(
 				deployedContracts[network].curveAddressProvider,
@@ -722,14 +759,14 @@ async function main() {
 		add2Deployments('CurveAdapter', curveAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(curveAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CurveLPAdapter'] ) {
+	if (overwrite || !contracts['CurveLPAdapter']) {
 		const curveLPAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CurveLPAdapter.deploy(
 				deployedContracts[network].curveAddressProvider,
@@ -742,14 +779,14 @@ async function main() {
 		add2Deployments('CurveLPAdapter', curveLPAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(curveLPAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CurveGaugeAdapter'] ) {
+	if (overwrite || !contracts['CurveGaugeAdapter']) {
 		const curveGaugeAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CurveGaugeAdapter.deploy(
 				deployedContracts[network].weth,
@@ -763,14 +800,14 @@ async function main() {
 		add2Deployments('CurveRewardsAdapter', curveGaugeAdapter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(curveGaugeAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['AaveV2Adapter'] ) {
+	if (overwrite || !contracts['AaveV2Adapter']) {
 		const aaveV2Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return AaveV2Adapter.deploy(
 				deployedContracts[network].aaveAddressProvider,
@@ -787,7 +824,7 @@ async function main() {
 		add2Deployments('AaveLendAdapter', aaveV2Adapter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(aaveV2Adapter.address, txArgs)
 			}, signer)
@@ -808,14 +845,14 @@ async function main() {
 		add2Deployments('AaveBorrowAdapter', aaveV2DebtAdapter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(aaveV2DebtAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['CompoundAdapter'] ) {
+	if (overwrite || !contracts['CompoundAdapter']) {
 		const compoundAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return CompoundAdapter.deploy(
 				deployedContracts[network].compoundComptroller,
@@ -829,14 +866,14 @@ async function main() {
 		add2Deployments('CompoundAdapter', compoundAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(compoundAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['YEarnV2Adapter'] ) {
+	if (overwrite || !contracts['YEarnV2Adapter']) {
 		const yearnAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return YEarnV2Adapter.deploy(
 				deployedContracts[network].weth,
@@ -849,14 +886,14 @@ async function main() {
 		add2Deployments('YEarnV2Adapter', yearnAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(yearnAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['SushiSwapAdapter'] ) {
+	if (overwrite || !contracts['SushiSwapAdapter']) {
 		const sushiSwapAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapV2Adapter.deploy(
 				deployedContracts[network].sushiFactory,
@@ -868,14 +905,14 @@ async function main() {
 		add2Deployments('SushiSwapAdapter', sushiSwapAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(sushiSwapAdapter.address, txArgs)
 			}, signer)
 		}
 	}
 
-	if (overwrite || !contracts['KyberSwapAdapter'] ) {
+	if (overwrite || !contracts['KyberSwapAdapter']) {
 		const kyberSwapAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return KyberSwapAdapter.deploy(
 				deployedContracts[network].kyberFactory,
@@ -888,7 +925,7 @@ async function main() {
 		add2Deployments('KyberSwapAdapter', kyberSwapAdapter.address)
 
 		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
+			console.log('Whitelisting...')
 			await waitForTransaction(async (txArgs: TransactionArgs) => {
 				return whitelist.approve(kyberSwapAdapter.address, txArgs)
 			}, signer)
@@ -896,7 +933,7 @@ async function main() {
 	}
 
 	if (tokenRegistryOwner == signer.address) {
-		console.log("Adding item...")
+		console.log('Adding item...')
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return tokenRegistry.addItem(
 				ITEM_CATEGORY.RESERVE,
@@ -906,7 +943,7 @@ async function main() {
 			)
 		}, signer)
 
-		console.log("Adding item...")
+		console.log('Adding item...')
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return tokenRegistry.addItem(
 				ITEM_CATEGORY.RESERVE,
@@ -916,7 +953,7 @@ async function main() {
 			)
 		}, signer)
 
-		console.log("Adding item...")
+		console.log('Adding item...')
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return tokenRegistry.addItemDetailed(
 				ITEM_CATEGORY.RESERVE,
@@ -925,14 +962,14 @@ async function main() {
 				{
 					adapters: [synthetixAdapterAddress, synthRedeemerAdapterAddress],
 					path: [],
-					cache: '0x'
+					cache: '0x',
 				},
 				hre.ethers.constants.AddressZero,
 				txArgs
 			)
 		}, signer)
 
-		console.log("Adding item...")
+		console.log('Adding item...')
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return tokenRegistry.addItem(
 				ITEM_CATEGORY.BASIC,
@@ -942,7 +979,7 @@ async function main() {
 			)
 		}, signer)
 
-		console.log("Adding item...")
+		console.log('Adding item...')
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return tokenRegistry.addItem(
 				ITEM_CATEGORY.BASIC,
@@ -966,7 +1003,6 @@ const add2Deployments = (contractTitle: string, address: string) => {
 	console.log(contractTitle + ': ' + address)
 	write2File()
 }
-
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
