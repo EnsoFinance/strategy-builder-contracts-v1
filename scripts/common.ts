@@ -111,37 +111,27 @@ export class Deployer {
 		uniswapOracleAddress: string,
 		chainlinkOracleAddress: string
 	) {
-		if (this.tokenRegistryOwner == this.signer.address) {
-			const tokenRegistry = await this.getContract('TokenRegistry')
-			await setupEstimatorsWithFunc(
-				uniswapOracleAddress,
-				chainlinkOracleAddress,
-				(estimatorCategory: number, estimatorAddress: string) => {
+    let contractHandle : Contract 
+    let fnPtr : (estimatorCategory: number, estimatorAddress: string, txArgs: TransactionArgs) => void = (estimatorCategory: number, estimatorAddress: string, txArgs: TransactionArgs) => {} // Noop
+		if (this.signer.address == this.tokenRegistryOwner) {
+        contractHandle = await this.getContract('TokenRegistry')
+        fnPtr = contractHandle.addEstimator
+    } else if (this.signer.address == this.factoryOwner)  {
+        contractHandle = await this.getContract('StrategyProxyFactory')
+				fnPtr = contractHandle.addEstimatorToRegistry
+    } else {
+        return;
+    }
+    await setupEstimatorsWithFunc(
+      uniswapOracleAddress,
+      chainlinkOracleAddress,
+      (estimatorCategory: number, estimatorAddress: string) => {
 					console.log("Adding estimator...")
 					await waitForTransaction(async (txArgs: TransactionArgs) => {
-						return tokenRegistry.addEstimator(estimatorCategory, estimatorAddress, txArgs)
+						return fnPtr(estimatorCategory, estimatorAddress, txArgs)
 					}, this.signer)
-				}
-			)
-		} else if (this.factoryOwner == signer.address) {
-			const strategyProxyFactory = await this.getContract('StrategyProxyFactory')
-			await setupEstimatorsWithFunc(
-				uniswapOracleAddress,
-				chainlinkOracleAddress,
-				(estimatorCategory: number, estimatorAddress: string) => {
-					console.log("Adding estimator...")
-					await waitForTransaction(async (txArgs: TransactionArgs) => {
-						return strategyProxyFactory.addEstimatorToRegistry(estimatorCategory, estimatorAddress, txArgs)
-					}, this.signer)
-				}
-			)
-		} else {
-			await setupEstimatorsWithFunc(
-				uniswapOracleAddress,
-				chainlinkOracleAddress,
-				(estimatorCategory: number, estimatorAddress: string) => {} // Noop
-			)
-		}
+		  }
+    )
 	}
 
 	async setupEstimatorsWithFunc(
