@@ -222,11 +222,16 @@ async function main() {
 	// Add token estimators
 	await deployer.setupEstimators(uniswapOracleAddress, chainlinkOracleAddress)
 
-	// Controller implementation
+	// Controller implementations
 	const controllerImplementationAddress = await deployer.deployOrGetAddress(
 		'StrategyControllerImplementation',
 		[ factoryAddress ],
 		{ ControllerLibrary: controllerLibraryAddress }
+	)
+
+	await deployer.deployOrGetAddress(
+		'StrategyControllerPausedImplementation',
+		[ factoryAddress ]
 	)
 
 	// Factory implementation
@@ -247,8 +252,8 @@ async function main() {
 	}, signer)
 	deployer.add2Deployments('StrategyImplementation', strategyImplementation.address)
 
+	// Initialize platform
 	if (overwrite || !deployer.contracts['StrategyController'] || !deployer.contracts['StrategyProxyFactory']) {
-		// Initialize platform
 		console.log("Initializing platform...")
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
 			return platformProxyAdmin.initialize(
@@ -270,8 +275,7 @@ async function main() {
 		*/
 	}
 
-	///// TODO!!!!
-
+	// Transfer platform proxy admin
 	if (owner != signer.address && signer.address == await platformProxyAdmin.owner()) {
 		console.log("Transfering PlatformProxyAdmin...")
 		await waitForTransaction(async (txArgs: TransactionArgs) => {
@@ -279,224 +283,45 @@ async function main() {
 		}, signer)
 	}
 
-	if (overwrite || !contracts['StrategyControllerPausedImplementation'] ) {
-		const strategyControllerPaused = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return StrategyControllerPaused.deploy(factoryAddress, txArgs)
-		}, signer)
+	// Routers
+	const fullRouterAddress = await deployAndWhitelist('FullRouter', [
+		deployedContracts[network].aaveAddressProvider,
+		controllerAddress
+	])
+	await deployAndWhitelist('LoopRouter', [ controllerAddress ])
+	await deployAndWhitelist('MulticallRouter', [ controllerAddress ])
+	await deployAndWhitelist('BatchDepositRouter', [ controllerAddress ])
 
-		add2Deployments('StrategyControllerPausedImplementation', strategyControllerPaused.address)
-	}
+	// Adapters
+	await deployAndWhitelist('UniswapV2Adapter', [
+		deployedContracts[network].uniswapV2Factory,
+		deployedContracts[network].weth
+	])
+	await deployAndWhitelist('UniswapV3Adapter', [
+		uniswapV3RegistryAddress,
+		deployedContracts[network].uniswapV3Router,
+		deployedContracts[network].weth
+	])
+	await deployAndWhitelist('MetaStrategyAdapter', [
+		controllerAddress,
+		fullRouterAddress,
+		deployedContracts[network].weth
+	])
+	const synthetixAdapter = await deployAndWhitelist('SynthetixAdapter', [
+		deployedContracts[network].synthetixAddressProvider,
+		deployedContracts[network].weth
+	])
+	const synthRedeemerAdapterAddress = await deployAndWhitelist('SynthRedeemerAdapter', [
+		deployedContracts[network].synthRedeemer,
+		deployedContracts[network].susd,
+		deployedContracts[network].weth
+	])
+	await deployAndWhitelist('BalancerAdapter', [
+		deployedContracts[network].balancerRegistry,
+		deployedContracts[network].weth
+	])
 
-	if (overwrite || !contracts['LoopRouter'] ) {
-		const loopRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return LoopRouter.deploy(controllerAddress, txArgs)
-		}, signer)
-
-		add2Deployments('LoopRouter', loopRouter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(loopRouter.address, txArgs)
-			}, signer)
-		}
-	}
-
-	let fullRouterAddress: string
-	if (overwrite || !contracts['FullRouter'] ) {
-		const fullRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return FullRouter.deploy(deployedContracts[network].aaveAddressProvider, controllerAddress, txArgs)
-		}, signer)
-		fullRouterAddress = fullRouter.address
-
-		add2Deployments('FullRouter', fullRouter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(fullRouter.address, txArgs)
-			}, signer)
-		}
-	} else {
-		fullRouterAddress = contracts['FullRouter']
-	}
-
-	if (overwrite || !contracts['MulticallRouter'] ) {
-		const multicallRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return MulticallRouter.deploy(controllerAddress, txArgs)
-		}, signer)
-
-		add2Deployments('MulticallRouter', multicallRouter.address)
-		add2Deployments('GenericRouter', multicallRouter.address) //Alias
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(multicallRouter.address, txArgs)
-			}, signer)
-		}
-	}
-
-	if (overwrite || !contracts['BatchDepositRouter'] ) {
-		const batchDepositRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return BatchDepositRouter.deploy(controllerAddress, txArgs)
-		}, signer)
-
-		add2Deployments('BatchDepositRouter', batchDepositRouter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(batchDepositRouter.address, txArgs)
-			}, signer)
-		}
-	}
-
-	if (overwrite || !contracts['UniswapV2Adapter'] ) {
-		const uniswapV2Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return UniswapV2Adapter.deploy(
-				deployedContracts[network].uniswapV2Factory,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-
-		add2Deployments('UniswapV2Adapter', uniswapV2Adapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(uniswapV2Adapter.address, txArgs)
-			}, signer)
-		}
-	}
-
-	/*
-	if (overwrite || !contracts['UniswapV2LPAdapter'] ) {
-		const uniswapV2LPAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return UniswapV2LPAdapter.deploy(
-				deployedContracts[network].uniswapV2Factory,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-
-		add2Deployments('UniswapV2LPAdapter', uniswapV2LPAdapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(uniswapV2LPAdapter.address, txArgs)
-			}, signer)
-		}
-	}
-	*/
-
-	if (overwrite || !contracts['UniswapV3Adapter'] ) {
-		const uniswapV3Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return UniswapV3Adapter.deploy(
-				uniswapV3RegistryAddress,
-				deployedContracts[network].uniswapV3Router,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-
-		add2Deployments('UniswapV3Adapter', uniswapV3Adapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(uniswapV3Adapter.address, txArgs)
-			}, signer)
-		}
-	}
-
-	if (overwrite || !contracts['MetaStrategyAdapter'] ) {
-		const metaStrategyAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return MetaStrategyAdapter.deploy(
-				controllerAddress,
-				fullRouterAddress,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-
-		add2Deployments('MetaStrategyAdapter', metaStrategyAdapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(metaStrategyAdapter.address, txArgs)
-			}, signer)
-		}
-	}
-
-	let synthetixAdapterAddress: string
-	if (overwrite || !contracts['SynthetixAdapter'] ) {
-		const synthetixAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return SynthetixAdapter.deploy(
-				deployedContracts[network].synthetixAddressProvider,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-		synthetixAdapterAddress = synthetixAdapter.address
-
-		add2Deployments('SynthetixAdapter', synthetixAdapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(synthetixAdapter.address, txArgs)
-			}, signer)
-		}
-	} else {
-		synthetixAdapterAddress = contracts['SynthetixAdapter']
-	}
-
-	let synthRedeemerAdapterAddress: string
-	if (overwrite || !contracts['SynthRedeemerAdapter'] ) {
-		const synthRedeemerAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return SynthRedeemerAdapter.deploy(
-				deployedContracts[network].synthRedeemer,
-				deployedContracts[network].susd,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-		synthRedeemerAdapterAddress = synthRedeemerAdapter.address
-
-		add2Deployments('SynthRedeemerAdapter', synthRedeemerAdapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(synthRedeemerAdapter.address, txArgs)
-			}, signer)
-		}
-	} else {
-		synthRedeemerAdapterAddress = contracts['SynthRedeemerAdapter']
-	}
-
-	if (overwrite || !contracts['BalancerAdapter'] ) {
-		const balancerAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			return BalancerAdapter.deploy(
-				deployedContracts[network].balancerRegistry,
-				deployedContracts[network].weth,
-				txArgs
-			)
-		}, signer)
-
-		add2Deployments('BalancerAdapter', balancerAdapter.address)
-
-		if (signer.address === whitelistOwner) {
-			console.log("Whitelisting...")
-			await waitForTransaction(async (txArgs: TransactionArgs) => {
-				return whitelist.approve(balancerAdapter.address, txArgs)
-			}, signer)
-		}
-	}
+	// TODO !!!!!!
 
 	if (overwrite || !contracts['CurveAdapter'] ) {
 		const curveAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
