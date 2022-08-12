@@ -1,11 +1,180 @@
 import hre from 'hardhat'
 import { BigNumber, Contract } from 'ethers'
+import deploymentsJSON from '../deployments.json'
+const deployments: {[key: string]: {[key: string]: string}} = deploymentsJSON
 
 const MAX_GAS_PRICE = hre.ethers.BigNumber.from('85000000000') // 85 gWEI
 
 export type TransactionArgs = {
 	maxPriorityFeePerGas: BigNumber;
 	maxFeePerGas: BigNumber;
+}
+
+export class Deployer {
+	signer: SignerWithAddress;
+	contracts: {[key: string]: string};
+	network: string;
+	overwrite: boolean;
+	whitelistOwner: string;
+	factoryOwner: string;
+	tokenRegistryOwner: string;
+
+	constructor(
+		signer: SignerWithAddress,
+		network: string,
+		overwrite: boolean
+	) {
+		this.signer = signer;
+		this.network = network;
+		this.overwrite = overwrite;
+
+		if (deployments[network]) this.contracts = deployments[network]
+		if (network === 'mainnet') this.overwrite = false // Don't overwrite on mainnet
+	}
+
+	async updateOwners() {
+		this.whitelistOwner = await this.getOwner('Whitelist')
+		this.factoryOwner = await this.getOwner('StrategyProxyFactory')
+		this.tokenRegistryOwner = await this.getOwner('TokenRegistry')
+	}
+
+	async getContract(contractName): Promise<Contract> {
+		const actualContractName = contractAliases[contractName] || contractName
+		return hre.ethers.getContractAt(actualContractName, contracts[contractName])
+	}
+
+	async getOwner(contractName): Promise<string> {
+		if (contracts[contractName]) {
+			const contract = await this.getContract(contractName)
+			return contract.owner()
+		}
+		return
+	}
+
+	async deploy(
+		contractName: string,
+		params: any[],
+		libraries?: {[key: string]: string}
+	): Promise<Contract> {
+		const actualContractName = contractAliases[contractName] || contractName
+		const ContractFactory = await hre.ethers.getContractFactory(actualContractName, {
+			libraries
+		});
+		const contract = await waitForDeployment(async (txArgs: TransactionArgs) => {
+			return ContractFactory.deploy(...params, txArgs)
+		}, this.signer);
+		this.add2Deployments(contractName, contract.address);
+	}
+
+	async deployOrGetContract(
+		contractName: string,
+		params: any[],
+		libraries?: {[key: string]: string}
+	): Promise<string> {
+		if (this.overwrite || !this.contracts[contractName] ) {
+			return this.deploy(contractName, params, libraries)
+		} else {
+			const ContractFactory = await hre.ethers.getContractFactory(contractName, {
+				libraries
+			});
+			return ContractFactory.attach(this.contracts[contractName])
+		}
+	}
+
+	async deployOrGetAddress(
+		contractName: string,
+		params: any[],
+		libraries?: {[key: string]: string}
+	): Promise<string> {
+		if (this.overwrite || !this.contracts[contractName] ) {
+			contract = await this.deploy(contractName, params, libraries)
+			return contract.address
+		} else {
+			return this.contracts[contractName]
+		}
+	}
+
+	async setupEstimators(
+		uniswapOracleAddress: string,
+		chainlinkOracleAddress: string
+	) {
+		if (this.tokenRegistryOwner == this.signer.address) {
+			const tokenRegistry = await this.getContract('TokenRegistry')
+			await setupEstimatorsWithFunc(
+				uniswapOracleAddress,
+				chainlinkOracleAddress,
+				(estimatorCategory: number, estimatorAddress: string) => {
+					console.log("Adding estimator...")
+					await waitForTransaction(async (txArgs: TransactionArgs) => {
+						return tokenRegistry.addEstimator(estimatorCategory, estimatorAddress, txArgs)
+					}, this.signer)
+				}
+			)
+		} else if (this.factoryOwner == signer.address) {
+			const strategyProxyFactory = await this.getContract('StrategyProxyFactory')
+			await setupEstimatorsWithFunc(
+				uniswapOracleAddress,
+				chainlinkOracleAddress,
+				(estimatorCategory: number, estimatorAddress: string) => {
+					console.log("Adding estimator...")
+					await waitForTransaction(async (txArgs: TransactionArgs) => {
+						return strategyProxyFactory.addEstimatorToRegistry(estimatorCategory, estimatorAddress, txArgs)
+					}, this.signer)
+				}
+			)
+		} else {
+			await setupEstimatorsWithFunc(
+				uniswapOracleAddress,
+				chainlinkOracleAddress,
+				(estimatorCategory: number, estimatorAddress: string) => {} // Noop
+			)
+		}
+	}
+
+	async setupEstimatorsWithFunc(
+		uniswapOracleAddress: string,
+		chainlinkOracleAddress: string,
+		registerEstimator: (estimatorCategory: number, estimatorAddress: string) => void
+	) {
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, 'DefaultEstimator', [
+			uniswapOracleAddress
+		], registerEstimator)
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, 'ChainlinkEstimator', [
+			chainlinkOracleAddress
+		], registerEstimator)
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.STRATEGY, 'StrategyEstimator', [], registerEstimator)
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.BLOCKED, 'EmergencyEstimator', [], registerEstimator)
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.AAVE_V2, 'AaveV2Estimator', [], registerEstimator)
+		// this.add2Deployments('AaveEstimator', aaveV2Estimator.address) //Alias
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, 'AaveV2DebtEstimator', [], registerEstimator)
+		// this.add2Deployments('AaveDebtEstimator', aaveV2DebtEstimator.address) //Alias
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.COMPOUND, 'CompoundEstimator', [], registerEstimator)
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.CURVE_LP, 'CuveLPEstimator', [], registerEstimator)
+		// this.add2Deployments('CurveEstimator', curveLPEstimator.address) //Alias
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, 'CurveGaugeEstimator', [], registerEstimator)
+		await deployer.setupEstimator(ESTIMATOR_CATEGORY.YEARN_V2, 'YEarnV2Estimator', [], registerEstimator)
+	}
+
+	async setupEstimator(
+		estimatorCategory: number,
+		contractName: string,
+		params: any[],
+		registerEstimator: (estimatorCategory: number, estimatorAddress: string) => void
+	) {
+		const estimatorAddress = await deployOrGetAddress(contractName, params)
+		await registerEstimator(estimatorCategory, estimatorAddress)
+	}
+
+	write2File() {
+		const data = JSON.stringify({ ...deployments, [this.network]: this.contracts }, null, 2)
+		fs.writeFileSync('./deployments.json', data)
+	}
+
+	add2Deployments(contractName: string, address: string) {
+		this.contracts[contractName] = address
+		console.log(contractName + ': ' + address)
+		this.write2File()
+	}
 }
 
 export const waitForDeployment = async (
@@ -120,4 +289,13 @@ export const getExpectedBaseFee = (block: any) => {
     }
   }
   return expectedBaseFee
+}
+
+export const contractAliases = {
+	'SushiSwapAdapter' : 'UniswapV2Adapter',
+	'DefaultEstimator' : 'BasicEstimator',
+	'ChainlinkEstimator' : 'BasicEstimator',
+	'StrategyrImplementation' : 'Strategy',
+	'StrategyControllerImplementation' : 'StrategyController',
+	'StrategyProxyFactoryImplementation' : 'StrategyProxyFactory'
 }
