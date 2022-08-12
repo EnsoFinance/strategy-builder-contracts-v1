@@ -115,7 +115,7 @@ async function main() {
 	console.log("Owner: ", owner)
 
 	// Setup libraries
-	let strategyLibraryAddress: string
+	let strategyLibraryAddress: string = contracts['StrategyLibrary']
 	if (overwrite || !contracts['StrategyLibrary'] ) {
 		const StrategyLibrary = await hre.ethers.getContractFactory('StrategyLibrary')
 		const library = await waitForDeployment(async (txArgs: TransactionArgs) => {
@@ -123,11 +123,9 @@ async function main() {
 		}, signer)
 		strategyLibraryAddress = library.address
 		add2Deployments('StrategyLibrary', strategyLibraryAddress)
-	} else {
-		strategyLibraryAddress = contracts['StrategyLibrary']
 	}
 
-	let controllerLibraryAddress: string
+	let controllerLibraryAddress: string = contracts['ControllerLibrary']
 	if (overwrite || !contracts['ControllerLibrary'] ) {
 		const ControllerLibrary = await hre.ethers.getContractFactory('ControllerLibrary', {
 			libraries: {
@@ -139,11 +137,9 @@ async function main() {
 		}, signer)
 		controllerLibraryAddress = library.address
 		add2Deployments('ControllerLibrary', controllerLibraryAddress)
-	} else {
-		controllerLibraryAddress = contracts['ControllerLibrary']
 	}
 
-	let strategyClaimAddress: string
+	let strategyClaimAddress: string = contracts['StrategyClaim']
 	if (overwrite || !contracts['StrategyClaim'] ) {
 		const StrategyClaim = await hre.ethers.getContractFactory('StrategyClaim')
 		const library = await waitForDeployment(async (txArgs: TransactionArgs) => {
@@ -151,8 +147,6 @@ async function main() {
 		}, signer)
 		strategyClaimAddress = library.address
 		add2Deployments('StrategyClaim', controllerLibraryAddress)
-	} else {
-		strategyClaimAddress = contracts['StrategyClaim']
 	}
 
 	//Setup library-dependent contract factories
@@ -223,19 +217,17 @@ async function main() {
 	const whitelist = Whitelist.attach(contracts['Whitelist'])
 	const whitelistOwner = await whitelist.owner()
 
-	let tokenRegistry: Contract
+	let tokenRegistry: Contract = TokenRegistry.attach(contracts['TokenRegistry'])
 	if (overwrite || !contracts['TokenRegistry'] ) {
 		tokenRegistry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return TokenRegistry.deploy(txArgs)
 		}, signer)
 
 		add2Deployments('TokenRegistry', tokenRegistry.address)
-	} else {
-		tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
 	}
-	const tokenRegistryOwner = await tokenRegistry.owner()
+  const tokenRegistryOwner = await tokenRegistry.owner()
 
-	let uniswapV3RegistryAddress: string
+	let uniswapV3RegistryAddress: string = contracts['UniswapV3Registry']
 	if (overwrite || !contracts['UniswapV3Registry'] ) {
 		const uniswapV3Registry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapV3Registry.deploy(
@@ -247,11 +239,9 @@ async function main() {
 		uniswapV3RegistryAddress = uniswapV3Registry.address
 
 		add2Deployments('UniswapV3Registry', uniswapV3RegistryAddress)
-	} else {
-		uniswapV3RegistryAddress = contracts['UniswapV3Registry']
 	}
 
-	let chainlinkRegistryAddress: string
+	let chainlinkRegistryAddress: string = contracts['ChainlinkRegistry']
 	if (overwrite || !contracts['ChainlinkRegistry'] ) {
 		const chainlinkRegistry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return ChainlinkRegistry.deploy(txArgs)
@@ -259,12 +249,10 @@ async function main() {
 		chainlinkRegistryAddress = chainlinkRegistry.address
 
 		add2Deployments('ChainlinkRegistry', chainlinkRegistryAddress)
-	} else {
-		chainlinkRegistryAddress = contracts['ChainlinkRegistry']
 	}
 
 	// Add oracles
-	let uniswapOracleAddress: string
+	let uniswapOracleAddress: string = contracts['UniswapOracle']
 	if (overwrite || !contracts['UniswapOracle'] ) {
 		const uniswapOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return UniswapOracle.deploy(
@@ -276,11 +264,9 @@ async function main() {
 		uniswapOracleAddress = uniswapOracle.address
 
 		add2Deployments('UniswapOracle', uniswapOracleAddress)
-	} else {
-		uniswapOracleAddress = contracts['UniswapOracle']
 	}
 
-	let chainlinkOracleAddress: string
+	let chainlinkOracleAddress: string = contracts['ChainlinkOracle']
 	if (overwrite || !contracts['ChainlinkOracle'] ) {
 		const chainlinkOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return ChainlinkOracle.deploy(
@@ -291,11 +277,9 @@ async function main() {
 		chainlinkOracleAddress = chainlinkOracle.address
 
 		add2Deployments('ChainlinkOracle', chainlinkOracleAddress)
-	} else {
-		chainlinkOracleAddress = contracts['ChainlinkOracle']
 	}
 
-	let ensoOracleAddress: string
+	let ensoOracleAddress: string = contracts['EnsoOracle']
 	if (overwrite || !contracts['EnsoOracle'] ) {
 		const ensoOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return EnsoOracle.deploy(
@@ -308,8 +292,6 @@ async function main() {
 		ensoOracleAddress = ensoOracle.address
 
 		add2Deployments('EnsoOracle', ensoOracleAddress)
-	} else {
-		ensoOracleAddress = contracts['EnsoOracle']
 	}
 
 	// For registering estimators
@@ -556,15 +538,6 @@ async function main() {
 	}, signer)
 	add2Deployments('StrategyImplementation', strategyImplementation.address)
 
-	/*
-	if (signer.address == tokenRegistryOwner) {
-		console.log("Transfering TokenRegistry...")
-		await waitForTransaction(async (txArgs: TransactionArgs) => {
-			return tokenRegistry.transferOwnership(factoryAddress, txArgs)
-		}, signer)
-	}
-	*/
-
 	if (overwrite || !contracts['LoopRouter'] ) {
 		const loopRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return LoopRouter.deploy(controllerAddress, txArgs)
@@ -580,7 +553,7 @@ async function main() {
 		}
 	}
 
-	let fullRouterAddress: string
+	let fullRouterAddress: string = contracts['FullRouter']
 	if (overwrite || !contracts['FullRouter'] ) {
 		const fullRouter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return FullRouter.deploy(deployedContracts[network].aaveAddressProvider, controllerAddress, txArgs)
@@ -595,8 +568,6 @@ async function main() {
 				return whitelist.approve(fullRouter.address, txArgs)
 			}, signer)
 		}
-	} else {
-		fullRouterAddress = contracts['FullRouter']
 	}
 
 	if (overwrite || !contracts['MulticallRouter'] ) {
@@ -670,7 +641,7 @@ async function main() {
 		}
 	}
 
-	let synthetixAdapterAddress: string
+	let synthetixAdapterAddress: string = contracts['SynthetixAdapter']
 	if (overwrite || !contracts['SynthetixAdapter'] ) {
 		const synthetixAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return SynthetixAdapter.deploy(
@@ -689,11 +660,9 @@ async function main() {
 				return whitelist.approve(synthetixAdapter.address, txArgs)
 			}, signer)
 		}
-	} else {
-		synthetixAdapterAddress = contracts['SynthetixAdapter']
 	}
 
-	let synthRedeemerAdapterAddress: string
+	let synthRedeemerAdapterAddress: string = contracts['SynthRedeemerAdapter']
 	if (overwrite || !contracts['SynthRedeemerAdapter'] ) {
 		const synthRedeemerAdapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return SynthRedeemerAdapter.deploy(
@@ -713,8 +682,6 @@ async function main() {
 				return whitelist.approve(synthRedeemerAdapter.address, txArgs)
 			}, signer)
 		}
-	} else {
-		synthRedeemerAdapterAddress = contracts['SynthRedeemerAdapter']
 	}
 
 	if (overwrite || !contracts['BalancerAdapter'] ) {
