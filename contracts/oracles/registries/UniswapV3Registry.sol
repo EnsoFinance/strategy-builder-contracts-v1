@@ -32,20 +32,6 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         weth = weth_;
     }
 
-    function addFee(address token, address pair, uint24 fee) external override onlyOwner {
-        address pool = factory.getPool(token, pair, fee);
-        require(pool != address(0), "Not valid pool");
-        bytes32 pairId = _pairHash(token, pair);
-        PairData storage pairData = _pairs[pairId];
-        if (pairData.timeWindow == 0) {
-          pairData.fee = fee;
-        }
-    }
-
-    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external override onlyOwner {
-        _addPool(token, pair, fee, timeWindow);
-    }
-
     function batchAddPools(
         address[] memory tokens,
         address[] memory pairs,
@@ -61,12 +47,42 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         }
     }
 
+    function batchAddFees(
+        address[] memory tokens,
+        address[] memory pairs,
+        uint24[] memory fees
+    ) external override onlyOwner {
+        uint256 length = tokens.length;
+        require(pairs.length == length, "Array mismatch");
+        require(fees.length == length, "Array mismatch");
+        for (uint256 i = 0; i < length; i++) {
+            _addFee(tokens[i], pairs[i], fees[i]);
+        }
+    }
+
+    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external override onlyOwner {
+        _addPool(token, pair, fee, timeWindow);
+    }
+
     function removePool(address token) external override onlyOwner {
         bytes32 pairId = _pairId[token];
         require(pairId != bytes32(0), "Pool not found");
         delete _pairs[pairId];
         delete _pairId[token];
         emit PoolRemoved(token);
+    }
+
+    function addFee(address token, address pair, uint24 fee) external override onlyOwner {
+        _addFee(token, pair, fee);
+    }
+
+    function removeFee(address token, address pair) external override onlyOwner {
+        bytes32 pairId = _pairHash(token, pair);
+        PairData memory pairData = _pairs[pairId];
+        require(pairData.fee != 0, "No fee to remove");
+        require(pairData.timeWindow == 0, "Invalid pair");
+        delete _pairs[pairId];
+        emit FeeRemoved(token, pair);
     }
 
     function getPoolData(address token) external view override returns (PoolData memory) {
@@ -111,6 +127,16 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         _pairs[pairId] = PairData(pair, fee, timeWindow);
         _updateObservations(IUniswapV3Pool(pool), timeWindow);
         emit PoolAdded(token, pair, fee, timeWindow);
+    }
+
+    function _addFee(address token, address pair, uint24 fee) internal {
+        address pool = factory.getPool(token, pair, fee);
+        require(pool != address(0), "Not valid pool");
+        bytes32 pairId = _pairHash(token, pair);
+        PairData storage pairData = _pairs[pairId];
+        require(pairData.timeWindow == 0, "Pool already registered");
+        pairData.fee = fee;
+        emit FeeAdded(token, pair, fee);
     }
 
     function _updateObservations(IUniswapV3Pool pool, uint32 timeWindow) internal {
