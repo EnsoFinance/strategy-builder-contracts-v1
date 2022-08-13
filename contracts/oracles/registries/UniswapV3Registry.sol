@@ -32,6 +32,20 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         weth = weth_;
     }
 
+    function addFee(address token, address pair, uint24 fee) external override onlyOwner {
+        address pool = factory.getPool(token, pair, fee);
+        require(pool != address(0), "Not valid pool");
+        bytes32 pairId = _pairHash(token, pair);
+        PairData storage pairData = _pairs[pairId];
+        if (pairData.timeWindow == 0) {
+          pairData.fee = fee;
+        }
+    }
+
+    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external override onlyOwner {
+        _addPool(token, pair, fee, timeWindow);
+    }
+
     function batchAddPools(
         address[] memory tokens,
         address[] memory pairs,
@@ -45,10 +59,6 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         for (uint256 i = 0; i < length; i++) {
             _addPool(tokens[i], pairs[i], fees[i], timeWindows[i]);
         }
-    }
-
-    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) public override onlyOwner {
-        _addPool(token, pair, fee, timeWindow);
     }
 
     function removePool(address token) external override onlyOwner {

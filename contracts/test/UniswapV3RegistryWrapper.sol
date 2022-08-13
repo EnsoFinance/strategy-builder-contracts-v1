@@ -15,6 +15,15 @@ contract UniswapV3RegistryWrapper is IUniswapV3Registry {
         timeWindow = IUniswapV3Registry_Deprecated(registry_).timeWindow();
     }
 
+    function addFee(address token, address pair, uint24 fee) external override {
+      (token, pair, fee);
+    }
+
+    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external override {
+        (timeWindow);
+        registry.addPool(token, pair, fee);
+    }
+
     function batchAddPools(
         address[] memory tokens,
         address[] memory pairs,
@@ -23,11 +32,6 @@ contract UniswapV3RegistryWrapper is IUniswapV3Registry {
     ) external override {
         (timeWindows);
         registry.batchAddPools(tokens, pairs, fees);
-    }
-
-    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) public override {
-        (timeWindow);
-        registry.addPool(token, pair, fee);
     }
 
     function removePool(address token) external override {

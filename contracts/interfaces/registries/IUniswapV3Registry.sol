@@ -7,7 +7,7 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 interface IUniswapV3Registry {
 
     event PoolAdded(address indexed token, address indexed pair, uint24 indexed fee, uint32 timeWindow);
-     
+
     event PoolRemoved(address indexed token);
 
     event TimeWindowUpdated(address indexed token, uint32 indexed timeWindow);
@@ -24,14 +24,16 @@ interface IUniswapV3Registry {
         uint32 timeWindow;
     }
 
+    function addFee(address token, address pair, uint24 fee) external;
+
+    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
+
     function batchAddPools(
         address[] memory tokens,
         address[] memory pairs,
         uint24[] memory fees,
         uint32[] memory timeWindows
     ) external;
-
-    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
 
     function removePool(address token) external;
 
