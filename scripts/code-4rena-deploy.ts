@@ -224,14 +224,18 @@ async function main() {
 	const controllerAddress = contracts['StrategyController']
 	const curveDepositZapRegistryAddress = contracts['CurveDepositZapRegistry']
 
-	let tokenRegistry: Contract = TokenRegistry.attach(contracts['TokenRegistry'])
+	let tokenRegistry: Contract
 	if (overwrite || !contracts['TokenRegistry']) {
 		tokenRegistry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return TokenRegistry.deploy(txArgs)
 		}, signer)
 
 		add2Deployments('TokenRegistry', tokenRegistry.address)
-	}
+	} else if (contracts['TokenRegistry']) {
+    tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
+  } else {
+    throw Error("TokenRegistry must be deployed.")
+  }
 	const tokenRegistryOwner = await tokenRegistry.owner()
 
 	let uniswapV3RegistryAddress: string = contracts['UniswapV3Registry']
