@@ -12,7 +12,7 @@ import deploymentsJSON from '../deployments.json'
 
 const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
 // If true it will deploy contract regardless of whether there is an address currently on the network
-let overwrite = false
+let overwrite = true 
 
 let contracts: { [key: string]: string } = {}
 let network: string
@@ -103,7 +103,7 @@ const deployedContracts: { [key: string]: Addresses } = {
 	},
 }
 
-async function main() {
+export async function deployCode4renaFixes() {
 	// Hardhat always runs the compile task when running scripts with its command
 	// line interface.
 	//
@@ -229,7 +229,6 @@ async function main() {
 		tokenRegistry = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return TokenRegistry.deploy(txArgs)
 		}, signer)
-
 		add2Deployments('TokenRegistry', tokenRegistry.address)
 	} else if (contracts['TokenRegistry']) {
 		tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
@@ -1010,9 +1009,10 @@ const add2Deployments = (contractTitle: string, address: string) => {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-main()
+/*main()
 	.then(() => process.exit(0))
 	.catch((error) => {
 		console.error(error)
 		process.exit(1)
 	})
+*/
