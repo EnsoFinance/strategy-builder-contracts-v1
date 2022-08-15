@@ -25,7 +25,6 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     mapping(bytes32 => PairData) internal _pairs;
 
-
     constructor(address factory_, address weth_) public {
         require(BLOCK_TIME > 0, "Bad constant");
         factory = IUniswapV3Factory(factory_);
@@ -72,15 +71,21 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         emit PoolRemoved(token);
     }
 
+    // @notice Add a fee for a pair without adding related PairData.
+    // @dev The fee cannot be set if `addPool` was already called on the token pair.
+    //      Since it's missing pairData and token => pairId mapping, it cannot be used by the oracle,
+    //      only the UniswapV3Adapter when looking up the preferred fee for a token pair.
     function addFee(address token, address pair, uint24 fee) external override onlyOwner {
         _addFee(token, pair, fee);
     }
 
+    // @notice Remove a fee for a pair that was previously added by the `addFee` function
+    // @dev This function cannot remove fees that were set by the `addPool` function
     function removeFee(address token, address pair) external override onlyOwner {
         bytes32 pairId = _pairHash(token, pair);
         PairData memory pairData = _pairs[pairId];
         require(pairData.fee != 0, "No fee to remove");
-        require(pairData.timeWindow == 0, "Invalid pair");
+        require(pairData.registrationType == RegistrationType.FEE, "Cannot remove pool fee"); // If this fee was registered via `addPool` it must be removed via `removePool`
         delete _pairs[pairId];
         emit FeeRemoved(token, pair);
     }
@@ -97,11 +102,15 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     }
 
     function getFee(address token, address pair) external view override returns (uint24) {
-        return _pairs[_pairHash(token, pair)].fee;
+        PairData memory pairData = _pairs[_pairHash(token, pair)];
+        require(pairData.registrationType != RegistrationType.NULL, "Pair fee not registered");
+        return pairData.fee;
     }
 
     function getTimeWindow(address token, address pair) external view override returns (uint32) {
-        return  _pairs[_pairHash(token, pair)].timeWindow;
+        PairData memory pairData = _pairs[_pairHash(token, pair)];
+        require(pairData.registrationType != RegistrationType.NULL, "Pair time window not registered");
+        return  pairData.timeWindow;
     }
 
     function updateTimeWindow(address token, uint32 timeWindow) external onlyOwner {
@@ -124,7 +133,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         require(pool != address(0), "Not valid pool");
         bytes32 pairId = _pairHash(token, pair);
         _pairId[token] = pairId;
-        _pairs[pairId] = PairData(pair, fee, timeWindow);
+        _pairs[pairId] = PairData(pair, fee, timeWindow, RegistrationType.POOL);
         _updateObservations(IUniswapV3Pool(pool), timeWindow);
         emit PoolAdded(token, pair, fee, timeWindow);
     }
@@ -134,8 +143,9 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
         require(pool != address(0), "Not valid pool");
         bytes32 pairId = _pairHash(token, pair);
         PairData storage pairData = _pairs[pairId];
-        require(pairData.timeWindow == 0, "Pool already registered");
+        require(pairData.registrationType != RegistrationType.POOL, "Pool already registered");
         pairData.fee = fee;
+        pairData.registrationType = RegistrationType.FEE;
         emit FeeAdded(token, pair, fee);
     }
 

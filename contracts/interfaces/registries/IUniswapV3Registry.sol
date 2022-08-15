@@ -16,10 +16,13 @@ interface IUniswapV3Registry {
 
     event TimeWindowUpdated(address indexed token, uint32 indexed timeWindow);
 
+    enum RegistrationType{ NULL, FEE, POOL }
+
     struct PairData {
         address pair;
         uint24 fee;
         uint32 timeWindow;
+        RegistrationType registrationType;
     }
 
     struct PoolData {

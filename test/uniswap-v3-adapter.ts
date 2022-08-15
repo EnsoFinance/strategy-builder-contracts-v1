@@ -405,11 +405,11 @@ describe('UniswapV3Adapter', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-	it('Should fail to remove fee: invalid pair', async function () {
+	it('Should fail to remove fee: cannot remove pool fee', async function () {
 		await expect(uniswapRegistry
 			.connect(owner)
 			.removeFee(tokens[1].address, weth.address)
-		).to.be.revertedWith('Invalid pair')
+		).to.be.revertedWith('Cannot remove pool fee')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
@@ -426,8 +426,7 @@ describe('UniswapV3Adapter', function () {
 			.connect(owner)
 			.removeFee(tokens[1].address, tokens[2].address)
 
-		const fee = await uniswapRegistry.getFee(tokens[1].address, tokens[2].address)
-		expect(BigNumber.from(fee).eq(0)).to.equal(true)
+		await expect( uniswapRegistry.getFee(tokens[1].address, tokens[2].address)).to.be.revertedWith('Pair fee not registered')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
