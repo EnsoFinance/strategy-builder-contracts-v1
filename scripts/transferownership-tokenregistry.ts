@@ -19,7 +19,7 @@ if (process.env.HARDHAT_NETWORK) {
 
 // To be run after tokens are registered
 
-async function main() {
+export async function transferOwnershipTokenRegistry() {
 	// Hardhat always runs the compile task when running scripts with its command
 	// line interface.
 	//
@@ -46,12 +46,3 @@ async function main() {
 	const receipt = await tx.wait()
 	console.log('tokenRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
 }
-
-// We recommend this pattern to be able to use async/await everywhere
-// and properly handle errors.
-main()
-	.then(() => process.exit(0))
-	.catch((error) => {
-		console.error(error)
-		process.exit(1)
-	})

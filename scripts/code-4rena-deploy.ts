@@ -103,16 +103,17 @@ const deployedContracts: { [key: string]: Addresses } = {
 	},
 }
 
-export async function deployCode4renaFixes() {
+export async function deployCode4renaFixes() : Promise<{ [key: string]: string }> {
 	// Hardhat always runs the compile task when running scripts with its command
 	// line interface.
 	//
 	// If this script is run directly using `node` you may want to call compile
 	// manually to make sure everything is compiled
 	// await hre.run('compile');
+
 	const [signer] = await hre.ethers.getSigners()
-	const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
-	console.log('Owner: ', owner)
+  const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
+  console.log('Owner: ', owner)
 
 	// Setup libraries
 	let strategyLibraryAddress: string = contracts['StrategyLibrary']
@@ -994,6 +995,7 @@ export async function deployCode4renaFixes() {
 	}
 
 	write2File()
+  return contracts
 }
 
 const write2File = () => {
