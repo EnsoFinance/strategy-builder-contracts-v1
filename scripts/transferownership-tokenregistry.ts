@@ -33,18 +33,18 @@ async function main() {
 	const TokenRegistry = await hre.ethers.getContractFactory('TokenRegistry')
 	let tokenRegistry: Contract
 	if (!contracts['TokenRegistry']) {
-    throw Error("TokenRegistry must be deployed.")
+		throw Error('TokenRegistry must be deployed.')
 	} else {
-    tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
-  }
-  const tokenRegistryOwner = await tokenRegistry.owner()
+		tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
+	}
+	const tokenRegistryOwner = await tokenRegistry.owner()
 	const factoryAddress = contracts['StrategyProxyFactory']
-  if (tokenRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
-      throw Error("Signer doesn't own tokenRegistry.")
-  }
+	if (tokenRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+		throw Error("Signer doesn't own tokenRegistry.")
+	}
 	const tx = await tokenRegistry.connect(signer).transferOwnership(factoryAddress)
-  const receipt = await tx.wait()
-  console.log("tokenRegistry.transferOwnership tx.receipt.transactionHash", receipt.transactionHash)
+	const receipt = await tx.wait()
+	console.log('tokenRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
 }
 
 // We recommend this pattern to be able to use async/await everywhere

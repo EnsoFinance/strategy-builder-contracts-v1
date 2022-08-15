@@ -232,10 +232,10 @@ async function main() {
 
 		add2Deployments('TokenRegistry', tokenRegistry.address)
 	} else if (contracts['TokenRegistry']) {
-    tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
-  } else {
-    throw Error("TokenRegistry must be deployed.")
-  }
+		tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
+	} else {
+		throw Error('TokenRegistry must be deployed.')
+	}
 	const tokenRegistryOwner = await tokenRegistry.owner()
 
 	let uniswapV3RegistryAddress: string = contracts['UniswapV3Registry']
