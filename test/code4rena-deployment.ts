@@ -13,8 +13,9 @@ import { transferOwnershipTokenRegistry } from '../scripts/transferownership-tok
 //import { registerTokens } from '../scripts/register-token'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
-import { MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
-import { increaseTime, impersonate } from '../lib/utils'
+import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
+import { increaseTime, resetBlockchain, impersonate } from '../lib/utils'
+import { Estimator } from '../lib/estimator'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
@@ -28,6 +29,7 @@ describe('Code4rena deployment', function () {
 		contracts: { [key: string]: string },
 		tokens: Tokens,
 		weth: Contract,
+		estimator: Estimator, // TODO update to use Lens
 		/*	crv: Contract,
 		 */
 		dai: Contract,
@@ -44,6 +46,13 @@ describe('Code4rena deployment', function () {
 		uniswapV2Adapter: Contract,
 		uniswapV3Adapter: Contract,
 		compoundAdapter: Contract,
+		eDPI: Contract,
+		eYETI: Contract,
+		eYLA: Contract,
+		eNFTP: Contract,
+		eETH2X: Contract,
+		oldAdapters: string[],
+		newAdapters: string[],
 		//curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
@@ -54,8 +63,42 @@ describe('Code4rena deployment', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
+	async function updateAdapters(strategy: Contract) {
+		// Impersonate manager
+		const managerAddress = await strategy.manager()
+		const manager = await impersonate(managerAddress)
+
+		// Send funds to manager
+		await accounts[19].sendTransaction({ to: managerAddress, value: WeiPerEther })
+
+		const items = await strategy.items()
+		for (let i = 0; i < items.length; i++) {
+			let tradeData = await strategy.getTradeData(items[i])
+			let adapters = [...tradeData.adapters]
+			let shouldUpdate = false
+			for (let j = 0; j < adapters.length; j++) {
+				for (let k = 0; k < oldAdapters.length; k++) {
+					if (adapters[j].toLowerCase() == oldAdapters[k].toLowerCase()) {
+						adapters[j] = newAdapters[k]
+						shouldUpdate = true
+					}
+				}
+			}
+			if (shouldUpdate) {
+				await strategy.connect(manager).updateTradeData(items[i], {
+					...tradeData,
+					adapters: adapters,
+				})
+				await increaseTime(5 * 60)
+				await strategy.connect(manager).finalizeTradeData()
+			}
+		}
+	}
+
 	before('Deploy new contracts.', async function () {
 		proofCounter = initializeTestLogging(this, __dirname)
+
+		await resetBlockchain()
 
 		accounts = await getSigners()
 		uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
@@ -80,7 +123,277 @@ describe('Code4rena deployment', function () {
     */
 	})
 
-	// TODO mimic live-estimates
+	// mimic live-estimates
+	it('Should update strategies.', async function () {
+		oracle = new Contract(contracts['EnsoOracle'], (await getContractFactory('EnsoOracle')).interface, accounts[0])
+		const tokenRegistry = new Contract(
+			contracts['TokenRegistry'],
+			(await getContractFactory('TokenRegistry')).interface,
+			accounts[0]
+		)
+		const uniswapV3Registry = new Contract(
+			contracts['UniswapV3Registry'],
+			(await getContractFactory('UniswapV3Registry')).interface,
+			accounts[0]
+		)
+		const curveDepositZapRegistry = new Contract(
+			contracts['CurveDepositZapRegistry'],
+			(await getContractFactory('CurveDepositZapRegistry')).interface,
+			accounts[0]
+		)
+
+		estimator = new Estimator(
+			accounts[0],
+			oracle,
+			tokenRegistry,
+			uniswapV3Registry,
+			curveDepositZapRegistry,
+			contracts['AaveV2Adapter'],
+			contracts['CompoundAdapter'],
+			contracts['CurveAdapter'],
+			contracts['CurveLPAdapter'],
+			contracts['CurveGaugeAdapter'],
+			contracts['KyberSwapAdapter'],
+			contracts['MetaStrategyAdapter'],
+			MAINNET_ADDRESSES.SUSHI_FACTORY, // FIXME ?? is this correct?
+			contracts['SynthetixAdapter'],
+			contracts['UniswapV2Adapter'],
+			contracts['UniswapV3Adapter'],
+			contracts['YEarnAdapter']
+		)
+		router = new Contract(
+			contracts['FullRouter'],
+			(
+				await getContractFactory('FullRouter', {
+					libraries: {
+						StrategyLibrary: contracts['StrategyLibrary'],
+					},
+				})
+			).interface,
+			accounts[0]
+		)
+		oldAdapters = [
+			contracts['UniswapV3Adapter_DEPRECATED'],
+			contracts['AaveV2Adapter_DEPRECATED'],
+			contracts['AaveV2DebtAdapter_DEPRECATED'],
+		]
+
+		newAdapters = [contracts['UniswapV3Adapter'], contracts['AaveV2Adapter'], contracts['AaveV2DebtAdapter']]
+		const Strategy = await hre.ethers.getContractFactory('Strategy', {
+			libraries: {
+				StrategyClaim: contracts['StrategyClaim'],
+			},
+		})
+		console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
+		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
+		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
+		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
+		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
+		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
+		const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
+		// strategyFactory.updateImplementation should be updated
+		const admin = await strategyFactory.admin()
+		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
+		const strategyAdmin = await StrategyAdmin.attach(admin)
+		for (let i = 0; i < strategies.length; i++) {
+			const s = strategies[i]
+			const mgr = await impersonate(await s.manager())
+			await strategyAdmin.connect(mgr).upgrade(s.address)
+			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
+			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
+			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
+			await updateAdapters(s)
+			await s.connect(accounts[3]).updateRewards() // anyone calls
+		}
+	})
+
+	it('Should be initialized.', async function () {
+		/*
+		 * if the latest `Strategy` implementation incorrectly updates storage
+		 * then the deployed instance would incorrectly (and dangerously)
+		 * not be deemed initialized.
+		 */
+
+		// now call initialize
+		const someMaliciousAddress = accounts[8].address
+		await expect(
+			eDPI.initialize('anyName', 'anySymbol', 'anyVersion', someMaliciousAddress, [])
+		).to.be.revertedWith('Initializable: contract is already initialized')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate deposit eETH2X', async function () {
+		const [totalBefore] = await oracle.estimateStrategy(eETH2X.address)
+		const depositAmount = WeiPerEther
+		const estimatedDepositValue = await estimator.deposit(eETH2X, depositAmount)
+		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+		await controller
+			.connect(accounts[1])
+			.deposit(eETH2X.address, router.address, 0, 0, '0x', { value: depositAmount })
+		const [totalAfter] = await oracle.estimateStrategy(eETH2X.address)
+		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate withdraw eETH2X', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eETH2X.address)
+		const withdrawAmount = await eETH2X.balanceOf(accounts[1].address)
+		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+		const totalSupply = await eETH2X.totalSupply()
+		const wethBefore = await weth.balanceOf(accounts[1].address)
+		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+		const estimatedWithdrawValue = await estimator.withdraw(eETH2X, withdrawAmountAfterFee)
+		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		let tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(eETH2X.address, router.address, withdrawAmount, 0, '0x')
+		const receipt = await tx.wait()
+		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+		const wethAfter = await weth.balanceOf(accounts[1].address)
+		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate deposit eDPI', async function () {
+		const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
+		const depositAmount = WeiPerEther
+		const estimatedDepositValue = await estimator.deposit(eDPI, depositAmount)
+		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+		await controller
+			.connect(accounts[1])
+			.deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
+		const [totalAfter] = await oracle.estimateStrategy(eDPI.address)
+		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate withdraw eDPI', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eDPI.address)
+		const withdrawAmount = await eDPI.balanceOf(accounts[1].address)
+		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+		const totalSupply = await eDPI.totalSupply()
+		const wethBefore = await weth.balanceOf(accounts[1].address)
+		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+		const estimatedWithdrawValue = await estimator.withdraw(eDPI, withdrawAmountAfterFee)
+		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		let tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
+		const receipt = await tx.wait()
+		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+		const wethAfter = await weth.balanceOf(accounts[1].address)
+		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate deposit eYETI', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
+		const depositAmount = WeiPerEther
+		const estimatedDepositValue = await estimator.deposit(eYETI, depositAmount)
+		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+		await controller
+			.connect(accounts[1])
+			.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
+		const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
+		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate withdraw eYETI', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
+		const withdrawAmount = await eYETI.balanceOf(accounts[1].address)
+		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+		const totalSupply = await eYETI.totalSupply()
+		const wethBefore = await weth.balanceOf(accounts[1].address)
+		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+		const estimatedWithdrawValue = await estimator.withdraw(eYETI, withdrawAmountAfterFee)
+		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		let tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
+		const receipt = await tx.wait()
+		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+		const wethAfter = await weth.balanceOf(accounts[1].address)
+		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate deposit eYLA', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
+		const depositAmount = WeiPerEther
+		const estimatedDepositValue = await estimator.deposit(eYLA, depositAmount)
+		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+		await controller
+			.connect(accounts[1])
+			.deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
+		const [totalAfter] = await oracle.estimateStrategy(eYLA.address)
+		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate withdraw eYLA', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
+		const withdrawAmount = await eYLA.balanceOf(accounts[1].address)
+		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+		const totalSupply = await eYLA.totalSupply()
+		const wethBefore = await weth.balanceOf(accounts[1].address)
+		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+		const estimatedWithdrawValue = await estimator.withdraw(eYLA, withdrawAmountAfterFee)
+		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		let tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(eYLA.address, router.address, withdrawAmount, 0, '0x')
+		const receipt = await tx.wait()
+		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+		const wethAfter = await weth.balanceOf(accounts[1].address)
+		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate deposit eNFTP', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eNFTP.address)
+		const depositAmount = WeiPerEther
+		const estimatedDepositValue = await estimator.deposit(eNFTP, depositAmount)
+		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
+		await controller
+			.connect(accounts[1])
+			.deposit(eNFTP.address, router.address, 0, 0, '0x', { value: depositAmount })
+		const [totalAfter] = await oracle.estimateStrategy(eNFTP.address)
+		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should estimate withdraw eNFTP', async function () {
+		await increaseTime(1)
+		const [totalBefore] = await oracle.estimateStrategy(eNFTP.address)
+		const withdrawAmount = await eNFTP.balanceOf(accounts[1].address)
+		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
+		const totalSupply = await eNFTP.totalSupply()
+		const wethBefore = await weth.balanceOf(accounts[1].address)
+		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
+		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
+		const estimatedWithdrawValue = await estimator.withdraw(eNFTP, withdrawAmountAfterFee)
+		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
+		let tx = await controller
+			.connect(accounts[1])
+			.withdrawWETH(eNFTP.address, router.address, withdrawAmount, 0, '0x')
+		const receipt = await tx.wait()
+		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
+		const wethAfter = await weth.balanceOf(accounts[1].address)
+		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
+		logTestComplete(this, __dirname, proofCounter++)
+	})
 
 	// deploy exotic strategy etc
 	it('Should deploy "exotic" strategy', async function () {
@@ -96,7 +409,6 @@ describe('Code4rena deployment', function () {
 			).interface,
 			accounts[0]
 		)
-		oracle = new Contract(contracts['EnsoOracle'], (await getContractFactory('EnsoOracle')).interface, accounts[0])
 		strategyFactory = new Contract(
 			contracts['StrategyProxyFactory'],
 			(await getContractFactory('StrategyProxyFactory')).interface,
