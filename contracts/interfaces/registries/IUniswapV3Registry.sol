@@ -7,15 +7,22 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 interface IUniswapV3Registry {
 
     event PoolAdded(address indexed token, address indexed pair, uint24 indexed fee, uint32 timeWindow);
-     
+
     event PoolRemoved(address indexed token);
 
+    event FeeAdded(address indexed token, address indexed pair, uint24 indexed fee);
+
+    event FeeRemoved(address indexed token, address indexed pair);
+
     event TimeWindowUpdated(address indexed token, uint32 indexed timeWindow);
+
+    enum RegistrationType{ NULL, FEE, POOL }
 
     struct PairData {
         address pair;
         uint24 fee;
         uint32 timeWindow;
+        RegistrationType registrationType;
     }
 
     struct PoolData {
@@ -31,9 +38,19 @@ interface IUniswapV3Registry {
         uint32[] memory timeWindows
     ) external;
 
+    function batchAddFees(
+        address[] memory tokens,
+        address[] memory pairs,
+        uint24[] memory fees
+    ) external;
+
     function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
 
     function removePool(address token) external;
+
+    function addFee(address token, address pair, uint24 fee) external;
+
+    function removeFee(address token, address pair) external;
 
     function getPoolData(address token) external view returns (PoolData memory);
 

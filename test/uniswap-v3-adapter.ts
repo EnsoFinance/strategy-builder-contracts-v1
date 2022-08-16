@@ -8,7 +8,7 @@ const { constants, getContractFactory, getSigners } = ethers
 const { WeiPerEther, AddressZero } = constants
 import { deployTokens, deployUniswapV3, deployUniswapV3Adapter, deployLoopRouter } from '../lib/deploy'
 import { encodePath, prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
-import { increaseTime, getDeadline } from '../lib/utils'
+import { increaseTime, getDeadline, encodePriceSqrt, getMaxTick, getMinTick } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { ITEM_CATEGORY, ESTIMATOR_CATEGORY, UNI_V3_FEE, ORACLE_TIME_WINDOW } from '../lib/constants'
 import { createLink, linkBytecode } from '../lib/link'
@@ -21,7 +21,7 @@ import Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Qu
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 
-const NUM_TOKENS = 3
+const NUM_TOKENS = 4
 
 let tokens: Contract[],
 	weth: Contract,
@@ -38,6 +38,7 @@ let tokens: Contract[],
 	strategyClaim: Contract,
 	wrapper: Contract,
 	uniswapRegistry: Contract,
+	uniswapNFTManager: Contract,
 	uniswapV3Factory: Contract,
 	uniswapRouter: Contract,
 	uniswapQuoter: Contract,
@@ -76,14 +77,33 @@ describe('UniswapV3Adapter', function () {
 		accounts = await getSigners()
 		owner = accounts[5]
 		trader = accounts[6]
-		// Need to deploy these tokens before WETH to get the correct arrangement of token address where some are bigger and some smaller (for sorting)
-		//const token1 = await deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
-		//const token2 = await deployContract(owner, ERC20, [WeiPerEther.mul(10000)])
 		tokens = await deployTokens(owner, NUM_TOKENS, WeiPerEther.mul(100).mul(NUM_TOKENS - 1))
-		//tokens.push(token1)
-		//tokens.push(token2)
 		weth = tokens[0]
-		;[uniswapV3Factory] = await deployUniswapV3(owner, tokens)
+		;[uniswapV3Factory, uniswapNFTManager] = await deployUniswapV3(owner, tokens)
+		// Create non weth pool
+		const aNum = ethers.BigNumber.from(tokens[1].address)
+		const bNum = ethers.BigNumber.from(tokens[2].address)
+		const flipper = aNum.lt(bNum)
+		await uniswapNFTManager.createAndInitializePoolIfNecessary(
+			flipper ? tokens[1].address : tokens[2].address,
+			flipper ? tokens[2].address : tokens[1].address,
+			UNI_V3_FEE,
+			encodePriceSqrt(1, 1)
+		)
+		// Mint
+		await uniswapNFTManager.connect(owner).mint({
+			token0: flipper ? tokens[1].address : tokens[2].address,
+			token1: flipper ? tokens[2].address : tokens[1].address,
+			tickLower: getMinTick(60),
+			tickUpper: getMaxTick(60),
+			fee: UNI_V3_FEE,
+			recipient: owner.address,
+			amount0Desired: WeiPerEther, //Lower liquidity
+			amount1Desired: WeiPerEther, //Lower liquidity
+			amount0Min: 0,
+			amount1Min: 0,
+			deadline: getDeadline(240),
+		})
 
 		uniswapRouter = await deployContract(owner, SwapRouter, [uniswapV3Factory.address, weth.address])
 
@@ -281,6 +301,150 @@ describe('UniswapV3Adapter', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyTokens, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to deploy strategy: swap failed', async function () {
+		const name = 'Fail Strategy'
+		const symbol = 'FAIL'
+		const positions = [
+			{ token: tokens[2].address,
+				percentage: BigNumber.from(1000),
+				adapters: [adapter.address, adapter.address], // Try to trade via token 1 without token1-token2 fee being set
+				path: [tokens[1].address]
+			}
+		] as Position[]
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			rebalanceSlippage: BigNumber.from(997),
+			restructureSlippage: BigNumber.from(995),
+			managementFee: BigNumber.from(0),
+			social: false,
+			set: false,
+		}
+
+		await expect(strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
+		).to.be.revertedWith('Pair fee not registered')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to add fee: pool already added', async function () {
+		await expect(uniswapRegistry
+			.connect(owner)
+			.addFee(tokens[1].address, weth.address, UNI_V3_FEE)
+		).to.be.revertedWith('Pool already registered')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to add fee: no pool', async function () {
+		await expect(uniswapRegistry
+			.connect(owner)
+			.addFee(tokens[1].address, tokens[3].address, UNI_V3_FEE)
+		).to.be.revertedWith('Not valid pool')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to add fee: invalid fee', async function () {
+		await expect(uniswapRegistry
+			.connect(owner)
+			.addFee(tokens[1].address, tokens[2].address, 1)
+		).to.be.revertedWith('Not valid pool')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to add fee: not owner', async function () {
+		await expect(uniswapRegistry
+			.connect(trader)
+			.addFee(tokens[1].address, tokens[2].address, UNI_V3_FEE)
+		).to.be.revertedWith('Ownable: caller is not the owner')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should add fee', async function () {
+		await uniswapRegistry
+			.connect(owner)
+			.addFee(tokens[1].address, tokens[2].address, UNI_V3_FEE)
+
+		const fee = await uniswapRegistry.getFee(tokens[1].address, tokens[2].address)
+		expect(BigNumber.from(fee).eq(UNI_V3_FEE)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should deploy', async function () {
+		const name = 'Test Strategy'
+		const symbol = 'TEST2'
+		const positions = [
+			{ token: tokens[2].address,
+				percentage: BigNumber.from(1000),
+				adapters: [adapter.address, adapter.address], // Trade via token 1 with token1-token2 fee set
+				path: [tokens[1].address]
+			}
+		] as Position[]
+		strategyItems = prepareStrategy(positions, adapter.address)
+		const strategyState: InitialState = {
+			timelock: BigNumber.from(60),
+			rebalanceThreshold: BigNumber.from(10),
+			rebalanceSlippage: BigNumber.from(995),
+			restructureSlippage: BigNumber.from(500), // bad slippage, but this is just to test storing multiple fee pairings
+			managementFee: BigNumber.from(0),
+			social: false,
+			set: false,
+		}
+
+		await strategyFactory
+			.connect(accounts[1])
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to remove fee: cannot remove pool fee', async function () {
+		await expect(uniswapRegistry
+			.connect(owner)
+			.removeFee(tokens[1].address, weth.address)
+		).to.be.revertedWith('Cannot remove pool fee')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to remove fee: not owner', async function () {
+		await expect(uniswapRegistry
+			.connect(trader)
+			.removeFee(tokens[1].address, tokens[2].address)
+		).to.be.revertedWith('Ownable: caller is not the owner')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should remove fee', async function () {
+		await uniswapRegistry
+			.connect(owner)
+			.removeFee(tokens[1].address, tokens[2].address)
+
+		await expect( uniswapRegistry.getFee(tokens[1].address, tokens[2].address)).to.be.revertedWith('Pair fee not registered')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should fail to remove fee: no fee to remove', async function () {
+		await expect(uniswapRegistry
+			.connect(owner)
+			.removeFee(tokens[1].address, tokens[2].address)
+		).to.be.revertedWith('No fee to remove')
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should batch add fees', async function () {
+		await uniswapRegistry
+			.connect(owner)
+			.batchAddFees([tokens[1].address], [tokens[2].address], [UNI_V3_FEE])
+
+		const fee = await uniswapRegistry.getFee(tokens[1].address, tokens[2].address)
+		expect(BigNumber.from(fee).eq(UNI_V3_FEE)).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 })
