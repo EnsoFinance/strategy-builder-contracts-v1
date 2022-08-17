@@ -560,7 +560,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 	}, signer)
 	add2Deployments('StrategyControllerImplementation', controllerImplementation.address)
 
-	// ControllerPaused impelemntation
+	// ControllerPaused implementation
 	if (overwrite || !contracts['StrategyControllerPausedImplementation']) {
 		const strategyControllerPaused = await waitForDeployment(async (txArgs: TransactionArgs) => {
 			return StrategyControllerPaused.deploy(factoryAddress, txArgs)

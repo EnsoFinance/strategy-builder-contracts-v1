@@ -1,20 +1,18 @@
+const runAll = false
 import hre from 'hardhat'
 import chai from 'chai'
 const { expect } = chai
 import { BigNumber, Contract, Event } from 'ethers'
-//import { Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { solidity } from 'ethereum-waffle'
 const { ethers, waffle } = hre
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
-import { deployCode4renaFixes } from '../scripts/code-4rena-deploy'
-import { transferOwnershipTokenRegistry } from '../scripts/transferownership-tokenregistry'
-//import { registerTokens } from '../scripts/register-token'
+import deploymentsJSON from '../deployments.json'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { DIVISOR, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
-import { increaseTime, resetBlockchain, impersonate } from '../lib/utils'
+import { increaseTime, impersonate } from '../lib/utils'
 import { Estimator } from '../lib/estimator'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -26,22 +24,18 @@ import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 chai.use(solidity)
 describe('Code4rena deployment', function () {
 	let proofCounter: number,
+    multisig: SignerWithAddress,
+    whitelist: Contract,
 		contracts: { [key: string]: string },
 		tokens: Tokens,
 		weth: Contract,
 		estimator: Estimator, // TODO update to use Lens
-		/*	crv: Contract,
-		 */
 		dai: Contract,
 		accounts: SignerWithAddress[],
 		router: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		/*
-		whitelist: Contract,
-		controllerLibrary: Contract,
-    */
 		uniswapV2Factory: Contract,
 		uniswapV2Adapter: Contract,
 		uniswapV3Adapter: Contract,
@@ -67,7 +61,6 @@ describe('Code4rena deployment', function () {
 		// Impersonate manager
 		const managerAddress = await strategy.manager()
 		const manager = await impersonate(managerAddress)
-
 		// Send funds to manager
 		await accounts[19].sendTransaction({ to: managerAddress, value: WeiPerEther })
 
@@ -98,31 +91,71 @@ describe('Code4rena deployment', function () {
 	before('Deploy new contracts.', async function () {
 		proofCounter = initializeTestLogging(this, __dirname)
 
-		await resetBlockchain()
-
 		accounts = await getSigners()
 		uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+
+    const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
+    // If true it will deploy contract regardless of whether there is an address currently on the network
+    let network: string
+    if (process.env.HARDHAT_NETWORK) {
+      network = process.env.HARDHAT_NETWORK
+      //ts-ignore
+      if (deployments[network]) contracts = deployments[network]
+    }
+		tokens = new Tokens()
+		strategyFactory = new Contract(
+			contracts['StrategyProxyFactory'],
+			(await getContractFactory('StrategyProxyFactory')).interface,
+			accounts[0]
+		)
+    // these have happened in scripts !!
+		//await deployCode4renaFixes()
+		//await registerTokens()
+    //await registerUniswapPools()
+    //await registerCurvePools()
+    //await registerChainlinkOracles()
+		//await transferOwnership()
+    
+    //TODO multi-sig tasks
+
+    // whitelist new adapters and router
+    whitelist = (await getContractFactory('Whitelist')).attach(contracts['Whitelist'])
+    multisig = await impersonate(await whitelist.callStatic.owner())
+		newAdapters = [ 
+      contracts['UniswapV2Adapter'],
+      contracts['CompoundAdapter'],
+      contracts['CurveLPAdapter'],
+      contracts['CurveGaugeAdapter'],
+      contracts['UniswapV3Adapter'], 
+      contracts['AaveV2Adapter'], 
+      contracts['AaveV2DebtAdapter']]
+    for (let i = 0; i < newAdapters.length; ++i) {
+        await whitelist.connect(multisig).approve(newAdapters[i])
+    }
+    console.log("approved adapters", newAdapters)
+		await whitelist.connect(multisig).approve(contracts['LoopRouter'])
+		await whitelist.connect(multisig).approve(contracts['FullRouter'])
+    console.log("approved routers", contracts['LoopRouter'], contracts['FullRouter'])
+
+    const platformProxyAdmin = (await getContractFactory('PlatformProxyAdmin')).attach(contracts['PlatformProxyAdmin'])
+		await platformProxyAdmin.connect(multisig).upgrade(contracts['StrategyController'], contracts['StrategyControllerImplementation'])
+
+		await platformProxyAdmin.connect(multisig).upgrade(contracts['StrategyProxyFactory'], contracts['StrategyProxyFactoryImplementation'])
+
+    console.log("platformProxyAdmin upgrades StrategyController and StrategyProxyFactory")
+    
+    await strategyFactory.connect(multisig).updateOracle(contracts['EnsoOracle'])
+    await strategyFactory.connect(multisig).updateRegistry(contracts['TokenRegistry'])
+    console.log("strategyFactory updates oracle and tokenRegistry")
 	})
 
-	it('Should deployCode4renaFixes', async function () {
-		contracts = await deployCode4renaFixes()
-		console.log(contracts)
-		logTestComplete(this, __dirname, proofCounter++)
-	})
 
-	it('Should transferOwnershipTokenRegistry', async function () {
-		await transferOwnershipTokenRegistry()
-		logTestComplete(this, __dirname, proofCounter++)
-	})
+	it('Should debug.', async function () {
+      console.log("debug hello")
+  })
 
-	it('Should registerTokens', async function () {
-		tokens = new Tokens() // FIXME delete after registerTokens() is fixed
-		/*tokens = await registerTokens()
-    console.log(tokens)
-		logTestComplete(this, __dirname, proofCounter++)
-    */
-	})
-
+  if (runAll) {
+   
 	// mimic live-estimates
 	it('Should update strategies.', async function () {
 		oracle = new Contract(contracts['EnsoOracle'], (await getContractFactory('EnsoOracle')).interface, accounts[0])
@@ -173,23 +206,25 @@ describe('Code4rena deployment', function () {
 			accounts[0]
 		)
 		oldAdapters = [
-			contracts['UniswapV3Adapter_DEPRECATED'],
-			contracts['AaveV2Adapter_DEPRECATED'],
-			contracts['AaveV2DebtAdapter_DEPRECATED'],
-		]
+      contracts['UniswapV2Adapter_DEPRECATED'],
+      contracts['CompoundAdapter_DEPRECATED'],
+      contracts['CurveLPAdapter_DEPRECATED'],
+      contracts['CurveGaugeAdapter_DEPRECATED'],
+      contracts['UniswapV3Adapter_DEPRECATED'], 
+      contracts['AaveV2Adapter_DEPRECATED'], 
+      contracts['AaveV2DebtAdapter_DEPRECATED']]
 
-		newAdapters = [contracts['UniswapV3Adapter'], contracts['AaveV2Adapter'], contracts['AaveV2DebtAdapter']]
 		const Strategy = await hre.ethers.getContractFactory('Strategy', {
 			libraries: {
 				StrategyClaim: contracts['StrategyClaim'],
 			},
 		})
 		console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
-		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
+		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
 		const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
 		// strategyFactory.updateImplementation should be updated
 		const admin = await strategyFactory.admin()
@@ -197,13 +232,21 @@ describe('Code4rena deployment', function () {
 		const strategyAdmin = await StrategyAdmin.attach(admin)
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]
+      console.log("debug before")
 			const mgr = await impersonate(await s.manager())
+      console.log("debug", mgr.address)
 			await strategyAdmin.connect(mgr).upgrade(s.address)
 			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
-			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
-			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
+			//await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
+
+			//await s.connect(accounts[3]).finalizeTimelock() // anyone calls
 			await updateAdapters(s)
+
+      console.log("debug before")
+      console.log(await strategyFactory.callStatic.tokenRegistry()) // DEBUG
+      console.log("debug after 0")
 			await s.connect(accounts[3]).updateRewards() // anyone calls
+      console.log("debug after 1")
 		}
 	})
 
@@ -395,6 +438,8 @@ describe('Code4rena deployment', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
+  }
+
 	// deploy exotic strategy etc
 	it('Should deploy "exotic" strategy', async function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
@@ -409,12 +454,6 @@ describe('Code4rena deployment', function () {
 			).interface,
 			accounts[0]
 		)
-		strategyFactory = new Contract(
-			contracts['StrategyProxyFactory'],
-			(await getContractFactory('StrategyProxyFactory')).interface,
-			accounts[0]
-		)
-
 		router = new Contract(
 			contracts['LoopRouter'],
 			(
@@ -494,7 +533,7 @@ describe('Code4rena deployment', function () {
 			social: false,
 			set: false,
 		}
-		console.log('debug before')
+		console.log('debug before exotic')
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
@@ -530,6 +569,8 @@ describe('Code4rena deployment', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
+
+  if (runAll) {
 
 	it('Should set strategy and updateRewards', async function () {
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
@@ -1062,4 +1103,5 @@ describe('Code4rena deployment', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
+  }
 })
