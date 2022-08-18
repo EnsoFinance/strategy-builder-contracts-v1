@@ -34,9 +34,9 @@ if (networkIndex > 0) {
 		if (!mnemonic) {
 			throw new Error('Please set your MNEMONIC in a .env file')
 		}
-		if (!infuraApiKey) {
+		/*if (!infuraApiKey) {
 			throw new Error('Please set your INFURA_API_KEY in a .env file')
-		}
+		}*/
 	} else {
 		if (process.argv[2] == 'test' && !archiveNode) {
 			throw new Error('Please set your ARCHIVE_NODE in a .env file')
@@ -71,7 +71,7 @@ function getNetworks(): NetworksUserConfig {
 		if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
-				blockNumber:  15258750,
+				blockNumber: 15361200,
 			}
 	}
 	if (mnemonic && infuraApiKey) {

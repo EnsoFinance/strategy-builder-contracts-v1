@@ -10,9 +10,10 @@ import "@uniswap/v3-core/contracts/libraries/TickMath.sol";
 import "@uniswap/v3-core/contracts/libraries/FixedPoint96.sol";
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
+import "../../helpers/StringUtils.sol";
 
 
-contract UniswapV3Registry is IUniswapV3Registry, Ownable {
+contract UniswapV3Registry is IUniswapV3Registry, StringUtils, Ownable {
     using SafeMath for uint256;
 
     uint16 private constant BLOCK_TIME = 12; // Avg seconds per block (used to determine the maximum number of observations per time window)
@@ -84,7 +85,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
     function removeFee(address token, address pair) external override onlyOwner {
         bytes32 pairId = _pairHash(token, pair);
         PairData memory pairData = _pairs[pairId];
-        require(pairData.fee != 0, "No fee to remove");
+        if (pairData.fee == 0) _revertWith("No fee to remove", token, pair);
         require(pairData.registrationType == RegistrationType.FEE, "Cannot remove pool fee"); // If this fee was registered via `addPool` it must be removed via `removePool`
         delete _pairs[pairId];
         emit FeeRemoved(token, pair);
@@ -92,7 +93,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     function getPoolData(address token) external view override returns (PoolData memory) {
         bytes32 pairId = _pairId[token];
-        require(pairId != bytes32(0), "Pool not found");
+        if (pairId == bytes32(0)) _revertWith("Pool not found", token, address(0));
         PairData memory pairData = _pairs[pairId];
         address pool = PoolAddress.computeAddress(
             address(factory),
@@ -103,20 +104,20 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     function getFee(address token, address pair) external view override returns (uint24) {
         PairData memory pairData = _pairs[_pairHash(token, pair)];
-        require(pairData.registrationType != RegistrationType.NULL, "Pair fee not registered");
+        if(pairData.registrationType == RegistrationType.NULL) _revertWith("Pair fee not registered", token, pair);
         return pairData.fee;
     }
 
     function getTimeWindow(address token, address pair) external view override returns (uint32) {
         PairData memory pairData = _pairs[_pairHash(token, pair)];
-        require(pairData.registrationType != RegistrationType.NULL, "Pair time window not registered");
+        if (pairData.registrationType == RegistrationType.NULL) _revertWith("Pair time window not registered", token, pair);
         return  pairData.timeWindow;
     }
 
     function updateTimeWindow(address token, uint32 timeWindow) external onlyOwner {
         require(timeWindow != 0, "Wrong time window");
         bytes32 pairId = _pairId[token];
-        require(pairId != bytes32(0), "Pool not found");
+        if (pairId == bytes32(0))  _revertWith("Pool not found", token, address(0));
         PairData storage pairData = _pairs[pairId];
         require(timeWindow != pairData.timeWindow, "Wrong time window");
         pairData.timeWindow = timeWindow;
@@ -130,7 +131,7 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     function _addPool(address token, address pair, uint24 fee, uint32 timeWindow) internal {
         address pool = factory.getPool(token, pair, fee);
-        require(pool != address(0), "Not valid pool");
+        if (pool == address(0)) _revertWith("Not valid pool", token, pair);
         bytes32 pairId = _pairHash(token, pair);
         _pairId[token] = pairId;
         _pairs[pairId] = PairData(pair, fee, timeWindow, RegistrationType.POOL);
@@ -140,10 +141,10 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
 
     function _addFee(address token, address pair, uint24 fee) internal {
         address pool = factory.getPool(token, pair, fee);
-        require(pool != address(0), "Not valid pool");
+        if (pool == address(0)) _revertWith("Not valid pool", token, pair);
         bytes32 pairId = _pairHash(token, pair);
         PairData storage pairData = _pairs[pairId];
-        require(pairData.registrationType != RegistrationType.POOL, "Pool already registered");
+        if (pairData.registrationType == RegistrationType.POOL) _revertWith("Pool already registered", token, pair);
         pairData.fee = fee;
         pairData.registrationType = RegistrationType.FEE;
         emit FeeAdded(token, pair, fee);
@@ -163,4 +164,10 @@ contract UniswapV3Registry is IUniswapV3Registry, Ownable {
             return keccak256(abi.encodePacked(b, a));
         }
     }
+
+    function _revertWith(string memory _msg, address a, address b) private view {
+        if (b != address(0)) revert(string(abi.encodePacked(_msg, " ", toHexString(uint256(a), 20), " ", toHexString(uint256(b), 20))));
+        revert(string(abi.encodePacked(_msg, " ", toHexString(uint256(a), 20))));
+    }
+
 }

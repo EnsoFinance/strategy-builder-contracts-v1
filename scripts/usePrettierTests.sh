@@ -1,11 +1,20 @@
 #!/bin/bash
 
-files=$(ls test)
+makePretty() {
+    file=$(echo "$1" | sed 's/^/test\//')
+    echo prettying $file
+    tmpFile="tmp_prettier_""$1"
 
-for val in $files; do
-  echo "prettying "$val
-  npx prettier test/$val > tmp_prettier.ts 
-  cp tmp_prettier.ts test/$val
-done
+    npx prettier "$file" > "$tmpFile" 
+    cp "$tmpFile" "$file"
+    rm "$tmpFile"
+    exit 0
+}
 
-rm tmp_prettier.ts
+export -f makePretty
+
+numProcessors=$(nproc --all)
+numProcessors=$(( $numProcessors - 1 ))
+
+testFiles=$(ls test)
+parallel -j $numProcessors --halt now,fail=1 makePretty ::: $testFiles 
