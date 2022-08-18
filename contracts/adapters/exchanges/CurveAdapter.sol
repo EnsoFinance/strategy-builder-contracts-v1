@@ -7,8 +7,9 @@ import "../../interfaces/curve/ICurveAddressProvider.sol";
 import "../../interfaces/curve/ICurveStableSwap.sol";
 import "../../interfaces/curve/ICurveRegistry.sol";
 import "../BaseAdapter.sol";
+import "../../helpers/StringUtils.sol";
 
-contract CurveAdapter is BaseAdapter {
+contract CurveAdapter is BaseAdapter, StringUtils {
     using SafeERC20 for IERC20;
 
     ICurveAddressProvider public immutable addressProvider;
@@ -38,7 +39,7 @@ contract CurveAdapter is BaseAdapter {
             amount = afterBalance - beforeBalance;
         }
         address pool = curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
-        require(pool != address(0), "Pool not found");
+        if (pool == address(0)) revert(string(abi.encodePacked("Pool not found ", toHexString(uint256(pool), 20))));
         (int128 indexIn, int128 indexOut, bool isUnderlying) = curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
         IERC20(tokenIn).sortaSafeApprove(pool, amount);
         if (isUnderlying) {
