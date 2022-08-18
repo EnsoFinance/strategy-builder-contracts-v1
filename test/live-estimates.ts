@@ -49,7 +49,7 @@ describe('Live Estimates', function () {
 		oldAdapters: string[],
 		newAdapters: string[]
 
-	async function updateAdapters(strategy: Contract) {
+	async function updateAdapters(strategy: Contract, controller: Contract) {
 		// Impersonate manager
 		const managerAddress = await strategy.manager()
 		const manager = await impersonate(managerAddress)
@@ -71,12 +71,12 @@ describe('Live Estimates', function () {
 				}
 			}
 			if (shouldUpdate) {
-				await strategy.connect(manager).updateTradeData(items[i], {
+				await controller.connect(manager).updateTradeData(strategy.address, items[i], {
 					...tradeData,
 					adapters: adapters,
 				})
 				await increaseTime(5 * 60)
-				await strategy.connect(manager).finalizeTradeData()
+				await controller.connect(manager).finalizeTradeData(strategy.address)
 			}
 		}
 	}
@@ -310,10 +310,7 @@ describe('Live Estimates', function () {
 			const s = strategies[i]
 			const mgr = await impersonate(await s.manager())
 			await strategyAdmin.connect(mgr).upgrade(s.address)
-			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
-			await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
-			await s.connect(accounts[3]).finalizeTimelock() // anyone calls
-			await updateAdapters(s)
+			await updateAdapters(s, controller)
 			await s.connect(accounts[3]).updateRewards() // anyone calls
 			// Update token registry using old token registry
 			await updateTokenRegistry(
