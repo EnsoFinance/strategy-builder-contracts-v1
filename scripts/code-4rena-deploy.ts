@@ -12,7 +12,7 @@ import deploymentsJSON from '../deployments.json'
 
 const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
 // If true it will deploy contract regardless of whether there is an address currently on the network
-let overwrite = true 
+let overwrite = true
 
 let contracts: { [key: string]: string } = {}
 let network: string
@@ -103,7 +103,7 @@ const deployedContracts: { [key: string]: Addresses } = {
 	},
 }
 
-async function main() : Promise<{ [key: string]: string }> {
+async function main(): Promise<{ [key: string]: string }> {
 	// Hardhat always runs the compile task when running scripts with its command
 	// line interface.
 	//
@@ -112,8 +112,8 @@ async function main() : Promise<{ [key: string]: string }> {
 	// await hre.run('compile');
 
 	const [signer] = await hre.ethers.getSigners()
-  const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
-  console.log('Owner: ', owner)
+	const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
+	console.log('Owner: ', owner)
 
 	// Setup libraries
 	let strategyLibraryAddress: string = contracts['StrategyLibrary']
@@ -995,7 +995,7 @@ async function main() : Promise<{ [key: string]: string }> {
 	}
 
 	write2File()
-  return contracts
+	return contracts
 }
 
 const write2File = () => {
