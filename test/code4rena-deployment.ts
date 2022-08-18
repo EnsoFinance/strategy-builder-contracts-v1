@@ -135,12 +135,16 @@ describe('Code4rena deployment', function () {
     }
     console.log({newAdapters})
     console.log({oldAdapters})
-    for (let i = 0; i < newAdapters.length; ++i) {
-        if (!(await whitelist.callStatic.approved(newAdapters[i]))) await whitelist.connect(multisig).approve(newAdapters[i])
+    let toWhitelist = ['']
+    toWhitelist.pop()
+    newAdapters.forEach(a => { toWhitelist.push(a)})
+    toWhitelist.push(contracts['LoopRouter'])
+    toWhitelist.push(contracts['FullRouter'])
+
+    for (let i = 0; i < toWhitelist.length; ++i) {
+        if (!(await whitelist.callStatic.approved(toWhitelist[i]))) await whitelist.connect(multisig).approve(toWhitelist[i])
     }
     console.log("approved adapters", newAdapters)
-		await whitelist.connect(multisig).approve(contracts['LoopRouter'])
-		await whitelist.connect(multisig).approve(contracts['FullRouter'])
     console.log("approved routers", contracts['LoopRouter'], contracts['FullRouter'])
 
     const platformProxyAdmin = (await getContractFactory('PlatformProxyAdmin')).attach(contracts['PlatformProxyAdmin'])
@@ -152,6 +156,7 @@ describe('Code4rena deployment', function () {
     
     await strategyFactory.connect(multisig).updateOracle(contracts['EnsoOracle'])
     await strategyFactory.connect(multisig).updateRegistry(contracts['TokenRegistry'])
+    await strategyFactory.connect(multisig).updateImplementation(contracts['StrategyImplementation'], ((await strategyFactory.callStatic.version())+1).toString())
     console.log("strategyFactory updates oracle and tokenRegistry")
 	})
 
