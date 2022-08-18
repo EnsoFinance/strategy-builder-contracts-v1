@@ -8,11 +8,11 @@ import "../interfaces/deprecated/IUniswapV3Registry_Deprecated.sol";
 contract UniswapV3RegistryWrapper is IUniswapV3Registry {
 
     IUniswapV3Registry_Deprecated private immutable registry;
-    uint32 private immutable timeWindow;
+    uint32 private immutable TIME_WINDOW;
 
     constructor(address registry_) public {
         registry = IUniswapV3Registry_Deprecated(registry_);
-        timeWindow = IUniswapV3Registry_Deprecated(registry_).timeWindow();
+        TIME_WINDOW = IUniswapV3Registry_Deprecated(registry_).timeWindow();
     }
 
     function batchAddPools(
@@ -52,7 +52,7 @@ contract UniswapV3RegistryWrapper is IUniswapV3Registry {
 
     function getPoolData(address token) external view override returns (PoolData memory) {
         IUniswapV3Registry_Deprecated.PoolData memory poolData = registry.getPoolData(token);
-        return PoolData(poolData.pool, poolData.pair, timeWindow);
+        return PoolData(poolData.pool, poolData.pair, TIME_WINDOW);
     }
 
     function getFee(address token, address pair) external view override returns (uint24) {
@@ -60,10 +60,11 @@ contract UniswapV3RegistryWrapper is IUniswapV3Registry {
     }
 
     function getTimeWindow(address token, address pair) external view override returns (uint32) {
-        return timeWindow;
+        (token, pair);
+        return TIME_WINDOW;
     }
 
-    function updateTimeWindow(address token, uint32 timeWindow) external {
+    function updateTimeWindow(address token, uint32 timeWindow) external pure {
         (token, timeWindow);
         revert();
     }
