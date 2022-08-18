@@ -222,7 +222,7 @@ let config: HardhatUserConfig = {
 		}
 	},
 	mocha: {
-		timeout: 12000000,
+		timeout: 80000,
 	},
 }
 
