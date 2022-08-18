@@ -184,8 +184,28 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         // registry emits EstimatorAdded event
     }
 
-    function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata tokens) external onlyOwner {
-        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, tokens);
+    function addItemsToRegistry(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens
+    ) external onlyOwner {
+        ITokenRegistry(_registry).addItems(itemCategoryIndexes, estimatorCategoryIndexes, tokens);
+    }
+
+    function addItemsDetailedToRegistry(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens,
+        StrategyTypes.TradeData[] memory tradesData,
+        address[] calldata rewardsAdapters
+    ) external onlyOwner {
+        ITokenRegistry(_registry).addItemsDetailed(
+            itemCategoryIndexes,
+            estimatorCategoryIndexes,
+            tokens,
+            tradesData,
+            rewardsAdapters
+        );
     }
 
     function addItemToRegistry(
@@ -201,7 +221,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         uint256 estimatorCategoryIndex,
         address token,
         TradeData memory tradeData,
-        address rewardsAdapter 
+        address rewardsAdapter
     ) external onlyOwner {
         _addItemDetailedToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
     }
@@ -370,7 +390,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         uint256 estimatorCategoryIndex,
         address token,
         TradeData memory tradeData,
-        address rewardsAdapter 
+        address rewardsAdapter
     ) internal {
         ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
     }

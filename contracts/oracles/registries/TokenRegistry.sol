@@ -29,22 +29,59 @@ contract TokenRegistry is ITokenRegistry, Ownable {
         emit EstimatorAdded(estimator, estimatorCategoryIndex);
     }
 
-    function addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) external override onlyOwner {
-        _addItem(itemCategoryIndex, estimatorCategoryIndex, token);  
+    function addItem(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token
+    ) external override onlyOwner {
+        _addItem(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
-    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, address rewardsAdapter) external override onlyOwner {
-        ItemDetails storage id = _itemDetails[token];
-        id.tradeData = tradeData;
-        id.rewardsAdapter = rewardsAdapter;
-        _addItem(itemCategoryIndex, estimatorCategoryIndex, token);    
+    function addItemDetailed(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        StrategyTypes.TradeData memory tradeData,
+        address rewardsAdapter
+    ) external override onlyOwner {
+        _addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
     }
 
-    function addItems(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata token) external override onlyOwner {
-        uint numItems = itemCategoryIndex.length; 
-        require(estimatorCategoryIndex.length == numItems && token.length == numItems, "Mismatched array lengths");
+    function addItems(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens
+    ) external override onlyOwner {
+        uint numItems = itemCategoryIndexes.length;
+        require(estimatorCategoryIndexes.length == numItems && tokens.length == numItems, "Mismatched array lengths");
         for (uint i; i < numItems; ++i) {
-           _addItem(itemCategoryIndex[i], estimatorCategoryIndex[i], token[i]);
+          _addItem(itemCategoryIndexes[i], estimatorCategoryIndexes[i], tokens[i]);
+        }
+    }
+
+    function addItemsDetailed(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens,
+        StrategyTypes.TradeData[] memory tradesData,
+        address[] calldata rewardsAdapters
+    ) external override onlyOwner {
+        uint numItems = itemCategoryIndexes.length;
+        require(
+          estimatorCategoryIndexes.length == numItems &&
+          tokens.length == numItems &&
+          tradesData.length == numItems &&
+          rewardsAdapters.length == numItems,
+          "Mismatched array lengths"
+        );
+        for (uint i; i < numItems; ++i) {
+           _addItemDetailed(
+               itemCategoryIndexes[i],
+               estimatorCategoryIndexes[i],
+               tokens[i],
+               tradesData[i],
+               rewardsAdapters[i]
+           );
         }
     }
 
@@ -53,5 +90,18 @@ contract TokenRegistry is ITokenRegistry, Ownable {
         itemCategories[token] = itemCategoryIndex;
         estimatorCategories[token] = estimatorCategoryIndex;
         emit ItemAdded(token, itemCategoryIndex, estimatorCategoryIndex);
+    }
+
+    function _addItemDetailed(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        StrategyTypes.TradeData memory tradeData,
+        address rewardsAdapter
+    ) internal {
+        ItemDetails storage id = _itemDetails[token];
+        id.tradeData = tradeData;
+        id.rewardsAdapter = rewardsAdapter;
+        _addItem(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 }

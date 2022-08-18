@@ -10,16 +10,16 @@ interface ITokenRegistry {
     event EstimatorAdded(address estimator, uint256 estimatorCategoryIndex);
     event ItemAdded(address token, uint256 itemCategoryIndex, uint256 estimatorCategoryIndex);
 
+    struct ItemDetails {
+        StrategyTypes.TradeData tradeData;
+        address rewardsAdapter;
+    }
+
     function itemCategories(address token) external view returns (uint256);
 
     function estimatorCategories(address token) external view returns (uint256);
 
     function estimators(uint256 categoryIndex) external view returns (IEstimator);
-
-    struct ItemDetails {
-        StrategyTypes.TradeData tradeData;
-        address rewardsAdapter;
-    }
 
     function itemDetails(address item) external view returns(ItemDetails memory);
 
@@ -31,7 +31,25 @@ interface ITokenRegistry {
 
     function addItem(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token) external;
 
-    function addItemDetailed(uint256 itemCategoryIndex, uint256 estimatorCategoryIndex, address token, StrategyTypes.TradeData memory tradeData, address rewardsAdapter) external;
+    function addItemDetailed(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        StrategyTypes.TradeData memory tradeData,
+        address rewardsAdapter
+    ) external;
 
-    function addItems(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata token) external;
+    function addItems(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens
+    ) external;
+
+    function addItemsDetailed(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens,
+        StrategyTypes.TradeData[] memory tradesData,
+        address[] calldata rewardsAdapters
+    ) external;
 }
