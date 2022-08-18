@@ -121,16 +121,22 @@ describe('Code4rena deployment', function () {
     // whitelist new adapters and router
     whitelist = (await getContractFactory('Whitelist')).attach(contracts['Whitelist'])
     multisig = await impersonate(await whitelist.callStatic.owner())
-		newAdapters = [ 
-      contracts['UniswapV2Adapter'],
-      contracts['CompoundAdapter'],
-      contracts['CurveLPAdapter'],
-      contracts['CurveGaugeAdapter'],
-      contracts['UniswapV3Adapter'], 
-      contracts['AaveV2Adapter'], 
-      contracts['AaveV2DebtAdapter']]
+    const deprecatedAdaptersNames = Object.keys(contracts).filter(name => {
+        return name.indexOf('Adapter') > -1 && name.indexOf('DEPRECATED') > -1 && name.indexOf('DEPRECATED_2') < 0
+    })
+		const newAdaptersNames = Object.keys(contracts).filter(name => { 
+        return deprecatedAdaptersNames.includes(name+'_DEPRECATED') 
+    })
+    newAdapters = []
+    oldAdapters = []
+    for (let i = 0; i < newAdaptersNames.length; ++i) {
+        newAdapters.push(contracts[newAdaptersNames[i]])
+        oldAdapters.push(contracts[newAdaptersNames[i]+'_DEPRECATED'])
+    }
+    console.log({newAdapters})
+    console.log({oldAdapters})
     for (let i = 0; i < newAdapters.length; ++i) {
-        await whitelist.connect(multisig).approve(newAdapters[i])
+        if (!(await whitelist.callStatic.approved(newAdapters[i]))) await whitelist.connect(multisig).approve(newAdapters[i])
     }
     console.log("approved adapters", newAdapters)
 		await whitelist.connect(multisig).approve(contracts['LoopRouter'])
@@ -206,13 +212,13 @@ describe('Code4rena deployment', function () {
 			accounts[0]
 		)
 		oldAdapters = [
-      contracts['UniswapV2Adapter_DEPRECATED'],
+      /*contracts['UniswapV2Adapter_DEPRECATED'],
       contracts['CompoundAdapter_DEPRECATED'],
       contracts['CurveLPAdapter_DEPRECATED'],
       contracts['CurveGaugeAdapter_DEPRECATED'],
       contracts['UniswapV3Adapter_DEPRECATED'], 
       contracts['AaveV2Adapter_DEPRECATED'], 
-      contracts['AaveV2DebtAdapter_DEPRECATED']]
+      contracts['AaveV2DebtAdapter_DEPRECATED']*/] // FIXME
 
 		const Strategy = await hre.ethers.getContractFactory('Strategy', {
 			libraries: {

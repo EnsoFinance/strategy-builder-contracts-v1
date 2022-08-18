@@ -365,7 +365,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('AaveV2Estimator', aaveV2Estimator.address)
-		add2Deployments('AaveEstimator', aaveV2Estimator.address) //Alias
+		//add2Deployments('AaveEstimator', aaveV2Estimator.address) //Alias
 
 		if (tokenRegistryOwner == signer.address) {
 			console.log('Adding estimator...')
@@ -390,7 +390,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('AaveV2DebtEstimator', aaveV2DebtEstimator.address)
-		add2Deployments('AaveDebtEstimator', aaveV2DebtEstimator.address) //Alias
+		//add2Deployments('AaveDebtEstimator', aaveV2DebtEstimator.address) //Alias
 
 		if (tokenRegistryOwner == signer.address) {
 			console.log('Adding estimator...')
@@ -439,7 +439,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('CurveLPEstimator', curveLPEstimator.address)
-		add2Deployments('CurveEstimator', curveLPEstimator.address) //Alias
+		//add2Deployments('CurveEstimator', curveLPEstimator.address) //Alias
 
 		if (tokenRegistryOwner == signer.address) {
 			console.log('Adding estimator...')
@@ -624,7 +624,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('MulticallRouter', multicallRouter.address)
-		add2Deployments('GenericRouter', multicallRouter.address) //Alias
+		//add2Deployments('GenericRouter', multicallRouter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
 			console.log('Whitelisting...')
@@ -801,7 +801,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('CurveGaugeAdapter', curveGaugeAdapter.address)
-		add2Deployments('CurveRewardsAdapter', curveGaugeAdapter.address) //Alias
+		//add2Deployments('CurveRewardsAdapter', curveGaugeAdapter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
 			console.log('Whitelisting...')
@@ -825,7 +825,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('AaveV2Adapter', aaveV2Adapter.address)
-		add2Deployments('AaveLendAdapter', aaveV2Adapter.address) //Alias
+		//add2Deployments('AaveLendAdapter', aaveV2Adapter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
 			console.log('Whitelisting...')
@@ -846,7 +846,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 		}, signer)
 
 		add2Deployments('AaveV2DebtAdapter', aaveV2DebtAdapter.address)
-		add2Deployments('AaveBorrowAdapter', aaveV2DebtAdapter.address) //Alias
+		//add2Deployments('AaveBorrowAdapter', aaveV2DebtAdapter.address) //Alias
 
 		if (signer.address === whitelistOwner) {
 			console.log('Whitelisting...')
