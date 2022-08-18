@@ -39,7 +39,7 @@ contract CurveAdapter is BaseAdapter, StringUtils {
             amount = afterBalance - beforeBalance;
         }
         address pool = curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
-        if (pool == address(0)) revert(string(abi.encodePacked("Pool not found ", toHexString(uint256(pool), 20))));
+        if (pool == address(0)) revert(string(abi.encodePacked("Pool not found ", toHexString(uint256(tokenIn), 20), " ", toHexString(uint256(tokenOut), 20))));
         (int128 indexIn, int128 indexOut, bool isUnderlying) = curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
         IERC20(tokenIn).sortaSafeApprove(pool, amount);
         if (isUnderlying) {
