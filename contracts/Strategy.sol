@@ -18,7 +18,6 @@ import "./interfaces/synthetix/IExchanger.sol";
 import "./interfaces/synthetix/IIssuer.sol";
 import "./interfaces/aave/ILendingPool.sol";
 import "./interfaces/aave/IDebtToken.sol";
-import "./helpers/Timelocks.sol";
 import "./helpers/Require.sol";
 import "./StrategyTokenFees.sol";
 
@@ -34,7 +33,7 @@ interface IAaveAddressResolver {
  * @notice This contract holds erc20 tokens, and represents individual account holdings with an erc20 strategy token
  * @dev Strategy token holders can withdraw their assets here or in StrategyController
  */
-contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Require {
+contract Strategy is IStrategy, StrategyTokenFees, Initializable, Require {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -165,30 +164,8 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
         _tempRouter = router;
     }
 
-    function updateTimelock(bytes4 selector, uint256 delay) external {
-        _onlyManager();
-        _startTimelock(
-          keccak256(abi.encode(this.updateTimelock.selector)), // identifier
-          abi.encode(keccak256(abi.encode(selector)), delay)); // payload
-        emit UpdateTimelock(delay, false);
-    }
-
-    function finalizeTimelock() external {
-        bytes32 key = keccak256(abi.encode(this.updateTimelock.selector));
-        if (!_timelockIsReady(key)) {
-            TimelockData memory td = _timelockData(key);
-            _require(td.delay == 0, uint256(0xb3e5dea2190e00) /* error_macro_for("finalizeTimelock: timelock is not ready.") */);
-        }
-        bytes memory value = _getTimelockValue(key);
-        require(value.length != 0, "timelock never started.");
-        (bytes32 identifier, uint256 delay) = abi.decode(value, (bytes32, uint256));
-        _setTimelock(identifier, delay);
-        _resetTimelock(key);
-        emit UpdateTimelock(delay, true);
-    }
-
     function setCollateral(address token) external override {
-        _require(msg.sender == _tempRouter, uint256(0xb3e5dea2190e01) /* error_macro_for("Router only") */);
+        _require(msg.sender == _tempRouter, uint256(0xb3e5dea2190e00) /* error_macro_for("Router only") */);
         ILendingPool(aaveResolver.getLendingPool()).setUserUseReserveAsCollateral(token, true);
     }
 
@@ -198,8 +175,8 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
     */
     function withdrawAll(uint256 amount) external override {
         _setLock(LockType.STANDARD);
-        _require(_debt.length == 0, uint256(0xb3e5dea2190e02) /* error_macro_for("Cannot withdraw debt") */);
-        _require(amount != 0, uint256(0xb3e5dea2190e03) /* error_macro_for("0 amount") */);
+        _require(_debt.length == 0, uint256(0xb3e5dea2190e01) /* error_macro_for("Cannot withdraw debt") */);
+        _require(amount != 0, uint256(0xb3e5dea2190e02) /* error_macro_for("0 amount") */);
         settleSynths();
         uint256 percentage;
         {
@@ -314,7 +291,7 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
         model to other rewards tokens, but we always err on the side of
         the "principle of least privelege" so that flaws in such mechanics are siloed.
         **/
-        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e04) /* error_macro_for("claimAll: caller must be controller or manager.") */);
+        if (msg.sender != _controller && msg.sender != _factory) _require(msg.sender == _manager, uint256(0xb3e5dea2190e03) /* error_macro_for("claimAll: caller must be controller or manager.") */);
 
         StrategyClaim.claimAll(_claimables);
         // library emits RewardsClaimed for all claimables
@@ -349,7 +326,7 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
         address manager_ = _manager;
         address pool = _pool;
         _issueStreamingFee(pool, manager_);
-        _require(newManager != manager_, uint256(0xb3e5dea2190e05) /* error_macro_for("Manager already set") */);
+        _require(newManager != manager_, uint256(0xb3e5dea2190e04) /* error_macro_for("Manager already set") */);
         // Reset paid token values
         _paidTokenValues[manager_] = _lastTokenValue;
         _paidTokenValues[newManager] = uint256(-1);
@@ -362,20 +339,8 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
         @notice Update an item's trade data
      */
     function updateTradeData(address item, TradeData memory data) external override {
-        _onlyManager();
-        _startTimelock(
-          keccak256(abi.encode(this.updateTradeData.selector)), // identifier
-          abi.encode(item, data)); // payload
-        emit UpdateTradeData(item, false);
-    }
-
-    function finalizeTradeData() external override {
-        bytes32 key = keccak256(abi.encode(this.updateTradeData.selector));
-        _require(_timelockIsReady(key), uint256(0xb3e5dea2190e06) /* error_macro_for("finalizeTradeData: timelock not ready.") */);
-        (address item, TradeData memory data) = abi.decode(_getTimelockValue(key), (address, TradeData));
+        _onlyController();
         _tradeData[item] = data;
-        _resetTimelock(key);
-        emit UpdateTradeData(item, true);
     }
 
     function updateClaimables() external override {
@@ -417,7 +382,7 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
      * @dev Updates implementation version
      */
     function updateVersion(string memory newVersion) external override {
-        _require(msg.sender == _factory, uint256(0xb3e5dea2190e07) /* error_macro_for("Only StrategyProxyFactory") */);
+        _require(msg.sender == _factory, uint256(0xb3e5dea2190e05) /* error_macro_for("Only StrategyProxyFactory") */);
         _version = newVersion;
         _setDomainSeperator();
         updateAddresses();
@@ -579,9 +544,5 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Timelocks, Req
 
     function _tokenExists(BinaryTree.Tree memory exists, address token) private pure returns (bool ok){
         return exists.doesExist(bytes32(uint256(token)));
-    }
-
-    function _timelockData(bytes32 identifier) internal override returns(TimelockData storage) {
-        return __timelockData[identifier];
     }
 }

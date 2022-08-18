@@ -192,9 +192,6 @@ describe('Remove sDEFI from live contracts', function () {
 		eDTOP = await Strategy.attach('0x0CF65Dcf23c3a67D1A220A2732B5c2F7921A30c4')
 		manager = await impersonate(await eDTOP.manager())
 		await strategyAdmin.connect(manager).upgrade(eDTOP.address)
-		// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
-		await eDTOP.connect(manager).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
-		await eDTOP.connect(accounts[3]).finalizeTimelock() // anyone calls
 
 		await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, eDTOP, [tokens.sUSD, ...(await eDTOP.synths())])
 	})

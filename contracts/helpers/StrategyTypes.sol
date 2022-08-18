@@ -18,7 +18,8 @@ interface StrategyTypes {
       RESTRUCTURE_SLIPPAGE,
       TIMELOCK,
       PERFORMANCE_FEE,
-      MANAGEMENT_FEE
+      MANAGEMENT_FEE,
+      TRADE_DATA
     }
 
     enum LockType {
