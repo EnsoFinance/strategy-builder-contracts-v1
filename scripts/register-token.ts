@@ -1,7 +1,6 @@
 const hre = require('hardhat')
 const deployments = require('../deployments.json')
 const { Tokens } = require('../lib/tokens')
-//import { impersonate } from '../lib/utils'
 
 const deployedContracts = deployments[process.env.HARDHAT_NETWORK || 'localhost']
 
@@ -24,11 +23,7 @@ async function main() {
 	const [signer] = await hre.ethers.getSigners()
   const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
   console.log('Owner: ', owner)
-	//let [signer] = await hre.ethers.getSigners()
-	//signer = network == 'mainnet' ? signer : await impersonate('0xca702d224D61ae6980c8c7d4D98042E22b40FFdB') //smart contract upgrades multisig
 	console.log('Owner: ', signer.address)
-  console.log(await factory.owner())
-  console.log(await chainlinkRegistry.owner())
   await tokens.registerTokens(signer, factory, undefined, chainlinkRegistry, curveRegistry)
   console.log("Tokens registered")
   return tokens
