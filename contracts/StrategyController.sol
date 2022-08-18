@@ -358,7 +358,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     function finalizeValue(IStrategy strategy) external override {
         _isInitialized(address(strategy));
         _setStrategyLock(strategy, LockType.STANDARD);
-        StrategyState memory strategyState = _strategyStates[address(strategy)];
+        StrategyState storage strategyState = _strategyStates[address(strategy)];
         Timelock memory lock = _timelocks[address(strategy)];
         _require(lock.timestamp != 0, uint256(0x1bb63a90056c10) /* error_macro_for("No changes queued") */);
         TimelockCategory lockCategory = lock.category;
