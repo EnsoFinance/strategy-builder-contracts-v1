@@ -166,7 +166,8 @@ contract UniswapV3Registry is IUniswapV3Registry, StringUtils, Ownable {
     }
 
     function _revertWith(string memory _msg, address a, address b) private view {
-        revert(string(abi.encodePacked(_msg, " ", toHexString(uint256(a), 20), " ", toHexString(uint256(b), 20))));
+        if (b != address(0)) revert(string(abi.encodePacked(_msg, " ", toHexString(uint256(a), 20), " ", toHexString(uint256(b), 20))));
+        revert(string(abi.encodePacked(_msg, " ", toHexString(uint256(a), 20))));
     }
 
 }

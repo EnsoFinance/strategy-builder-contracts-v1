@@ -38,7 +38,7 @@ describe('Code4rena deployment', function () {
 		oracle: Contract,
 		uniswapV2Factory: Contract,
 		uniswapV2Adapter: Contract,
-		uniswapV3Adapter: Contract,
+		//uniswapV3Adapter: Contract,
 		compoundAdapter: Contract,
 		eDPI: Contract,
 		eYETI: Contract,
@@ -50,7 +50,7 @@ describe('Code4rena deployment', function () {
 		//curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
-		crvLINKGauge: string,
+		crvLINKGauge: Contract,
 		rewardsToken: Contract,
 		stakingRewards: Contract,
 		strategy: Contract,
@@ -158,6 +158,101 @@ describe('Code4rena deployment', function () {
     await strategyFactory.connect(multisig).updateRegistry(contracts['TokenRegistry'])
     await strategyFactory.connect(multisig).updateImplementation(contracts['StrategyImplementation'], ((await strategyFactory.callStatic.version())+1).toString())
     console.log("strategyFactory updates oracle and tokenRegistry")
+		oracle = new Contract(contracts['EnsoOracle'], (await getContractFactory('EnsoOracle')).interface, accounts[0])
+		controller = new Contract(
+			contracts['StrategyController'],
+			(
+				await getContractFactory('StrategyController', {
+					libraries: {
+						ControllerLibrary: contracts['ControllerLibrary'],
+					},
+				})
+			).interface,
+			accounts[0]
+		)
+		uniswapV2Adapter = new Contract(
+			contracts['UniswapV2Adapter'],
+			(await getContractFactory('UniswapV2Adapter')).interface,
+			accounts[0]
+		)
+		/*uniswapV3Adapter = new Contract(
+			contracts['UniswapV3Adapter'],
+			(await getContractFactory('UniswapV3Adapter')).interface,
+			accounts[0]
+		)*/
+		compoundAdapter = new Contract(
+			contracts['CompoundAdapter'],
+			(await getContractFactory('CompoundAdapter')).interface,
+			accounts[0]
+		)
+		curveLPAdapter = new Contract(
+			contracts['CurveLPAdapter'],
+			(await getContractFactory('CurveLPAdapter')).interface,
+			accounts[0]
+		)
+		curveGaugeAdapter = new Contract(
+			contracts['CurveGaugeAdapter'],
+			(await getContractFactory('CurveGaugeAdapter')).interface,
+			accounts[0]
+		)
+
+		// add claimables
+		let tradeData: TradeData = {
+			adapters: [],
+			path: [],
+			cache: '0x',
+		}
+		await strategyFactory
+			.connect(multisig)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.CURVE_GAUGE,
+				tokens.crvLINKGauge,
+				tradeData,
+				curveGaugeAdapter.address
+			)
+		await strategyFactory
+			.connect(multisig)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.COMPOUND,
+				tokens.cUSDT,
+				tradeData,
+				compoundAdapter.address
+			)
+		await strategyFactory
+			.connect(multisig)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.COMPOUND,
+				tokens.cDAI,
+				tradeData,
+				compoundAdapter.address
+			)
+
+		// add rewards tokens
+		tradeData.adapters[0] = uniswapV2Adapter.address
+		await strategyFactory
+			.connect(multisig)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+				tokens.COMP,
+				tradeData,
+				AddressZero
+			)
+    /*
+		tradeData.adapters = [uniswapV2Adapter.address]
+		await strategyFactory
+			.connect(multisig)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.BASIC,
+				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
+				rewardsToken.address,
+				tradeData,
+				AddressZero
+			)
+    */
 	})
 
 
@@ -166,10 +261,9 @@ describe('Code4rena deployment', function () {
   })
 
   if (runAll) {
-   
+
 	// mimic live-estimates
 	it('Should update strategies.', async function () {
-		oracle = new Contract(contracts['EnsoOracle'], (await getContractFactory('EnsoOracle')).interface, accounts[0])
 		const tokenRegistry = new Contract(
 			contracts['TokenRegistry'],
 			(await getContractFactory('TokenRegistry')).interface,
@@ -216,14 +310,6 @@ describe('Code4rena deployment', function () {
 			).interface,
 			accounts[0]
 		)
-		oldAdapters = [
-      /*contracts['UniswapV2Adapter_DEPRECATED'],
-      contracts['CompoundAdapter_DEPRECATED'],
-      contracts['CurveLPAdapter_DEPRECATED'],
-      contracts['CurveGaugeAdapter_DEPRECATED'],
-      contracts['UniswapV3Adapter_DEPRECATED'], 
-      contracts['AaveV2Adapter_DEPRECATED'], 
-      contracts['AaveV2DebtAdapter_DEPRECATED']*/] // FIXME
 
 		const Strategy = await hre.ethers.getContractFactory('Strategy', {
 			libraries: {
@@ -247,10 +333,7 @@ describe('Code4rena deployment', function () {
 			const mgr = await impersonate(await s.manager())
       console.log("debug", mgr.address)
 			await strategyAdmin.connect(mgr).upgrade(s.address)
-			// ATTN DEPLOYER: this next step is important! Timelocks should be set for all new timelocks!!!
-			//await s.connect(mgr).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
 
-			//await s.connect(accounts[3]).finalizeTimelock() // anyone calls
 			await updateAdapters(s)
 
       console.log("debug before")
@@ -260,7 +343,7 @@ describe('Code4rena deployment', function () {
       console.log("debug after 1")
 		}
 	})
-
+  
 	it('Should be initialized.', async function () {
 		/*
 		 * if the latest `Strategy` implementation incorrectly updates storage
@@ -454,17 +537,6 @@ describe('Code4rena deployment', function () {
 	// deploy exotic strategy etc
 	it('Should deploy "exotic" strategy', async function () {
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
-		controller = new Contract(
-			contracts['StrategyController'],
-			(
-				await getContractFactory('StrategyController', {
-					libraries: {
-						ControllerLibrary: contracts['ControllerLibrary'],
-					},
-				})
-			).interface,
-			accounts[0]
-		)
 		router = new Contract(
 			contracts['LoopRouter'],
 			(
@@ -477,44 +549,12 @@ describe('Code4rena deployment', function () {
 			accounts[0]
 		)
 
-		uniswapV2Adapter = new Contract(
-			contracts['UniswapV2Adapter'],
-			(await getContractFactory('UniswapV2Adapter')).interface,
-			accounts[0]
-		)
-		uniswapV3Adapter = new Contract(
-			contracts['UniswapV3Adapter'],
-			(await getContractFactory('UniswapV3Adapter')).interface,
-			accounts[0]
-		)
-		compoundAdapter = new Contract(
-			contracts['CompoundAdapter'],
-			(await getContractFactory('CompoundAdapter')).interface,
-			accounts[0]
-		)
-		curveLPAdapter = new Contract(
-			contracts['CurveLPAdapter'],
-			(await getContractFactory('CurveLPAdapter')).interface,
-			accounts[0]
-		)
-		curveGaugeAdapter = new Contract(
-			contracts['CurveGaugeAdapter'],
-			(await getContractFactory('CurveGaugeAdapter')).interface,
-			accounts[0]
-		)
-
-		const name = 'Test Strategy'
+		const name = 'Test Strategy'+(Math.random()).toString() // so test can be repeated on node
 		const symbol = 'TEST'
 		const positions = [
 			// an "exotic" strategy
 			{ token: tokens.dai, percentage: BigNumber.from(200) },
 			{ token: tokens.crv, percentage: BigNumber.from(0) },
-			{
-				token: tokens.crvEURS,
-				percentage: BigNumber.from(200),
-				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.eurs],
-			},
 			{
 				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
@@ -523,13 +563,13 @@ describe('Code4rena deployment', function () {
 			},
 			{
 				token: tokens.cUSDT,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.usdt],
 			},
 			{
 				token: tokens.cDAI,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.dai],
 			},
@@ -539,7 +579,7 @@ describe('Code4rena deployment', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
+			restructureSlippage: BigNumber.from(990), 
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
@@ -581,29 +621,46 @@ describe('Code4rena deployment', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-  if (runAll) {
-
 	it('Should set strategy and updateRewards', async function () {
+    
+		await accounts[19].sendTransaction({ to: accounts[0].address, value: WeiPerEther.mul(100) })
+		await accounts[19].sendTransaction({ to: accounts[1].address, value: WeiPerEther.mul(100) })
+
+    console.log("debug")
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
 
+    console.log("debug")
 		// setting up rewards
-		rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(10000)])
+		rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(100)])
 
+    console.log("debug")
 		stakingRewards = await (
 			await getContractFactory('StakingRewards')
 		).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK) //, crvLINKGauge)
 		const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
 
+    console.log("debug")
 		await uniswapV2Factory.createPair(rewardsToken.address, tokens.weth)
+
+    console.log("debug")
 		const pairAddress = await uniswapV2Factory.getPair(rewardsToken.address, tokens.weth)
+    console.log("debug 0")
 		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
 		await rewardsToken.connect(accounts[0]).transfer(pairAddress, ownerBalance.mul(2).div(3))
+
+    console.log("debug 1")
 		await weth.connect(accounts[0]).deposit({ value: ownerBalance.div(3) })
+
+    console.log("debug 2")
 		await weth.connect(accounts[0]).transfer(pairAddress, ownerBalance.div(3))
+
+    console.log("debug 3")
 		await pair.connect(accounts[0]).mint(accounts[0].address)
 
+    console.log("debug 4")
 		await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
 
+    console.log("debug")
 		await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
 		let stakeSig = stakingRewards.interface.getSighash('stake')
 		let withdrawSig = stakingRewards.interface.getSighash('withdraw')
@@ -615,8 +672,9 @@ describe('Code4rena deployment', function () {
 			rewardTokens.push(AddressZero)
 		}
 
-		const crvLINKGaugeContract = new Contract(
-			crvLINKGauge,
+    console.log("debug")
+		crvLINKGauge = new Contract(
+			tokens.crvLINKGauge,
 			[
 				{
 					constant: false,
@@ -663,7 +721,7 @@ describe('Code4rena deployment', function () {
 		)
 
 		const gaugeAdminProxy = new Contract(
-			await crvLINKGaugeContract.admin(),
+			await crvLINKGauge.admin(),
 			[
 				{
 					constant: false,
@@ -717,7 +775,7 @@ describe('Code4rena deployment', function () {
 		const ownershipAdminAddress = await gaugeAdminProxy.ownership_admin()
 		await gaugeAdminProxy
 			.connect(await impersonate(ownershipAdminAddress))
-			['set_rewards'](crvLINKGaugeContract.address, stakingRewards.address, sigs, rewardTokens)
+			['set_rewards'](crvLINKGauge.address, stakingRewards.address, sigs, rewardTokens)
 
 		let tradeData: TradeData = {
 			adapters: [],
@@ -725,8 +783,9 @@ describe('Code4rena deployment', function () {
 			cache: '0x',
 		}
 		tradeData.adapters[0] = uniswapV2Adapter.address
+    console.log("debug before")
 		await strategyFactory
-			.connect(accounts[0])
+			.connect(multisig)
 			.addItemDetailedToRegistry(
 				ITEM_CATEGORY.BASIC,
 				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
@@ -748,18 +807,12 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
-		const name = 'Test Strategy2'
+		const name = 'Test Strategy2'+(Math.random()).toString() // so test can be repeated on node
 		const symbol = 'TEST2'
 		const positions = [
 			// an "exotic" strategy
 			{ token: tokens.dai, percentage: BigNumber.from(200) },
 			{ token: tokens.crv, percentage: BigNumber.from(0) },
-			{
-				token: tokens.crvEURS,
-				percentage: BigNumber.from(200),
-				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.eurs],
-			},
 			{
 				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
@@ -768,13 +821,13 @@ describe('Code4rena deployment', function () {
 			},
 			{
 				token: tokens.cUSDT,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.usdt],
 			},
 			{
 				token: tokens.cDAI,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.dai],
 			},
@@ -784,7 +837,7 @@ describe('Code4rena deployment', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(990),
-			restructureSlippage: BigNumber.from(980), //Slippage is set low because of low-liquidity in EURS' UniV2 pool
+			restructureSlippage: BigNumber.from(980), 
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
@@ -1114,5 +1167,4 @@ describe('Code4rena deployment', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
-  }
 })
