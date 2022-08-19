@@ -39,22 +39,27 @@ describe('Remove sDEFI from live contracts', function () {
 		oracle: Contract,
 		eDTOP: Contract
 
-	async function updateTokenRegistry(strategyFactory: Contract, oldTokenRegistry: Contract, strategy: Contract, tokens: string[]) {
-			let itemCategory, estimatorCategory;
+	async function updateTokenRegistry(
+		strategyFactory: Contract,
+		oldTokenRegistry: Contract,
+		strategy: Contract,
+		tokens: string[]
+	) {
+		let itemCategory, estimatorCategory
 		for (let i = 0; i < tokens.length; i++) {
 			// Set token
-			estimatorCategory = await oldTokenRegistry.estimatorCategories(tokens[i]);
+			estimatorCategory = await oldTokenRegistry.estimatorCategories(tokens[i])
 			if (estimatorCategory.gt(0)) {
-				itemCategory = await oldTokenRegistry.itemCategories(tokens[i]);
+				itemCategory = await oldTokenRegistry.itemCategories(tokens[i])
 				await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, tokens[i])
 			}
 			// Set path
 			const tradeData = await strategy.getTradeData(tokens[i])
 			let path = [...tradeData.path]
 			for (let j = 0; j < path.length; j++) {
-				estimatorCategory = await oldTokenRegistry.estimatorCategories(path[j]);
+				estimatorCategory = await oldTokenRegistry.estimatorCategories(path[j])
 				if (estimatorCategory.gt(0)) {
-					itemCategory = await oldTokenRegistry.itemCategories(path[j]);
+					itemCategory = await oldTokenRegistry.itemCategories(path[j])
 					await strategyFactory.connect(owner).addItemToRegistry(itemCategory, estimatorCategory, path[j])
 				}
 			}
@@ -80,14 +85,11 @@ describe('Remove sDEFI from live contracts', function () {
 		controller = enso.platform.controller
 		router = enso.routers.multicall
 		const strategyFactory = enso.platform.strategyFactory
-		const {
-			uniswapV3Registry,
-			chainlinkRegistry
-		} = enso.platform.oracles.registries
+		const { uniswapV3Registry, chainlinkRegistry } = enso.platform.oracles.registries
 
 		// Deploy test UniswapV3RegistryWrapper
 		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
-		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address);
+		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address)
 		await uniswapV3RegistryWrapper.deployed()
 		await uniswapV3Registry.connect(owner).transferOwnership(uniswapV3RegistryWrapper.address)
 
@@ -96,19 +98,21 @@ describe('Remove sDEFI from live contracts', function () {
 		await tokenRegistry.deployed()
 
 		// Deploy new oracle
-		oracle = (await deployOracle(
-			owner,
-			strategyFactory.address,
-			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-			MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-			uniswapV3RegistryWrapper.address,
-			chainlinkRegistry.address,
-			weth.address,
-			tokens.sUSD,
-			(estimatorCategory: number, estimatorAddress: string) => {
-				return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-			}
-		))[0]
+		oracle = (
+			await deployOracle(
+				owner,
+				strategyFactory.address,
+				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
+				uniswapV3RegistryWrapper.address,
+				chainlinkRegistry.address,
+				weth.address,
+				tokens.sUSD,
+				(estimatorCategory: number, estimatorAddress: string) => {
+					return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+				}
+			)
+		)[0]
 
 		// Transfer token registry
 		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
@@ -143,16 +147,12 @@ describe('Remove sDEFI from live contracts', function () {
 
 		await newControllerImplementation.deployed()
 		const platformProxyAdmin = enso.platform.administration.platformProxyAdmin
-		await platformProxyAdmin
-			.connect(owner)
-			.upgrade(controller.address, newControllerImplementation.address)
+		await platformProxyAdmin.connect(owner).upgrade(controller.address, newControllerImplementation.address)
 
 		// Factory Implementation
 		const factoryImplementation = await waffle.deployContract(owner, StrategyProxyFactory, [controller.address])
 		await factoryImplementation.deployed()
-		await platformProxyAdmin
-			.connect(owner)
-			.upgrade(strategyFactory.address, factoryImplementation.address)
+		await platformProxyAdmin.connect(owner).upgrade(strategyFactory.address, factoryImplementation.address)
 
 		// Update to latest Strategy
 		const strategyClaim = await waffle.deployContract(accounts[0], StrategyClaim, [])
@@ -177,16 +177,20 @@ describe('Remove sDEFI from live contracts', function () {
 		const strategyAdmin = await StrategyAdmin.attach(admin)
 
 		// Update factory/controller addresses (NOTE: must update oracle before registry)
-		await strategyFactory
-			.connect(owner)
-			.updateOracle(oracle.address)
-		await strategyFactory
-			.connect(owner)
-			.updateRegistry(tokenRegistry.address)
+		await strategyFactory.connect(owner).updateOracle(oracle.address)
+		await strategyFactory.connect(owner).updateRegistry(tokenRegistry.address)
 		await controller.connect(owner).updateAddresses()
 
 		// Set synthetix adapters
-		await strategyFactory.connect(owner).addItemDetailedToRegistry(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.BLOCKED, VIRTUAL_ITEM, { adapters: [ enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x'}, AddressZero)
+		await strategyFactory
+			.connect(owner)
+			.addItemDetailedToRegistry(
+				ITEM_CATEGORY.RESERVE,
+				ESTIMATOR_CATEGORY.BLOCKED,
+				VIRTUAL_ITEM,
+				{ adapters: [enso.adapters.synthetix.address, synthRedeemerAdapter.address], path: [], cache: '0x' },
+				AddressZero
+			)
 
 		// Upgrade strategy
 		eDTOP = await Strategy.attach('0x0CF65Dcf23c3a67D1A220A2732B5c2F7921A30c4')
@@ -196,7 +200,10 @@ describe('Remove sDEFI from live contracts', function () {
 		await eDTOP.connect(manager).updateTimelock(await Strategy.interface.getSighash('updateTradeData'), 5 * 60)
 		await eDTOP.connect(accounts[3]).finalizeTimelock() // anyone calls
 
-		await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, eDTOP, [tokens.sUSD, ...(await eDTOP.synths())])
+		await updateTokenRegistry(strategyFactory, enso.platform.oracles.registries.tokenRegistry, eDTOP, [
+			tokens.sUSD,
+			...(await eDTOP.synths()),
+		])
 	})
 
 	/*
@@ -209,9 +216,7 @@ describe('Remove sDEFI from live contracts', function () {
 	*/
 
 	it('Should reposition', async function () {
-		let tx = await controller
-			.connect(manager)
-			.repositionSynths(eDTOP.address, tokens.sDEFI)
+		let tx = await controller.connect(manager).repositionSynths(eDTOP.address, tokens.sDEFI)
 		const receipt = await tx.wait()
 		console.log('Redeem Gas Used: ', receipt.gasUsed.toString())
 		expect((await oracle['estimateItem(address,address)'](eDTOP.address, tokens.sDEFI)).eq(0)).to.equal(true)
@@ -225,40 +230,36 @@ describe('Remove sDEFI from live contracts', function () {
 		let totalPercentage = BigNumber.from(0)
 		for (let i = 0; i < synths.length; i++) {
 			if (synths[i] != tokens.sDEFI) {
-				const percentage = await eDTOP.getPercentage(synths[i]);
+				const percentage = await eDTOP.getPercentage(synths[i])
 				const tradeData = await eDTOP.getTradeData(synths[i]) // NOTE: We should use updated adapters for the real restructure
 				positions.push({
 					token: synths[i],
 					percentage: percentage,
 					adapters: tradeData.adapters,
 					path: tradeData.path,
-					cache: tradeData.cache
+					cache: tradeData.cache,
 				})
 				totalPercentage = totalPercentage.add(percentage)
 			}
 		}
-		const percentage = BigNumber.from(1000).sub(totalPercentage);
+		const percentage = BigNumber.from(1000).sub(totalPercentage)
 		const tradeData = await eDTOP.getTradeData(tokens.sUSD)
 		positions.push({
 			token: tokens.sUSD,
 			percentage: percentage,
 			adapters: tradeData.adapters,
 			path: tradeData.path,
-			cache: tradeData.cache
+			cache: tradeData.cache,
 		})
 		const strategyItems = prepareStrategy(positions, AddressZero)
-		await controller
-			.connect(manager)
-			.restructure(eDTOP.address, strategyItems)
+		await controller.connect(manager).restructure(eDTOP.address, strategyItems)
 
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
 		const data = await router.encodeCalls([]) // No calls
-		await controller
-			.connect(manager)
-			.finalizeStructure(eDTOP.address, router.address, data)
+		await controller.connect(manager).finalizeStructure(eDTOP.address, router.address, data)
 
 		logTestComplete(this, __dirname, proofCounter++)
 	})

@@ -124,7 +124,7 @@ describe('SynthetixAdapter', function () {
 			undefined,
 			chainlinkRegistry,
 			curveDepositZapRegistry,
-			[ synthetixAdapter.address ]
+			[synthetixAdapter.address]
 		)
 	})
 
@@ -403,9 +403,7 @@ describe('SynthetixAdapter', function () {
 		expect(await seur.balanceOf(strategy.address)).to.be.eq(0)
 		await increaseTime(600)
 
-		await controller
-			.connect(accounts[1])
-			.repositionSynths(strategy.address, VIRTUAL_ITEM)
+		await controller.connect(accounts[1]).repositionSynths(strategy.address, VIRTUAL_ITEM)
 
 		expect(await susd.balanceOf(strategy.address)).to.be.equal(0)
 		logTestComplete(this, __dirname, proofCounter++)

@@ -26,7 +26,7 @@ describe('Live Upgrades', function () {
 		proofCounter = initializeTestLogging(this, __dirname)
 
 		await resetBlockchain()
-		
+
 		accounts = await getSigners()
 
 		const enso = getLiveContracts(accounts[0])

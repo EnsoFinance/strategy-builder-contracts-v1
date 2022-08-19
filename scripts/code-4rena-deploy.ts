@@ -103,7 +103,7 @@ const deployedContracts: { [key: string]: Addresses } = {
 	},
 }
 
-export async function deployCode4renaFixes() : Promise<{ [key: string]: string }> {
+async function main() : Promise<{ [key: string]: string }> {
 	// Hardhat always runs the compile task when running scripts with its command
 	// line interface.
 	//
@@ -266,6 +266,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 	let uniswapOracleAddress: string = contracts['UniswapOracle']
 	if (overwrite || !contracts['UniswapOracle']) {
 		const uniswapOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
+      console.log({uniswapV3RegistryAddress})
 			return UniswapOracle.deploy(uniswapV3RegistryAddress, deployedContracts[network].weth, txArgs)
 		}, signer)
 		uniswapOracleAddress = uniswapOracle.address
@@ -651,6 +652,7 @@ export async function deployCode4renaFixes() : Promise<{ [key: string]: string }
 
 	if (overwrite || !contracts['UniswapV3Adapter']) {
 		const uniswapV3Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
+      console.log({uniswapV3RegistryAddress})
 			return UniswapV3Adapter.deploy(
 				uniswapV3RegistryAddress,
 				deployedContracts[network].uniswapV3Router,
@@ -1011,10 +1013,9 @@ const add2Deployments = (contractTitle: string, address: string) => {
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
-/*main()
+main()
 	.then(() => process.exit(0))
 	.catch((error) => {
 		console.error(error)
 		process.exit(1)
 	})
-*/

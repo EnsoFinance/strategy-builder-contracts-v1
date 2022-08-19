@@ -10,7 +10,7 @@ if (process.env.HARDHAT_NETWORK) {
 	network = process.env.HARDHAT_NETWORK
 }
 
-export async function registerTokens() {
+async function main() {
   const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
   const factory = await StrategyProxyFactory.attach(deployedContracts['StrategyProxyFactory'])
 
@@ -33,3 +33,12 @@ export async function registerTokens() {
   console.log("Tokens registered")
   return tokens
 }
+
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
