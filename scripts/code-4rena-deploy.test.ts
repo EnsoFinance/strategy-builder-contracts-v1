@@ -22,6 +22,10 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
  
     npx hardhat run scripts/code-4rena-deploy.ts --network localhost
 
+    _localhost=$(cat deployments.json | jq '.localhost')
+    _mainnet=$(cat deployments.json | jq '.mainnet')
+    cat deployments.json | jq ".mainnet=$_localhost" | jq "._mainnet=$_mainnet" | tee deployments.json
+
     // in crawler-token-farms ...
     npx hardhat run scripts/register/register_tokens.ts --network localhost #&& \
     npx hardhat run scripts/register/register_uniswap_pools.ts --network localhost && \
