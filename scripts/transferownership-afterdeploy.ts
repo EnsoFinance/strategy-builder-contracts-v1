@@ -27,61 +27,61 @@ async function main() {
 	// manually to make sure everything is compiled
 	// await hre.run('compile');
 	const [signer] = await hre.ethers.getSigners()
-  const multisig = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
+	const multisig = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 	const owner = network == 'mainnet' ? multisig : signer.address //smart contract upgrades multisig
 	console.log('Owner: ', owner)
 
 	const TokenRegistry = await hre.ethers.getContractFactory('TokenRegistry')
 	let tokenRegistry: Contract
 	if (!contracts['TokenRegistry']) {
-		  throw Error('TokenRegistry must be deployed.')
+		throw Error('TokenRegistry must be deployed.')
 	} else {
-		  tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
+		tokenRegistry = TokenRegistry.attach(contracts['TokenRegistry'])
 	}
 	const tokenRegistryOwner = await tokenRegistry.owner()
 	const factoryAddress = contracts['StrategyProxyFactory']
 	if (tokenRegistryOwner.toLowerCase() !== factoryAddress.toLowerCase()) {
-      if (tokenRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
-          throw Error("Signer doesn't own tokenRegistry.")
-      }
-      const tx = await tokenRegistry.connect(signer).transferOwnership(factoryAddress)
-      const receipt = await tx.wait()
-      console.log('tokenRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
-  }
+		if (tokenRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+			throw Error("Signer doesn't own tokenRegistry.")
+		}
+		const tx = await tokenRegistry.connect(signer).transferOwnership(factoryAddress)
+		const receipt = await tx.wait()
+		console.log('tokenRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
+	}
 
 	const ChainlinkRegistry = await hre.ethers.getContractFactory('ChainlinkRegistry')
 	let chainlinkRegistry: Contract
 	if (!contracts['ChainlinkRegistry']) {
-		  throw Error('ChainlinkRegistry must be deployed.')
+		throw Error('ChainlinkRegistry must be deployed.')
 	} else {
-		  chainlinkRegistry = ChainlinkRegistry.attach(contracts['ChainlinkRegistry'])
+		chainlinkRegistry = ChainlinkRegistry.attach(contracts['ChainlinkRegistry'])
 	}
 	const chainlinkRegistryOwner = await chainlinkRegistry.owner()
 	if (chainlinkRegistryOwner.toLowerCase() !== multisig.toLowerCase()) {
-      if (chainlinkRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
-          throw Error("Signer doesn't own chainlinkRegistry.")
-      }
-      const tx = await chainlinkRegistry.connect(signer).transferOwnership(multisig)
-      const receipt = await tx.wait()
-      console.log('chainlinkRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
-  }
+		if (chainlinkRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+			throw Error("Signer doesn't own chainlinkRegistry.")
+		}
+		const tx = await chainlinkRegistry.connect(signer).transferOwnership(multisig)
+		const receipt = await tx.wait()
+		console.log('chainlinkRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
+	}
 
 	const UniswapV3Registry = await hre.ethers.getContractFactory('UniswapV3Registry')
 	let uniswapV3Registry: Contract
 	if (!contracts['UniswapV3Registry']) {
-		  throw Error('UniswapV3Registry must be deployed.')
+		throw Error('UniswapV3Registry must be deployed.')
 	} else {
-		  uniswapV3Registry = UniswapV3Registry.attach(contracts['UniswapV3Registry'])
+		uniswapV3Registry = UniswapV3Registry.attach(contracts['UniswapV3Registry'])
 	}
 	const uniswapV3RegistryOwner = await uniswapV3Registry.owner()
-	if (uniswapV3RegistryOwner.toLowerCase() !== multisig.toLowerCase())  {
-      if (uniswapV3RegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
-          throw Error("Signer doesn't own uniswapV3Registry.")
-      }
-      const tx = await uniswapV3Registry.connect(signer).transferOwnership(multisig)
-      const receipt = await tx.wait()
-      console.log('chainlinkRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
-  }
+	if (uniswapV3RegistryOwner.toLowerCase() !== multisig.toLowerCase()) {
+		if (uniswapV3RegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+			throw Error("Signer doesn't own uniswapV3Registry.")
+		}
+		const tx = await uniswapV3Registry.connect(signer).transferOwnership(multisig)
+		const receipt = await tx.wait()
+		console.log('chainlinkRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
+	}
 }
 
 // We recommend this pattern to be able to use async/await everywhere
