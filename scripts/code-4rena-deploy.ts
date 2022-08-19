@@ -14,6 +14,8 @@ const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSO
 // If true it will deploy contract regardless of whether there is an address currently on the network
 let overwrite = true
 
+import ERC20 from '@uniswap/v2-periphery/build/ERC20.json' // DEBUG
+
 let contracts: { [key: string]: string } = {}
 let network: string
 if (process.env.HARDHAT_NETWORK) {
@@ -266,7 +268,6 @@ async function main(): Promise<{ [key: string]: string }> {
 	let uniswapOracleAddress: string = contracts['UniswapOracle']
 	if (overwrite || !contracts['UniswapOracle']) {
 		const uniswapOracle = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			console.log({ uniswapV3RegistryAddress })
 			return UniswapOracle.deploy(uniswapV3RegistryAddress, deployedContracts[network].weth, txArgs)
 		}, signer)
 		uniswapOracleAddress = uniswapOracle.address
@@ -304,7 +305,12 @@ async function main(): Promise<{ [key: string]: string }> {
 	let factoryOwner: string = ''
 	if (contracts['StrategyProxyFactory']) {
 		strategyProxyFactory = StrategyProxyFactory.attach(contracts['StrategyProxyFactory'])
-		factoryOwner = await strategyProxyFactory.owner()
+    console.log("debug before", strategyProxyFactory.address)
+    console.log(deployedContracts.mainnet.weth)
+	  console.log(await (new Contract(deployedContracts.mainnet.weth, ERC20.abi, signer)).totalSupply()) // debug sanity check
+    console.log(network)
+		factoryOwner = await strategyProxyFactory.owner() // debug failure here!! why!!
+    console.log("debug after")
 	}
 
 	// Add token estimators
@@ -652,7 +658,6 @@ async function main(): Promise<{ [key: string]: string }> {
 
 	if (overwrite || !contracts['UniswapV3Adapter']) {
 		const uniswapV3Adapter = await waitForDeployment(async (txArgs: TransactionArgs) => {
-			console.log({ uniswapV3RegistryAddress })
 			return UniswapV3Adapter.deploy(
 				uniswapV3RegistryAddress,
 				deployedContracts[network].uniswapV3Router,
