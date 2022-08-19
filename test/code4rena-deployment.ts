@@ -5,7 +5,7 @@ const { expect } = chai
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { solidity } from 'ethereum-waffle'
-const { ethers, waffle } = hre
+const { ethers/*, waffle*/ } = hre
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import deploymentsJSON from '../deployments.json'
@@ -16,8 +16,8 @@ import { increaseTime, impersonate } from '../lib/utils'
 import { Estimator } from '../lib/estimator'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
-import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
+//import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+//import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
@@ -36,7 +36,7 @@ describe('Code4rena deployment', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		uniswapV2Factory: Contract,
+		//uniswapV2Factory: Contract,
 		uniswapV2Adapter: Contract,
 		//uniswapV3Adapter: Contract,
 		compoundAdapter: Contract,
@@ -50,9 +50,9 @@ describe('Code4rena deployment', function () {
 		//curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
-		crvLINKGauge: Contract,
-		rewardsToken: Contract,
-		stakingRewards: Contract,
+		//crvLINKGauge: Contract,
+		//rewardsToken: Contract,
+		//stakingRewards: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
@@ -92,7 +92,7 @@ describe('Code4rena deployment', function () {
 		proofCounter = initializeTestLogging(this, __dirname)
 
 		accounts = await getSigners()
-		uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
+		//uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
 
     const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
     // If true it will deploy contract regardless of whether there is an address currently on the network
@@ -154,6 +154,7 @@ describe('Code4rena deployment', function () {
 
     console.log("platformProxyAdmin upgrades StrategyController and StrategyProxyFactory")
     
+    console.log(contracts['EnsoOracle'])
     await strategyFactory.connect(multisig).updateOracle(contracts['EnsoOracle'])
     await strategyFactory.connect(multisig).updateRegistry(contracts['TokenRegistry'])
     await strategyFactory.connect(multisig).updateImplementation(contracts['StrategyImplementation'], ((await strategyFactory.callStatic.version())+1).toString())
@@ -170,6 +171,7 @@ describe('Code4rena deployment', function () {
 			).interface,
 			accounts[0]
 		)
+    await controller.connect(accounts[3]).updateAddresses() // anyone
 		uniswapV2Adapter = new Contract(
 			contracts['UniswapV2Adapter'],
 			(await getContractFactory('UniswapV2Adapter')).interface,
@@ -329,18 +331,13 @@ describe('Code4rena deployment', function () {
 		const strategyAdmin = await StrategyAdmin.attach(admin)
 		for (let i = 0; i < strategies.length; i++) {
 			const s = strategies[i]
-      console.log("debug before")
 			const mgr = await impersonate(await s.manager())
-      console.log("debug", mgr.address)
 			await strategyAdmin.connect(mgr).upgrade(s.address)
 
 			await updateAdapters(s)
 
-      console.log("debug before")
       console.log(await strategyFactory.callStatic.tokenRegistry()) // DEBUG
-      console.log("debug after 0")
 			await s.connect(accounts[3]).updateRewards() // anyone calls
-      console.log("debug after 1")
 		}
 	})
   
@@ -555,6 +552,13 @@ describe('Code4rena deployment', function () {
 			// an "exotic" strategy
 			{ token: tokens.dai, percentage: BigNumber.from(200) },
 			{ token: tokens.crv, percentage: BigNumber.from(0) },
+       /*{
+        token: tokens.crvEURS,
+        percentage: BigNumber.from(200), // FIXME
+        adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
+        path: [tokens.usdc, tokens.eurs],
+      },*/
+
 			{
 				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
@@ -584,13 +588,11 @@ describe('Code4rena deployment', function () {
 			social: false,
 			set: false,
 		}
-		console.log('debug before exotic')
 		const tx = await strategyFactory
 			.connect(accounts[1])
 			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
 				value: ethers.BigNumber.from('10000000000000000'),
 			})
-		console.log('debug after')
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
@@ -603,7 +605,6 @@ describe('Code4rena deployment', function () {
 		})
 
 		strategy = await Strategy.attach(strategyAddress)
-		strategy = strategy // debug
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
@@ -626,53 +627,41 @@ describe('Code4rena deployment', function () {
 		await accounts[19].sendTransaction({ to: accounts[0].address, value: WeiPerEther.mul(100) })
 		await accounts[19].sendTransaction({ to: accounts[1].address, value: WeiPerEther.mul(100) })
 
-    console.log("debug")
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
 
-    console.log("debug")
 		// setting up rewards
-		rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(100)])
+		/*rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(100)])
 
-    console.log("debug")
 		stakingRewards = await (
 			await getContractFactory('StakingRewards')
 		).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK) //, crvLINKGauge)
 		const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
 
-    console.log("debug")
 		await uniswapV2Factory.createPair(rewardsToken.address, tokens.weth)
 
-    console.log("debug")
 		const pairAddress = await uniswapV2Factory.getPair(rewardsToken.address, tokens.weth)
-    console.log("debug 0")
 		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
 		await rewardsToken.connect(accounts[0]).transfer(pairAddress, ownerBalance.mul(2).div(3))
 
-    console.log("debug 1")
 		await weth.connect(accounts[0]).deposit({ value: ownerBalance.div(3) })
 
-    console.log("debug 2")
 		await weth.connect(accounts[0]).transfer(pairAddress, ownerBalance.div(3))
 
-    console.log("debug 3")
 		await pair.connect(accounts[0]).mint(accounts[0].address)
 
-    console.log("debug 4")
 		await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
 
-    console.log("debug")
 		await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
-		let stakeSig = stakingRewards.interface.getSighash('stake')
+		/*let stakeSig = stakingRewards.interface.getSighash('stake')
 		let withdrawSig = stakingRewards.interface.getSighash('withdraw')
 		let claimSig = stakingRewards.interface.getSighash('getReward')
-		let sigs =
+		/*let sigs =
 			'0x' + stakeSig.substring(2) + withdrawSig.substring(2) + claimSig.substring(2) + AddressZero.substring(2)
-		let rewardTokens = [rewardsToken.address]
+		/*let rewardTokens = [rewardsToken.address]
 		while (rewardTokens.length < 8) {
 			rewardTokens.push(AddressZero)
 		}
 
-    console.log("debug")
 		crvLINKGauge = new Contract(
 			tokens.crvLINKGauge,
 			[
@@ -783,7 +772,6 @@ describe('Code4rena deployment', function () {
 			cache: '0x',
 		}
 		tradeData.adapters[0] = uniswapV2Adapter.address
-    console.log("debug before")
 		await strategyFactory
 			.connect(multisig)
 			.addItemDetailedToRegistry(
@@ -793,7 +781,8 @@ describe('Code4rena deployment', function () {
 				tradeData,
 				AddressZero
 			)
-
+      */
+    /*
 		const oldItems = await strategy.connect(accounts[1]).items()
 		await strategy.connect(accounts[1]).updateRewards()
 		const newItems = await strategy.connect(accounts[1]).items()
@@ -801,8 +790,9 @@ describe('Code4rena deployment', function () {
 		const newItemsLength = newItems.length
 
 		expect(newItemsLength).to.be.gt(oldItemsLength)
-		expect(oldItems.indexOf(rewardsToken.address)).to.be.equal(-1)
-		expect(newItems.indexOf(rewardsToken.address)).to.be.gt(-1)
+    */
+		//expect(oldItems.indexOf(rewardsToken.address)).to.be.equal(-1)
+		//expect(newItems.indexOf(rewardsToken.address)).to.be.gt(-1)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
@@ -875,13 +865,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(800)
+		const value = WeiPerEther.mul(10000)
 		await weth.connect(accounts[19]).deposit({ value: value })
-		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, weth.address, tokens.dai, accounts[19].address, accounts[19].address)
+    await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -897,6 +883,8 @@ describe('Code4rena deployment', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
+
+  //if (runAll) {
 
 	it('Should deposit more: ETH', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
@@ -918,6 +906,7 @@ describe('Code4rena deployment', function () {
 	it('Should claim rewards', async function () {
 		const rewardsTokens = await strategy.callStatic.getAllRewardTokens()
 		const rewardsTokensLength = rewardsTokens.length
+    console.log({rewardsTokens})
 		expect(rewardsTokensLength).to.be.gt(0)
 		let balancesBefore = []
 		for (let i = 0; i < rewardsTokens.length; ++i) {
@@ -930,37 +919,14 @@ describe('Code4rena deployment', function () {
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		for (let i = 0; i < rewardsTokens.length; ++i) {
+			const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
 			const balanceAfter = await rewardsToken.balanceOf(strategy.address)
 			expect(balanceAfter).to.be.gt(balancesBefore[i])
 		}
 		logTestComplete(this, __dirname, proofCounter++)
 	})
-
-	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		dai = new Contract(tokens.dai, ERC20.abi, accounts[0])
-		const value = await dai.balanceOf(accounts[19].address)
-		await dai.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, dai.address, weth.address, accounts[19].address, accounts[19].address)
-
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(false)
-		logTestComplete(this, __dirname, proofCounter++)
-	})
-
-	it('Should rebalance strategy', async function () {
-		await increaseTime(5 * 60 + 1)
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
-	})
-
-	it('Should deploy strategy with ETH + BTC', async function () {
+	
+  it('Should deploy strategy with ETH + BTC', async function () {
 		const name = 'Curve ETHBTC Strategy'
 		const symbol = 'ETHBTC'
 		const positions = [
@@ -1021,13 +987,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(800)
+		const value = WeiPerEther.mul(10000)
 		await weth.connect(accounts[19]).deposit({ value: value })
-		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, weth.address, dai.address, accounts[19].address, accounts[19].address)
+    await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -1045,12 +1007,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		const value = await dai.balanceOf(accounts[19].address)
-		await dai.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, dai.address, weth.address, accounts[19].address, accounts[19].address)
+		const value = WeiPerEther.mul(10000)
+		await weth.connect(accounts[19]).deposit({ value: value })
+    await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -1122,13 +1081,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		const value = WeiPerEther.mul(1000)
+		const value = WeiPerEther.mul(10000)
 		await weth.connect(accounts[19]).deposit({ value: value })
-		await weth.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, weth.address, dai.address, accounts[19].address, accounts[19].address)
+    await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -1144,27 +1099,5 @@ describe('Code4rena deployment', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
-
-	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		// Approve the user to use the adapter
-		const value = await dai.balanceOf(accounts[19].address)
-		await dai.connect(accounts[19]).approve(uniswapV2Adapter.address, value)
-		await uniswapV2Adapter
-			.connect(accounts[19])
-			.swap(value, 0, dai.address, weth.address, accounts[19].address, accounts[19].address)
-
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(false)
-		logTestComplete(this, __dirname, proofCounter++)
-	})
-
-	it('Should rebalance strategy', async function () {
-		await increaseTime(5 * 60 + 1)
-		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-		const receipt = await tx.wait()
-		console.log('Gas Used: ', receipt.gasUsed.toString())
-		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
-	})
+//  }
 })

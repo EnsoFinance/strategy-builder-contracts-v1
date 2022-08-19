@@ -672,6 +672,7 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		for (let i = 0; i < rewardsTokens.length; ++i) {
+			const rewardsToken = new Contract(rewardsTokens[i], ERC20.abi, accounts[0])
 			const balanceAfter = await rewardsToken.balanceOf(strategy.address)
 			expect(balanceAfter).to.be.gt(balancesBefore[i])
 		}
