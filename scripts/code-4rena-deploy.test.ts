@@ -16,8 +16,6 @@ import { Estimator } from '../lib/estimator'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
-import { initializeTestLogging, logTestComplete } from '../lib/convincer'
-
 /* 
     This test assumes the following have happened beforehand
     and they share deployments.json 
@@ -37,8 +35,7 @@ import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 describe('Code4rena deployment', function () {
-	let proofCounter: number,
-		multisig: SignerWithAddress,
+	let	multisig: SignerWithAddress,
 		whitelist: Contract,
 		contracts: { [key: string]: string },
 		tokens: Tokens,
@@ -96,7 +93,6 @@ describe('Code4rena deployment', function () {
 	}
 
 	before('Deploy new contracts.', async function () {
-		proofCounter = initializeTestLogging(this, __dirname)
 
 		accounts = await getSigners()
 		const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
@@ -334,7 +330,6 @@ describe('Code4rena deployment', function () {
 		await expect(
 			eDPI.initialize('anyName', 'anySymbol', 'anyVersion', someMaliciousAddress, [])
 		).to.be.revertedWith('Initializable: contract is already initialized')
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eETH2X', async function () {
@@ -347,7 +342,6 @@ describe('Code4rena deployment', function () {
 			.deposit(eETH2X.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eETH2X.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eETH2X', async function () {
@@ -368,7 +362,6 @@ describe('Code4rena deployment', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eDPI', async function () {
@@ -381,7 +374,6 @@ describe('Code4rena deployment', function () {
 			.deposit(eDPI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eDPI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eDPI', async function () {
@@ -402,7 +394,6 @@ describe('Code4rena deployment', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eYETI', async function () {
@@ -416,7 +407,6 @@ describe('Code4rena deployment', function () {
 			.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eYETI', async function () {
@@ -437,7 +427,6 @@ describe('Code4rena deployment', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eYLA', async function () {
@@ -451,7 +440,6 @@ describe('Code4rena deployment', function () {
 			.deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eYLA.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eYLA', async function () {
@@ -472,7 +460,6 @@ describe('Code4rena deployment', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate deposit eNFTP', async function () {
@@ -486,7 +473,6 @@ describe('Code4rena deployment', function () {
 			.deposit(eNFTP.address, router.address, 0, 0, '0x', { value: depositAmount })
 		const [totalAfter] = await oracle.estimateStrategy(eNFTP.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should estimate withdraw eNFTP', async function () {
@@ -507,7 +493,6 @@ describe('Code4rena deployment', function () {
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	// deploy exotic strategy etc
@@ -590,7 +575,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should set strategy', async function () {
@@ -599,7 +583,6 @@ describe('Code4rena deployment', function () {
 
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
 
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
@@ -667,7 +650,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -677,7 +659,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -687,7 +668,6 @@ describe('Code4rena deployment', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more: ETH', async function () {
@@ -703,7 +683,6 @@ describe('Code4rena deployment', function () {
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should claim rewards', async function () {
@@ -726,7 +705,6 @@ describe('Code4rena deployment', function () {
 			const balanceAfter = await rewardsToken.balanceOf(strategy.address)
 			expect(balanceAfter).to.be.gt(balancesBefore[i])
 		}
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {
@@ -786,7 +764,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -796,7 +773,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -806,7 +782,6 @@ describe('Code4rena deployment', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -816,7 +791,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -826,7 +800,6 @@ describe('Code4rena deployment', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy with Curve metapool', async function () {
@@ -880,7 +853,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -890,7 +862,6 @@ describe('Code4rena deployment', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
@@ -900,6 +871,5 @@ describe('Code4rena deployment', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-		logTestComplete(this, __dirname, proofCounter++)
 	})
 })
