@@ -82,12 +82,12 @@ describe('Code4rena deployment', function () {
 				}
 			}
 			if (shouldUpdate) {
-				await strategy.connect(manager).updateTradeData(items[i], {
+				await controller.connect(manager).updateTradeData(strategy.address, items[i], {
 					...tradeData,
 					adapters: adapters,
 				})
 				await increaseTime(5 * 60)
-				await strategy.connect(manager).finalizeTradeData()
+				await controller.connect(accounts[3]).finalizeTradeData(strategy.address) // anyone
 			}
 		}
 	}
