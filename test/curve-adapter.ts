@@ -320,12 +320,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			{ token: dai.address, percentage: BigNumber.from(200) },
 			{ token: crv.address, percentage: BigNumber.from(0) },
 			{
-				token: tokens.crvEURS,
-				percentage: BigNumber.from(200),
-				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.eurs],
-			},
-			{
 				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
@@ -333,13 +327,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			},
 			{
 				token: tokens.cUSDT,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.usdt],
 			},
 			{
 				token: tokens.cDAI,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.dai],
 			},
@@ -554,12 +548,6 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			{ token: dai.address, percentage: BigNumber.from(200) },
 			{ token: crv.address, percentage: BigNumber.from(0) },
 			{
-				token: tokens.crvEURS,
-				percentage: BigNumber.from(200),
-				adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-				path: [tokens.usdc, tokens.eurs],
-			},
-			{
 				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
 				adapters: [uniswapV2Adapter.address, curveLPAdapter.address, curveGaugeAdapter.address],
@@ -567,13 +555,13 @@ describe('CurveLPAdapter + CurveGaugeAdapter', function () {
 			},
 			{
 				token: tokens.cUSDT,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.usdt],
 			},
 			{
 				token: tokens.cDAI,
-				percentage: BigNumber.from(100),
+				percentage: BigNumber.from(200),
 				adapters: [uniswapV2Adapter.address, compoundAdapter.address],
 				path: [tokens.dai],
 			},

@@ -364,7 +364,7 @@ describe('AaveAdapter', function () {
 			strategy.address,
 			fullRouter.address,
 			amount,
-			'977', // note the high slippage!
+			'950', // note the high slippage!
 			'0x',
 			{ gasLimit: '5000000' }
 		)
@@ -385,7 +385,7 @@ describe('AaveAdapter', function () {
 			strategy.address,
 			fullRouter.address,
 			amount,
-			'960', // note the high slippage!
+			'950', // note the high slippage!
 			'0x',
 			{ gasLimit: '5000000' }
 		)
@@ -503,12 +503,12 @@ describe('AaveAdapter', function () {
 
 	it('Should withdraw ETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		const amount = BigNumber.from('5000000000000000')
+		const amount = (await strategy.balanceOf(accounts[1].address)).div(2) // Half balance
 		const ethBalanceBefore = await accounts[1].getBalance()
 		// note the high slippage!
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawETH(strategy.address, fullRouter.address, amount, '960', '0x', { gasLimit: '5000000' })
+			.withdrawETH(strategy.address, fullRouter.address, amount, '950', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
@@ -520,12 +520,12 @@ describe('AaveAdapter', function () {
 
 	it('Should withdraw WETH', async function () {
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
-		const amount = BigNumber.from('5000000000000000')
+		const amount = (await strategy.balanceOf(accounts[1].address)).div(2) // Half balance
 		const wethBalanceBefore = await weth.balanceOf(accounts[1].address)
 		// note the high slippage!
 		const tx = await controller
 			.connect(accounts[1])
-			.withdrawWETH(strategy.address, fullRouter.address, amount, '960', '0x', { gasLimit: '5000000' })
+			.withdrawWETH(strategy.address, fullRouter.address, amount, '950', '0x', { gasLimit: '5000000' })
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)

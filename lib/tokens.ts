@@ -17,6 +17,7 @@ export class Tokens {
 	tusd: string
 	usdn: string
 	eurs: string
+	eurt: string
 	link: string
 	crv: string
 	knc: string
@@ -63,6 +64,7 @@ export class Tokens {
 	crvSETH: string
 	crvREN: string
 	crvEURS: string
+	crvEURT: string
 	// Curve Gauge
 	crvUSDPGauge: string
 	crvAAVEGauge: string
@@ -95,6 +97,7 @@ export class Tokens {
 		this.tusd = '0x0000000000085d4780B73119b644AE5ecd22b376'
 		this.usdn = '0x674C6Ad92Fd080e4004b2312b45f796a192D27a0'
 		this.eurs = '0xdB25f211AB05b1c97D595516F45794528a807ad8'
+		this.eurt = '0xc581b735a1688071a1746c968e0798d642ede491'
 		this.link = '0x514910771AF9Ca656af840dff83E8264EcF986CA'
 		this.crv = '0xd533a949740bb3306d119cc777fa900ba034cd52'
 		this.knc = '0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202'
@@ -146,6 +149,7 @@ export class Tokens {
 		this.crvSETH = '0xA3D87FffcE63B53E0d54fAa1cc983B7eB0b74A9c'
 		this.crvREN = '0x49849C98ae39Fff122806C06791Fa73784FB3675'
 		this.crvEURS = '0x194eBd173F6cDacE046C53eACcE9B953F28411d1'
+		this.crvEURT = '0xfd5db7463a3ab53fd211b4af195c5bccc1a03890'
 		// Curve Gauge Tokens
 		this.crvUSDPGauge = '0x055be5DDB7A925BfEF3417FC157f53CA77cA7222'
 		this.crvAAVEGauge = '0xd662908ADA2Ea1916B3318327A97eB18aD588b5d'
@@ -288,6 +292,9 @@ export class Tokens {
 				.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvEURS),
 			strategyFactory
 				.connect(owner)
+				.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_LP, this.crvEURT),
+			strategyFactory
+				.connect(owner)
 				.addItemToRegistry(ITEM_CATEGORY.BASIC, ESTIMATOR_CATEGORY.CURVE_GAUGE, this.crvUSDPGauge),
 			strategyFactory
 				.connect(owner)
@@ -351,6 +358,7 @@ export class Tokens {
 			await uniswapV3Registry.connect(owner).addPool(this.dai, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
 			await uniswapV3Registry.connect(owner).addPool(this.crv, this.weth, '10000', ORACLE_TIME_WINDOW) //1%
 			await uniswapV3Registry.connect(owner).addPool(this.eurs, this.usdc, '500', ORACLE_TIME_WINDOW) //0.05%
+			await uniswapV3Registry.connect(owner).addPool(this.eurt, this.usdt, '500', ORACLE_TIME_WINDOW) //0.05%
 			await uniswapV3Registry.connect(owner).addPool(this.yfi, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
 			await uniswapV3Registry.connect(owner).addPool(this.aave, this.weth, '3000', ORACLE_TIME_WINDOW) //0.3%
 			await uniswapV3Registry.connect(owner).addPool(this.stkAAVE, this.aave, '3000', ORACLE_TIME_WINDOW) //0.3%

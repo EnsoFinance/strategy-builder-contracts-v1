@@ -12,7 +12,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, IStrategyManagement {
 
     event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
     event UpdateManager(address manager);
-    event UpdateTradeData(address item, bool finalized);
     event ClaimablesUpdated();
     event RewardsUpdated();
     event RewardsClaimed(address indexed adapter, address[] indexed tokens);
@@ -67,8 +66,6 @@ interface IStrategy is IStrategyFees, IStrategyToken, IStrategyManagement {
     function updateRebalanceThreshold(uint16 threshold) external;
 
     function updateTradeData(address item, TradeData memory data) external;
-
-    function finalizeTradeData() external;
 
     function updateClaimables() external;
 

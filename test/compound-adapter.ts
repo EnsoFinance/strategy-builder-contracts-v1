@@ -76,38 +76,24 @@ describe('CompoundAdapter', function () {
 			ESTIMATOR_CATEGORY.COMPOUND
 		)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
-		let tradeData: TradeData = {
+		const emptyTradeData: TradeData = {
 			adapters: [],
+			path: [],
+			cache: '0x',
+		}
+		const compTradeData: TradeData = {
+			adapters: [uniswapAdapter.address],
 			path: [],
 			cache: '0x',
 		}
 		await strategyFactory
 			.connect(accounts[0])
-			.addItemDetailedToRegistry(
-				ITEM_CATEGORY.BASIC,
-				ESTIMATOR_CATEGORY.COMPOUND,
-				tokens.cUSDT,
-				tradeData,
-				compoundAdapter.address
-			)
-		await strategyFactory
-			.connect(accounts[0])
-			.addItemDetailedToRegistry(
-				ITEM_CATEGORY.BASIC,
-				ESTIMATOR_CATEGORY.COMPOUND,
-				tokens.cDAI,
-				tradeData,
-				compoundAdapter.address
-			)
-		tradeData.adapters[0] = uniswapAdapter.address
-		await strategyFactory
-			.connect(accounts[0])
-			.addItemDetailedToRegistry(
-				ITEM_CATEGORY.BASIC,
-				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
-				comp.address,
-				tradeData,
-				AddressZero
+			.addItemsDetailedToRegistry(
+				[ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC],
+				[ESTIMATOR_CATEGORY.COMPOUND, ESTIMATOR_CATEGORY.COMPOUND, ESTIMATOR_CATEGORY.DEFAULT_ORACLE],
+				[tokens.cUSDT, tokens.cDAI, comp.address],
+				[emptyTradeData, emptyTradeData, compTradeData],
+				[compoundAdapter.address, compoundAdapter.address, AddressZero]
 			)
 	})
 

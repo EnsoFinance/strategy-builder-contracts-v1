@@ -60,7 +60,7 @@ describe('SynthetixAdapter', function () {
 		rebalanceSlippage: BigNumber.from(997),
 		restructureSlippage: BigNumber.from(990),
 		managementFee: BigNumber.from(0),
-		social: false,
+		social: true,
 		set: false,
 	}
 
@@ -212,10 +212,6 @@ describe('SynthetixAdapter', function () {
 		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
-		let updateTradeDataSelector = strategy.interface.getSighash('updateTradeData')
-		await strategy.connect(accounts[1]).updateTimelock(updateTradeDataSelector, 5 * 60)
-		await strategy.connect(accounts[1]).finalizeTimelock()
-
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
@@ -305,7 +301,7 @@ describe('SynthetixAdapter', function () {
 	it('Should update SUSD trade data', async function () {
 		const [adaptersBefore] = await strategy.getTradeData(tokens.sUSD)
 		expect(adaptersBefore.length).to.be.equal(2)
-		await strategy.connect(accounts[1]).updateTradeData(tokens.sUSD, {
+		await controller.connect(accounts[1]).updateTradeData(strategy.address, tokens.sUSD, {
 			adapters: [uniswapAdapter.address],
 			path: [],
 			cache: '0x',
@@ -313,13 +309,13 @@ describe('SynthetixAdapter', function () {
 		// sanity check
 		expect(
 			await isRevertedWith(
-				strategy.connect(accounts[1]).finalizeTradeData(),
-				'finalizeTradeData: timelock not ready.',
-				'Strategy.sol'
+				controller.connect(accounts[1]).finalizeTradeData(strategy.address),
+				'Timelock active',
+				'StrategyController.sol'
 			)
 		).to.be.true
-		await increaseTime(5 * 60)
-		await strategy.connect(accounts[1]).finalizeTradeData()
+		await increaseTime(60)
+		await controller.connect(accounts[1]).finalizeTradeData(strategy.address)
 
 		let [adaptersAfter] = await strategy.getTradeData(tokens.sUSD)
 		expect(adaptersAfter.length).to.be.equal(1)

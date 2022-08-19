@@ -12,6 +12,7 @@ interface IStrategyController is StrategyTypes {
 
     event NewStructure(address indexed strategy, StrategyItem[] items, bool indexed finalized);
     event NewValue(address indexed strategy, TimelockCategory category, uint256 newValue, bool indexed finalized);
+    event UpdateTradeData(address indexed strategy, address indexed item, TradeData data, bool indexed finalized);
     event StrategyOpen(address indexed strategy);
     event StrategySet(address indexed strategy);
     event RebalanceParametersUpdated(uint256 indexed rebalanceTimelockPeriod, uint256 indexed rebalanceThreshold, bool indexed finalized);
@@ -78,15 +79,25 @@ interface IStrategyController is StrategyTypes {
         bytes memory data
     ) external;
 
+    function updateTradeData(
+        IStrategy strategy,
+        address item,
+        TradeData calldata data
+    ) external;
+
+    function finalizeTradeData(
+        IStrategy strategy
+    ) external;
+
     function updateValue(
         IStrategy strategy,
         TimelockCategory category,
         uint256 newValue
     ) external;
 
-    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external;
-
     function finalizeValue(IStrategy strategy) external;
+
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external;
 
     function openStrategy(IStrategy strategy) external;
 

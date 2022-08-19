@@ -202,8 +202,8 @@ describe('Leverage2XAdapter', function () {
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
-			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(990),
+			rebalanceSlippage: BigNumber.from(995),
+			restructureSlippage: BigNumber.from(950),
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
