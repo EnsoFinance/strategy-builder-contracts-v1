@@ -1,11 +1,10 @@
-const runAll = false
 import hre from 'hardhat'
 import chai from 'chai'
 const { expect } = chai
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { solidity } from 'ethereum-waffle'
-const { ethers/*, waffle*/ } = hre
+const { ethers } = hre
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import deploymentsJSON from '../deployments.json'
@@ -16,29 +15,24 @@ import { increaseTime, impersonate } from '../lib/utils'
 import { Estimator } from '../lib/estimator'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
-//import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
-//import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 describe('Code4rena deployment', function () {
 	let proofCounter: number,
-    multisig: SignerWithAddress,
-    whitelist: Contract,
+		multisig: SignerWithAddress,
+		whitelist: Contract,
 		contracts: { [key: string]: string },
 		tokens: Tokens,
 		weth: Contract,
 		estimator: Estimator, // TODO update to use Lens
-		dai: Contract,
 		accounts: SignerWithAddress[],
 		router: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		//uniswapV2Factory: Contract,
 		uniswapV2Adapter: Contract,
-		//uniswapV3Adapter: Contract,
 		compoundAdapter: Contract,
 		eDPI: Contract,
 		eYETI: Contract,
@@ -47,12 +41,8 @@ describe('Code4rena deployment', function () {
 		eETH2X: Contract,
 		oldAdapters: string[],
 		newAdapters: string[],
-		//curveAdapter: Contract,
 		curveLPAdapter: Contract,
 		curveGaugeAdapter: Contract,
-		//crvLINKGauge: Contract,
-		//rewardsToken: Contract,
-		//stakingRewards: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
@@ -92,73 +82,80 @@ describe('Code4rena deployment', function () {
 		proofCounter = initializeTestLogging(this, __dirname)
 
 		accounts = await getSigners()
-		//uniswapV2Factory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-
-    const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
-    // If true it will deploy contract regardless of whether there is an address currently on the network
-    let network: string
-    if (process.env.HARDHAT_NETWORK) {
-      network = process.env.HARDHAT_NETWORK
-      //ts-ignore
-      if (deployments[network]) contracts = deployments[network]
-    }
+		const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
+		let network: string
+		if (process.env.HARDHAT_NETWORK) {
+			network = process.env.HARDHAT_NETWORK
+			//ts-ignore
+			if (deployments[network]) contracts = deployments[network]
+		}
 		tokens = new Tokens()
 		strategyFactory = new Contract(
 			contracts['StrategyProxyFactory'],
 			(await getContractFactory('StrategyProxyFactory')).interface,
 			accounts[0]
 		)
-    // these have happened in scripts !!
+		// these have happened in scripts !!
 		//await deployCode4renaFixes()
 		//await registerTokens()
-    //await registerUniswapPools()
-    //await registerCurvePools()
-    //await registerChainlinkOracles()
+		//await registerUniswapPools()
+		//await registerCurvePools()
+		//await registerChainlinkOracles()
 		//await transferOwnership()
-    
-    //TODO multi-sig tasks
 
-    // whitelist new adapters and router
-    whitelist = (await getContractFactory('Whitelist')).attach(contracts['Whitelist'])
-    multisig = await impersonate(await whitelist.callStatic.owner())
-    const deprecatedAdaptersNames = Object.keys(contracts).filter(name => {
-        return name.indexOf('Adapter') > -1 && name.indexOf('DEPRECATED') > -1 && name.indexOf('DEPRECATED_2') < 0
-    })
-		const newAdaptersNames = Object.keys(contracts).filter(name => { 
-        return deprecatedAdaptersNames.includes(name+'_DEPRECATED') 
-    })
-    newAdapters = []
-    oldAdapters = []
-    for (let i = 0; i < newAdaptersNames.length; ++i) {
-        newAdapters.push(contracts[newAdaptersNames[i]])
-        oldAdapters.push(contracts[newAdaptersNames[i]+'_DEPRECATED'])
-    }
-    console.log({newAdapters})
-    console.log({oldAdapters})
-    let toWhitelist = ['']
-    toWhitelist.pop()
-    newAdapters.forEach(a => { toWhitelist.push(a)})
-    toWhitelist.push(contracts['LoopRouter'])
-    toWhitelist.push(contracts['FullRouter'])
+		// whitelist new adapters and router
+		whitelist = (await getContractFactory('Whitelist')).attach(contracts['Whitelist'])
+		multisig = await impersonate(await whitelist.callStatic.owner())
+		const deprecatedAdaptersNames = Object.keys(contracts).filter((name) => {
+			return name.indexOf('Adapter') > -1 && name.indexOf('DEPRECATED') > -1 && name.indexOf('DEPRECATED_2') < 0
+		})
+		const newAdaptersNames = Object.keys(contracts).filter((name) => {
+			return deprecatedAdaptersNames.includes(name + '_DEPRECATED')
+		})
+		newAdapters = []
+		oldAdapters = []
+		for (let i = 0; i < newAdaptersNames.length; ++i) {
+			newAdapters.push(contracts[newAdaptersNames[i]])
+			oldAdapters.push(contracts[newAdaptersNames[i] + '_DEPRECATED'])
+		}
+		let toWhitelist = ['']
+		toWhitelist.pop()
+		newAdapters.forEach((a) => {
+			toWhitelist.push(a)
+		})
+		toWhitelist.push(contracts['LoopRouter'])
+		toWhitelist.push(contracts['FullRouter'])
 
-    for (let i = 0; i < toWhitelist.length; ++i) {
-        if (!(await whitelist.callStatic.approved(toWhitelist[i]))) await whitelist.connect(multisig).approve(toWhitelist[i])
-    }
-    console.log("approved adapters", newAdapters)
-    console.log("approved routers", contracts['LoopRouter'], contracts['FullRouter'])
+		for (let i = 0; i < toWhitelist.length; ++i) {
+			if (!(await whitelist.callStatic.approved(toWhitelist[i])))
+				await whitelist.connect(multisig).approve(toWhitelist[i])
+		}
+		console.log('approved adapters', newAdapters)
+		console.log('approved routers', contracts['LoopRouter'], contracts['FullRouter'])
 
-    const platformProxyAdmin = (await getContractFactory('PlatformProxyAdmin')).attach(contracts['PlatformProxyAdmin'])
-		await platformProxyAdmin.connect(multisig).upgrade(contracts['StrategyController'], contracts['StrategyControllerImplementation'])
+		const platformProxyAdmin = (await getContractFactory('PlatformProxyAdmin')).attach(
+			contracts['PlatformProxyAdmin']
+		)
+		await platformProxyAdmin
+			.connect(multisig)
+			.upgrade(contracts['StrategyController'], contracts['StrategyControllerImplementation'])
 
-		await platformProxyAdmin.connect(multisig).upgrade(contracts['StrategyProxyFactory'], contracts['StrategyProxyFactoryImplementation'])
+		await platformProxyAdmin
+			.connect(multisig)
+			.upgrade(contracts['StrategyProxyFactory'], contracts['StrategyProxyFactoryImplementation'])
 
-    console.log("platformProxyAdmin upgrades StrategyController and StrategyProxyFactory")
-    
-    console.log(contracts['EnsoOracle'])
-    await strategyFactory.connect(multisig).updateOracle(contracts['EnsoOracle'])
-    await strategyFactory.connect(multisig).updateRegistry(contracts['TokenRegistry'])
-    await strategyFactory.connect(multisig).updateImplementation(contracts['StrategyImplementation'], ((await strategyFactory.callStatic.version())+1).toString())
-    console.log("strategyFactory updates oracle and tokenRegistry")
+		console.log('platformProxyAdmin upgrades StrategyController and StrategyProxyFactory')
+
+		console.log(contracts['EnsoOracle'])
+		await strategyFactory.connect(multisig).updateOracle(contracts['EnsoOracle'])
+		await strategyFactory.connect(multisig).updateRegistry(contracts['TokenRegistry'])
+		await strategyFactory
+			.connect(multisig)
+			.updateImplementation(
+				contracts['StrategyImplementation'],
+				((await strategyFactory.callStatic.version()) + 1).toString()
+			)
+		console.log('strategyFactory updates oracle and tokenRegistry')
 		oracle = new Contract(contracts['EnsoOracle'], (await getContractFactory('EnsoOracle')).interface, accounts[0])
 		controller = new Contract(
 			contracts['StrategyController'],
@@ -171,17 +168,12 @@ describe('Code4rena deployment', function () {
 			).interface,
 			accounts[0]
 		)
-    await controller.connect(accounts[3]).updateAddresses() // anyone
+		await controller.connect(accounts[3]).updateAddresses() // anyone
 		uniswapV2Adapter = new Contract(
 			contracts['UniswapV2Adapter'],
 			(await getContractFactory('UniswapV2Adapter')).interface,
 			accounts[0]
 		)
-		/*uniswapV3Adapter = new Contract(
-			contracts['UniswapV3Adapter'],
-			(await getContractFactory('UniswapV3Adapter')).interface,
-			accounts[0]
-		)*/
 		compoundAdapter = new Contract(
 			contracts['CompoundAdapter'],
 			(await getContractFactory('CompoundAdapter')).interface,
@@ -243,26 +235,12 @@ describe('Code4rena deployment', function () {
 				tradeData,
 				AddressZero
 			)
-    /*
-		tradeData.adapters = [uniswapV2Adapter.address]
-		await strategyFactory
-			.connect(multisig)
-			.addItemDetailedToRegistry(
-				ITEM_CATEGORY.BASIC,
-				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
-				rewardsToken.address,
-				tradeData,
-				AddressZero
-			)
-    */
+		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 	})
 
-
 	it('Should debug.', async function () {
-      console.log("debug hello")
-  })
-
-  if (runAll) {
+		console.log('debug hello')
+	})
 
 	// mimic live-estimates
 	it('Should update strategies.', async function () {
@@ -295,11 +273,11 @@ describe('Code4rena deployment', function () {
 			contracts['CurveGaugeAdapter'],
 			contracts['KyberSwapAdapter'],
 			contracts['MetaStrategyAdapter'],
-			MAINNET_ADDRESSES.SUSHI_FACTORY, // FIXME ?? is this correct?
+			MAINNET_ADDRESSES.SUSHI_FACTORY,
 			contracts['SynthetixAdapter'],
 			contracts['UniswapV2Adapter'],
 			contracts['UniswapV3Adapter'],
-			contracts['YEarnAdapter']
+			contracts['YEarnV2Adapter']
 		)
 		router = new Contract(
 			contracts['FullRouter'],
@@ -333,14 +311,11 @@ describe('Code4rena deployment', function () {
 			const s = strategies[i]
 			const mgr = await impersonate(await s.manager())
 			await strategyAdmin.connect(mgr).upgrade(s.address)
-
 			await updateAdapters(s)
-
-      console.log(await strategyFactory.callStatic.tokenRegistry()) // DEBUG
 			await s.connect(accounts[3]).updateRewards() // anyone calls
 		}
 	})
-  
+
 	it('Should be initialized.', async function () {
 		/*
 		 * if the latest `Strategy` implementation incorrectly updates storage
@@ -529,11 +504,8 @@ describe('Code4rena deployment', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-  }
-
 	// deploy exotic strategy etc
 	it('Should deploy "exotic" strategy', async function () {
-		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		router = new Contract(
 			contracts['LoopRouter'],
 			(
@@ -546,19 +518,12 @@ describe('Code4rena deployment', function () {
 			accounts[0]
 		)
 
-		const name = 'Test Strategy'+(Math.random()).toString() // so test can be repeated on node
+		const name = 'Test Strategy' + Math.random().toString() // so test can be repeated on node
 		const symbol = 'TEST'
 		const positions = [
 			// an "exotic" strategy
 			{ token: tokens.dai, percentage: BigNumber.from(200) },
 			{ token: tokens.crv, percentage: BigNumber.from(0) },
-       /*{
-        token: tokens.crvEURS,
-        percentage: BigNumber.from(200), // FIXME
-        adapters: [uniswapV3Adapter.address, uniswapV3Adapter.address, curveLPAdapter.address],
-        path: [tokens.usdc, tokens.eurs],
-      },*/
-
 			{
 				token: tokens.crvLINKGauge,
 				percentage: BigNumber.from(400),
@@ -583,7 +548,7 @@ describe('Code4rena deployment', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(60),
 			rebalanceSlippage: BigNumber.from(997),
-			restructureSlippage: BigNumber.from(990), 
+			restructureSlippage: BigNumber.from(990),
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
@@ -622,182 +587,17 @@ describe('Code4rena deployment', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-	it('Should set strategy and updateRewards', async function () {
-    
+	it('Should set strategy', async function () {
 		await accounts[19].sendTransaction({ to: accounts[0].address, value: WeiPerEther.mul(100) })
 		await accounts[19].sendTransaction({ to: accounts[1].address, value: WeiPerEther.mul(100) })
 
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
 
-		// setting up rewards
-		/*rewardsToken = await waffle.deployContract(accounts[0], ERC20, [WeiPerEther.mul(100)])
-
-		stakingRewards = await (
-			await getContractFactory('StakingRewards')
-		).deploy(accounts[0].address, accounts[0].address, rewardsToken.address, tokens.crvLINK) //, crvLINKGauge)
-		const ownerBalance = await rewardsToken.balanceOf(accounts[0].address)
-
-		await uniswapV2Factory.createPair(rewardsToken.address, tokens.weth)
-
-		const pairAddress = await uniswapV2Factory.getPair(rewardsToken.address, tokens.weth)
-		const pair = new Contract(pairAddress, JSON.stringify(UniswapV2Pair.abi), accounts[0])
-		await rewardsToken.connect(accounts[0]).transfer(pairAddress, ownerBalance.mul(2).div(3))
-
-		await weth.connect(accounts[0]).deposit({ value: ownerBalance.div(3) })
-
-		await weth.connect(accounts[0]).transfer(pairAddress, ownerBalance.div(3))
-
-		await pair.connect(accounts[0]).mint(accounts[0].address)
-
-		await rewardsToken.connect(accounts[0]).transfer(stakingRewards.address, ownerBalance.div(3))
-
-		await stakingRewards.connect(accounts[0]).notifyRewardAmount(ownerBalance.div(3))
-		/*let stakeSig = stakingRewards.interface.getSighash('stake')
-		let withdrawSig = stakingRewards.interface.getSighash('withdraw')
-		let claimSig = stakingRewards.interface.getSighash('getReward')
-		/*let sigs =
-			'0x' + stakeSig.substring(2) + withdrawSig.substring(2) + claimSig.substring(2) + AddressZero.substring(2)
-		/*let rewardTokens = [rewardsToken.address]
-		while (rewardTokens.length < 8) {
-			rewardTokens.push(AddressZero)
-		}
-
-		crvLINKGauge = new Contract(
-			tokens.crvLINKGauge,
-			[
-				{
-					constant: false,
-					inputs: [
-						{
-							internalType: 'address',
-							name: '_rewardContract',
-							type: 'address',
-						},
-						{
-							internalType: 'bytes32',
-							name: '_sigs',
-							type: 'bytes32',
-						},
-						{
-							internalType: 'address[8]',
-							name: '_reward_tokens',
-							type: 'address[8]',
-						},
-					],
-					name: 'set_rewards',
-					outputs: [],
-					payable: false,
-					stateMutability: 'nonpayable',
-					type: 'function',
-				},
-				{
-					constant: true,
-					inputs: [],
-					name: 'admin',
-					outputs: [
-						{
-							internalType: 'address',
-							name: '',
-							type: 'address',
-						},
-					],
-					payable: false,
-					stateMutability: 'view',
-					type: 'function',
-				},
-			],
-			accounts[0]
-		)
-
-		const gaugeAdminProxy = new Contract(
-			await crvLINKGauge.admin(),
-			[
-				{
-					constant: false,
-					inputs: [
-						{
-							internalType: 'address',
-							name: '_gauge',
-							type: 'address',
-						},
-						{
-							internalType: 'address',
-							name: '_rewardContract',
-							type: 'address',
-						},
-						{
-							internalType: 'bytes32',
-							name: '_sigs',
-							type: 'bytes32',
-						},
-						{
-							internalType: 'address[8]',
-							name: '_reward_tokens',
-							type: 'address[8]',
-						},
-					],
-					name: 'set_rewards',
-					outputs: [],
-					payable: false,
-					stateMutability: 'nonpayable',
-					type: 'function',
-				},
-				{
-					constant: true,
-					inputs: [],
-					name: 'ownership_admin',
-					outputs: [
-						{
-							internalType: 'address',
-							name: '',
-							type: 'address',
-						},
-					],
-					payable: false,
-					stateMutability: 'view',
-					type: 'function',
-				},
-			],
-			accounts[0]
-		)
-
-		const ownershipAdminAddress = await gaugeAdminProxy.ownership_admin()
-		await gaugeAdminProxy
-			.connect(await impersonate(ownershipAdminAddress))
-			['set_rewards'](crvLINKGauge.address, stakingRewards.address, sigs, rewardTokens)
-
-		let tradeData: TradeData = {
-			adapters: [],
-			path: [],
-			cache: '0x',
-		}
-		tradeData.adapters[0] = uniswapV2Adapter.address
-		await strategyFactory
-			.connect(multisig)
-			.addItemDetailedToRegistry(
-				ITEM_CATEGORY.BASIC,
-				ESTIMATOR_CATEGORY.DEFAULT_ORACLE,
-				rewardsToken.address,
-				tradeData,
-				AddressZero
-			)
-      */
-    /*
-		const oldItems = await strategy.connect(accounts[1]).items()
-		await strategy.connect(accounts[1]).updateRewards()
-		const newItems = await strategy.connect(accounts[1]).items()
-		const oldItemsLength = oldItems.length
-		const newItemsLength = newItems.length
-
-		expect(newItemsLength).to.be.gt(oldItemsLength)
-    */
-		//expect(oldItems.indexOf(rewardsToken.address)).to.be.equal(-1)
-		//expect(newItems.indexOf(rewardsToken.address)).to.be.gt(-1)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
-		const name = 'Test Strategy2'+(Math.random()).toString() // so test can be repeated on node
+		const name = 'Test Strategy2' + Math.random().toString() // so test can be repeated on node
 		const symbol = 'TEST2'
 		const positions = [
 			// an "exotic" strategy
@@ -827,7 +627,7 @@ describe('Code4rena deployment', function () {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(50),
 			rebalanceSlippage: BigNumber.from(990),
-			restructureSlippage: BigNumber.from(980), 
+			restructureSlippage: BigNumber.from(980),
 			managementFee: BigNumber.from(0),
 			social: false,
 			set: false,
@@ -865,9 +665,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		const value = WeiPerEther.mul(10000)
+		const value = WeiPerEther
 		await weth.connect(accounts[19]).deposit({ value: value })
-    await weth.connect(accounts[19]).transfer(strategy.address, value)
+		await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -884,11 +684,8 @@ describe('Code4rena deployment', function () {
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-  //if (runAll) {
-
 	it('Should deposit more: ETH', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		//console.log(DEFAULT_DEPOSIT_SLIPPAGE)
 		const tx = await controller
 			.connect(accounts[1])
 			.deposit(strategy.address, router.address, 0, BigNumber.from(980), '0x', {
@@ -906,7 +703,7 @@ describe('Code4rena deployment', function () {
 	it('Should claim rewards', async function () {
 		const rewardsTokens = await strategy.callStatic.getAllRewardTokens()
 		const rewardsTokensLength = rewardsTokens.length
-    console.log({rewardsTokens})
+		console.log({ rewardsTokens })
 		expect(rewardsTokensLength).to.be.gt(0)
 		let balancesBefore = []
 		for (let i = 0; i < rewardsTokens.length; ++i) {
@@ -925,12 +722,12 @@ describe('Code4rena deployment', function () {
 		}
 		logTestComplete(this, __dirname, proofCounter++)
 	})
-	
-  it('Should deploy strategy with ETH + BTC', async function () {
+
+	it('Should deploy strategy with ETH + BTC', async function () {
 		const name = 'Curve ETHBTC Strategy'
 		const symbol = 'ETHBTC'
 		const positions = [
-			{ token: dai.address, percentage: BigNumber.from(400) },
+			{ token: tokens.dai, percentage: BigNumber.from(400) },
 			{
 				token: tokens.crvREN,
 				percentage: BigNumber.from(400),
@@ -987,9 +784,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		const value = WeiPerEther.mul(10000)
+		const value = WeiPerEther
 		await weth.connect(accounts[19]).deposit({ value: value })
-    await weth.connect(accounts[19]).transfer(strategy.address, value)
+		await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -1007,9 +804,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		const value = WeiPerEther.mul(10000)
+		const value = WeiPerEther
 		await weth.connect(accounts[19]).deposit({ value: value })
-    await weth.connect(accounts[19]).transfer(strategy.address, value)
+		await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -1030,7 +827,7 @@ describe('Code4rena deployment', function () {
 		const name = 'Curve MetaPool Strategy'
 		const symbol = 'META'
 		const positions = [
-			{ token: dai.address, percentage: BigNumber.from(500) },
+			{ token: tokens.dai, percentage: BigNumber.from(500) },
 			{
 				token: tokens.crvUSDN, //Metapool uses 3crv as a liquidity token
 				percentage: BigNumber.from(500),
@@ -1081,9 +878,9 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
-		const value = WeiPerEther.mul(10000)
+		const value = WeiPerEther
 		await weth.connect(accounts[19]).deposit({ value: value })
-    await weth.connect(accounts[19]).transfer(strategy.address, value)
+		await weth.connect(accounts[19]).transfer(strategy.address, value)
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
@@ -1099,5 +896,4 @@ describe('Code4rena deployment', function () {
 		expect(await wrapper.isBalanced()).to.equal(true)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
-//  }
 })
