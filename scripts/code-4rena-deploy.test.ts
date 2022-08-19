@@ -18,6 +18,23 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
+/* 
+    This test assumes the following have happened beforehand
+    and they share deployments.json 
+ 
+    npx hardhat run scripts/code-4rena-deploy.ts --network localhost
+
+    // in crawler-token-farms ...
+    npx hardhat run scripts/register/register_tokens.ts --network localhost #&& \
+    npx hardhat run scripts/register/register_uniswap_pools.ts --network localhost && \
+    npx hardhat run scripts/register/register_curve_pools.ts --network localhost && \
+    npx hardhat run scripts/register/register_chainlink_oracles.ts --network localhost && \
+
+    // back here in v1-core ...
+    npx hardhat run scripts/transferownership-afterdeploy.ts  --network localhost
+
+  **/
+
 chai.use(solidity)
 describe('Code4rena deployment', function () {
 	let proofCounter: number,
@@ -95,13 +112,6 @@ describe('Code4rena deployment', function () {
 			(await getContractFactory('StrategyProxyFactory')).interface,
 			accounts[0]
 		)
-		// these have happened in scripts !!
-		//await deployCode4renaFixes()
-		//await registerTokens()
-		//await registerUniswapPools()
-		//await registerCurvePools()
-		//await registerChainlinkOracles()
-		//await transferOwnership()
 
 		// whitelist new adapters and router
 		whitelist = (await getContractFactory('Whitelist')).attach(contracts['Whitelist'])
@@ -236,10 +246,6 @@ describe('Code4rena deployment', function () {
 				AddressZero
 			)
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
-	})
-
-	it('Should debug.', async function () {
-		console.log('debug hello')
 	})
 
 	// mimic live-estimates
