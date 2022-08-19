@@ -581,7 +581,7 @@ describe('Code4rena deployment', function () {
 		strategyItems = prepareStrategy(positions, uniswapV2Adapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
-			rebalanceThreshold: BigNumber.from(50),
+			rebalanceThreshold: BigNumber.from(60),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(990), 
 			managementFee: BigNumber.from(0),
