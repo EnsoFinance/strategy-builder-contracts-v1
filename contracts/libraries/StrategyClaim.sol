@@ -121,8 +121,6 @@ library StrategyClaim {
     ) private view returns(uint256) {
         uint256 numAdded;
         address position;
-        StrategyTypes.TradeData memory tradeData;
-        uint256 adaptersLength;
         address rewardsAdapter;
         bytes32 key;
         bool ok;

@@ -73,7 +73,7 @@ interface IStrategy is IStrategyFees, IStrategyToken, IStrategyManagement {
 
     function updateRewards() external;
 
-    function lock(LockType lockType) external;
+    function lock(LockType lt) external;
 
     function unlock() external;
 
