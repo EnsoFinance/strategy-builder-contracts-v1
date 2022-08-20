@@ -19,6 +19,8 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 /* 
     This test assumes the following have happened beforehand
     and they share deployments.json 
+
+    npx hardhat node // <--- this is forking mainnet
  
     npx hardhat run scripts/code-4rena-deploy.ts --network localhost
 
@@ -39,7 +41,7 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 chai.use(solidity)
 describe('Code4rena deployment', function () {
-	let	multisig: SignerWithAddress,
+	let multisig: SignerWithAddress,
 		whitelist: Contract,
 		contracts: { [key: string]: string },
 		tokens: Tokens,
@@ -53,7 +55,6 @@ describe('Code4rena deployment', function () {
 		uniswapV2Adapter: Contract,
 		compoundAdapter: Contract,
 		eDPI: Contract,
-		eYETI: Contract,
 		eYLA: Contract,
 		eNFTP: Contract,
 		eETH2X: Contract,
@@ -97,7 +98,6 @@ describe('Code4rena deployment', function () {
 	}
 
 	before('Deploy new contracts.', async function () {
-
 		accounts = await getSigners()
 		const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
 		let network: string
@@ -303,12 +303,11 @@ describe('Code4rena deployment', function () {
 			},
 		})
 		console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
-		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
-		const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
+		const strategies = [eDPI, eYLA, eNFTP, eETH2X]
 		// strategyFactory.updateImplementation should be updated
 		const admin = await strategyFactory.admin()
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
@@ -401,53 +400,20 @@ describe('Code4rena deployment', function () {
 		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
 	})
 
-	it('Should estimate deposit eYETI', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await estimator.deposit(eYETI, depositAmount)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-		await controller
-			.connect(accounts[1])
-			.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-	})
-
-	it('Should estimate withdraw eYETI', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
-		const withdrawAmount = await eYETI.balanceOf(accounts[1].address)
-		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
-		const totalSupply = await eYETI.totalSupply()
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
-		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-		const estimatedWithdrawValue = await estimator.withdraw(eYETI, withdrawAmountAfterFee)
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-	})
-
 	it('Should estimate deposit eYLA', async function () {
 		await increaseTime(1)
 		const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
-    
+
 		const depositAmount = WeiPerEther
-   /* // FIXME uncomment when estimator is updated. This estimator fails on this.. 
+		/* // FIXME uncomment when estimator is updated. This estimator fails on this.. 
 		const estimatedDepositValue = await estimator.deposit(eYLA, depositAmount)
 		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
     */
-    
+
 		await controller
 			.connect(accounts[1])
 			.deposit(eYLA.address, router.address, 0, 0, '0x', { value: depositAmount })
-    
+
 		const [totalAfter] = await oracle.estimateStrategy(eYLA.address)
 		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
 	})
@@ -456,13 +422,13 @@ describe('Code4rena deployment', function () {
 		await increaseTime(1)
 		const [totalBefore] = await oracle.estimateStrategy(eYLA.address)
 		const withdrawAmount = await eYLA.balanceOf(accounts[1].address)
-    
+
 		const withdrawAmountAfterFee = withdrawAmount.sub(withdrawAmount.mul(2).div(DIVISOR)) // 0.2% withdrawal fee
 		const totalSupply = await eYLA.totalSupply()
 		const wethBefore = await weth.balanceOf(accounts[1].address)
 		const expectedWithdrawValue = totalBefore.mul(withdrawAmountAfterFee).div(totalSupply)
 		console.log('Expected withdraw value: ', expectedWithdrawValue.toString())
-    /*// FIXME uncomment when estimator is updated. This estimator fails on this.. 
+		/*// FIXME uncomment when estimator is updated. This estimator fails on this.. 
 		const estimatedWithdrawValue = await estimator.withdraw(eYLA, withdrawAmountAfterFee)
 		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
     */
@@ -595,7 +561,6 @@ describe('Code4rena deployment', function () {
 		await accounts[19].sendTransaction({ to: accounts[1].address, value: WeiPerEther.mul(100) })
 
 		await expect(controller.connect(accounts[1]).setStrategy(strategy.address)).to.emit(controller, 'StrategySet')
-
 	})
 
 	it('Should deploy "exotic" strategy', async function () {
@@ -721,7 +686,7 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should deploy strategy with ETH + BTC', async function () {
-		const name = 'Curve ETHBTC Strategy'+ Math.random().toString() // so test can be repeated on node
+		const name = 'Curve ETHBTC Strategy' + Math.random().toString() // so test can be repeated on node
 		const symbol = 'ETHBTC'
 		const positions = [
 			{ token: tokens.dai, percentage: BigNumber.from(400) },
@@ -816,7 +781,7 @@ describe('Code4rena deployment', function () {
 	})
 
 	it('Should deploy strategy with Curve metapool', async function () {
-		const name = 'Curve MetaPool Strategy'+ Math.random().toString() // so test can be repeated on node
+		const name = 'Curve MetaPool Strategy' + Math.random().toString() // so test can be repeated on node
 		const symbol = 'META'
 		const positions = [
 			{ token: tokens.dai, percentage: BigNumber.from(500) },
