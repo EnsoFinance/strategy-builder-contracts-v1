@@ -5,7 +5,7 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { EnsoBuilder, EnsoEnvironment } from '../lib/enso'
 import { Tokens } from '../lib/tokens'
 import { prepareStrategy, InitialState } from '../lib/encode'
-import { increaseTime, resetBlockchain } from '../lib/utils'
+import { increaseTime, resetBlockchain, impersonate } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 import { DIVISOR } from '../lib/constants'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
@@ -21,14 +21,6 @@ const strategyState: InitialState = {
 	managementFee: BigNumber.from(0),
 	social: true,
 	set: false,
-}
-
-async function impersonate(address: string): Promise<SignerWithAddress> {
-	await hre.network.provider.request({
-		method: 'hardhat_impersonateAccount',
-		params: [address],
-	})
-	return await hre.ethers.getSigner(address)
 }
 
 describe('Estimator', function () {
