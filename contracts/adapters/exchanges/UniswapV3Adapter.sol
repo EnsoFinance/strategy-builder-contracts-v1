@@ -53,13 +53,12 @@ contract UniswapV3Adapter is BaseAdapter, StringUtils {
             expected,
             0
         )) {
-            // continue
+            require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
         } catch(bytes memory error) {
             assembly {
                 error := add(error, 0x04)
             }
             revert(string(abi.encodePacked(abi.decode(error, (string)), " ", toHexString(uint256(tokenIn), 20), " ", toHexString(uint256(tokenOut), 20)))); 
         }
-        require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
     }
 }
