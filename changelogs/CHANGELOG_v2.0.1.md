@@ -3,6 +3,57 @@
 ### Must redeploy
 
 ```
+ contracts/Strategy.sol                             |  735 ++++---------
+ contracts/StrategyController.sol                   |  660 +++++-------
+ contracts/StrategyProxyFactory.sol                 |  264 +++--
+ contracts/StrategyToken.sol                        |   47 +-
+ contracts/Whitelist.sol                            |    2 +-
+ contracts/adapters/borrow/AaveV2DebtAdapter.sol    |   54 +-
+ contracts/adapters/borrow/Leverage2XAdapter.sol    |   31 +-
+ contracts/adapters/exchanges/BalancerAdapter.sol   |    8 +-
+ contracts/adapters/exchanges/CurveAdapter.sol      |   10 +-
+ contracts/adapters/exchanges/KyberSwapAdapter.sol  |    3 +-
+ .../adapters/exchanges/SynthRedeemerAdapter.sol    |   45 +
+ contracts/adapters/exchanges/SynthetixAdapter.sol  |   17 +-
+ contracts/adapters/exchanges/UniswapV3Adapter.sol  |   13 +-
+ contracts/adapters/lending/AaveV2Adapter.sol       |   67 +-
+ contracts/adapters/lending/CompoundAdapter.sol     |   66 +-
+ contracts/adapters/liquidity/CurveLPAdapter.sol    |   26 +-
+ .../adapters/strategy/MetaStrategyAdapter.sol      |   10 +-
+ contracts/adapters/vaults/CurveGaugeAdapter.sol    |   68 +-
+ contracts/adapters/vaults/YEarnV2Adapter.sol       |   54 +-
+
+ .../recovery/StrategyControllerPaused.sol          |   88 +-
+ 
+ contracts/libraries/ControllerLibrary.sol          |  559 ++++++++++
+ contracts/libraries/StrategyClaim.sol              |  174 +++
+ contracts/libraries/StrategyLibrary.sol            |   90 +-
+
+ contracts/oracles/EnsoOracle.sol                   |   64 +-
+
+ .../oracles/estimators/AaveV2DebtEstimator.sol     |   21 +-
+ contracts/oracles/estimators/AaveV2Estimator.sol   |   21 +-
+ contracts/oracles/estimators/BasicEstimator.sol    |   20 +-
+ contracts/oracles/estimators/CompoundEstimator.sol |   21 +-
+ .../oracles/estimators/CurveGaugeEstimator.sol     |   30 +-
+ contracts/oracles/estimators/CurveLPEstimator.sol  |   78 +-
+ .../oracles/estimators/EmergencyEstimator.sol      |   69 +-
+ contracts/oracles/estimators/StrategyEstimator.sol |   22 +-
+ contracts/oracles/estimators/YEarnV2Estimator.sol  |   23 +-
+
+ contracts/oracles/protocols/ChainlinkOracle.sol    |   11 +-
+ contracts/oracles/protocols/ProtocolOracle.sol     |    5 +-
+ contracts/oracles/protocols/UniswapV3Oracle.sol    |    4 +-
+
+ contracts/oracles/registries/ChainlinkRegistry.sol |    9 +-
+ contracts/oracles/registries/TokenRegistry.sol     |   85 +-
+ contracts/oracles/registries/UniswapV3Registry.sol |  127 ++-
+
+ contracts/routers/BatchDepositRouter.sol           |    4 +-
+ contracts/routers/FullRouter.sol                   |  626 +++++++----
+ contracts/routers/LoopRouter.sol                   |   96 +-
+ contracts/routers/MulticallRouter.sol              |   21 +-
+ contracts/routers/StrategyRouter.sol               |   40 +-
 ```
 
 -------------------------------------------------------------------------------
