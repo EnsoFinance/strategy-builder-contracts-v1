@@ -248,7 +248,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         owner = newOwner;
     }
 
-    function salt(address manager, string calldata name, string calldata symbol) public pure override returns (bytes32) {
+    function salt(address manager, string calldata name, string calldata symbol) external pure override returns (bytes32) {
         return _salt(manager, name, symbol);
     }
 
@@ -404,7 +404,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     function _predictStrategyAddress(address manager, string calldata name, string calldata symbol) private view returns (address predictedAddress, bytes32 salt_) {
-        salt_ = salt(manager, name, symbol);
+        salt_ = _salt(manager, name, symbol);
         predictedAddress = Create2.computeAddress(salt_, _creationCodeHash);
     }
 }
