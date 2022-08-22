@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 
 import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
-interface IUniswapV3Registry {
+interface IUniswapV3Registry_Deprecated_v1_0_10 {
 
   struct FeeData {
       uint24 fee;

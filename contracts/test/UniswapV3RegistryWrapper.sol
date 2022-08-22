@@ -3,16 +3,16 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/registries/IUniswapV3Registry.sol";
-import "../interfaces/deprecated/IUniswapV3Registry_Deprecated.sol";
+import "../../changelogs/deprecated/network-v1.0.10/interfaces/registries/IUniswapV3Registry.sol";
 
 contract UniswapV3RegistryWrapper is IUniswapV3Registry {
 
-    IUniswapV3Registry_Deprecated private immutable registry;
+    IUniswapV3Registry_Deprecated_v1_0_10 private immutable registry;
     uint32 private immutable TIME_WINDOW;
 
     constructor(address registry_) public {
-        registry = IUniswapV3Registry_Deprecated(registry_);
-        TIME_WINDOW = IUniswapV3Registry_Deprecated(registry_).timeWindow();
+        registry = IUniswapV3Registry_Deprecated_v1_0_10(registry_);
+        TIME_WINDOW = IUniswapV3Registry_Deprecated_v1_0_10(registry_).timeWindow();
     }
 
     function batchAddPools(
@@ -51,7 +51,7 @@ contract UniswapV3RegistryWrapper is IUniswapV3Registry {
     }
 
     function getPoolData(address token) external view override returns (PoolData memory) {
-        IUniswapV3Registry_Deprecated.PoolData memory poolData = registry.getPoolData(token);
+        IUniswapV3Registry_Deprecated_v1_0_10.PoolData memory poolData = registry.getPoolData(token);
         return PoolData(poolData.pool, poolData.pair, TIME_WINDOW);
     }
 

@@ -62,14 +62,107 @@
 
 ```
 Strategy
++    function claimAll() external;
+-    function issueStreamingFee() external;
++    function updateRebalanceThreshold(uint16 threshold) external;
+-    function updateTokenValue(uint256 total, uint256 supply) external;
++    function updateTradeData(address item, TradeData memory data) external;
+-    function updatePerformanceFee(uint16 fee) external;
++    function updateClaimables() external;
+-    function updateRebalanceThreshold(uint16 threshold) external;
++    function updateAddresses() external;
+-    function updateTradeData(address item, TradeData memory data) external;
++    function updateRewards() external;
+-    function lock() external;
++    function lock(LockType lt) external;
++    function lockType() external view returns (LockType);
+-    function performanceFee() external view returns (uint256);
+-    function getPerformanceFeeOwed(address account) external view returns (uint256);
+-    function controller() external view returns (address);
+-    function manager() external view returns (address);
+-    function oracle() external view returns (IOracle);
+-    function whitelist() external view returns (IWhitelist);
++    function factory() external view returns (address);
++    function getAllRewardTokens() external view returns(address[] memory rewardTokens);
++    function managementFee() external view returns (uint256);
++    function issueStreamingFee() external;
++    function updatePerformanceFee(uint16 fee) external;
++    function updateManagementFee(uint16 fee) external;
++    function updateTokenValue(uint256 total, uint256 supply) external;
++    function withdrawStreamingFee() external;
++     function version() external view returns (string memory);
 
 StrategyController
++    function claimAll(
++        IStrategy strategy
++    ) external;
++    function repositionSynths(IStrategy strategy, address token) external;
++    function updateTradeData(
++        IStrategy strategy,
++        address item,
++        TradeData calldata data
++    ) external;
++    function finalizeTradeData(
++        IStrategy strategy
++    ) external;
++    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar_) external;
+-    function verifyStructure(address strategy, StrategyItem[] memory newItems)
+-        external
+-        view
+-        returns (bool);
++    function updateAddresses() external;
++    function verifyStructure(address strategy, StrategyItem[] memory newItems) external view;
++    function weth() external view returns (address);
++    function pool() external view returns (address);
++    function rebalanceThresholdScalar() external view returns(uint256);
 
 StrategyProxyFactory
++    function createStrategy(
+         string memory name,
+         string memory symbol,
+         StrategyItem[] memory strategyItems,
+-        InitialState memory strategyInit,
++        InitialState memory strategyState,
+         address router,
+         bytes memory data
+     ) external payable returns (address);
++    function createStrategyFor(
++        address manager,
++        string memory name,
++        string memory symbol,
++        StrategyItem[] memory strategyItems,
++        InitialState memory strategyState,
++        address router,
++        bytes memory data,
++        bytes memory signature
++    ) external payable returns (address);
++    function tokenRegistry() external view returns (address);
++    function streamingFee() external view returns (uint256);
 
 TokenRegistry
+     function estimateItem(
+-        uint256 balance,
++        IStrategy strategy,
+         address token
+     ) external view returns (int256);
+ 
+     function estimateItem(
+-        address user,
+-        address token
++        IStrategy strategy,
++        address token,
++        uint256 balance
++    ) external view returns (int256);
++
++    function estimateItem(
++        IStrategy strategy,
++        address token,
++        address underlyingToken,
++        uint256 balance
+     ) external view returns (int256);
++
++    function updateAddresses() external;
 
-EmergencyEstimator
 ```
 
 ### Events
