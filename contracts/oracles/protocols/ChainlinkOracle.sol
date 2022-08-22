@@ -5,9 +5,10 @@ pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
 import "../../interfaces/registries/IChainlinkRegistry.sol";
+import "../../helpers/StringUtils.sol";
 import "./ProtocolOracle.sol";
 
-contract ChainlinkOracle is ProtocolOracle, Ownable {
+contract ChainlinkOracle is ProtocolOracle, StringUtils, Ownable {
     using SafeMath for uint256;
 
     address public immutable override weth;
@@ -21,7 +22,7 @@ contract ChainlinkOracle is ProtocolOracle, Ownable {
     function consult(uint256 amount, address input) public view override returns (uint256) {
         if (input == weth || amount == 0) return amount;
         IChainlinkRegistry.ChainlinkOracleData memory oracleData = registry.getOracle(input);
-        require(oracleData.oracle != address(0), "Token not initialized");
+        if (oracleData.oracle == address(0)) revert(string(abi.encodePacked("Token not initialized_", toHexString(uint256(input), 20))));
         return _traversePairs(amount, oracleData);
     }
 

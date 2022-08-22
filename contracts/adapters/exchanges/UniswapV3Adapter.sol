@@ -7,8 +7,9 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 import "../../interfaces/uniswap/ISwapRouter.sol";
 import "../BaseAdapter.sol";
+import "../../helpers/StringUtils.sol";
 
-contract UniswapV3Adapter is BaseAdapter {
+contract UniswapV3Adapter is BaseAdapter, StringUtils {
     using SafeERC20 for IERC20;
 
     IUniswapV3Registry public immutable registry;
@@ -42,7 +43,7 @@ contract UniswapV3Adapter is BaseAdapter {
             amount = afterBalance - beforeBalance;
         }
         IERC20(tokenIn).sortaSafeApprove(address(router), amount);
-        router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
+        try router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
             tokenIn,
             tokenOut,
             registry.getFee(tokenIn, tokenOut),
@@ -51,7 +52,13 @@ contract UniswapV3Adapter is BaseAdapter {
             amount,
             expected,
             0
-        ));
-        require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
+        )) {
+            require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
+        } catch(bytes memory error) {
+            assembly {
+                error := add(error, 0x04)
+            }
+            revert(string(abi.encodePacked(abi.decode(error, (string)), " ", toHexString(uint256(tokenIn), 20), " ", toHexString(uint256(tokenOut), 20)))); 
+        }
     }
 }

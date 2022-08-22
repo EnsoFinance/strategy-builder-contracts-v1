@@ -308,11 +308,12 @@ describe('UniswapV3Adapter', function () {
 		const name = 'Fail Strategy'
 		const symbol = 'FAIL'
 		const positions = [
-			{ token: tokens[2].address,
+			{
+				token: tokens[2].address,
 				percentage: BigNumber.from(1000),
 				adapters: [adapter.address, adapter.address], // Try to trade via token 1 without token1-token2 fee being set
-				path: [tokens[1].address]
-			}
+				path: [tokens[1].address],
+			},
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
 		const strategyState: InitialState = {
@@ -325,51 +326,46 @@ describe('UniswapV3Adapter', function () {
 			set: false,
 		}
 
-		await expect(strategyFactory
-			.connect(accounts[1])
-			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
-				value: BigNumber.from('10000000000000000'),
-			})
+		await expect(
+			strategyFactory
+				.connect(accounts[1])
+				.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+					value: BigNumber.from('10000000000000000'),
+				})
 		).to.be.revertedWith('Pair fee not registered')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add fee: pool already added', async function () {
-		await expect(uniswapRegistry
-			.connect(owner)
-			.addFee(tokens[1].address, weth.address, UNI_V3_FEE)
+		await expect(
+			uniswapRegistry.connect(owner).addFee(tokens[1].address, weth.address, UNI_V3_FEE)
 		).to.be.revertedWith('Pool already registered')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add fee: no pool', async function () {
-		await expect(uniswapRegistry
-			.connect(owner)
-			.addFee(tokens[1].address, tokens[3].address, UNI_V3_FEE)
+		await expect(
+			uniswapRegistry.connect(owner).addFee(tokens[1].address, tokens[3].address, UNI_V3_FEE)
 		).to.be.revertedWith('Not valid pool')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add fee: invalid fee', async function () {
-		await expect(uniswapRegistry
-			.connect(owner)
-			.addFee(tokens[1].address, tokens[2].address, 1)
-		).to.be.revertedWith('Not valid pool')
+		await expect(uniswapRegistry.connect(owner).addFee(tokens[1].address, tokens[2].address, 1)).to.be.revertedWith(
+			'Not valid pool'
+		)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to add fee: not owner', async function () {
-		await expect(uniswapRegistry
-			.connect(trader)
-			.addFee(tokens[1].address, tokens[2].address, UNI_V3_FEE)
+		await expect(
+			uniswapRegistry.connect(trader).addFee(tokens[1].address, tokens[2].address, UNI_V3_FEE)
 		).to.be.revertedWith('Ownable: caller is not the owner')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should add fee', async function () {
-		await uniswapRegistry
-			.connect(owner)
-			.addFee(tokens[1].address, tokens[2].address, UNI_V3_FEE)
+		await uniswapRegistry.connect(owner).addFee(tokens[1].address, tokens[2].address, UNI_V3_FEE)
 
 		const fee = await uniswapRegistry.getFee(tokens[1].address, tokens[2].address)
 		expect(BigNumber.from(fee).eq(UNI_V3_FEE)).to.equal(true)
@@ -380,11 +376,12 @@ describe('UniswapV3Adapter', function () {
 		const name = 'Test Strategy'
 		const symbol = 'TEST2'
 		const positions = [
-			{ token: tokens[2].address,
+			{
+				token: tokens[2].address,
 				percentage: BigNumber.from(1000),
 				adapters: [adapter.address, adapter.address], // Trade via token 1 with token1-token2 fee set
-				path: [tokens[1].address]
-			}
+				path: [tokens[1].address],
+			},
 		] as Position[]
 		strategyItems = prepareStrategy(positions, adapter.address)
 		const strategyState: InitialState = {
@@ -406,42 +403,37 @@ describe('UniswapV3Adapter', function () {
 	})
 
 	it('Should fail to remove fee: cannot remove pool fee', async function () {
-		await expect(uniswapRegistry
-			.connect(owner)
-			.removeFee(tokens[1].address, weth.address)
-		).to.be.revertedWith('Cannot remove pool fee')
+		await expect(uniswapRegistry.connect(owner).removeFee(tokens[1].address, weth.address)).to.be.revertedWith(
+			'Cannot remove pool fee'
+		)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to remove fee: not owner', async function () {
-		await expect(uniswapRegistry
-			.connect(trader)
-			.removeFee(tokens[1].address, tokens[2].address)
+		await expect(
+			uniswapRegistry.connect(trader).removeFee(tokens[1].address, tokens[2].address)
 		).to.be.revertedWith('Ownable: caller is not the owner')
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should remove fee', async function () {
-		await uniswapRegistry
-			.connect(owner)
-			.removeFee(tokens[1].address, tokens[2].address)
+		await uniswapRegistry.connect(owner).removeFee(tokens[1].address, tokens[2].address)
 
-		await expect( uniswapRegistry.getFee(tokens[1].address, tokens[2].address)).to.be.revertedWith('Pair fee not registered')
+		await expect(uniswapRegistry.getFee(tokens[1].address, tokens[2].address)).to.be.revertedWith(
+			'Pair fee not registered'
+		)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to remove fee: no fee to remove', async function () {
-		await expect(uniswapRegistry
-			.connect(owner)
-			.removeFee(tokens[1].address, tokens[2].address)
-		).to.be.revertedWith('No fee to remove')
+		await expect(uniswapRegistry.connect(owner).removeFee(tokens[1].address, tokens[2].address)).to.be.revertedWith(
+			'No fee to remove'
+		)
 		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should batch add fees', async function () {
-		await uniswapRegistry
-			.connect(owner)
-			.batchAddFees([tokens[1].address], [tokens[2].address], [UNI_V3_FEE])
+		await uniswapRegistry.connect(owner).batchAddFees([tokens[1].address], [tokens[2].address], [UNI_V3_FEE])
 
 		const fee = await uniswapRegistry.getFee(tokens[1].address, tokens[2].address)
 		expect(BigNumber.from(fee).eq(UNI_V3_FEE)).to.equal(true)
