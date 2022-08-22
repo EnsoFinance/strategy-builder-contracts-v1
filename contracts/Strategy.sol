@@ -389,9 +389,9 @@ contract Strategy is IStrategy, StrategyTokenFees, Initializable, Require {
         emit VersionUpdated(newVersion);
     }
 
-    function lock(LockType lockType) external override {
+    function lock(LockType lt) external override {
         _onlyController();
-        _setLock(lockType);
+        _setLock(lt);
     }
 
     function unlock() external override {
