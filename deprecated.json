@@ -45,7 +45,6 @@
     "YEarnV2Adapter": "0x7c464a18636CC2f236BC87C70aa4a6F8793DC219",
     "SushiSwapAdapter": "0x61efE98493719509f8bEA2cCC113CFc60ec66d33",
     "KyberSwapAdapter": "0x4F1b641abb967e8440b76DC50e0BD9dFD3abFB23",
-    "Leverage2XAdapter": "0xfdB5593abd4100767593d079132a5D630DF2B0d7",
     "StrategyControllerImplementation": "0x43DaCf2d9E6fb37449Bb962986219aE787d80cc3",
     "StrategyControllerPausedImplementation": "0xEfbF7555cD248571b88562070d06E0Da25Fc2034",
     "MigrationControllerImplementation": "0x65734B96c4295B70391c86753fb9740e881792BA"

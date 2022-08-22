@@ -12,6 +12,15 @@
   "engines": {
     "node": ">=12"
   },
+  "files": [
+    "changelogs",
+    "contracts",
+    "dist",
+    "docs",
+    "deployments.json",
+    "deprecated.json",
+    "README.md"
+  ],
   "scripts": {
     "start": "yarn hardhat node --network hardhat --hostname 0.0.0.0",
     "build": "cd errors && ./errorMacro.sh && cd - && yarn hardhat compile --force && tsc --build",
