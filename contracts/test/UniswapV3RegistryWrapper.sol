@@ -3,7 +3,7 @@ pragma solidity 0.6.12;
 pragma experimental ABIEncoderV2;
 
 import "../interfaces/registries/IUniswapV3Registry.sol";
-import "../../changelogs/deprecated/network-v1.0.10/interfaces/registries/IUniswapV3Registry.sol";
+import "../../changelogs/deprecated/network-v1.0.10/interfaces/registries/IUniswapV3Registry_Deprecated_v1_0_10.sol";
 
 contract UniswapV3RegistryWrapper is IUniswapV3Registry {
 
