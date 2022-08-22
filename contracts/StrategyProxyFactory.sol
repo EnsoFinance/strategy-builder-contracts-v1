@@ -248,8 +248,12 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         owner = newOwner;
     }
 
-    function salt(address manager, string calldata name, string calldata symbol) public pure override returns (bytes32) {
-      return keccak256(abi.encode(manager, name, symbol));
+    function salt(address manager, string calldata name, string calldata symbol) external pure override returns (bytes32) {
+        return _salt(manager, name, symbol);
+    }
+
+    function predictStrategyAddress(address manager, string calldata name, string calldata symbol) public view override returns (address predictedAddress) {
+        (predictedAddress, ) = _predictStrategyAddress(manager, name, symbol);
     }
 
     /*
@@ -333,9 +337,10 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function _createProxy(
         address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
-        bytes32 salt_ = salt(manager, name, symbol);
+        bytes32 salt_;
         {
-            address predictedProxyAddress = Create2.computeAddress(salt_, _creationCodeHash);
+            address predictedProxyAddress;
+            (predictedProxyAddress, salt_) = _predictStrategyAddress(manager, name, symbol);
             uint256 codeSize;
             assembly {
                 codeSize := extcodesize(predictedProxyAddress)
@@ -347,7 +352,6 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
                     admin,
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
                   );
-
         _addItemToRegistry(uint256(ItemCategory.BASIC), uint256(EstimatorCategory.STRATEGY), address(proxy));
         // Instead we initialize it directly in the Strategy contract
         IStrategyManagement(address(proxy)).initialize(
@@ -393,5 +397,14 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address rewardsAdapter
     ) internal {
         ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
+    }
+
+    function _salt(address manager, string calldata name, string calldata symbol) private pure returns (bytes32) {
+      return keccak256(abi.encode(manager, name, symbol));
+    }
+
+    function _predictStrategyAddress(address manager, string calldata name, string calldata symbol) private view returns (address predictedAddress, bytes32 salt_) {
+        salt_ = _salt(manager, name, symbol);
+        predictedAddress = Create2.computeAddress(salt_, _creationCodeHash);
     }
 }

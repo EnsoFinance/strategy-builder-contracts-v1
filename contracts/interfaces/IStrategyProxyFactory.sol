@@ -93,4 +93,6 @@ interface IStrategyProxyFactory is StrategyTypes{
     function getManager(address proxy) external view returns (address);
 
     function salt(address manager, string memory name, string memory symbol) external pure returns (bytes32);
+
+    function predictStrategyAddress(address manager, string calldata name, string calldata symbol) external view returns (address predictedAddress);
 }
