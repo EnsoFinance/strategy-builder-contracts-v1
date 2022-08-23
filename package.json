@@ -1,6 +1,6 @@
 {
   "name": "@ensofinance/v1-core",
-  "version": "0.1.7",
+  "version": "2.0.0",
   "description": "Enso v1-core contracts",
   "main": "dist/lib/index.js",
   "types": "dist/lib/index.d.ts",
