@@ -7,13 +7,8 @@ import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
 import { increaseTime, resetBlockchain, impersonate } from '../lib/utils'
 import { initializeTestLogging, logTestComplete } from '../lib/convincer'
-import {
-	deployOracle,
-	deployFullRouter,
-	deployUniswapV3Adapter,
-	deployAaveV2Adapter,
-	deployAaveV2DebtAdapter,
-} from '../lib/deploy'
+import deploymentsJSON from '../deployments.json'
+import deprecatedJSON from '../deprecated.json'
 import { TradeData } from '../lib/encode'
 import { createLink, linkBytecode } from '../lib/link'
 import { MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY } from '../lib/constants'
@@ -21,26 +16,28 @@ import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 
 import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
-import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
-import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
 const { constants, getSigners, getContractFactory } = ethers
 const { WeiPerEther } = constants
 
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
+// ATTN dev: Tests contracts deployed to mainnet. Integration testing updates to contracts require a redeployment of updated contract within this test.
+
 describe('Live Estimates', function () {
 	let proofCounter: number
 	let accounts: SignerWithAddress[],
+		contracts: { [key: string]: string },
+		deprecated: { [key: string]: string },
 		owner: SignerWithAddress,
 		tokens: Tokens,
 		weth: Contract,
+		whitelist: Contract,
 		router: Contract,
 		controller: Contract,
 		oracle: Contract,
 		eDPI: Contract,
-		eYETI: Contract,
 		eYLA: Contract,
 		eNFTP: Contract,
 		eETH2X: Contract,
@@ -112,6 +109,10 @@ describe('Live Estimates', function () {
 
 		await resetBlockchain()
 
+		const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
+		contracts = deployments['mainnet']
+		deprecated = deprecatedJSON['1.0.10']
+
 		accounts = await getSigners()
 		// Impersonate owner
 		owner = await impersonate(ownerAddress)
@@ -126,70 +127,52 @@ describe('Live Estimates', function () {
 
 		controller = enso.platform.controller
 		const strategyFactory = enso.platform.strategyFactory
-		const { uniswapV3Registry, chainlinkRegistry /*, curveDepositZapRegistry*/ } = enso.platform.oracles.registries
+		const { tokenRegistry, uniswapV3Registry, chainlinkRegistry } = enso.platform.oracles.registries
 
-		// Deploy test UniswapV3RegistryWrapper
-		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
-		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address)
-		await uniswapV3RegistryWrapper.deployed()
-		await uniswapV3Registry.connect(owner).transferOwnership(uniswapV3RegistryWrapper.address)
-
-		// Deploy new token registry
-		const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
-		await tokenRegistry.deployed()
-
-		// Deploy new oracle
-		oracle = (
-			await deployOracle(
-				owner,
-				strategyFactory.address,
-				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-				uniswapV3RegistryWrapper.address,
-				chainlinkRegistry.address,
-				weth.address,
-				tokens.sUSD,
-				(estimatorCategory: number, estimatorAddress: string) => {
-					return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-				}
-			)
-		)[0]
+		oracle = enso.platform.oracles.ensoOracle
 
 		// Transfer token registry
-		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
+		await tokenRegistry
+			.connect(await impersonate(await tokenRegistry.owner()))
+			.transferOwnership(strategyFactory.address)
 
-		// Deploy new router
-		router = await deployFullRouter(
-			accounts[0],
-			new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], accounts[0]),
-			controller,
-			enso.platform.strategyLibrary
-		)
-		// Whitelist
-		await enso.platform.administration.whitelist.connect(owner).approve(router.address)
+		router = (
+			await getContractFactory('FullRouter', {
+				libraries: { StrategyLibrary: enso.platform.strategyLibrary.address },
+			})
+		).attach(contracts['FullRouter'])
+		whitelist = enso.platform.administration.whitelist
+		await whitelist.connect(owner).approve(router.address)
 
 		let { aaveV2, aaveV2Debt, uniswapV3 } = enso.adapters
 
-		// Store old adapter addresses
-		oldAdapters = [uniswapV3.address, aaveV2.address, aaveV2Debt.address]
-		// Deploy and whitelist new adapters
-		const uniswapV3Router = new Contract(MAINNET_ADDRESSES.UNISWAP_V3_ROUTER, [], owner)
-		const aaveAddressProvider = new Contract(MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER, [], owner)
-		uniswapV3 = await deployUniswapV3Adapter(owner, uniswapV3RegistryWrapper, uniswapV3Router, weth)
-		await enso.platform.administration.whitelist.connect(owner).approve(uniswapV3.address)
-		aaveV2 = await deployAaveV2Adapter(
-			accounts[0],
-			aaveAddressProvider,
-			controller,
-			weth,
-			tokenRegistry,
-			ESTIMATOR_CATEGORY.AAVE_V2
-		)
-		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2.address)
-		aaveV2Debt = await deployAaveV2DebtAdapter(owner, aaveAddressProvider, weth)
-		await enso.platform.administration.whitelist.connect(owner).approve(aaveV2Debt.address)
+		await whitelist.connect(owner).approve(uniswapV3.address)
+
+		await whitelist.connect(owner).approve(aaveV2.address)
+		await whitelist.connect(owner).approve(aaveV2Debt.address)
 		// Store new adapter addresses
-		newAdapters = [uniswapV3.address, aaveV2.address, aaveV2Debt.address]
+		const deprecatedAdaptersNames = Object.keys(deprecated).filter((name) => {
+			return name.indexOf('Adapter') > -1
+		})
+		const newAdaptersNames = Object.keys(contracts).filter((name) => {
+			return deprecatedAdaptersNames.includes(name)
+		})
+		newAdapters = []
+		oldAdapters = []
+		for (let i = 0; i < newAdaptersNames.length; ++i) {
+			newAdapters.push(contracts[newAdaptersNames[i]])
+			oldAdapters.push(contracts[newAdaptersNames[i]])
+		}
+		let toWhitelist = ['']
+		toWhitelist.pop()
+		newAdapters.forEach((a) => {
+			toWhitelist.push(a)
+		})
+
+		for (let i = 0; i < toWhitelist.length; ++i) {
+			if (!(await whitelist.callStatic.approved(toWhitelist[i])))
+				await whitelist.connect(owner).approve(toWhitelist[i])
+		}
 
 		const StrategyControllerLens = await getContractFactory('StrategyControllerLens')
 		controllerLens = await StrategyControllerLens.deploy(
@@ -207,11 +190,10 @@ describe('Live Estimates', function () {
 		})
 		console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
 		eDPI = await Strategy.attach('0x890ed1ee6d435a35d51081ded97ff7ce53be5942')
-		eYETI = await Strategy.attach('0xA6A6550CbAf8CCd944f3Dd41F2527d441999238c')
 		eYLA = await Strategy.attach('0xb41a7a429c73aa68683da1389051893fe290f614')
 		eNFTP = await Strategy.attach('16f7a9c3449f9c67e8c7e8f30ae1ee5d7b8ed10d')
 		eETH2X = await Strategy.attach('0x81cddbf4a9d21cf52ef49bda5e5d5c4ae2e40b3e')
-		const strategies = [eDPI, eYETI, eYLA, eNFTP, eETH2X]
+		const strategies = [eDPI, eYLA, eNFTP, eETH2X]
 
 		// update to latest `Strategy`
 		const newImplementation = await Strategy.deploy(
@@ -228,18 +210,7 @@ describe('Live Estimates', function () {
 		const StrategyAdmin = await getContractFactory('StrategyProxyAdmin')
 		const strategyAdmin = await StrategyAdmin.attach(admin)
 
-		// Libraries
-		const strategyLibrary = await waffle.deployContract(accounts[0], StrategyLibrary, [])
-		await strategyLibrary.deployed()
-		const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
-
-		const controllerLibrary = await waffle.deployContract(
-			accounts[0],
-			linkBytecode(ControllerLibrary, [strategyLibraryLink]),
-			[]
-		)
-		await controllerLibrary.deployed()
-		const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+		const controllerLibraryLink = createLink(ControllerLibrary, enso.platform.controllerLibrary.address)
 
 		// Controller Implementation
 		const newControllerImplementation = await waffle.deployContract(
@@ -262,13 +233,29 @@ describe('Live Estimates', function () {
 		await strategyFactory.connect(owner).updateRegistry(tokenRegistry.address)
 		await controller.connect(owner).updateAddresses()
 
+		if ((await chainlinkRegistry.owner()).toLowerCase() !== owner.address.toLowerCase)
+			await chainlinkRegistry
+				.connect(await impersonate(await chainlinkRegistry.owner()))
+				.transferOwnership(owner.address)
+
+		if ((await chainlinkRegistry.owner()).toLowerCase() !== owner.address.toLowerCase)
+			await chainlinkRegistry
+				.connect(await impersonate(await chainlinkRegistry.owner()))
+				.transferOwnership(owner.address)
+
+		if ((await uniswapV3Registry.owner()).toLowerCase() !== owner.address.toLowerCase)
+			await uniswapV3Registry
+				.connect(await impersonate(await uniswapV3Registry.owner()))
+				.transferOwnership(owner.address)
+
 		// Update token registry
-		await tokens.registerTokens(owner, strategyFactory, uniswapV3RegistryWrapper)
+		await tokens.registerTokens(owner, strategyFactory, uniswapV3Registry)
 		let tradeData: TradeData = {
 			adapters: [],
 			path: [],
 			cache: '0x',
 		}
+
 		await strategyFactory
 			.connect(owner)
 			.addItemDetailedToRegistry(
@@ -385,45 +372,6 @@ describe('Live Estimates', function () {
 		let tx = await controller
 			.connect(accounts[1])
 			.withdrawWETH(eDPI.address, router.address, withdrawAmount, 0, '0x')
-		const receipt = await tx.wait()
-		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
-		const wethAfter = await weth.balanceOf(accounts[1].address)
-		console.log('Actual withdraw amount: ', wethAfter.sub(wethBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
-	})
-
-	it('Should estimate deposit eYETI', async function () {
-		await increaseTime(1)
-		const [totalBefore] = await oracle.estimateStrategy(eYETI.address)
-		const depositAmount = WeiPerEther
-		const estimatedDepositValue = await controllerLens.callStatic.estimateDeposit(
-			eYETI.address,
-			router.address,
-			depositAmount,
-			0,
-			'0x'
-		)
-		console.log('Estimated deposit value: ', estimatedDepositValue.toString())
-		await controller
-			.connect(accounts[1])
-			.deposit(eYETI.address, router.address, 0, 0, '0x', { value: depositAmount })
-		const [totalAfter] = await oracle.estimateStrategy(eYETI.address)
-		console.log('Actual deposit value: ', totalAfter.sub(totalBefore).toString())
-		logTestComplete(this, __dirname, proofCounter++)
-	})
-
-	it('Should estimate withdraw eYETI', async function () {
-		await increaseTime(1)
-		const withdrawAmount = await eYETI.balanceOf(accounts[1].address)
-		const wethBefore = await weth.balanceOf(accounts[1].address)
-		await eYETI.connect(accounts[1]).approve(controllerLens.address, withdrawAmount)
-		const estimatedWithdrawValue = await controllerLens
-			.connect(accounts[1])
-			.callStatic.estimateWithdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
-		console.log('Estimated withdraw value: ', estimatedWithdrawValue.toString())
-		let tx = await controller
-			.connect(accounts[1])
-			.withdrawWETH(eYETI.address, router.address, withdrawAmount, 0, '0x')
 		const receipt = await tx.wait()
 		console.log('Withdraw Gas Used: ', receipt.gasUsed.toString())
 		const wethAfter = await weth.balanceOf(accounts[1].address)
