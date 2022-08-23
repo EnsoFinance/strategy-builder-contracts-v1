@@ -385,7 +385,7 @@ describe('AaveAdapter', function () {
 			strategy.address,
 			fullRouter.address,
 			amount,
-			'950', // note the high slippage!
+			'940', // note the high slippage!
 			'0x',
 			{ gasLimit: '5000000' }
 		)
