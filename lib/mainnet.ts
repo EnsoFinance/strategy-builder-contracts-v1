@@ -2,10 +2,6 @@ import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract } from 'ethers'
 import { Platform, Administration, Oracles } from './deploy'
 import deployments from '../deployments.json'
-import hre from 'hardhat'
-const { ethers } = hre
-const { constants } = ethers
-const { AddressZero } = constants
 
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
@@ -163,7 +159,7 @@ export function livePlatform(signer: SignerWithAddress): Platform {
 	if (!deployments.mainnet) throw Error('Deployment addresses not found')
 	const addrs = deployments.mainnet
 	const strategyLibrary = new Contract(addrs.StrategyLibrary, StrategyLibrary.abi, signer)
-	const controllerLibrary = new Contract(AddressZero, ControllerLibrary.abi, signer) // FIXME ControllerLibrary address when deployed
+	const controllerLibrary = new Contract(addrs.ControllerLibrary, ControllerLibrary.abi, signer) 
 
 	const tokenRegistry = new Contract(addrs.TokenRegistry, TokenRegistry.abi, signer)
 	const curveDepositZapRegistry = new Contract(addrs.CurveDepositZapRegistry, CurveDepositZapRegistry.abi, signer)

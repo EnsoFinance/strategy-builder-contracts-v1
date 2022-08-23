@@ -62,6 +62,10 @@
     }
   },
   {
+    "contractId": "1ed08c19341f",
+    "contractName": "StrategyControllerLens.sol"
+  },
+  {
     "contractId": "dbc2b7686bf5",
     "contractName": "StrategyControllerStorage.sol"
   },
@@ -312,10 +316,6 @@
   {
     "contractId": "166191cfc32f",
     "contractName": "ICurveStableSwap.sol"
-  },
-  {
-    "contractId": "7990c2f2c469",
-    "contractName": "IUniswapV3Registry_Deprecated.sol"
   },
   {
     "contractId": "e06c798d2f53",

@@ -305,12 +305,7 @@ async function main(): Promise<{ [key: string]: string }> {
 	let factoryOwner: string = ''
 	if (contracts['StrategyProxyFactory']) {
 		strategyProxyFactory = StrategyProxyFactory.attach(contracts['StrategyProxyFactory'])
-    console.log("debug before", strategyProxyFactory.address)
-    console.log(deployedContracts.mainnet.weth)
-	  console.log(await (new Contract(deployedContracts.mainnet.weth, ERC20.abi, signer)).totalSupply()) // debug sanity check
-    console.log(network)
-		factoryOwner = await strategyProxyFactory.owner() // debug failure here!! why!!
-    console.log("debug after")
+		factoryOwner = await strategyProxyFactory.owner()
 	}
 
 	// Add token estimators

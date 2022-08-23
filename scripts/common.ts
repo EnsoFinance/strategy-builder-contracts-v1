@@ -5,7 +5,7 @@ import { ESTIMATOR_CATEGORY } from '../lib/constants'
 import deploymentsJSON from '../deployments.json'
 const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
 
-const MAX_GAS_PRICE = hre.ethers.BigNumber.from('85000000000') // 85 gWEI
+const MAX_GAS_PRICE = hre.ethers.BigNumber.from('20000000000') // 20 gWEI
 
 export const contractAliases: { [key: string]: string } = {
 	SushiSwapAdapter: 'UniswapV2Adapter',
