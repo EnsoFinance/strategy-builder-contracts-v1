@@ -4,7 +4,6 @@ import { BigNumber, Contract } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Tokens } from '../lib/tokens'
 import { getLiveContracts } from '../lib/mainnet'
-import { deployOracle } from '../lib/deploy'
 import { createLink, linkBytecode } from '../lib/link'
 import { MAINNET_ADDRESSES, ITEM_CATEGORY, ESTIMATOR_CATEGORY, VIRTUAL_ITEM } from '../lib/constants'
 import { prepareStrategy } from '../lib/encode'
@@ -17,7 +16,8 @@ import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrar
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
-import TokenRegistry from '../artifacts/contracts/oracles/registries/TokenRegistry.sol/TokenRegistry.json'
+
+// ATTN dev: Tests contracts deployed to mainnet. Integration testing updates to contracts require a redeployment of updated contract within this test.
 
 const { constants, getSigners, getContractFactory } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -25,7 +25,6 @@ const { AddressZero, WeiPerEther } = constants
 const ownerAddress = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
 
 const synthRedeemer = '0xe533139Af961c9747356D947838c98451015e234'
-//const sDEFIAggregator = '0x646F23085281Dbd006FBFD211FD38d0743884864'
 
 describe('Remove sDEFI from live contracts', function () {
 	let proofCounter: number,
@@ -34,6 +33,7 @@ describe('Remove sDEFI from live contracts', function () {
 		manager: SignerWithAddress,
 		tokens: Tokens,
 		weth: Contract,
+		whitelist: Contract,
 		router: Contract,
 		controller: Contract,
 		oracle: Contract,
@@ -84,38 +84,27 @@ describe('Remove sDEFI from live contracts', function () {
 		const enso = getLiveContracts(accounts[0])
 		controller = enso.platform.controller
 		router = enso.routers.multicall
+		whitelist = enso.platform.administration.whitelist
+		await whitelist.connect(owner).approve(router.address)
 		const strategyFactory = enso.platform.strategyFactory
-		const { uniswapV3Registry, chainlinkRegistry } = enso.platform.oracles.registries
-
-		// Deploy test UniswapV3RegistryWrapper
-		const UniswapV3RegistryWrapper = await getContractFactory('UniswapV3RegistryWrapper')
-		const uniswapV3RegistryWrapper = await UniswapV3RegistryWrapper.deploy(uniswapV3Registry.address)
-		await uniswapV3RegistryWrapper.deployed()
-		await uniswapV3Registry.connect(owner).transferOwnership(uniswapV3RegistryWrapper.address)
-
-		// Deploy new token registry
-		const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
-		await tokenRegistry.deployed()
-
-		// Deploy new oracle
-		oracle = (
-			await deployOracle(
-				owner,
-				strategyFactory.address,
-				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-				MAINNET_ADDRESSES.UNISWAP_V3_FACTORY,
-				uniswapV3RegistryWrapper.address,
-				chainlinkRegistry.address,
-				weth.address,
-				tokens.sUSD,
-				(estimatorCategory: number, estimatorAddress: string) => {
-					return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
-				}
-			)
-		)[0]
+		const { tokenRegistry, uniswapV3Registry, chainlinkRegistry } = enso.platform.oracles.registries
 
 		// Transfer token registry
-		await tokenRegistry.connect(owner).transferOwnership(strategyFactory.address)
+		await tokenRegistry
+			.connect(await impersonate(await tokenRegistry.owner()))
+			.transferOwnership(strategyFactory.address)
+
+		if ((await chainlinkRegistry.owner()).toLowerCase() !== owner.address.toLowerCase)
+			await chainlinkRegistry
+				.connect(await impersonate(await chainlinkRegistry.owner()))
+				.transferOwnership(owner.address)
+
+		if ((await uniswapV3Registry.owner()).toLowerCase() !== owner.address.toLowerCase)
+			await uniswapV3Registry
+				.connect(await impersonate(await uniswapV3Registry.owner()))
+				.transferOwnership(owner.address)
+
+		oracle = enso.platform.oracles.ensoOracle
 
 		// Deploy SynthRedeemerAdapter
 		const SynthRedeemerAdapter = await getContractFactory('SynthRedeemerAdapter')

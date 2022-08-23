@@ -71,7 +71,7 @@ function getNetworks(): NetworksUserConfig {
 		if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
-				blockNumber: 15361200,
+				blockNumber: 15394205,
 			}
 	}
 	if (mnemonic && infuraApiKey) {
@@ -222,7 +222,7 @@ let config: HardhatUserConfig = {
 		}
 	},
 	mocha: {
-		timeout: 80000,
+		timeout: 100000,
 	},
 }
 
