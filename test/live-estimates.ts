@@ -238,11 +238,6 @@ describe('Live Estimates', function () {
 				.connect(await impersonate(await chainlinkRegistry.owner()))
 				.transferOwnership(owner.address)
 
-		if ((await chainlinkRegistry.owner()).toLowerCase() !== owner.address.toLowerCase)
-			await chainlinkRegistry
-				.connect(await impersonate(await chainlinkRegistry.owner()))
-				.transferOwnership(owner.address)
-
 		if ((await uniswapV3Registry.owner()).toLowerCase() !== owner.address.toLowerCase)
 			await uniswapV3Registry
 				.connect(await impersonate(await uniswapV3Registry.owner()))
