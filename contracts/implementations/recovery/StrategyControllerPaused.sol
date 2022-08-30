@@ -28,8 +28,12 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     /**
      * @dev Called to initialize proxy
      */
-    function initialize() external initializer {
-        revert("StrategyControllerPaused.");
+    function initialize() external initializer override {
+      // FIXME SUPPRESSING REVERT FOR BENCHMARKING of clonableProxy
+
+      uint256 trivialDummyOperation = uint256(address(this)); // FIXME 
+
+        //revert("StrategyControllerPaused.");
     }
 
     /**

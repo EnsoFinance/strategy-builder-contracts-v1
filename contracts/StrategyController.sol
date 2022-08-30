@@ -51,7 +51,7 @@ contract StrategyController is IStrategyController, StrategyControllerStorage, I
     /**
      * @dev Called to initialize proxy
      */
-    function initialize() external initializer {
+    function initialize() external initializer override {
         updateAddresses();
         _require(address(this)== ControllerLibrary.self(), uint256(0x1bb63a90056c00) /* error_macro_for("Sanity check that Library shares context.") */);
     }
