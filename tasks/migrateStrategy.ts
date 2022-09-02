@@ -47,6 +47,7 @@ task(MIGRATE_STRATEGY, "Migrate a strategy to new contracts")
       newAdapters: string[],
       oldAdapters: string[]
     ) {
+      const timelock = (await controller.strategyState(strategy.address)).timelock
       const items = await strategy.items()
       for (let i = 0; i < items.length; i++) {
         console.log(`Looking up ${items[i]}...`)
@@ -69,7 +70,7 @@ task(MIGRATE_STRATEGY, "Migrate a strategy to new contracts")
             ...tradeData,
             adapters: adapters,
           })
-          await increaseTime(5 * 60)
+          await increaseTime(timelock)
           await controller.connect(manager).finalizeTradeData(strategy.address)
         }
       }
