@@ -27,6 +27,8 @@
     "coverage": "rm -r artifacts && rm -r typechain && TS_NODE_TRANSPILE_ONLY=true yarn hardhat coverage",
     "deploy": "yarn hardhat run scripts/full-deploy-script.ts --network",
     "deploy-upgrade": "yarn hardhat run scripts/code-4rena-deploy.ts --network",
+    "migrate-platform": "yarn hardhat run scripts/code-4rena-migrate-platform.ts --network localhost",
+    "migrate-strategy": "yarn hardhat migrateStrategy --network localhost --strategy",
     "register-tokens": "yarn hardhat run scripts/register-token.ts --network",
     "register-dictionary": "yarn hardhat run scripts/register-dictionary.js --network",
     "fill-ui": "yarn hardhat run scripts/fill-ui-script.js --network",
