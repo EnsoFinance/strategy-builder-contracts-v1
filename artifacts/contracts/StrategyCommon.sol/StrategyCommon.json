@@ -1,0 +1,40 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "StrategyCommon",
+  "sourceName": "contracts/StrategyCommon.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "factory_",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "controller_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "DOMAIN_SEPARATOR",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60c060405234801561001057600080fd5b5060405161014738038061014783398101604081905261002f9161004d565b6001600160601b0319606092831b8116608052911b1660a05261009e565b6000806040838503121561005f578182fd5b825161006a81610086565b602084015190925061007b81610086565b809150509250929050565b6001600160a01b038116811461009b57600080fd5b50565b60805160601c60a05160601c608c6100bb6000395050608c6000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80633644e51514602d575b600080fd5b60336047565b604051603e9190604d565b60405180910390f35b60005481565b9081526020019056fea26469706673582212209fb9c0ee57f1efc420ab86483135ecfcae9b2703560e9de9e8b8039e2a0c0d8864736f6c634300060c0033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c80633644e51514602d575b600080fd5b60336047565b604051603e9190604d565b60405180910390f35b60005481565b9081526020019056fea26469706673582212209fb9c0ee57f1efc420ab86483135ecfcae9b2703560e9de9e8b8039e2a0c0d8864736f6c634300060c0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

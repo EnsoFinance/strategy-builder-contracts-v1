@@ -1,0 +1,123 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "IStrategyManagement",
+  "sourceName": "contracts/interfaces/IStrategyManagement.sol",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "name_",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "symbol_",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "version_",
+          "type": "string"
+        },
+        {
+          "internalType": "address",
+          "name": "manager_",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "item",
+              "type": "address"
+            },
+            {
+              "internalType": "int256",
+              "name": "percentage",
+              "type": "int256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address[]",
+                  "name": "adapters",
+                  "type": "address[]"
+                },
+                {
+                  "internalType": "address[]",
+                  "name": "path",
+                  "type": "address[]"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "cache",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct StrategyTypes.TradeData",
+              "name": "data",
+              "type": "tuple"
+            }
+          ],
+          "internalType": "struct StrategyTypes.StrategyItem[]",
+          "name": "strategyItems_",
+          "type": "tuple[]"
+        }
+      ],
+      "name": "initialize",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "manager",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newManager",
+          "type": "address"
+        }
+      ],
+      "name": "updateManager",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "newVersion",
+          "type": "string"
+        }
+      ],
+      "name": "updateVersion",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}
