@@ -5,6 +5,7 @@
 // Runtime Environment's members available in the global scope.
 import hre from 'hardhat'
 import { Contract } from 'ethers'
+import { impersonate } from '../lib/utils'
 import deploymentsJSON from '../deployments.json'
 
 const deployments: { [key: string]: { [key: string]: string } } = deploymentsJSON
@@ -28,8 +29,9 @@ async function main() {
 	// await hre.run('compile');
 	const [signer] = await hre.ethers.getSigners()
 	const multisig = '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB'
-	const owner = network == 'mainnet' ? multisig : signer.address //smart contract upgrades multisig
-	console.log('Owner: ', owner)
+	const deployer = '0x77b59E6CcDB8962192e48a848fdeaf6c0796Afa4'
+	const owner = network == 'mainnet' ? signer : await impersonate(deployer)
+	console.log('Owner: ', owner.address)
 
 	const TokenRegistry = await hre.ethers.getContractFactory('TokenRegistry')
 	let tokenRegistry: Contract
@@ -41,10 +43,10 @@ async function main() {
 	const tokenRegistryOwner = await tokenRegistry.owner()
 	const factoryAddress = contracts['StrategyProxyFactory']
 	if (tokenRegistryOwner.toLowerCase() !== factoryAddress.toLowerCase()) {
-		if (tokenRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+		if (tokenRegistryOwner.toLowerCase() !== owner.address.toLowerCase()) {
 			throw Error("Signer doesn't own tokenRegistry.")
 		}
-		const tx = await tokenRegistry.connect(signer).transferOwnership(factoryAddress)
+		const tx = await tokenRegistry.connect(owner).transferOwnership(factoryAddress)
 		const receipt = await tx.wait()
 		console.log('tokenRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
 	}
@@ -58,10 +60,10 @@ async function main() {
 	}
 	const chainlinkRegistryOwner = await chainlinkRegistry.owner()
 	if (chainlinkRegistryOwner.toLowerCase() !== multisig.toLowerCase()) {
-		if (chainlinkRegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+		if (chainlinkRegistryOwner.toLowerCase() !== owner.address.toLowerCase()) {
 			throw Error("Signer doesn't own chainlinkRegistry.")
 		}
-		const tx = await chainlinkRegistry.connect(signer).transferOwnership(multisig)
+		const tx = await chainlinkRegistry.connect(owner).transferOwnership(multisig)
 		const receipt = await tx.wait()
 		console.log('chainlinkRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
 	}
@@ -75,10 +77,10 @@ async function main() {
 	}
 	const uniswapV3RegistryOwner = await uniswapV3Registry.owner()
 	if (uniswapV3RegistryOwner.toLowerCase() !== multisig.toLowerCase()) {
-		if (uniswapV3RegistryOwner.toLowerCase() !== signer.address.toLowerCase()) {
+		if (uniswapV3RegistryOwner.toLowerCase() !== owner.address.toLowerCase()) {
 			throw Error("Signer doesn't own uniswapV3Registry.")
 		}
-		const tx = await uniswapV3Registry.connect(signer).transferOwnership(multisig)
+		const tx = await uniswapV3Registry.connect(owner).transferOwnership(multisig)
 		const receipt = await tx.wait()
 		console.log('chainlinkRegistry.transferOwnership tx.receipt.transactionHash', receipt.transactionHash)
 	}
