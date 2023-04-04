@@ -9,6 +9,7 @@ import './tasks/accounts'
 import './tasks/clean'
 import './tasks/addOwnerFunds'
 import './tasks/addContractsToDefenderAdmin'
+import './tasks/migrateStrategy'
 
 dotenv.config()
 
