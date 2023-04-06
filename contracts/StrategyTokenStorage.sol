@@ -14,7 +14,7 @@ contract StrategyTokenStorage is StrategyTypes {
     string internal _symbol;
     string internal _version;
 
-    uint8 internal _locked;
+    LockType internal _locked;
     uint224 internal _streamingFeeRate;
     uint16 internal _performanceFee;
     uint16 internal _rebalanceThreshold;
@@ -34,7 +34,10 @@ contract StrategyTokenStorage is StrategyTypes {
     address[] internal _debt;
     mapping(address => int256) internal _percentage;
     mapping(address => TradeData) internal _tradeData;
+    bytes[] internal _claimables;
+    uint256 internal _managementFee;
+    uint256 internal _managementFeeRate;
 
     // Gap for future storage changes
-    uint256[50] private __gap;
+    uint256[47] private __gap;
 }

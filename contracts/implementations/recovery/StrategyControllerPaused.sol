@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/proxy/Initializable.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "../../interfaces/IStrategyController.sol";
 import "../../interfaces/IStrategyProxyFactory.sol";
+import "../../libraries/StrategyLibrary.sol";
 import "../../StrategyControllerStorage.sol";
 
 /**
@@ -28,7 +29,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      * @dev Called to initialize proxy
      */
     function initialize() external initializer {
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -47,7 +48,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         bytes memory data_
     ) external payable override {
         (manager_, strategy_, state_, router_, data_); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -65,7 +66,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         bytes memory data
     ) external payable override {
         (strategy, router, amount, slippage, data); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -83,7 +84,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         bytes memory data
     ) external override {
         (strategy, router, amount, slippage, data); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -101,7 +102,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         bytes memory data
     ) external override {
         (strategy, router, amount, slippage, data); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -115,19 +116,25 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         bytes memory data
     ) external override {
         (strategy, router, data); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
      * @notice Exchange all Synths into or out of sUSD to facilitate rebalancing of the rest of the strategy.
      *         In order to rebalance the strategy, all Synths must first be converted into sUSD
      * @param strategy The address of the strategy being withdrawn from
-     * @param adapter The address of the synthetix adapter to handle the exchanging of all synths
      * @param token The token being positioned into. Either sUSD or address(-1) which represents all of the strategy's Synth positions
      */
-    function repositionSynths(IStrategy strategy, address adapter, address token) external {
-        (strategy, adapter, token); // shh compiler
-        revert("StrategyControllerPaused.");
+    function repositionSynths(IStrategy strategy, address token) external override {
+        (strategy, token); // shh compiler
+        revert("StrategyControllerPaused");
+    }
+
+    function claimAll(
+        IStrategy strategy
+    ) external override {
+        (strategy); // shh compiler
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -140,7 +147,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         StrategyItem[] memory strategyItems
     ) external override {
         (strategy, strategyItems); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -155,7 +162,33 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         bytes memory data
     ) external override {
         (strategy, router, data); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
+    }
+
+    /**
+     * @notice Initiate an update of an item TradeData. This gives users a chance to withdraw before changes are finalized
+     * @param strategy The strategy that is being updated
+     * @param item The address of the item that is being updated
+     * @param data The trade data for the item
+     */
+    function updateTradeData(
+        IStrategy strategy,
+        address item,
+        TradeData calldata data
+    ) external override {
+        (strategy, item, data); // shh compiler
+        revert("StrategyControllerPaused");
+    }
+
+    /**
+     * @notice Finalize the trade data that was set in the timelock.
+     * @param strategy The strategy that is being updated
+     */
+    function finalizeTradeData(
+        IStrategy strategy
+    ) external override {
+        (strategy); // shh compiler
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -169,7 +202,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         uint256 newValue
     ) external override {
         (strategy, category, newValue); // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -178,7 +211,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      */
     function finalizeValue(IStrategy strategy) external override {
         strategy; // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -187,7 +220,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      */
     function openStrategy(IStrategy strategy) external override {
         strategy; // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     /**
@@ -196,7 +229,7 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
      */
     function setStrategy(IStrategy strategy) external override {
         strategy; // shh compiler
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 
     // @notice Initialized getter
@@ -219,7 +252,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         public
         view
         override
-        returns (bool)
     {
         require(newItems.length > 0, "Cannot set empty structure");
         require(newItems[0].item != address(0), "Invalid item addr"); //Everything else will caught by the ordering requirement below
@@ -246,13 +278,12 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
             total = total.add(percentage);
         }
         require(total == int256(DIVISOR), "Total percentage wrong");
-        return true;
     }
 
     /**
         @notice Refresh StrategyController's addresses
      */
-    function updateAddresses() public {
+    function updateAddresses() public override {
         IStrategyProxyFactory f = IStrategyProxyFactory(factory);
         _whitelist = f.whitelist();
         address o = f.oracle();
@@ -264,12 +295,29 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
         }
     }
 
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external override {
+        (rebalanceTimelockPeriod, rebalanceThresholdScalar);
+        revert("StrategyControllerPaused");
+    }
+
     function oracle() public view override returns (IOracle) {
         return IOracle(_oracle);
     }
 
     function whitelist() public view override returns (IWhitelist) {
         return IWhitelist(_whitelist);
+    }
+
+    function weth() external view override returns(address) {
+        return _weth;
+    }
+
+    function pool() external view override returns(address) {
+        return _pool;
+    }
+
+    function rebalanceThresholdScalar() external view override returns(uint256) {
+        return _rebalanceThresholdScalar;
     }
 
     // Internal Strategy Functions
@@ -289,6 +337,6 @@ contract StrategyControllerPaused is IStrategyController, StrategyControllerStor
     }
 
     receive() external payable {
-        revert("StrategyControllerPaused.");
+        revert("StrategyControllerPaused");
     }
 }

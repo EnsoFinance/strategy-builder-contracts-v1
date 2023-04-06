@@ -5,9 +5,18 @@ chai.use(solidity)
 const hre = require('hardhat')
 const { ethers } = hre
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
-import { increaseTime  } from '../lib/utils'
-import {  DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
+import { isRevertedWith } from '../lib/errors'
+import {
+	Platform,
+	deployTokens,
+	deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployLoopRouter,
+} from '../lib/deploy'
+import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
+import { DEFAULT_DEPOSIT_SLIPPAGE, TIMELOCK_CATEGORY } from '../lib/constants'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { Contract, BigNumber, Event } from 'ethers'
 const { constants, getContractFactory, getSigners } = ethers
@@ -19,14 +28,15 @@ const STRATEGY_STATE: InitialState = {
 	rebalanceThreshold: BigNumber.from(10),
 	rebalanceSlippage: BigNumber.from(997),
 	restructureSlippage: BigNumber.from(995),
-	performanceFee: BigNumber.from(50),
+	managementFee: BigNumber.from(5),
 	social: true,
-	set: false
+	set: false,
 }
 
-
 describe('StrategyController - Social', function () {
-	let tokens: Contract[],
+	let proofCounter: number
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -35,26 +45,27 @@ describe('StrategyController - Social', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 	})
 
@@ -67,51 +78,45 @@ describe('StrategyController - Social', function () {
 		]
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy',
-			'TEST',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy', 'TEST', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
-
-	it('Should fail to withdraw performance fee: no earnings', async function () {
-		await expect(strategy.connect(accounts[1]).withdrawPerformanceFee(accounts.map((account) => account.address))).to.be.revertedWith(
-			'No earnings'
-		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deposit more', async function () {
 		const balanceBefore = await strategy.balanceOf(accounts[2].address)
 		const tx = await controller
 			.connect(accounts[2])
-			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', { value: ethers.BigNumber.from('10000000000000000') })
+			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const balanceAfter = await strategy.balanceOf(accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
 		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase tokens, requiring a rebalance', async function () {
@@ -127,27 +132,17 @@ describe('StrategyController - Social', function () {
 			.swap(value, 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
-	})
-
-	it('Should fail to withdraw performance fee: not manager', async function () {
-		await expect(strategy.connect(accounts[2]).withdrawPerformanceFee(accounts.map((account) => account.address))).to.be.revertedWith(
-			'Not manager'
-		)
-	})
-
-	it('Should withdraw performance fee', async function () {
-		const balanceBefore = await strategy.balanceOf(accounts[1].address)
-		await strategy.connect(accounts[1]).withdrawPerformanceFee(accounts.map((account) => account.address))
-		const balanceAfter = await strategy.balanceOf(accounts[1].address)
-		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should withdraw', async function () {
@@ -158,6 +153,7 @@ describe('StrategyController - Social', function () {
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		const tokenBalanceAfter = BigNumber.from((await tokens[1].balanceOf(strategy.address)).toString())
 		expect(tokenBalanceBefore.gt(tokenBalanceAfter)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure', async function () {
@@ -169,35 +165,48 @@ describe('StrategyController - Social', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, strategyItems)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: time lock active', async function () {
-		await expect(controller.connect(accounts[1]).restructure(strategy.address, [], [])).to.be.revertedWith(
-			'Timelock active'
-		)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).restructure(strategy.address, [], []),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to update value: time lock active', async function () {
-		await expect(
-			controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0)
-		).to.be.revertedWith('Timelock active')
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to finalize structure: time lock not passed', async function () {
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, router.address, '0x')
-		).to.be.revertedWith('Timelock active')
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x'),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
 		await increaseTime(STRATEGY_STATE.timelock.toNumber())
 
-		await controller
-			.connect(accounts[1])
-			.finalizeStructure(strategy.address, router.address, '0x')
+		await controller.connect(accounts[1]).finalizeStructure(strategy.address, router.address, '0x')
 		//await displayBalances(wrapper, strategyItems, weth)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -209,20 +218,28 @@ describe('StrategyController - Social', function () {
 			.swap(value, 0, weth.address, tokens[2].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should update timelock + fail to finalize: timelock active', async function () {
 		await controller.connect(accounts[1]).updateValue(strategy.address, TIMELOCK_CATEGORY.TIMELOCK, 0)
-		await expect(controller.connect(accounts[1]).finalizeValue(strategy.address)).to.be.revertedWith(
-			'Timelock active'
-		)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).finalizeValue(strategy.address),
+				'Timelock active',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

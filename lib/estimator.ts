@@ -9,18 +9,21 @@ import IExchanger from '../artifacts/contracts/interfaces/synthetix/IExchanger.s
 import ICurveRegistry from '../artifacts/contracts/interfaces/curve/ICurveRegistry.sol/ICurveRegistry.json'
 import ICurveStableSwap from '../artifacts/contracts/interfaces/curve/ICurveStableSwap.sol/ICurveStableSwap.json'
 import ICurveDeposit from '../artifacts/contracts/interfaces/curve/ICurveDeposit.sol/ICurveDeposit.json'
+import IDMMFactory from '../artifacts/contracts/interfaces/kyber/IDMMFactory.sol/IDMMFactory.json'
+import IDMMRouter02 from '../artifacts/contracts/interfaces/kyber/IDMMRouter02.sol/IDMMRouter02.json'
 import IYEarnV2Vault from '../artifacts/contracts/interfaces/yearn/IYEarnV2Vault.sol/IYEarnV2Vault.json'
 import UniswapV2Router from '@uniswap/v2-periphery/build/UniswapV2Router01.json'
 import UniswapV3Quoter from '@uniswap/v3-periphery/artifacts/contracts/lens/Quoter.sol/Quoter.json'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
-import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES } from './constants'
+import { DIVISOR, ITEM_CATEGORY, MAINNET_ADDRESSES, VIRTUAL_ITEM } from './constants'
 
 const { AddressZero } = constants
 const { defaultAbiCoder } = utils
 
-const SYNTHETIX = '0xE95A536cF5C7384FF1ef54819Dc54E03d0FF1979'
-const SYNTHETIX_EXCHANGER = '0x3e343E89F4fF8057806F54F2208940B1Cd5C40ca'
+const SYNTHETIX = '0x08F30Ecf2C15A783083ab9D5b9211c22388d0564'
+const SYNTHETIX_EXCHANGER = '0xD64D83829D92B5bdA881f6f61A4e4E27Fc185387'
 const CURVE_REGISTRY = '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5'
+const SUSHI_ROUTER = '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F'
 const UNISWAP_V2_ROUTER = '0xf164fC0Ec4E93095b804a4795bBe1e041497b92a'
 const UNISWAP_V3_QUOTER = '0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6'
 const TRICRYPTO2 = '0xc4AD29ba4B3c580e6D59105FFf484999997675Ff'
@@ -29,7 +32,6 @@ const USDT = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 const WBTC = '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
 const WETH = MAINNET_ADDRESSES.WETH
 const SUSD = MAINNET_ADDRESSES.SUSD
-const VIRTUAL_ITEM = '0xffffffffffffffffffffffffffffffffffffffff'
 const NULL_TRADE_DATA: TradeData = {
   adapters: [],
   path: [],
@@ -47,6 +49,9 @@ export class Estimator {
   tokenRegistry: Contract
   curveDepositZapRegistry: Contract
   curveRegistry: Contract
+  kyberFactory: Contract
+  kyberRouter: Contract
+  sushiRouter: Contract
   synthetix: Contract
   synthetixExchanger: Contract
   uniswapV2Router: Contract
@@ -60,7 +65,9 @@ export class Estimator {
   curveAdapterAddress: string
   curveLPAdapterAddress: string
   curveGaugeAdapterAddress: string
+  kyberSwapAdapterAddress: string
   metaStrategyAdapterAddress: string
+  sushiSwapAdapterAddress: string
   synthetixAdapterAddress: string
   uniswapV2AdapterAddress: string
   uniswapV2LPAdapterAddress: string
@@ -79,7 +86,9 @@ export class Estimator {
     curveAdapterAddress: string,
     curveLPAdapterAddress: string,
     curveGaugeAdapterAddress: string,
+    kyberSwapAdapterAddress: string,
     metaStrategyAdapterAddress: string,
+    sushiSwapAdapterAddress: string,
     synthetixAdapterAddress: string,
     uniswapV2AdapterAddress: string,
     uniswapV3AdapterAddress: string,
@@ -88,6 +97,9 @@ export class Estimator {
     this.signer = signer
 
     this.curveRegistry = new Contract(CURVE_REGISTRY, ICurveRegistry.abi, signer)
+    this.kyberFactory = new Contract(MAINNET_ADDRESSES.KYBER_FACTORY, IDMMFactory.abi, signer)
+    this.kyberRouter = new Contract(MAINNET_ADDRESSES.KYBER_ROUTER, IDMMRouter02.abi, signer)
+    this.sushiRouter = new Contract(SUSHI_ROUTER, UniswapV2Router.abi, signer)
     this.synthetix = new Contract(SYNTHETIX, ISynthetix.abi, signer)
     this.synthetixExchanger = new Contract(SYNTHETIX_EXCHANGER, IExchanger.abi, signer)
     this.uniswapV2Router = new Contract(UNISWAP_V2_ROUTER, UniswapV2Router.abi, signer)
@@ -105,8 +117,10 @@ export class Estimator {
     this.curveAdapterAddress = curveAdapterAddress
     this.curveLPAdapterAddress = curveLPAdapterAddress
     this.curveGaugeAdapterAddress = curveGaugeAdapterAddress
+    this.kyberSwapAdapterAddress = kyberSwapAdapterAddress
     this.metaStrategyAdapterAddress = metaStrategyAdapterAddress
     this.synthetixAdapterAddress = synthetixAdapterAddress
+    this.sushiSwapAdapterAddress = sushiSwapAdapterAddress
     this.uniswapV2AdapterAddress = uniswapV2AdapterAddress
     this.uniswapV2LPAdapterAddress = AddressZero
     this.uniswapV3AdapterAddress = uniswapV3AdapterAddress
@@ -157,6 +171,7 @@ export class Estimator {
       }
 
       return this.estimateBatchBuy(
+        AddressZero,
         items,
         synths,
         itemsData,
@@ -187,6 +202,7 @@ export class Estimator {
       itemsData[VIRTUAL_ITEM] = await this.getStrategyItem(strategy, VIRTUAL_ITEM);
 
       return this.estimateBatchBuy(
+        strategy.address,
         items,
         synths,
         itemsData,
@@ -207,34 +223,66 @@ export class Estimator {
       ])
       const [ totalBefore, estimates ] = strategyEstimate
       const expectedWeth = totalBefore.mul(amount).div(totalSupply)
-      const totalAfter = totalBefore.sub(expectedWeth)
+      const expectedTotal = totalBefore.sub(expectedWeth)
 
-      const amounts: BigNumber[] = await Promise.all(items.map(async (item: string, index: number) => {
-        const [ percentage, data ] = await Promise.all([
-          strategy.getPercentage(item),
-          strategy.getTradeData(item)
-        ])
-        const estimatedValue = estimates[index];
-        const expectedValue = percentage.eq('0') ? BigNumber.from('0') : totalAfter.mul(percentage).div(DIVISOR)
-        if (estimatedValue.gt(expectedValue)) {
-            return this.estimateSellPath(
-                data,
-                await this.estimateSellAmount(strategy.address, item, estimatedValue.sub(expectedValue), estimatedValue),
-                item
-            );
-        }
-        return BigNumber.from('0')
-      }))
-      const percentage = await strategy.getPercentage(WETH);
-      if (percentage.gt('0')) {
-        const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
-        const expectedValue = totalAfter.mul(percentage).div(DIVISOR)
-        if (expectedValue.lt(wethBalance)) amounts.push(wethBalance.sub(expectedValue));
+      const wethAmounts: BigNumber[] = []
+      const estimateAmounts = [...estimates]
+
+      let i = 0;
+      let wethRemaining = expectedWeth
+      while (wethRemaining.gt(0) && i < items.length) {
+          const item = items[i]
+          const [ percentage, data ] = await Promise.all([
+            strategy.getPercentage(item),
+            strategy.getTradeData(item)
+          ])
+          const estimatedValue = estimates[i];
+          const expectedValue = percentage.eq('0') ? BigNumber.from('0') : expectedTotal.mul(percentage).div(DIVISOR)
+          if (estimatedValue.gt(expectedValue)) {
+              let diff = estimatedValue.sub(expectedValue)
+              if (diff.gt(wethRemaining)) {
+                  diff = wethRemaining
+                  wethRemaining = BigNumber.from(0)
+              } else {
+                  wethRemaining = wethRemaining.sub(diff)
+              }
+              if (diff.gt(0)) {
+                  const wethAmount = await this.estimateSellPath(
+                      data,
+                      await this.estimateSellAmount(strategy.address, item, diff, estimatedValue),
+                      item
+                  );
+                  estimateAmounts[i] = estimatedValue.sub(diff).add(wethAmount)
+                  wethAmounts.push(wethAmount)
+              }
+          }
+          i++
       }
-      return amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
+
+      const wethBalance = await (new Contract(WETH, ERC20.abi, this.signer)).balanceOf(strategy.address)
+      wethAmounts.push(wethBalance)
+      estimateAmounts.push(wethBalance)
+
+      const totalAfter = estimateAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
+      const totalWeth = wethAmounts.reduce((a: BigNumber, b: BigNumber) => a.add(b))
+
+      let wethAfterSlippage
+      if (totalBefore.gt(totalAfter)) {
+        const slippageAmount = totalBefore.sub(totalAfter)
+        if (slippageAmount.gt(expectedWeth)) return BigNumber.from(0)
+        wethAfterSlippage = expectedWeth.sub(slippageAmount)
+      } else {
+        wethAfterSlippage = expectedWeth
+      }
+      if (wethAfterSlippage.gt(totalWeth)) {
+        return totalWeth
+      } else {
+        return wethAfterSlippage
+      }
   }
 
   async estimateBatchBuy(
+      strategy: string,
       items: string[],
       synths: string[],
       itemsData: ItemDictionary,
@@ -253,7 +301,7 @@ export class Estimator {
               rebalanceRange,
               data
           );
-          return this.oracle['estimateItem(uint256,address)'](amount, item)
+          return this.oracle['estimateItem(address,address,uint256)'](strategy, item, amount)
       }))
       if (synths.length > 0) {
           // Purchase SUSD
@@ -268,7 +316,7 @@ export class Estimator {
               rebalanceRange,
               data
           );
-          amounts.push(await this.estimateBuySynths(itemsData, synths, percentage, susdAmount));
+          amounts.push(await this.estimateBuySynths(strategy, itemsData, synths, percentage, susdAmount));
       }
       const percentage = itemsData[WETH].percentage;
       if (percentage.gt('0')) {
@@ -277,7 +325,7 @@ export class Estimator {
       return amounts.reduce((a: BigNumber, b: BigNumber) => a.add(b));
   }
 
-  async estimateBuySynths(itemsData: ItemDictionary, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
+  async estimateBuySynths(strategy: string, itemsData: ItemDictionary, synths: string[], synthPercentage: BigNumber, susdAmount: BigNumber) {
     let totalValue = BigNumber.from('0')
     let susdRemaining = susdAmount
     for (let i = 0; i < synths.length; i++) {
@@ -291,14 +339,14 @@ export class Estimator {
             SUSD,
             synths[i]
           )
-          const value = await this.oracle['estimateItem(uint256,address)'](balance, synths[i])
+          const value = await this.oracle['estimateItem(address,address,uint256)'](strategy, synths[i], balance)
           totalValue = totalValue.add(value)
           susdRemaining = susdRemaining.sub(amount)
         }
       }
     }
     if (susdRemaining.gt('0')) {
-      const value = await this.oracle['estimateItem(uint256,address)'](susdRemaining, SUSD)
+      const value = await this.oracle['estimateItem(address,address,uint256)'](strategy, SUSD, susdRemaining)
       totalValue = totalValue.add(value)
     }
     return totalValue
@@ -411,8 +459,12 @@ export class Estimator {
         return this.estimateCurveLP(amount, tokenIn, tokenOut)
       case this.curveGaugeAdapterAddress.toLowerCase():
         return this.estimateCurveGauge(amount, tokenIn, tokenOut)
+      case this.kyberSwapAdapterAddress.toLowerCase():
+        return this.estimateKyberSwap(amount, tokenIn, tokenOut)
       case this.metaStrategyAdapterAddress.toLowerCase():
         return this.estimateMetaStrategy(amount, tokenIn, tokenOut)
+      case this.sushiSwapAdapterAddress.toLowerCase():
+        return this.estimateSushiSwap(amount, tokenIn, tokenOut)
       case this.synthetixAdapterAddress.toLowerCase():
         return this.estimateSynthetix(amount, tokenIn, tokenOut)
       case this.uniswapV2AdapterAddress.toLowerCase():
@@ -455,8 +507,13 @@ export class Estimator {
   async estimateCurve(amount: BigNumber, tokenIn: string, tokenOut: string) {
       const pool = await this.curveRegistry.find_pool_for_coins(tokenIn, tokenOut, 0);
       if (pool !== AddressZero) {
-          const [ indexIn, indexOut, ] = await this.curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
-          return (new Contract(pool, ICurveStableSwap.abi, this.signer)).get_dy(indexIn, indexOut, amount);
+          const [ indexIn, indexOut, isUnderlying ] = await this.curveRegistry.get_coin_indices(pool, tokenIn, tokenOut);
+          const curveStableSwap = new Contract(pool, ICurveStableSwap.abi, this.signer)
+          if (isUnderlying) {
+            return curveStableSwap.get_dy_underlying(indexIn, indexOut, amount);
+          } else {
+            return curveStableSwap.get_dy(indexIn, indexOut, amount);
+          }
       } else {
         return BigNumber.from('0')
       }
@@ -512,6 +569,11 @@ export class Estimator {
       return amount
   }
 
+  async estimateKyberSwap(amount: BigNumber, tokenIn: string, tokenOut: string) {
+    const pool = (await this.kyberFactory.getPools(tokenIn, tokenOut))[0];
+    return (await this.kyberRouter.getAmountsOut(amount, [pool], [tokenIn, tokenOut]))[1]
+  }
+
   async estimateMetaStrategy(amount: BigNumber, tokenIn: string, tokenOut: string) {
       if (tokenIn.toLowerCase() === WETH.toLowerCase()) {
         // Deposit
@@ -520,11 +582,16 @@ export class Estimator {
       } else if (tokenOut.toLowerCase() === WETH.toLowerCase()) {
         // Withdraw
         const strategy = new Contract(tokenIn, IStrategy.abi, this.signer)
+        amount = amount.sub(amount.mul(2).div(DIVISOR))
         return this.withdraw(strategy, amount)
       } else {
         // Meta strategies always have weth as an input or output
         return BigNumber.from('0')
       }
+  }
+
+  async estimateSushiSwap(amount: BigNumber, tokenIn: string, tokenOut: string) {
+    return (await this.sushiRouter.getAmountsOut(amount, [tokenIn, tokenOut]))[1]
   }
 
   async estimateSynthetix(amount: BigNumber, tokenIn: string, tokenOut: string) {

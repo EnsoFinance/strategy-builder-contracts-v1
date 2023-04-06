@@ -6,120 +6,163 @@ const { AddressZero, WeiPerEther } = constants
 import { solidity } from 'ethereum-waffle'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
+import { prepareStrategy, StrategyItem, InitialState, TradeData } from '../lib/encode'
 import { Tokens } from '../lib/tokens'
 import {
+	Platform,
 	deployCompoundAdapter,
 	deployUniswapV2Adapter,
 	deployPlatform,
-	deployLoopRouter
+	deployLoopRouter,
 } from '../lib/deploy'
-import { MAINNET_ADDRESSES } from '../lib/constants'
+import { DEFAULT_DEPOSIT_SLIPPAGE, MAINNET_ADDRESSES, ESTIMATOR_CATEGORY, ITEM_CATEGORY } from '../lib/constants'
 // import { displayBalances } from '../lib/logging'
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
 import WETH9 from '@uniswap/v2-periphery/build/WETH9.json'
 import UniswapV2Factory from '@uniswap/v2-core/build/UniswapV2Factory.json'
+import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 chai.use(solidity)
 
 describe('CompoundAdapter', function () {
-	let	weth: Contract,
+	let proofCounter: number
+	let platform: Platform,
+		weth: Contract,
 		usdt: Contract,
+		comp: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
 		router: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		uniswapAdapter: Contract,
 		compoundAdapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract,
-		tokens: Tokens,
-		cToken: string
+		tokens: Tokens
 
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = new Tokens()
 		weth = new Contract(tokens.weth, WETH9.abi, accounts[0])
 		usdt = new Contract(tokens.usdt, ERC20.abi, accounts[0])
+		comp = new Contract(tokens.COMP, ERC20.abi, accounts[0])
+
 		uniswapFactory = new Contract(MAINNET_ADDRESSES.UNISWAP_V2_FACTORY, UniswapV2Factory.abi, accounts[0])
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const whitelist = platform.administration.whitelist
+		const { tokenRegistry } = platform.oracles.registries
 
 		await tokens.registerTokens(accounts[0], strategyFactory)
 
-		router = await deployLoopRouter(accounts[0], controller, library)
+		router = await deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
 		uniswapAdapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
-		compoundAdapter = await deployCompoundAdapter(accounts[0], new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]), weth)
+		compoundAdapter = await deployCompoundAdapter(
+			accounts[0],
+			new Contract(MAINNET_ADDRESSES.COMPOUND_COMPTROLLER, [], accounts[0]),
+			weth,
+			tokenRegistry,
+			ESTIMATOR_CATEGORY.COMPOUND
+		)
 		await whitelist.connect(accounts[0]).approve(compoundAdapter.address)
+		const emptyTradeData: TradeData = {
+			adapters: [],
+			path: [],
+			cache: '0x',
+		}
+		const compTradeData: TradeData = {
+			adapters: [uniswapAdapter.address],
+			path: [],
+			cache: '0x',
+		}
+		await strategyFactory
+			.connect(accounts[0])
+			.addItemsDetailedToRegistry(
+				[ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC, ITEM_CATEGORY.BASIC],
+				[ESTIMATOR_CATEGORY.COMPOUND, ESTIMATOR_CATEGORY.COMPOUND, ESTIMATOR_CATEGORY.DEFAULT_ORACLE],
+				[tokens.cUSDT, tokens.cDAI, comp.address],
+				[emptyTradeData, emptyTradeData, compTradeData],
+				[compoundAdapter.address, compoundAdapter.address, AddressZero]
+			)
 	})
 
 	it('Should deploy strategy', async function () {
-		cToken = tokens.cUSDT
-
 		const name = 'Test Strategy'
 		const symbol = 'TEST'
 		const positions = [
-			{ token: weth.address, percentage: BigNumber.from(500) },
-			{ token: cToken, percentage: BigNumber.from(500), adapters: [uniswapAdapter.address, compoundAdapter.address], path: [tokens.usdt] }
+			{ token: weth.address, percentage: BigNumber.from(200) },
+			{
+				token: tokens.cUSDT,
+				percentage: BigNumber.from(400),
+				adapters: [uniswapAdapter.address, compoundAdapter.address],
+				path: [tokens.usdt],
+			},
+			{
+				token: tokens.cDAI,
+				percentage: BigNumber.from(400),
+				adapters: [uniswapAdapter.address, compoundAdapter.address],
+				path: [tokens.dai],
+			},
 		]
+		console.log('cDAI', tokens.cDAI)
+		console.log('cUSDT', tokens.cUSDT)
+		console.log('weth', weth.address)
+		console.log('comp', comp.address)
+		console.log('compAdapter', compoundAdapter.address)
 		strategyItems = prepareStrategy(positions, uniswapAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(995),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				accounts[1].address,
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: ethers.BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		expect(await controller.initialized(strategyAddress)).to.equal(true)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
 		// Approve the user to use the adapter
 		const value = WeiPerEther.mul(1000)
-		await weth.connect(accounts[19]).deposit({value: value})
+		await weth.connect(accounts[19]).deposit({ value: value })
 		await weth.connect(accounts[19]).approve(uniswapAdapter.address, value)
 		await uniswapAdapter
 			.connect(accounts[19])
@@ -127,14 +170,17 @@ describe('CompoundAdapter', function () {
 
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		// await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance of strategy', async function () {
@@ -147,17 +193,42 @@ describe('CompoundAdapter', function () {
 
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems.map((item) => item.item), weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
-	it('Should claim rewards', async function() {
-		await strategy.connect(accounts[1]).claimRewards(compoundAdapter.address, cToken)
+	it('Should deposit more: ETH', async function () {
+		const balanceBefore = await strategy.balanceOf(accounts[1].address)
+		const tx = await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, router.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await strategy.balanceOf(accounts[1].address)
+		//await displayBalances(wrapper, strategyItems, weth)
+		expect(await wrapper.isBalanced()).to.equal(true)
+		expect(balanceAfter.gt(balanceBefore)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
+	})
+
+	it('Should claim rewards', async function () {
+		const balanceBefore = await comp.balanceOf(strategy.address)
+		const tx = await strategy.connect(accounts[1]).claimAll()
+		const receipt = await tx.wait()
+		console.log('Gas Used: ', receipt.gasUsed.toString())
+		const balanceAfter = await comp.balanceOf(strategy.address)
+		expect(balanceAfter).to.be.gt(balanceBefore)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

@@ -6,13 +6,16 @@ import * as deployer from '../lib/deploy'
 import { prepareStrategy, Position, StrategyItem, InitialState } from '../lib/encode'
 import { BigNumber, Contract, Event } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
+import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const { AddressZero, WeiPerEther, MaxUint256 } = constants
 const NUM_TOKENS = 3
 
-
 describe('BalancerAdapter', function () {
-	let tokens: Contract[],
+	let proofCounter: number
+	let platform: deployer.Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -21,7 +24,7 @@ describe('BalancerAdapter', function () {
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		router: Contract,
 		balancerAdapter: Contract,
 		uniswapAdapter: Contract,
@@ -29,24 +32,34 @@ describe('BalancerAdapter', function () {
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
+	before('Setup', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
+	})
+
 	it('Setup Balancer, Factory', async function () {
 		accounts = await getSigners()
 		tokens = await deployer.deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(200 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		;[balancerFactory, balancerRegistry] = await deployer.deployBalancer(accounts[0], tokens)
 		uniswapFactory = await deployer.deployUniswapV2(accounts[0], tokens)
-		const platform = await deployer.deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployer.deployPlatform(
+			accounts[0],
+			uniswapFactory,
+			new Contract(AddressZero, [], accounts[0]),
+			weth
+		)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		const whitelist = platform.administration.whitelist
 		uniswapAdapter = await deployer.deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		balancerAdapter = await deployer.deployBalancerAdapter(accounts[0], balancerRegistry, weth)
 		await whitelist.connect(accounts[0]).approve(uniswapAdapter.address)
 		await whitelist.connect(accounts[0]).approve(balancerAdapter.address)
-		router = await deployer.deployLoopRouter(accounts[0], controller, library)
+		router = await deployer.deployLoopRouter(accounts[0], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[0]).approve(router.address)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should deploy strategy', async function () {
@@ -55,59 +68,48 @@ describe('BalancerAdapter', function () {
 		const positions = [
 			{ token: tokens[1].address, percentage: BigNumber.from(500) },
 			{ token: tokens[2].address, percentage: BigNumber.from(500) },
-		] as Position[];
+		] as Position[]
 		strategyItems = prepareStrategy(positions, balancerAdapter.address)
 		const strategyState: InitialState = {
 			timelock: BigNumber.from(60),
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(995),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 		const tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				accounts[1].address,
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				router.address,
-				'0x',
-				{ value: BigNumber.from('10000000000000000') }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, router.address, '0x', {
+				value: BigNumber.from('10000000000000000'),
+			})
 		const receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await ethers.getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.connect(accounts[0]).attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap: tokens cannot match', async function () {
 		await expect(
-			balancerAdapter.swap(
-				1,
-				0,
-				tokens[0].address,
-				tokens[0].address,
-				accounts[0].address,
-				accounts[0].address
-			)
+			balancerAdapter.swap(1, 0, tokens[0].address, tokens[0].address, accounts[0].address, accounts[0].address)
 		).to.be.revertedWith('Tokens cannot match')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to swap: less than expected', async function () {
@@ -123,6 +125,7 @@ describe('BalancerAdapter', function () {
 				accounts[0].address
 			)
 		).to.be.revertedWith('ERR_LIMIT_OUT')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token for token', async function () {
@@ -142,6 +145,7 @@ describe('BalancerAdapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap token on uniswap, requiring a rebalance (since oracle is based off uniswap)', async function () {
@@ -161,14 +165,17 @@ describe('BalancerAdapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.lt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.gt(token1BalanceAfter)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy', async function () {
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should create a new pool', async function () {
@@ -184,6 +191,7 @@ describe('BalancerAdapter', function () {
 		await pool.finalize()
 		await balancerRegistry.addPoolPair(poolAddress, tokens[0].address, tokens[1].address)
 		await balancerRegistry.sortPools([tokens[0].address, tokens[1].address], 3)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should swap with multiple pools', async function () {
@@ -202,5 +210,6 @@ describe('BalancerAdapter', function () {
 		const token1BalanceAfter = await tokens[1].balanceOf(accounts[0].address)
 		expect(token0BalanceBefore.gt(token0BalanceAfter)).to.equal(true)
 		expect(token1BalanceBefore.lt(token1BalanceAfter)).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 })

@@ -4,12 +4,21 @@ const chai = require('chai')
 chai.use(solidity)
 
 const { ethers } = require('hardhat')
-const { constants, getContractFactory, getSigners} = ethers
+const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
 import { prepareStrategy, StrategyItem, InitialState } from '../lib/encode'
-import { deployTokens, deployUniswapV2, deployUniswapV2Adapter, deployPlatform, deployLoopRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployTokens,
+	deployUniswapV2,
+	deployUniswapV2Adapter,
+	deployPlatform,
+	deployLoopRouter,
+} from '../lib/deploy'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { BigNumber, Event, Contract} from 'ethers'
+import { BigNumber, Event, Contract } from 'ethers'
+import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const NUM_TOKENS = 10
 const STRATEGY_STATE: InitialState = {
@@ -17,9 +26,9 @@ const STRATEGY_STATE: InitialState = {
 	rebalanceThreshold: BigNumber.from(10),
 	rebalanceSlippage: BigNumber.from(997),
 	restructureSlippage: BigNumber.from(995),
-	performanceFee: BigNumber.from(50),
+	managementFee: BigNumber.from(0),
 	social: true,
-	set: false
+	set: false,
 }
 
 export enum TokenTypes {
@@ -35,11 +44,11 @@ export enum TokenTypes {
 }
 
 export class WeirdToken {
-	public contract: Contract;
-	public tokenType: TokenTypes;
+	public contract: Contract
+	public tokenType: TokenTypes
 	constructor(contract: Contract, tokenType: TokenTypes) {
-		this.contract = contract;
-		this.tokenType = tokenType;
+		this.contract = contract
+		this.tokenType = tokenType
 	}
 	print() {
 		console.log('WeirdErc20: ')
@@ -49,24 +58,26 @@ export class WeirdToken {
 }
 
 describe('Weird ERC20s', function () {
+	let proofCounter: number
 	let tokens: Contract[],
 		weth: Contract,
 		weirdTokens: WeirdToken[],
 		accounts: SignerWithAddress[],
+		platform: Platform,
 		uniswapFactory: Contract,
 		strategyFactory: Contract,
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		router: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
-
 	before('Setup Uniswap + Factory', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		const defaultSupply = WeiPerEther.mul(10000)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[10], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
@@ -112,15 +123,15 @@ describe('Weird ERC20s', function () {
 		const weirdTokenContracts = weirdTokens.map((token) => token.contract)
 
 		uniswapFactory = await deployUniswapV2(accounts[10], weirdTokenContracts)
-		const platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
+		platform = await deployPlatform(accounts[10], uniswapFactory, new Contract(AddressZero, [], accounts[10]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[10], uniswapFactory, weth)
 		await whitelist.connect(accounts[10]).approve(adapter.address)
-		router = await deployLoopRouter(accounts[10], controller, library)
+		router = await deployLoopRouter(accounts[10], controller, platform.strategyLibrary)
 		await whitelist.connect(accounts[10]).approve(router.address)
 
 		// remove weth from weird token list
@@ -137,31 +148,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy',
-			'TEST',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy', 'TEST', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance ApprovalRaceToken strategy', async function () {
@@ -175,7 +183,9 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with HighDecimals token', async function () {
@@ -187,31 +197,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy 2',
-			'TEST2',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 2', 'TEST2', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance HighDecimals strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -224,7 +231,9 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with LowDecimals token', async function () {
@@ -236,31 +245,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy 3',
-			'TEST3',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 3', 'TEST3', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance LowDecimals strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -273,7 +279,9 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with RevertToZero token', async function () {
@@ -285,31 +293,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy 4',
-			'TEST4',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 4', 'TEST4', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance RevertToZero strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -322,7 +327,9 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with RevertZero token', async function () {
@@ -334,31 +341,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy 5',
-			'TEST5',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 5', 'TEST5', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance RevertZero strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -371,7 +375,9 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with TransferFee token', async function () {
@@ -383,31 +389,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy 6',
-			'TEST6',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 6', 'TEST6', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance TransferFeeToken strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -420,7 +423,9 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Deploy strategy with Uint96 token', async function () {
@@ -432,31 +437,28 @@ describe('Weird ERC20s', function () {
 
 		strategyItems = prepareStrategy(positions, adapter.address)
 
-		let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-			accounts[1].address,
-			'Test Strategy 7',
-			'TEST7',
-			strategyItems,
-			STRATEGY_STATE,
-			router.address,
-			'0x',
-			{ value: ethers.BigNumber.from('10000000000000000') }
-		)
+		let tx = await strategyFactory
+			.connect(accounts[1])
+			.createStrategy('Test Strategy 7', 'TEST7', strategyItems, STRATEGY_STATE, router.address, '0x', {
+				value: ethers.BigNumber.from('10000000000000000'),
+			})
 		let receipt = await tx.wait()
 
 		const strategyAddress = receipt.events.find((ev: Event) => ev.event === 'NewStrategy').args.strategy
-		const Strategy = await getContractFactory('Strategy')
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = await Strategy.attach(strategyAddress)
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategyAddress, controller.address)
 		await wrapper.deployed()
 
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 	it('Should rebalance Uint96Token strategy', async function () {
 		// Other account purchases from uniswap (puts strategy out of balance)
@@ -469,43 +471,8 @@ describe('Weird ERC20s', function () {
 		expect(await wrapper.isBalanced()).to.equal(false)
 
 		// Rebalance
+		await increaseTime(5 * 60 + 1)
 		await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
-
-	// it('Deploy strategy with NoRevert token', async function () {
-	// 	let tx = await strategyFactory.connect(accounts[1]).createStrategy(
-	// 		accounts[1].address,
-	// 		'Test Strategy 8',
-	// 		'TEST 8',
-	// 		strategyItems,
-	// 		STRATEGY_STATE,
-	// 		router.address,
-	// 		'0x',
-	// 		{ value: ethers.BigNumber.from('10000000000000000') }
-	// 	)
-	// 	let receipt = await tx.wait()
-
-	// 	const strategyAddress = receipt.events.find((ev) => ev.event === 'NewStrategy').args.strategy
-	// 	const Strategy = await getContractFactory('Strategy')
-	// 	strategy = await Strategy.attach(strategyAddress)
-
-	// 	const LibraryWrapper = await getContractFactory('LibraryWrapper')
-	// 	wrapper = await LibraryWrapper.connect(accounts[0]).deploy(oracle.address, strategyAddress)
-	// 	await wrapper.deployed()
-
-	// 	expect(await wrapper.isBalanced()).to.equal(true)
-	// })
-	// it('Should rebalance NoRevertToken strategy', async function () {
-	// 	// Other account purchases from uniswap (puts strategy out of balance)
-	// 	const value = WeiPerEther.mul(50)
-	// 	await weth.connect(accounts[2]).deposit({ value: value.mul(2) })
-	// 	await weth.connect(accounts[2]).approve(adapter.address, value.mul(2))
-	// 	await adapter
-	// 		.connect(accounts[2])
-	// 		.swap(value, 0, weth.address, weirdTokens[8].address, accounts[2].address, accounts[2].address)
-	// 	expect(await wrapper.isBalanced()).to.equal(false)
-
-	// 	// Rebalance
-	// 	await controller.connect(accounts[1]).rebalance(strategy.address, router.address, '0x')
-	// })
 })

@@ -12,7 +12,12 @@ contract StrategyControllerStorage  is StrategyTypes {
     mapping(address => uint256) internal _initialized;
     mapping(address => StrategyState) internal _strategyStates;
     mapping(address => Timelock) internal _timelocks;
+    address internal _pool;
+    mapping(bytes32 => TimelockData) internal __timelockData;
+
+    uint256 internal _rebalanceTimelockPeriod; 
+    uint256 internal _rebalanceThresholdScalar; 
 
     // Gap for future storage changes
-    uint256[50] private __gap;
+    uint256[46] private __gap;
 }

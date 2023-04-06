@@ -1,0 +1,362 @@
+{
+  "_format": "hh-sol-artifact-1",
+  "contractName": "ITokenRegistry",
+  "sourceName": "contracts/interfaces/registries/ITokenRegistry.sol",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "estimator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "estimatorCategoryIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "EstimatorAdded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "itemCategoryIndex",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "estimatorCategoryIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "ItemAdded",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "estimatorCategoryIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "estimator",
+          "type": "address"
+        }
+      ],
+      "name": "addEstimator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "itemCategoryIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "estimatorCategoryIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "addItem",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "itemCategoryIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "estimatorCategoryIndex",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address[]",
+              "name": "adapters",
+              "type": "address[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "path",
+              "type": "address[]"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cache",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct StrategyTypes.TradeData",
+          "name": "tradeData",
+          "type": "tuple"
+        },
+        {
+          "internalType": "address",
+          "name": "rewardsAdapter",
+          "type": "address"
+        }
+      ],
+      "name": "addItemDetailed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "itemCategoryIndexes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "estimatorCategoryIndexes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "tokens",
+          "type": "address[]"
+        }
+      ],
+      "name": "addItems",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[]",
+          "name": "itemCategoryIndexes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "uint256[]",
+          "name": "estimatorCategoryIndexes",
+          "type": "uint256[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "tokens",
+          "type": "address[]"
+        },
+        {
+          "components": [
+            {
+              "internalType": "address[]",
+              "name": "adapters",
+              "type": "address[]"
+            },
+            {
+              "internalType": "address[]",
+              "name": "path",
+              "type": "address[]"
+            },
+            {
+              "internalType": "bytes",
+              "name": "cache",
+              "type": "bytes"
+            }
+          ],
+          "internalType": "struct StrategyTypes.TradeData[]",
+          "name": "tradesData",
+          "type": "tuple[]"
+        },
+        {
+          "internalType": "address[]",
+          "name": "rewardsAdapters",
+          "type": "address[]"
+        }
+      ],
+      "name": "addItemsDetailed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "estimatorCategories",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "categoryIndex",
+          "type": "uint256"
+        }
+      ],
+      "name": "estimators",
+      "outputs": [
+        {
+          "internalType": "contract IEstimator",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "getEstimator",
+      "outputs": [
+        {
+          "internalType": "contract IEstimator",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "item",
+          "type": "address"
+        }
+      ],
+      "name": "isClaimable",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        }
+      ],
+      "name": "itemCategories",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "item",
+          "type": "address"
+        }
+      ],
+      "name": "itemDetails",
+      "outputs": [
+        {
+          "components": [
+            {
+              "components": [
+                {
+                  "internalType": "address[]",
+                  "name": "adapters",
+                  "type": "address[]"
+                },
+                {
+                  "internalType": "address[]",
+                  "name": "path",
+                  "type": "address[]"
+                },
+                {
+                  "internalType": "bytes",
+                  "name": "cache",
+                  "type": "bytes"
+                }
+              ],
+              "internalType": "struct StrategyTypes.TradeData",
+              "name": "tradeData",
+              "type": "tuple"
+            },
+            {
+              "internalType": "address",
+              "name": "rewardsAdapter",
+              "type": "address"
+            }
+          ],
+          "internalType": "struct ITokenRegistry.ItemDetails",
+          "name": "",
+          "type": "tuple"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x",
+  "deployedBytecode": "0x",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

@@ -2,16 +2,20 @@
 pragma solidity 0.7.6;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/TransparentUpgradeableProxy.sol";
 import "@openzeppelin/contracts/proxy/Initializable.sol";
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./StrategyProxyFactoryStorage.sol";
 import "./StrategyProxyAdmin.sol";
 import "./helpers/StrategyTypes.sol";
 import "./helpers/AddressUtils.sol";
 import "./helpers/StringUtils.sol";
+import "./helpers/EIP712.sol";
 import "./interfaces/IStrategyProxyFactory.sol";
 import "./interfaces/IStrategyManagement.sol";
 import "./interfaces/IStrategyController.sol";
+import "./interfaces/IOracle.sol";
 import "./interfaces/registries/ITokenRegistry.sol";
 
 /**
@@ -19,49 +23,22 @@ import "./interfaces/registries/ITokenRegistry.sol";
  * @dev The contract implements a custom PrxoyAdmin
  * @dev https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ProxyAdmin.sol
  */
-contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils {
+contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStorage, Initializable, AddressUtils, StringUtils, EIP712 {
+    using SafeMath for uint256;
+
+    uint256 internal constant PRECISION = 10**18;
+    uint256 internal constant DIVISOR = 1000;
+
     address public immutable override controller;
 
-    /**
-     * @notice Log the address of an implementation contract update
-     */
-    event Update(address newImplementation, string version);
 
-    /**
-     * @notice Log the creation of a new strategy
-     */
-    event NewStrategy(
-        address strategy,
-        address manager,
-        string name,
-        string symbol,
-        StrategyItem[] items
-    );
-
-    /**
-     * @notice Log the new Oracle for the strategys
-     */
-    event NewOracle(address newOracle);
-
-    /**
-     * @notice New default whitelist address
-     */
-    event NewWhitelist(address newWhitelist);
-
-    /**
-     * @notice New default pool address
-     */
-    event NewPool(address newPool);
-
-    /**
-     * @notice Log ownership transfer
-     */
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    bytes32 private constant _CREATE_TYPEHASH =
+      keccak256("Create(string name,string symbol)");
 
     /**
      * @notice Initialize constructor to disable implementation
      */
-    constructor(address controller_) initializer {
+    constructor(address controller_) EIP712("StrategyProxyFactory", "1") initializer {
         controller = controller_;
     }
 
@@ -74,27 +51,32 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         address pool_
     ) external
         initializer
-        noZeroAddress(owner_)
-        noZeroAddress(implementation_)
-        noZeroAddress(oracle_)
-        noZeroAddress(registry_)
-        noZeroAddress(whitelist_)
-        noZeroAddress(pool_)
         returns (bool)
     {
+        _noZeroAddress(owner_);
+        _noZeroAddress(implementation_);
+        _noZeroAddress(oracle_);
+        _noZeroAddress(registry_);
+        _noZeroAddress(whitelist_);
+        _noZeroAddress(pool_);
         admin = address(new StrategyProxyAdmin());
         owner = owner_;
         _implementation = implementation_;
+        _creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(implementation_, admin, new bytes(0))));
         _oracle = oracle_;
         _registry = registry_;
         _whitelist = whitelist_;
         _pool = pool_;
+        _streamingFee = uint256(1001001001001001); // 0.1% inflation
         _version = "1";
-        emit Update(_implementation, _version);
-        emit NewOracle(_oracle);
-        emit NewWhitelist(_whitelist);
-        emit NewPool(_pool);
-        emit OwnershipTransferred(address(0), owner);
+        IOracle(_oracle).updateAddresses();
+        emit Update(implementation_, "1");
+        emit NewOracle(oracle_);
+        emit NewWhitelist(whitelist_);
+        emit NewPool(pool_);
+        emit NewStreamingFee(uint256(1));
+        emit OwnershipTransferred(address(0), owner_);
         return true;
     }
 
@@ -109,52 +91,83 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         @dev Can send ETH with this call to automatically deposit items into the strategy
     */
     function createStrategy(
-        address manager,
-        string memory name,
-        string memory symbol,
+        string calldata name,
+        string calldata symbol,
         StrategyItem[] memory strategyItems,
         InitialState memory strategyState,
         address router,
         bytes memory data
-    ) external payable override returns (address){
-        address strategy = _createProxy(manager, name, symbol, strategyItems);
-        emit NewStrategy(
-            strategy,
-            manager,
-            name,
-            symbol,
-            strategyItems
-        );
-        _setupStrategy(
-           manager,
-           strategy,
-           strategyState,
-           router,
-           data
-        );
-        return strategy;
+    ) external payable override returns (address) {
+        return _createStrategy(msg.sender, name, symbol, strategyItems, strategyState, router, data);
     }
 
-    function updateImplementation(address newImplementation, string memory newVersion) external noZeroAddress(newImplementation) onlyOwner {
+    function createStrategyFor(
+        address manager,
+        string calldata name,
+        string calldata symbol,
+        StrategyItem[] memory strategyItems,
+        InitialState memory strategyState,
+        address router,
+        bytes memory data,
+        bytes calldata signature
+    ) external payable override returns (address) {
+        bytes32 structHash = keccak256(abi.encode(_CREATE_TYPEHASH, keccak256(bytes(name)), keccak256(bytes(symbol))));
+        bytes32 digest = _hashTypedDataV4(structHash);
+        address signer = ECDSA.recover(digest, signature);
+        require(signer == manager, "createStrategyFor: invalid.");
+        return _createStrategy(signer, name, symbol, strategyItems, strategyState, router, data);
+    }
+
+    function updateImplementation(address newImplementation, string calldata newVersion) external onlyOwner {
+        _noZeroAddress(newImplementation);
         require(parseInt(newVersion) > parseInt(_version), "Invalid version");
         _implementation = newImplementation;
+        _creationCodeHash = keccak256(abi.encodePacked(
+              type(TransparentUpgradeableProxy).creationCode, abi.encode(newImplementation, admin, new bytes(0))));
         _version = newVersion;
-        emit Update(newImplementation, _version);
+        emit Update(newImplementation, newVersion);
     }
 
-    function updateOracle(address newOracle) external noZeroAddress(newOracle) onlyOwner {
+    function updateOracle(address newOracle) external onlyOwner {
+        _noZeroAddress(newOracle);
         _oracle = newOracle;
         emit NewOracle(newOracle);
     }
 
-    function updateWhitelist(address newWhitelist) external noZeroAddress(newWhitelist) onlyOwner {
+    function updateRegistry(address newRegistry) external onlyOwner {
+        _noZeroAddress(newRegistry);
+        _registry = newRegistry;
+        IOracle(_oracle).updateAddresses();
+        emit NewRegistry(newRegistry);
+    }
+
+    function updateWhitelist(address newWhitelist) external onlyOwner {
+        _noZeroAddress(newWhitelist);
         _whitelist = newWhitelist;
         emit NewWhitelist(newWhitelist);
     }
 
-    function updatePool(address newPool) external noZeroAddress(newPool) onlyOwner {
+    function updatePool(address newPool) external onlyOwner {
+        _noZeroAddress(newPool);
         _pool = newPool;
         emit NewPool(newPool);
+    }
+
+    /*
+     * @param fee The percentage of the total supply that gets minted for the platform over a year
+     */
+    function updateStreamingFee(uint16 fee) external onlyOwner {
+        // The streaming fee mints a percentage of tokens over the course of a year.
+        // Due to this inflation, we calculate the _streamingFee multiplier such that
+        // when multiplied by the totalSupply equals the amount of tokens to be minted
+        // in order to get the correct percentage of the new total supply
+        _streamingFee = PRECISION.mul(fee).div(DIVISOR.sub(fee));
+        emit NewStreamingFee(uint256(fee));
+    }
+
+    function updateRebalanceParameters(uint256 rebalanceTimelockPeriod, uint256 rebalanceThresholdScalar) external onlyOwner {
+        IStrategyController(controller).updateRebalanceParameters(rebalanceTimelockPeriod, rebalanceThresholdScalar);
+        // controller emits RebalanceParametersUpdated event
     }
 
     /*
@@ -163,14 +176,36 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     function updateProxyVersion(address proxy) external override {
         require(msg.sender == admin, "Only admin");
         IStrategyManagement(proxy).updateVersion(_version);
+        // proxy (strategy) emits VersionUpdated event
     }
 
     function addEstimatorToRegistry(uint256 estimatorCategoryIndex, address estimator) external onlyOwner {
         ITokenRegistry(_registry).addEstimator(estimatorCategoryIndex, estimator);
+        // registry emits EstimatorAdded event
     }
 
-    function addItemsToRegistry(uint256[] calldata itemCategoryIndex, uint256[] calldata estimatorCategoryIndex, address[] calldata tokens) external onlyOwner {
-        ITokenRegistry(_registry).addItems(itemCategoryIndex, estimatorCategoryIndex, tokens);
+    function addItemsToRegistry(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens
+    ) external onlyOwner {
+        ITokenRegistry(_registry).addItems(itemCategoryIndexes, estimatorCategoryIndexes, tokens);
+    }
+
+    function addItemsDetailedToRegistry(
+        uint256[] calldata itemCategoryIndexes,
+        uint256[] calldata estimatorCategoryIndexes,
+        address[] calldata tokens,
+        StrategyTypes.TradeData[] memory tradesData,
+        address[] calldata rewardsAdapters
+    ) external onlyOwner {
+        ITokenRegistry(_registry).addItemsDetailed(
+            itemCategoryIndexes,
+            estimatorCategoryIndexes,
+            tokens,
+            tradesData,
+            rewardsAdapters
+        );
     }
 
     function addItemToRegistry(
@@ -181,6 +216,16 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         _addItemToRegistry(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
+    function addItemDetailedToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        TradeData memory tradeData,
+        address rewardsAdapter
+    ) external onlyOwner {
+        _addItemDetailedToRegistry(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
+    }
+
     /**
      * @dev Leaves the contract without owner. It will not be possible to call
      * `onlyOwner` functions anymore. Can only be called by the current owner.
@@ -188,7 +233,7 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public onlyOwner {
+    function renounceOwnership() external onlyOwner {
         emit OwnershipTransferred(owner, address(0));
         owner = address(0);
     }
@@ -197,13 +242,18 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public noZeroAddress(newOwner) onlyOwner {
+    function transferOwnership(address newOwner) external onlyOwner {
+        _noZeroAddress(newOwner);
         emit OwnershipTransferred(owner, newOwner);
         owner = newOwner;
     }
 
-    function salt(address manager, string memory name, string memory symbol) public pure override returns (bytes32) {
-      return keccak256(abi.encode(manager, name, symbol));
+    function salt(address manager, string calldata name, string calldata symbol) external pure override returns (bytes32) {
+        return _salt(manager, name, symbol);
+    }
+
+    function predictStrategyAddress(address manager, string calldata name, string calldata symbol) public view override returns (address predictedAddress) {
+        (predictedAddress, ) = _predictStrategyAddress(manager, name, symbol);
     }
 
     /*
@@ -214,14 +264,25 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
     }
 
     /*
-     * @dev This function is called by  Strategy and StrategyController
+     * @dev This function is called by StrategyController
      */
     function oracle() external view override returns (address) {
         return _oracle;
     }
 
+    /*
+     * @dev This function is called by Strategy
+     */
+    function tokenRegistry() external view override returns (address) {
+        return _registry;
+    }
+
     function pool() external view override returns (address) {
         return _pool;
+    }
+
+    function streamingFee() external view override returns (uint256) {
+        return _streamingFee;
     }
 
     /*
@@ -242,14 +303,51 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         return IStrategyManagement(proxy).manager();
     }
 
+    function _createStrategy(
+        address manager,
+        string calldata name,
+        string calldata symbol,
+        StrategyItem[] memory strategyItems,
+        InitialState memory strategyState,
+        address router,
+        bytes memory data
+    ) private returns (address) {
+        address strategy = _createProxy(manager, name, symbol, strategyItems);
+        emit NewStrategy(
+            strategy,
+            manager,
+            name,
+            symbol,
+            strategyItems
+        );
+        _setupStrategy(
+           manager,
+           strategy,
+           strategyState,
+           router,
+           data
+        );
+        return strategy;
+    }
+
+
     /**
         @notice Creates a Strategy proxy and makes a delegate call to initialize items + percentages on the proxy
     */
     function _createProxy(
-        address manager, string memory name, string memory symbol, StrategyItem[] memory strategyItems
+        address manager, string calldata name, string calldata symbol, StrategyItem[] memory strategyItems
     ) internal returns (address) {
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy{salt: salt(manager, name, symbol)}(
+        bytes32 salt_;
+        {
+            address predictedProxyAddress;
+            (predictedProxyAddress, salt_) = _predictStrategyAddress(manager, name, symbol);
+            uint256 codeSize;
+            assembly {
+                codeSize := extcodesize(predictedProxyAddress)
+            }
+            require(codeSize == 0, "_createProxy: proxy already exists.");
+        }
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy{salt: salt_}(
                     _implementation,
                     admin,
                     new bytes(0) // We greatly simplify CREATE2 when we don't pass initialization data
@@ -291,4 +389,22 @@ contract StrategyProxyFactory is IStrategyProxyFactory, StrategyProxyFactoryStor
         ITokenRegistry(_registry).addItem(itemCategoryIndex, estimatorCategoryIndex, token);
     }
 
+    function _addItemDetailedToRegistry(
+        uint256 itemCategoryIndex,
+        uint256 estimatorCategoryIndex,
+        address token,
+        TradeData memory tradeData,
+        address rewardsAdapter
+    ) internal {
+        ITokenRegistry(_registry).addItemDetailed(itemCategoryIndex, estimatorCategoryIndex, token, tradeData, rewardsAdapter);
+    }
+
+    function _salt(address manager, string calldata name, string calldata symbol) private pure returns (bytes32) {
+      return keccak256(abi.encode(manager, name, symbol));
+    }
+
+    function _predictStrategyAddress(address manager, string calldata name, string calldata symbol) private view returns (address predictedAddress, bytes32 salt_) {
+        salt_ = _salt(manager, name, symbol);
+        predictedAddress = Create2.computeAddress(salt_, _creationCodeHash);
+    }
 }

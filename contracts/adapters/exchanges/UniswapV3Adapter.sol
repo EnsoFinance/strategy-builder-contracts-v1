@@ -7,8 +7,9 @@ import "../../libraries/SafeERC20.sol";
 import "../../interfaces/registries/IUniswapV3Registry.sol";
 import "../../interfaces/uniswap/ISwapRouter.sol";
 import "../BaseAdapter.sol";
+import "../../helpers/StringUtils.sol";
 
-contract UniswapV3Adapter is BaseAdapter {
+contract UniswapV3Adapter is BaseAdapter, StringUtils {
     using SafeERC20 for IERC20;
 
     IUniswapV3Registry public immutable registry;
@@ -34,10 +35,15 @@ contract UniswapV3Adapter is BaseAdapter {
         address to
     ) public override {
         require(tokenIn != tokenOut, "Tokens cannot match");
-        if (from != address(this))
+        if (from != address(this)) {
+            uint256 beforeBalance = IERC20(tokenIn).balanceOf(address(this));
             IERC20(tokenIn).safeTransferFrom(from, address(this), amount);
-        IERC20(tokenIn).safeApprove(address(router), amount);
-        router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
+            uint256 afterBalance = IERC20(tokenIn).balanceOf(address(this));
+            require(afterBalance > beforeBalance, "No tokens transferred to adapter");
+            amount = afterBalance - beforeBalance;
+        }
+        IERC20(tokenIn).sortaSafeApprove(address(router), amount);
+        try router.exactInputSingle(ISwapRouter.ExactInputSingleParams(
             tokenIn,
             tokenOut,
             registry.getFee(tokenIn, tokenOut),
@@ -46,6 +52,13 @@ contract UniswapV3Adapter is BaseAdapter {
             amount,
             expected,
             0
-        ));
+        )) {
+            require(IERC20(tokenIn).allowance(address(this), address(router)) == 0, "Incomplete swap");
+        } catch(bytes memory error) {
+            assembly {
+                error := add(error, 0x04)
+            }
+            revert(string(abi.encodePacked(abi.decode(error, (string)), " ", toHexString(uint256(tokenIn), 20), " ", toHexString(uint256(tokenOut), 20)))); 
+        }
     }
 }

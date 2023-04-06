@@ -3,7 +3,14 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { Contract, BigNumber } from 'ethers'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
-import { deployUniswapV2, deployTokens, deployPlatform, deployUniswapV2Adapter, deployMulticallRouter } from '../lib/deploy'
+import {
+	Platform,
+	deployUniswapV2,
+	deployTokens,
+	deployPlatform,
+	deployUniswapV2Adapter,
+	deployMulticallRouter,
+} from '../lib/deploy'
 import {
 	prepareStrategy,
 	prepareRebalanceMulticall,
@@ -19,9 +26,12 @@ import {
 	Multicall,
 	Position,
 	StrategyItem,
-	InitialState
+	InitialState,
 } from '../lib/encode'
+import { isRevertedWith } from '../lib/errors'
 import { DEFAULT_DEPOSIT_SLIPPAGE } from '../lib/constants'
+import { increaseTime } from '../lib/utils'
+import { initializeTestLogging, logTestComplete } from '../lib/convincer'
 
 const { constants, getContractFactory, getSigners } = ethers
 const { AddressZero, WeiPerEther } = constants
@@ -34,7 +44,9 @@ export type BuyLoop = {
 }
 
 describe('MulticallRouter', function () {
-	let tokens: Contract[],
+	let proofCounter: number
+	let platform: Platform,
+		tokens: Contract[],
 		weth: Contract,
 		accounts: SignerWithAddress[],
 		uniswapFactory: Contract,
@@ -43,23 +55,24 @@ describe('MulticallRouter', function () {
 		controller: Contract,
 		oracle: Contract,
 		whitelist: Contract,
-		library: Contract,
+		controllerLibrary: Contract,
 		adapter: Contract,
 		strategy: Contract,
 		strategyItems: StrategyItem[],
 		wrapper: Contract
 
 	before('Setup Uniswap, Factory, MulticallRouter', async function () {
+		proofCounter = initializeTestLogging(this, __dirname)
 		accounts = await getSigners()
 		tokens = await deployTokens(accounts[0], NUM_TOKENS, WeiPerEther.mul(100 * (NUM_TOKENS - 1)))
 		weth = tokens[0]
 		uniswapFactory = await deployUniswapV2(accounts[0], tokens)
-		const platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
+		platform = await deployPlatform(accounts[0], uniswapFactory, new Contract(AddressZero, [], accounts[0]), weth)
 		controller = platform.controller
 		strategyFactory = platform.strategyFactory
 		oracle = platform.oracles.ensoOracle
 		whitelist = platform.administration.whitelist
-		library = platform.library
+		controllerLibrary = platform.controllerLibrary
 		adapter = await deployUniswapV2Adapter(accounts[0], uniswapFactory, weth)
 		await whitelist.connect(accounts[0]).approve(adapter.address)
 		multicallRouter = await deployMulticallRouter(accounts[0], controller)
@@ -91,18 +104,13 @@ describe('MulticallRouter', function () {
 			rebalanceThreshold: BigNumber.from(10),
 			rebalanceSlippage: BigNumber.from(997),
 			restructureSlippage: BigNumber.from(995),
-			performanceFee: BigNumber.from(0),
+			managementFee: BigNumber.from(0),
 			social: false,
-			set: false
+			set: false,
 		}
 
-		const create2Address = await calculateAddress(
-			strategyFactory,
-			accounts[1].address,
-			name,
-			symbol
-		)
-		const Strategy = await getContractFactory('Strategy')
+		const create2Address = await calculateAddress(strategyFactory, accounts[1].address, name, symbol)
+		const Strategy = await platform.getStrategyContractFactory()
 		strategy = Strategy.attach(create2Address)
 
 		const total = ethers.BigNumber.from('10000000000000000')
@@ -119,30 +127,23 @@ describe('MulticallRouter', function () {
 
 		let tx = await strategyFactory
 			.connect(accounts[1])
-			.createStrategy(
-				accounts[1].address,
-				name,
-				symbol,
-				strategyItems,
-				strategyState,
-				multicallRouter.address,
-				data,
-				{ value: total }
-			)
+			.createStrategy(name, symbol, strategyItems, strategyState, multicallRouter.address, data, { value: total })
 		let receipt = await tx.wait()
 		console.log('Deployment Gas Used: ', receipt.gasUsed.toString())
 
 		const LibraryWrapper = await getContractFactory('LibraryWrapper', {
 			libraries: {
-				StrategyLibrary: library.address
-			}
+				StrategyLibrary: platform.strategyLibrary.address,
+				ControllerLibrary: controllerLibrary.address,
+			},
 		})
-		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address)
+		wrapper = await LibraryWrapper.deploy(oracle.address, strategy.address, controller.address)
 		await wrapper.deployed()
 
 		//await displayBalances(wrapper, strategyItems, weth)
 		//expect(await strategy.getStrategyValue()).to.equal(WeiPerEther) // Currently fails because of LP fees
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should purchase a token, requiring a rebalance', async function () {
@@ -155,19 +156,34 @@ describe('MulticallRouter', function () {
 			.swap(value, 0, weth.address, tokens[1].address, accounts[2].address, accounts[2].address)
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(false)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: total slipped', async function () {
 		const call = await encodeTransferFrom(weth, controller.address, accounts[1].address, BigNumber.from(1))
 		const data = await multicallRouter.encodeCalls([call])
-		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: 1 })
-		).to.be.revertedWith('Lost value')
+		expect(
+			await isRevertedWith(
+				controller
+					.connect(accounts[1])
+					.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, {
+						value: 1,
+					}),
+				'Lost value',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: no reentrancy', async function () {
 		//Transfer funds out of strategy during rebalance
-		const transferCall = await encodeSettleTransferFrom(multicallRouter, tokens[1].address, strategy.address, multicallRouter.address)
+		const transferCall = await encodeSettleTransferFrom(
+			multicallRouter,
+			tokens[1].address,
+			strategy.address,
+			multicallRouter.address
+		)
 		//Return funds to strategy during deposit, thus earning strategy tokens for the value increase
 		const depositCall = await encodeSettleTransfer(multicallRouter, tokens[1].address, strategy.address)
 		const depositData = await multicallRouter.encodeCalls([depositCall])
@@ -184,9 +200,11 @@ describe('MulticallRouter', function () {
 		// it should fail before that check is made
 		const calls = [transferCall, reentrancyCall]
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		).to.be.revertedWith('')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: not balanced', async function () {
@@ -202,9 +220,15 @@ describe('MulticallRouter', function () {
 			strategy.address
 		)
 		const data = await multicallRouter.encodeCalls([call])
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
-		).to.be.revertedWith('Not balanced')
+		await increaseTime(5 * 60 + 1)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data),
+				'Not balanced',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to delegateSwap: swap failed', async function () {
@@ -220,9 +244,11 @@ describe('MulticallRouter', function () {
 			strategy.address
 		)
 		const data = await multicallRouter.encodeCalls([call])
+		await increaseTime(5 * 60 + 1)
 		await expect(
 			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		).to.be.revertedWith('') //Revert in calldata
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to rebalance: total slipped', async function () {
@@ -314,43 +340,56 @@ describe('MulticallRouter', function () {
 		}
 
 		const data = await multicallRouter.encodeCalls(calls)
-		await expect(
-			controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
-		).to.be.revertedWith('Too much slippage')
+		await increaseTime(5 * 60 + 1)
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data),
+				'Too much slippage',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should rebalance strategy with multicall', async function () {
 		// Multicall gets initial tokens from uniswap
-		const calls = await prepareRebalanceMulticall(
-			strategy,
-			multicallRouter,
-			adapter,
-			oracle,
-			weth
-		)
+		const calls = await prepareRebalanceMulticall(strategy, multicallRouter, adapter, oracle, weth)
 		const data = await multicallRouter.encodeCalls(calls)
+		await increaseTime(5 * 60 + 1)
 		const tx = await controller.connect(accounts[1]).rebalance(strategy.address, multicallRouter.address, data)
 		const receipt = await tx.wait()
 		console.log('Gas Used: ', receipt.gasUsed.toString())
 		//await displayBalances(wrapper, strategyItems, weth)
 		expect(await wrapper.isBalanced()).to.equal(true)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to withdraw: too much slippage', async function () {
 		const amount = await strategy.balanceOf(accounts[1].address)
-		const calls = (await Promise.all(tokens.map(async (token) => {
-			const balance = await token.balanceOf(strategy.address)
-			if (balance.gt(0)) {
-				return encodeTransferFrom(token, strategy.address, accounts[1].address, balance)
-			} else {
-				return null
-			}
-		}))).filter(call => call)
+		const calls = (
+			await Promise.all(
+				tokens.map(async (token) => {
+					const balance = await token.balanceOf(strategy.address)
+					if (balance.gt(0)) {
+						return encodeTransferFrom(token, strategy.address, accounts[1].address, balance)
+					} else {
+						return null
+					}
+				})
+			)
+		).filter((call) => call)
 		calls.pop() // Remove a token transfer to leave some funds in Strategy (otherwise we encounter a sutraction overlow since more funds are removed than weth owed)
 		const data = await multicallRouter.encodeCalls(calls)
-		await expect(
-			controller.connect(accounts[1]).withdrawWETH(strategy.address, multicallRouter.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, data)
-		).to.be.revertedWith('Too much slippage')
+		expect(
+			await isRevertedWith(
+				controller
+					.connect(accounts[1])
+					.withdrawWETH(strategy.address, multicallRouter.address, amount, DEFAULT_DEPOSIT_SLIPPAGE, data),
+				'Too much slippage',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to call delegateSwap: only internal', async function () {
@@ -365,24 +404,27 @@ describe('MulticallRouter', function () {
 				strategy.address
 			)
 		).to.be.revertedWith('Only internal')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to call settleSwap: only internal', async function () {
 		await expect(
 			multicallRouter.settleSwap(
 				adapter.address,
+				0,
 				tokens[1].address,
 				weth.address,
 				strategy.address,
 				accounts[1].address
 			)
 		).to.be.revertedWith('Only internal')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should succeed in calling settleSwap, settleTransfer and settleTransferFrom when there is no balance', async function () {
 		const amount = WeiPerEther
 		// Transfer weth to router so that it may be transferred out
-		await weth.deposit({value: amount})
+		await weth.deposit({ value: amount })
 		await weth.transfer(multicallRouter.address, amount)
 		// Setup calls
 		const calls = await prepareDepositMulticall(
@@ -406,9 +448,14 @@ describe('MulticallRouter', function () {
 		)
 		calls.push(await encodeSettleTransfer(multicallRouter, weth.address, accounts[1].address)) // When there is balance
 		calls.push(await encodeSettleTransfer(multicallRouter, weth.address, accounts[1].address)) // When there isn't balance
-		calls.push(await encodeSettleTransferFrom(multicallRouter, weth.address, controller.address, accounts[1].address))
+		calls.push(
+			await encodeSettleTransferFrom(multicallRouter, weth.address, controller.address, accounts[1].address)
+		)
 		const data = await multicallRouter.encodeCalls(calls)
-		await controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
+		await controller
+			.connect(accounts[1])
+			.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: calling settleTransferFrom without approval', async function () {
@@ -427,14 +474,20 @@ describe('MulticallRouter', function () {
 		)
 		const data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, {
+					value: amount,
+				})
 		).to.be.revertedWith('')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should restructure to just token', async function () {
 		const positions = [{ token: tokens[1].address, percentage: BigNumber.from(1000) }] as Position[]
 		const newItems = prepareStrategy(positions, adapter.address)
 		await controller.connect(accounts[1]).restructure(strategy.address, newItems)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: too much slippage', async function () {
@@ -460,21 +513,26 @@ describe('MulticallRouter', function () {
 			}
 		}
 		calls.push(encodeTransfer(weth, accounts[1].address, WeiPerEther.div(100)))
-		calls.push(encodeSettleSwap(
-			multicallRouter,
-			adapter.address,
-			weth.address,
-			tokens[1].address,
-			multicallRouter.address,
-			strategy.address
-		))
+		calls.push(
+			encodeSettleSwap(
+				multicallRouter,
+				adapter.address,
+				weth.address,
+				tokens[1].address,
+				multicallRouter.address,
+				strategy.address
+			)
+		)
 		const data = await multicallRouter.encodeCalls(calls)
 
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, multicallRouter.address, data)
-			).to.be.revertedWith('Too much slippage')
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).finalizeStructure(strategy.address, multicallRouter.address, data),
+				'Too much slippage',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to restructure: out of balance', async function () {
@@ -501,11 +559,14 @@ describe('MulticallRouter', function () {
 		}
 		const data = await multicallRouter.encodeCalls(calls)
 
-		await expect(
-			controller
-				.connect(accounts[1])
-				.finalizeStructure(strategy.address, multicallRouter.address, data)
-			).to.be.revertedWith('Not balanced')
+		expect(
+			await isRevertedWith(
+				controller.connect(accounts[1]).finalizeStructure(strategy.address, multicallRouter.address, data),
+				'Not balanced',
+				'StrategyController.sol'
+			)
+		).to.be.true
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should finalize structure', async function () {
@@ -530,34 +591,38 @@ describe('MulticallRouter', function () {
 				)
 			}
 		}
-		calls.push(encodeSettleSwap(
-			multicallRouter,
-			adapter.address,
-			weth.address,
-			tokens[1].address,
-			multicallRouter.address,
-			strategy.address
-		))
+		calls.push(
+			encodeSettleSwap(
+				multicallRouter,
+				adapter.address,
+				weth.address,
+				tokens[1].address,
+				multicallRouter.address,
+				strategy.address
+			)
+		)
 
 		const data = await multicallRouter.encodeCalls(calls)
 
-		await controller
-			.connect(accounts[1])
-			.finalizeStructure(strategy.address, multicallRouter.address, data)
+		await controller.connect(accounts[1]).finalizeStructure(strategy.address, multicallRouter.address, data)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to deposit: out of balance', async function () {
 		const amount = WeiPerEther
 		const calls = []
-		calls.push(
-			encodeSettleTransferFrom(multicallRouter, weth.address, controller.address, multicallRouter.address)
-		) //Transfer from controller to router
+		calls.push(encodeSettleTransferFrom(multicallRouter, weth.address, controller.address, multicallRouter.address)) //Transfer from controller to router
 		calls.push(encodeSettleTransfer(multicallRouter, weth.address, strategy.address)) //Transfer to strategy
 
 		const data = await multicallRouter.encodeCalls(calls)
 		await expect(
-			controller.connect(accounts[1]).deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, { value: amount })
+			controller
+				.connect(accounts[1])
+				.deposit(strategy.address, multicallRouter.address, 0, DEFAULT_DEPOSIT_SLIPPAGE, data, {
+					value: amount,
+				})
 		).to.be.revertedWith('Lost balance')
+		logTestComplete(this, __dirname, proofCounter++)
 	})
 
 	it('Should fail to call router directly', async function () {
@@ -567,7 +632,6 @@ describe('MulticallRouter', function () {
 		await expect(multicallRouter.connect(accounts[1]).deposit(strategy.address, data)).to.be.revertedWith(
 			'Only controller'
 		)
+		logTestComplete(this, __dirname, proofCounter++)
 	})
-
-
 })

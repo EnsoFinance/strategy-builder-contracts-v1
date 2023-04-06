@@ -2,12 +2,21 @@
 pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
+import "./IStrategyFees.sol";
 import "./IStrategyToken.sol";
+import "./IStrategyManagement.sol";
 import "./IOracle.sol";
 import "./IWhitelist.sol";
-import "../helpers/StrategyTypes.sol";
 
-interface IStrategy is IStrategyToken, StrategyTypes {
+interface IStrategy is IStrategyFees, IStrategyToken, IStrategyManagement {
+
+    event Withdraw(address indexed account, uint256 amount, uint256[] amounts);
+    event UpdateManager(address manager);
+    event ClaimablesUpdated();
+    event RewardsUpdated();
+    event RewardsClaimed(address indexed adapter, address[] indexed tokens);
+    event VersionUpdated(string indexed newVersion);
+
     function approveToken(
         address token,
         address account,
@@ -37,6 +46,8 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function setCollateral(address token) external;
 
+    function claimAll() external;
+
     function withdrawAll(uint256 amount) external;
 
     function mint(address account, uint256 amount) external;
@@ -52,21 +63,23 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function settleSynths() external;
 
-    function issueStreamingFee() external;
-
-    function updateTokenValue(uint256 total, uint256 supply) external;
-
-    function updatePerformanceFee(uint16 fee) external;
-
     function updateRebalanceThreshold(uint16 threshold) external;
 
     function updateTradeData(address item, TradeData memory data) external;
 
-    function lock() external;
+    function updateClaimables() external;
+
+    function updateAddresses() external;
+
+    function updateRewards() external;
+
+    function lock(LockType lt) external;
 
     function unlock() external;
 
     function locked() external view returns (bool);
+
+    function lockType() external view returns (LockType);
 
     function items() external view returns (address[] memory);
 
@@ -76,23 +89,15 @@ interface IStrategy is IStrategyToken, StrategyTypes {
 
     function rebalanceThreshold() external view returns (uint256);
 
-    function performanceFee() external view returns (uint256);
-
     function getPercentage(address item) external view returns (int256);
 
     function getTradeData(address item) external view returns (TradeData memory);
 
-    function getPerformanceFeeOwed(address account) external view returns (uint256);
-
-    function controller() external view returns (address);
-
-    function manager() external view returns (address);
-
-    function oracle() external view returns (IOracle);
-
-    function whitelist() external view returns (IWhitelist);
-
     function supportsSynths() external view returns (bool);
 
     function supportsDebt() external view returns (bool);
+
+    function factory() external view returns (address);
+
+    function getAllRewardTokens() external view returns(address[] memory rewardTokens);
 }

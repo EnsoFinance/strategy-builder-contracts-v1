@@ -9,6 +9,7 @@ import './tasks/accounts'
 import './tasks/clean'
 import './tasks/addOwnerFunds'
 import './tasks/addContractsToDefenderAdmin'
+import './tasks/migrateStrategy'
 
 dotenv.config()
 
@@ -34,9 +35,9 @@ if (networkIndex > 0) {
 		if (!mnemonic) {
 			throw new Error('Please set your MNEMONIC in a .env file')
 		}
-		if (!infuraApiKey) {
+		/*if (!infuraApiKey) {
 			throw new Error('Please set your INFURA_API_KEY in a .env file')
-		}
+		}*/
 	} else {
 		if (process.argv[2] == 'test' && !archiveNode) {
 			throw new Error('Please set your ARCHIVE_NODE in a .env file')
@@ -51,7 +52,10 @@ if (networkIndex > 0) {
 function getNetworks(): NetworksUserConfig {
 	let networks: NetworksUserConfig = {
 		hardhat: {
-			chainId: chainIds.mainnet
+			chainId: chainIds.mainnet,
+			accounts: {
+				accountsBalance: "100000000000000000000000" //10,000 ETH
+			}
 		},
 		localhost: {
 			url: 'http://127.0.0.1:8545',
@@ -62,12 +66,13 @@ function getNetworks(): NetworksUserConfig {
 	if (networks.hardhat) {
 		if (mnemonic)
 			networks.hardhat.accounts = {
+				...networks.hardhat.accounts,
 				mnemonic,
 			}
 		if (archiveNode)
 			networks.hardhat.forking = {
 				url: archiveNode,
-				blockNumber: 14496520,
+				blockNumber: 15394205,
 			}
 	}
 	if (mnemonic && infuraApiKey) {
@@ -119,7 +124,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -128,7 +133,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -137,7 +142,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -146,7 +151,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -155,7 +160,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -164,7 +169,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -173,7 +178,7 @@ let config: HardhatUserConfig = {
 				settings: {
 					optimizer: {
 						enabled: true,
-						runs: 20,
+						runs: 420,
 					},
 				},
 			},
@@ -218,7 +223,7 @@ let config: HardhatUserConfig = {
 		}
 	},
 	mocha: {
-		timeout: 80000,
+		timeout: 100000,
 	},
 }
 

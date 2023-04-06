@@ -6,33 +6,59 @@ import "@uniswap/v3-core/contracts/interfaces/IUniswapV3Factory.sol";
 
 interface IUniswapV3Registry {
 
-  struct FeeData {
-      uint24 fee;
-      address pair;
-  }
+    event PoolAdded(address indexed token, address indexed pair, uint24 indexed fee, uint32 timeWindow);
 
-  struct PoolData {
-      address pool;
-      address pair;
-  }
+    event PoolRemoved(address indexed token);
 
-  function batchAddPools(
-      address[] memory tokens,
-      address[] memory pairs,
-      uint24[] memory fees
-  ) external;
+    event FeeAdded(address indexed token, address indexed pair, uint24 indexed fee);
 
-  function addPool(address token, address pair, uint24 fee) external;
+    event FeeRemoved(address indexed token, address indexed pair);
 
-  function removePool(address token) external;
+    event TimeWindowUpdated(address indexed token, uint32 indexed timeWindow);
 
-  function getPoolData(address token) external view returns (PoolData memory);
+    enum RegistrationType{ NULL, FEE, POOL }
 
-  function getFee(address token, address pair) external view returns (uint24);
+    struct PairData {
+        address pair;
+        uint24 fee;
+        uint32 timeWindow;
+        RegistrationType registrationType;
+    }
 
-  function weth() external view returns (address);
+    struct PoolData {
+        address pool;
+        address pair;
+        uint32 timeWindow;
+    }
 
-  function factory() external view returns (IUniswapV3Factory);
+    function batchAddPools(
+        address[] memory tokens,
+        address[] memory pairs,
+        uint24[] memory fees,
+        uint32[] memory timeWindows
+    ) external;
 
-  function timeWindow() external view returns (uint32);
+    function batchAddFees(
+        address[] memory tokens,
+        address[] memory pairs,
+        uint24[] memory fees
+    ) external;
+
+    function addPool(address token, address pair, uint24 fee, uint32 timeWindow) external;
+
+    function removePool(address token) external;
+
+    function addFee(address token, address pair, uint24 fee) external;
+
+    function removeFee(address token, address pair) external;
+
+    function getPoolData(address token) external view returns (PoolData memory);
+
+    function getFee(address token, address pair) external view returns (uint24);
+
+    function getTimeWindow(address token, address pair) external view returns (uint32);
+
+    function weth() external view returns (address);
+
+    function factory() external view returns (IUniswapV3Factory);
 }

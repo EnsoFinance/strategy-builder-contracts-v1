@@ -6,6 +6,7 @@ import "./registries/ITokenRegistry.sol";
 import "./IStrategy.sol";
 
 interface IOracle {
+
     function weth() external view returns (address);
 
     function susd() external view returns (address);
@@ -15,12 +16,22 @@ interface IOracle {
     function estimateStrategy(IStrategy strategy) external view returns (uint256, int256[] memory);
 
     function estimateItem(
-        uint256 balance,
+        IStrategy strategy,
         address token
     ) external view returns (int256);
 
     function estimateItem(
-        address user,
-        address token
+        IStrategy strategy,
+        address token,
+        uint256 balance
     ) external view returns (int256);
+
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        address underlyingToken,
+        uint256 balance
+    ) external view returns (int256);
+
+    function updateAddresses() external;
 }

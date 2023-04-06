@@ -3,7 +3,6 @@ node_modules
 .env
 
 #Hardhat files
-artifacts
 cache
 dist
 coverage.json
@@ -18,3 +17,6 @@ typechain/
 #Npm
 package-lock.json
 .idea
+
+#convincer
+.convincer/*ts_

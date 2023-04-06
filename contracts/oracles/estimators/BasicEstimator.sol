@@ -12,16 +12,20 @@ contract BasicEstimator is IEstimator {
       protocolOracle = IProtocolOracle(protocolOracle_);
     }
 
-    function estimateItem(uint256 balance, address token) public view override returns (int256) {
-        return _estimateItem(balance, token);
+    function estimateItem(
+        IStrategy strategy,
+        address token
+    ) public view override returns (int256) {
+        uint256 balance = IERC20(token).balanceOf(address(strategy));
+        return estimateItem(strategy, token, balance);
     }
 
-    function estimateItem(address user, address token) public view override returns (int256) { 
-        uint256 balance = IERC20(token).balanceOf(address(user));
-        return _estimateItem(balance, token);
-    }
-
-    function _estimateItem(uint256 balance, address token) private view returns (int256) {
+    function estimateItem(
+        IStrategy strategy,
+        address token,
+        uint256 balance
+    ) public view override returns (int256) {
+        (strategy); // silence compiler
         return int256(protocolOracle.consult(balance, token));
     }
 }

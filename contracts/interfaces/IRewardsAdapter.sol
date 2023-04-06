@@ -2,5 +2,7 @@
 pragma solidity >=0.6.0 <0.9.0;
 
 interface IRewardsAdapter {
-    function claim(address token) external;
+    function claim(address[] memory token) external;
+
+    function rewardsTokens(address token) external view returns(address[] memory);
 }

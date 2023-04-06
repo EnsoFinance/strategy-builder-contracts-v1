@@ -13,20 +13,25 @@ contract Multicall {
      * @notice Aggregate calls and return a list of the return data
      */
     function aggregate(Call[] memory calls) internal returns (bytes[] memory returnData) {
-        returnData = new bytes[](calls.length);
-        for (uint256 i = 0; i < calls.length; i++) {
-            Call memory internalTx = calls[i];
-            (bool success, bytes memory ret) =
+        uint256 callsLength = calls.length;
+        returnData = new bytes[](callsLength);
+        Call memory internalTx;
+        bool success;
+        for (uint256 i; i < callsLength; ++i) {
+            internalTx = calls[i];
+            assembly { success := extcodesize(mload(internalTx)) }
+            require(success, "aggregate: not a contract.");
+            (success, returnData[i]) =
                 internalTx.target.call(internalTx.callData);
             if (!success) {
                 assembly {
-                    let ptr := mload(0x40)
-                    let size := returndatasize()
+                    let ptr
+                    let size
+                    size := returndatasize()
                     returndatacopy(ptr, 0, size)
                     revert(ptr, size)
                 }
             }
-            returnData[i] = ret;
         }
     }
 }

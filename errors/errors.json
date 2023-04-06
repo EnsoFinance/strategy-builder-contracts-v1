@@ -1,0 +1,660 @@
+[
+  {
+    "contractId": "dbdaf7ee2982",
+    "contractName": "BaseAdapter.sol"
+  },
+  {
+    "contractId": "9d5d2741081b",
+    "contractName": "AaveV2DebtAdapter.sol"
+  },
+  {
+    "contractId": "a8d86f93776e",
+    "contractName": "Leverage2XAdapter.sol"
+  },
+  {
+    "contractId": "d95d57c0fa6b",
+    "contractName": "BalancerAdapter.sol"
+  },
+  {
+    "contractId": "33cee4d31e4e",
+    "contractName": "CurveAdapter.sol"
+  },
+  {
+    "contractId": "aeb0a17b095f",
+    "contractName": "KyberSwapAdapter.sol"
+  },
+  {
+    "contractId": "674373afc164",
+    "contractName": "SynthetixAdapter.sol"
+  },
+  {
+    "contractId": "aa5c78241e51",
+    "contractName": "SynthRedeemerAdapter.sol"
+  },
+  {
+    "contractId": "d6cf01c8393b",
+    "contractName": "UniswapV2Adapter.sol"
+  },
+  {
+    "contractId": "8290095acd41",
+    "contractName": "UniswapV3Adapter.sol"
+  },
+  {
+    "contractId": "d6f24894ccc7",
+    "contractName": "AaveV2Adapter.sol"
+  },
+  {
+    "contractId": "6488d2626a9f",
+    "contractName": "CompoundAdapter.sol"
+  },
+  {
+    "contractId": "0da34511d7a3",
+    "contractName": "CurveLPAdapter.sol"
+  },
+  {
+    "contractId": "3b17cfcc5c47",
+    "contractName": "ProtocolAdapter.sol"
+  },
+  {
+    "contractId": "e61173344bc0",
+    "contractName": "MetaStrategyAdapter.sol"
+  },
+  {
+    "contractId": "ef2c9e58a224",
+    "contractName": "CurveGaugeAdapter.sol"
+  },
+  {
+    "contractId": "f9dfeb1c7d68",
+    "contractName": "YEarnV2Adapter.sol"
+  },
+  {
+    "contractId": "f088c1213998",
+    "contractName": "AddressUtils.sol"
+  },
+  {
+    "contractId": "0b86a4d1bb3e",
+    "contractName": "EIP712.sol"
+  },
+  {
+    "contractId": "e9a36ee1816f",
+    "contractName": "GasCostProvider.sol"
+  },
+  {
+    "contractId": "2fa75aa54ebc",
+    "contractName": "Multicall.sol"
+  },
+  {
+    "contractId": "e8c0c13d4b69",
+    "contractName": "Require.sol"
+  },
+  {
+    "contractId": "1e11d1ca5fc8",
+    "contractName": "RevertDebug.sol"
+  },
+  {
+    "contractId": "27c8fc9ee621",
+    "contractName": "StrategyTypes.sol"
+  },
+  {
+    "contractId": "d630181e49b4",
+    "contractName": "StringUtils.sol"
+  },
+  {
+    "contractId": "33ab778b75b7",
+    "contractName": "Timelocks.sol"
+  },
+  {
+    "contractId": "6c18b2bb6cf5",
+    "contractName": "StrategyControllerPaused.sol"
+  },
+  {
+    "contractId": "dcc862dda0e3",
+    "contractName": "IAaveIncentivesController.sol"
+  },
+  {
+    "contractId": "50f8a65c2df3",
+    "contractName": "IAToken.sol"
+  },
+  {
+    "contractId": "c326af50ec41",
+    "contractName": "IDebtToken.sol"
+  },
+  {
+    "contractId": "3d647fefe612",
+    "contractName": "ILendingPoolAddressesProvider.sol"
+  },
+  {
+    "contractId": "273a4e18db0f",
+    "contractName": "ILendingPool.sol"
+  },
+  {
+    "contractId": "a0dcdefa851d",
+    "contractName": "IPriceOracleGetter.sol"
+  },
+  {
+    "contractId": "da10e236a9f4",
+    "contractName": "IComptroller.sol"
+  },
+  {
+    "contractId": "3ee5f64bb23f",
+    "contractName": "ICToken.sol"
+  },
+  {
+    "contractId": "e27e5151c74b",
+    "contractName": "ICurveAddressProvider.sol"
+  },
+  {
+    "contractId": "fdfe34fee4a5",
+    "contractName": "ICurveCrypto.sol"
+  },
+  {
+    "contractId": "e85cc71ba224",
+    "contractName": "ICurveDeposit.sol"
+  },
+  {
+    "contractId": "e9dcc83b52d8",
+    "contractName": "ICurveGauge.sol"
+  },
+  {
+    "contractId": "780f570fb009",
+    "contractName": "ICurveRegistry.sol"
+  },
+  {
+    "contractId": "166191cfc32f",
+    "contractName": "ICurveStableSwap.sol"
+  },
+  {
+    "contractId": "91e8076401bf",
+    "contractName": "IBaseAdapter.sol"
+  },
+  {
+    "contractId": "2ebf3ce0e034",
+    "contractName": "IERC20NonStandard.sol"
+  },
+  {
+    "contractId": "906224e4c805",
+    "contractName": "IEstimator.sol"
+  },
+  {
+    "contractId": "79db5b508d34",
+    "contractName": "IOracle.sol"
+  },
+  {
+    "contractId": "db3dccf77bac",
+    "contractName": "IProtocolOracle.sol"
+  },
+  {
+    "contractId": "e72bd811e08a",
+    "contractName": "IRewardsAdapter.sol"
+  },
+  {
+    "contractId": "4d75d9fd2891",
+    "contractName": "IStrategyController.sol"
+  },
+  {
+    "contractId": "f4d7cc0cbd2a",
+    "contractName": "IStrategyFees.sol"
+  },
+  {
+    "contractId": "6096fda362bb",
+    "contractName": "IStrategyManagement.sol"
+  },
+  {
+    "contractId": "30801c49821f",
+    "contractName": "IStrategyProxyFactory.sol"
+  },
+  {
+    "contractId": "69f724b1c69c",
+    "contractName": "IStrategyRouter.sol"
+  },
+  {
+    "contractId": "e385ec642d7c",
+    "contractName": "IStrategy.sol"
+  },
+  {
+    "contractId": "763d337fbb62",
+    "contractName": "IStrategyToken.sol"
+  },
+  {
+    "contractId": "0902058bce5a",
+    "contractName": "IWhitelist.sol"
+  },
+  {
+    "contractId": "e06c798d2f53",
+    "contractName": "IDMMFactory.sol"
+  },
+  {
+    "contractId": "38060c6ad620",
+    "contractName": "IDMMRouter02.sol"
+  },
+  {
+    "contractId": "4ddcb27d1530",
+    "contractName": "IChainlinkRegistry.sol"
+  },
+  {
+    "contractId": "ca46f9db0e5f",
+    "contractName": "ICurveDepositZapRegistry.sol"
+  },
+  {
+    "contractId": "8e6e8d748745",
+    "contractName": "ITokenRegistry.sol"
+  },
+  {
+    "contractId": "4d47410eb19e",
+    "contractName": "IUniswapV3Registry.sol"
+  },
+  {
+    "contractId": "0332f6ee2ba3",
+    "contractName": "IAddressResolver.sol"
+  },
+  {
+    "contractId": "c2ce21cdb665",
+    "contractName": "IDelegateApprovals.sol"
+  },
+  {
+    "contractId": "7d8198c84a08",
+    "contractName": "IExchanger.sol"
+  },
+  {
+    "contractId": "d5648740c575",
+    "contractName": "IIssuer.sol"
+  },
+  {
+    "contractId": "8f1163de284d",
+    "contractName": "ISynthetix.sol"
+  },
+  {
+    "contractId": "11411afbd1e3",
+    "contractName": "ISynthRedeemer.sol"
+  },
+  {
+    "contractId": "96c19af48e5b",
+    "contractName": "ISynth.sol"
+  },
+  {
+    "contractId": "5308f6e26a33",
+    "contractName": "IVirtualSynth.sol"
+  },
+  {
+    "contractId": "47c13c5855ec",
+    "contractName": "ISwapRouter.sol"
+  },
+  {
+    "contractId": "2e04868f1ba0",
+    "contractName": "IYEarnV2Vault.sol"
+  },
+  {
+    "contractId": "49569a8c2c39",
+    "contractName": "AddressArrays.sol"
+  },
+  {
+    "contractId": "fb3859462a28",
+    "contractName": "BinaryTree.sol"
+  },
+  {
+    "contractId": "a0976939a344",
+    "contractName": "BinaryTreeWithPayload.sol"
+  },
+  {
+    "contractId": "f282095f3a5e",
+    "contractName": "ControllerLibrary.sol"
+  },
+  {
+    "contractId": "90f6bba6c5c4",
+    "contractName": "Math.sol"
+  },
+  {
+    "contractId": "58d2cfd47f18",
+    "contractName": "MemoryMappings.sol"
+  },
+  {
+    "contractId": "d4205fad1c82",
+    "contractName": "SafeERC20.sol"
+  },
+  {
+    "contractId": "9bf33f03195f",
+    "contractName": "StrategyClaim.sol"
+  },
+  {
+    "contractId": "804863855eaa",
+    "contractName": "StrategyLibrary.sol"
+  },
+  {
+    "contractId": "0736e61db49e",
+    "contractName": "UniswapV2Library.sol"
+  },
+  {
+    "contractId": "3775cdcb37a0",
+    "contractName": "ERC20Mock.sol"
+  },
+  {
+    "contractId": "44602be1de22",
+    "contractName": "IStakingRewards.sol"
+  },
+  {
+    "contractId": "092da99e4402",
+    "contractName": "Owned.sol"
+  },
+  {
+    "contractId": "364659013bd7",
+    "contractName": "RewardsDistributionRecipient.sol"
+  },
+  {
+    "contractId": "f81fb48f908c",
+    "contractName": "StakingRewards.sol"
+  },
+  {
+    "contractId": "b95559c962c2",
+    "contractName": "UniswapMock.sol"
+  },
+  {
+    "contractId": "d42b479fa07f",
+    "contractName": "WethMock.sol"
+  },
+  {
+    "contractId": "1c40961e41f2",
+    "contractName": "EnsoOracle.sol"
+  },
+  {
+    "contractId": "cb477b26597b",
+    "contractName": "AaveV2DebtEstimator.sol"
+  },
+  {
+    "contractId": "e7f9195e0c1f",
+    "contractName": "AaveV2Estimator.sol"
+  },
+  {
+    "contractId": "e797eeae2ad2",
+    "contractName": "BasicEstimator.sol"
+  },
+  {
+    "contractId": "454602ef7f85",
+    "contractName": "CompoundEstimator.sol"
+  },
+  {
+    "contractId": "4af968df9e6e",
+    "contractName": "CurveGaugeEstimator.sol"
+  },
+  {
+    "contractId": "e2bad4a1276e",
+    "contractName": "CurveLPEstimator.sol"
+  },
+  {
+    "contractId": "695595a34246",
+    "contractName": "EmergencyEstimator.sol"
+  },
+  {
+    "contractId": "1fc81300fd34",
+    "contractName": "StrategyEstimator.sol"
+  },
+  {
+    "contractId": "c26bd4663b4d",
+    "contractName": "YEarnV2Estimator.sol"
+  },
+  {
+    "contractId": "6a30bce7c113",
+    "contractName": "ChainlinkOracle.sol"
+  },
+  {
+    "contractId": "69aae50ee87e",
+    "contractName": "ProtocolOracle.sol"
+  },
+  {
+    "contractId": "c836a7e34a14",
+    "contractName": "UniswapV3Oracle.sol"
+  },
+  {
+    "contractId": "6b2f32557151",
+    "contractName": "ChainlinkRegistry.sol"
+  },
+  {
+    "contractId": "c332e250fb5f",
+    "contractName": "CurveDepositZapRegistry.sol"
+  },
+  {
+    "contractId": "478c8b49fe10",
+    "contractName": "TokenRegistry.sol"
+  },
+  {
+    "contractId": "6b1672987604",
+    "contractName": "UniswapV3Registry.sol"
+  },
+  {
+    "contractId": "c992c0df3436",
+    "contractName": "PlatformProxyAdmin.sol"
+  },
+  {
+    "contractId": "ce61f7e73fa0",
+    "contractName": "BatchDepositRouter.sol"
+  },
+  {
+    "contractId": "f0f8d86bdcbe",
+    "contractName": "FullRouter.sol"
+  },
+  {
+    "contractId": "d0ff22e51f2b",
+    "contractName": "LoopRouter.sol"
+  },
+  {
+    "contractId": "77df31642e90",
+    "contractName": "MulticallRouter.sol"
+  },
+  {
+    "contractId": "35530d527674",
+    "contractName": "StrategyRouter.sol"
+  },
+  {
+    "contractId": "ee78cef3375d",
+    "contractName": "StrategyCommon.sol"
+  },
+  {
+    "contractId": "1ed08c19341f",
+    "contractName": "StrategyControllerLens.sol"
+  },
+  {
+    "contractId": "1bb63a90056c",
+    "contractName": "StrategyController.sol",
+    "errorcodes": {
+      "1bb63a90056c00": "Sanity check that Library shares context.",
+      "1bb63a90056c01": "Not factory",
+      "1bb63a90056c02": "Strategy restructuring",
+      "1bb63a90056c03": "withdrawETH: call failed.",
+      "1bb63a90056c04": "rebalance timelock not ready.",
+      "1bb63a90056c05": "Timelock active",
+      "1bb63a90056c06": "No changes queued",
+      "1bb63a90056c07": "Timelock active",
+      "1bb63a90056c08": "Wrong category",
+      "1bb63a90056c09": "Timelock active",
+      "1bb63a90056c0a": "No changes queued",
+      "1bb63a90056c0b": "Wrong category",
+      "1bb63a90056c0c": "Timelock active",
+      "1bb63a90056c0d": "Timelock active",
+      "1bb63a90056c0e": "updateValue: category is RESTRUCTURE.",
+      "1bb63a90056c0f": "updateValue: category is TRADE_DATA.",
+      "1bb63a90056c10": "No changes queued",
+      "1bb63a90056c11": "Wrong category",
+      "1bb63a90056c12": "Wrong category",
+      "1bb63a90056c13": "Timelock active",
+      "1bb63a90056c14": "Strategy already open",
+      "1bb63a90056c15": "Strategy already set",
+      "1bb63a90056c16": "Not factory",
+      "1bb63a90056c17": "updateRebalanceParameters timelock not ready.",
+      "1bb63a90056c18": "Ambiguous amount",
+      "1bb63a90056c19": "Not balanced",
+      "1bb63a90056c1a": "Too much slippage",
+      "1bb63a90056c1b": "Out of bounds",
+      "1bb63a90056c1c": "Fee too high",
+      "1bb63a90056c1d": "Timelock is too long",
+      "1bb63a90056c1e": "Not initialized",
+      "1bb63a90056c1f": "Not approved",
+      "1bb63a90056c20": "Not manager",
+      "1bb63a90056c21": "Not manager",
+      "1bb63a90056c22": "Strategy cannot change",
+      "1bb63a90056c23": "Not WETH"
+    }
+  },
+  {
+    "contractId": "dbc2b7686bf5",
+    "contractName": "StrategyControllerStorage.sol"
+  },
+  {
+    "contractId": "f19f85f5ead4",
+    "contractName": "StrategyProxyAdmin.sol"
+  },
+  {
+    "contractId": "676a717422f5",
+    "contractName": "StrategyProxyFactory.sol"
+  },
+  {
+    "contractId": "89b89b5bfe68",
+    "contractName": "StrategyProxyFactoryStorage.sol"
+  },
+  {
+    "contractId": "b3e5dea2190e",
+    "contractName": "Strategy.sol",
+    "errorcodes": {
+      "b3e5dea2190e00": "Router only",
+      "b3e5dea2190e01": "Cannot withdraw debt",
+      "b3e5dea2190e02": "0 amount",
+      "b3e5dea2190e03": "claimAll: caller must be controller or manager.",
+      "b3e5dea2190e04": "Manager already set",
+      "b3e5dea2190e05": "Only StrategyProxyFactory"
+    }
+  },
+  {
+    "contractId": "ea334a07e51b",
+    "contractName": "StrategyTokenFees.sol"
+  },
+  {
+    "contractId": "90dae108da2b",
+    "contractName": "StrategyToken.sol"
+  },
+  {
+    "contractId": "3d55eff30f48",
+    "contractName": "StrategyTokenStorage.sol"
+  },
+  {
+    "contractId": "4ed253196e4a",
+    "contractName": "Arbitrager.sol"
+  },
+  {
+    "contractId": "62e52f24d678",
+    "contractName": "BalancerRegistry.sol"
+  },
+  {
+    "contractId": "07a8c36aa215",
+    "contractName": "Balancer.sol"
+  },
+  {
+    "contractId": "cddb89594569",
+    "contractName": "FailAdapter.sol"
+  },
+  {
+    "contractId": "2b06e2247cc9",
+    "contractName": "FlashSwapAttack.sol"
+  },
+  {
+    "contractId": "11e15859bae0",
+    "contractName": "GasBurnerEstimator.sol"
+  },
+  {
+    "contractId": "634f49922c71",
+    "contractName": "LibraryWrapper.sol"
+  },
+  {
+    "contractId": "cced69f009f9",
+    "contractName": "MaliciousAdapter.sol"
+  },
+  {
+    "contractId": "2955e3bffa6a",
+    "contractName": "MulticallWrapper.sol"
+  },
+  {
+    "contractId": "f82c9bfb87d3",
+    "contractName": "NonfungibleTokenPositionDescriptor.sol"
+  },
+  {
+    "contractId": "6779583eaf18",
+    "contractName": "SmartWallet.sol"
+  },
+  {
+    "contractId": "c728f8ccc626",
+    "contractName": "SushiswapFactory.sol"
+  },
+  {
+    "contractId": "9effd4c5cb9b",
+    "contractName": "TestBinaryTree.sol"
+  },
+  {
+    "contractId": "48f342a7366c",
+    "contractName": "UniswapNaiveOracle.sol"
+  },
+  {
+    "contractId": "2ffa580db652",
+    "contractName": "UniswapV3RegistryWrapper.sol"
+  },
+  {
+    "contractId": "f354bde5ee5a",
+    "contractName": "Approval.sol"
+  },
+  {
+    "contractId": "93306bba4866",
+    "contractName": "BlockList.sol"
+  },
+  {
+    "contractId": "c74857796331",
+    "contractName": "ERC20.sol"
+  },
+  {
+    "contractId": "27fbe8eb99c3",
+    "contractName": "HighDecimals.sol"
+  },
+  {
+    "contractId": "ac82d5d21d3a",
+    "contractName": "LowDecimals.sol"
+  },
+  {
+    "contractId": "bc20049cf15b",
+    "contractName": "MissingReturns.sol"
+  },
+  {
+    "contractId": "d9e8806fb342",
+    "contractName": "NoRevert.sol"
+  },
+  {
+    "contractId": "5d6af9d2f396",
+    "contractName": "Pausable.sol"
+  },
+  {
+    "contractId": "50097049681f",
+    "contractName": "Proxied.sol"
+  },
+  {
+    "contractId": "bfb3da0aea43",
+    "contractName": "Reentrant.sol"
+  },
+  {
+    "contractId": "4c1d6e095855",
+    "contractName": "RevertToZero.sol"
+  },
+  {
+    "contractId": "176c3883325b",
+    "contractName": "RevertZero.sol"
+  },
+  {
+    "contractId": "bcfcee9a9307",
+    "contractName": "TransferFee.sol"
+  },
+  {
+    "contractId": "4ce183f5e267",
+    "contractName": "Uint96.sol"
+  },
+  {
+    "contractId": "98f9f325de21",
+    "contractName": "Upgradable.sol"
+  },
+  {
+    "contractId": "3218a8876422",
+    "contractName": "Whitelist.sol"
+  }
+]

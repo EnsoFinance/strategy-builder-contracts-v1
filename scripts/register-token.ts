@@ -4,6 +4,11 @@ const { Tokens } = require('../lib/tokens')
 
 const deployedContracts = deployments[process.env.HARDHAT_NETWORK || 'localhost']
 
+let network: string
+if (process.env.HARDHAT_NETWORK) {
+	network = process.env.HARDHAT_NETWORK
+}
+
 async function main() {
   const StrategyProxyFactory = await hre.ethers.getContractFactory('StrategyProxyFactory')
   const factory = await StrategyProxyFactory.attach(deployedContracts['StrategyProxyFactory'])
@@ -13,12 +18,15 @@ async function main() {
 
   const CurveDepositZapRegistry = await hre.ethers.getContractFactory('CurveDepositZapRegistry')
   const curveRegistry = await CurveDepositZapRegistry.attach(deployedContracts['CurveDepositZapRegistry'])
-
-  const accounts = await hre.ethers.getSigners()
   const tokens = new Tokens()
   console.log("Registering tokens...")
-  await tokens.registerTokens(accounts[0], factory, undefined, chainlinkRegistry, curveRegistry)
+	const [signer] = await hre.ethers.getSigners()
+  const owner = network == 'mainnet' ? '0xca702d224D61ae6980c8c7d4D98042E22b40FFdB' : signer.address //smart contract upgrades multisig
+  console.log('Owner: ', owner)
+	console.log('Owner: ', signer.address)
+  await tokens.registerTokens(signer, factory, undefined, chainlinkRegistry, curveRegistry)
   console.log("Tokens registered")
+  return tokens
 }
 
 // We recommend this pattern to be able to use async/await everywhere

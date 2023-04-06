@@ -56,7 +56,7 @@ export type InitialState = {
 	rebalanceThreshold: BigNumber
 	rebalanceSlippage: BigNumber
 	restructureSlippage: BigNumber
-	performanceFee: BigNumber
+	managementFee: BigNumber
 	social: boolean
 	set: boolean
 }
@@ -67,6 +67,7 @@ export function prepareStrategy(positions: Position[], defaultAdapter: string): 
 			.sort((a, b) => {
 				const aNum = BigNumber.from(a.token)
 				const bNum = BigNumber.from(b.token)
+				if (aNum.eq(bNum)) throw Error("prepareStrategy: repeated position.")
 				return aNum.gt(bNum) ? 1 : -1
 			})
 			.forEach((position: Position) => {
@@ -374,6 +375,7 @@ export function encodeSettleSwap(
 ): Multicall {
 	const settleSwapEncoded = router.interface.encodeFunctionData('settleSwap', [
 		adapter,
+		0,
 		tokenIn,
 		tokenOut,
 		accountFrom,

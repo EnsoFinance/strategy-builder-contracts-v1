@@ -3,6 +3,11 @@ pragma solidity >=0.6.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
 interface IChainlinkRegistry {
+
+      event OracleAdded(address indexed token, address indexed pair, address indexed oracle, bool inverse);
+
+      event OracleRemoved(address indexed token);
+
       struct ChainlinkOracleData {
           address oracle;
           address pair;

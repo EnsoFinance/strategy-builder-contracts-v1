@@ -1,7 +1,11 @@
 # V1-Core
+Enso V1 core contracts allow users to create strategies for a set of assets within the Defi ecosystem.The contracts are made up of 5 core components:  Strategy, StrategyController, Routers, Adapters, and the Oracle.
 
+## :warning: Deprecated Codebase :warning:
+This codebase has been deprecated.  Use this code at your own risk, and Enso does not take any responsibility for vulnerabilities or any impact thereafter from learning/utilizing this codebase.
 
-Enso V1 core contracts allow users to create strategies for a set of assets within the Defi ecosystem.The contracts are made up of 5 core components:  Strategy, StrategyController, Routers, Adapters, and the Oracle
+Use at your own risk.
+
 
 ## Installation
 Github

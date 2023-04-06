@@ -1,22 +1,16 @@
 import hre from 'hardhat'
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers'
 import { BigNumber, Contract } from 'ethers'
-import {
-		encodePriceSqrt,
-		getDeadline,
-		getMinTick,
-		getMaxTick,
-} from './utils'
-import {
-	createLink,
-	linkBytecode
-} from './link'
+import { encodePriceSqrt, getDeadline, getMinTick, getMaxTick } from './utils'
+import { createLink, linkBytecode } from './link'
 
 import PlatformProxyAdmin from '../artifacts/contracts/PlatformProxyAdmin.sol/PlatformProxyAdmin.json'
 import Strategy from '../artifacts/contracts/Strategy.sol/Strategy.json'
 import StrategyController from '../artifacts/contracts/StrategyController.sol/StrategyController.json'
 import StrategyProxyFactory from '../artifacts/contracts/StrategyProxyFactory.sol/StrategyProxyFactory.json'
+import ControllerLibrary from '../artifacts/contracts/libraries/ControllerLibrary.sol/ControllerLibrary.json'
 import StrategyLibrary from '../artifacts/contracts/libraries/StrategyLibrary.sol/StrategyLibrary.json'
+import StrategyClaim from '../artifacts/contracts/libraries/StrategyClaim.sol/StrategyClaim.json'
 import EnsoOracle from '../artifacts/contracts/oracles/EnsoOracle.sol/EnsoOracle.json'
 import UniswapNaiveOracle from '../artifacts/contracts/test/UniswapNaiveOracle.sol/UniswapNaiveOracle.json'
 import UniswapV3Oracle from '../artifacts/contracts/oracles/protocols/UniswapV3Oracle.sol/UniswapV3Oracle.json'
@@ -41,6 +35,7 @@ import BatchDepositRouter from '../artifacts/contracts/routers/BatchDepositRoute
 import MulticallRouter from '../artifacts/contracts/routers/MulticallRouter.sol/MulticallRouter.json'
 import UniswapV2Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV2Adapter.sol/UniswapV2Adapter.json'
 import UniswapV3Adapter from '../artifacts/contracts/adapters/exchanges/UniswapV3Adapter.sol/UniswapV3Adapter.json'
+import KyberSwapAdapter from '../artifacts/contracts/adapters/exchanges/KyberSwapAdapter.sol/KyberSwapAdapter.json'
 import MetaStrategyAdapter from '../artifacts/contracts/adapters/strategy/MetaStrategyAdapter.sol/MetaStrategyAdapter.json'
 import AaveV2Adapter from '../artifacts/contracts/adapters/lending/AaveV2Adapter.sol/AaveV2Adapter.json'
 import AaveV2DebtAdapter from '../artifacts/contracts/adapters/borrow/AaveV2DebtAdapter.sol/AaveV2DebtAdapter.json'
@@ -54,6 +49,8 @@ import YEarnV2Adapter from '../artifacts/contracts/adapters/vaults/YEarnV2Adapte
 import BalancerAdapter from '../artifacts/contracts/adapters/exchanges/BalancerAdapter.sol/BalancerAdapter.json'
 import BalancerFactory from '../artifacts/contracts/test/Balancer.sol/Balancer.json'
 import BalancerRegistry from '../artifacts/contracts/test/BalancerRegistry.sol/BalancerRegistry.json'
+import SushiswapFactory from '../artifacts/contracts/test/SushiswapFactory.sol/UniswapV2Factory.json'
+import SushiswapPair from '../artifacts/contracts/test/SushiswapFactory.sol/UniswapV2Pair.json'
 import BPool from '../artifacts/@balancer-labs/core/contracts/BPool.sol/BPool.json'
 
 import ERC20 from '@uniswap/v2-periphery/build/ERC20.json'
@@ -63,11 +60,10 @@ import UniswapV2Pair from '@uniswap/v2-core/build/UniswapV2Pair.json'
 import UniswapV3Factory from '@uniswap/v3-core/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json'
 import NFTDescriptor from '@uniswap/v3-periphery/artifacts/contracts/libraries/NFTDescriptor.sol/NFTDescriptor.json'
 import NonfungiblePositionManager from '@uniswap/v3-periphery/artifacts/contracts/NonfungiblePositionManager.sol/NonfungiblePositionManager.json'
-import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, ORACLE_TIME_WINDOW, UNI_V3_FEE } from './constants'
+import { ESTIMATOR_CATEGORY, ITEM_CATEGORY, MAINNET_ADDRESSES, UNI_V3_FEE } from './constants'
 const { ethers, waffle } = hre
 const { constants, getContractFactory } = ethers
 const { WeiPerEther, AddressZero } = constants
-
 
 export type Oracles = {
 	ensoOracle: Contract
@@ -84,28 +80,34 @@ export type Oracles = {
 }
 
 export type Administration = {
-	whitelist: Contract,
-	platformProxyAdmin: Contract,
+	whitelist: Contract
+	platformProxyAdmin: Contract
 }
 export class Platform {
 	strategyFactory: Contract
 	controller: Contract
 	oracles: Oracles
 	administration: Administration
-	library: Contract
+	strategyLibrary: Contract
+	controllerLibrary: Contract
+	strategyLibraries: any //
 
 	public constructor(
 		strategyFactory: Contract,
 		controller: Contract,
 		oracles: Oracles,
 		administration: Administration,
-		library: Contract
+		strategyLibrary: Contract,
+		controllerLibrary: Contract,
+		strategyLibraries: any
 	) {
 		this.strategyFactory = strategyFactory
 		this.controller = controller
 		this.oracles = oracles
 		this.administration = administration
-		this.library = library
+		this.strategyLibrary = strategyLibrary
+		this.controllerLibrary = controllerLibrary
+		this.strategyLibraries = strategyLibraries
 	}
 
 	print() {
@@ -115,6 +117,10 @@ export class Platform {
 		console.log('  Whitelist: ', this.administration.whitelist.address)
 		console.log('  Oracle: ', this.oracles.ensoOracle.address)
 		console.log('  TokenRegistry: ', this.oracles.registries.tokenRegistry.address)
+	}
+
+	public getStrategyContractFactory(): any {
+		return getContractFactory('Strategy', this.strategyLibraries)
 	}
 }
 
@@ -152,11 +158,7 @@ export async function deployBalancer(owner: SignerWithAddress, tokens: Contract[
 				throw new Error('deployBalancer() -> Failed to find pool arg in newBPool() event')
 			}
 			const poolAddress = receipt.events[0].args.pool
-			const pool = new Contract(
-		    poolAddress,
-		    BPool.abi,
-		    owner
-		  )
+			const pool = new Contract(poolAddress, BPool.abi, owner)
 			await tokens[0].approve(poolAddress, WeiPerEther.mul(100))
 			await tokens[i].approve(poolAddress, WeiPerEther.mul(100))
 			await pool.bind(tokens[0].address, WeiPerEther.mul(100), WeiPerEther.mul(5))
@@ -200,13 +202,17 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 	const nftDesciptor = await waffle.deployContract(owner, NFTDescriptor, [])
 	const UniswapNFTDescriptor = await getContractFactory('NonfungibleTokenPositionDescriptor', {
 		libraries: {
-			NFTDescriptor: nftDesciptor.address
-		}
+			NFTDescriptor: nftDesciptor.address,
+		},
 	})
 	const uniswapNFTDescriptor = await UniswapNFTDescriptor.connect(owner).deploy(tokens[0].address)
 	await uniswapNFTDescriptor.deployed()
 	//const uniswapNFTDescriptor = await waffle.deployContract(owner, NonfungibleTokenPositionDescriptor, [tokens[0].address])
-	const uniswapNFTManager = await waffle.deployContract(owner, NonfungiblePositionManager, [uniswapV3Factory.address, tokens[0].address, uniswapNFTDescriptor.address])
+	const uniswapNFTManager = await waffle.deployContract(owner, NonfungiblePositionManager, [
+		uniswapV3Factory.address,
+		tokens[0].address,
+		uniswapNFTDescriptor.address,
+	])
 
 	await tokens[0].connect(owner).approve(uniswapNFTManager.address, constants.MaxUint256)
 	for (let i = 1; i < tokens.length; i++) {
@@ -220,7 +226,7 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 			flipper ? tokens[i].address : tokens[0].address,
 			UNI_V3_FEE,
 			encodePriceSqrt(1, 1)
-	  )
+		)
 		// Add liquidity
 		await tokens[i].connect(owner).approve(uniswapNFTManager.address, constants.MaxUint256)
 
@@ -236,10 +242,86 @@ export async function deployUniswapV3(owner: SignerWithAddress, tokens: Contract
 			amount0Min: 0,
 			amount1Min: 0,
 			deadline: getDeadline(240),
-	  })
+		})
 	}
 
 	return [uniswapV3Factory, uniswapNFTManager]
+}
+
+export async function deploySushiswap(owner: SignerWithAddress, tokens: Contract[]): Promise<Contract> {
+	const sushiswapFactory = await waffle.deployContract(owner, SushiswapFactory, [owner.address])
+	await sushiswapFactory.deployed()
+	for (let i = 1; i < tokens.length; i++) {
+		//tokens[0] is used as the trading pair (WETH)
+		await sushiswapFactory.createPair(tokens[0].address, tokens[i].address)
+		const pairAddress = await sushiswapFactory.getPair(tokens[0].address, tokens[i].address)
+		const pair = new Contract(pairAddress, JSON.stringify(SushiswapPair.abi), owner)
+		// Add liquidity
+		await tokens[0].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
+		await tokens[i].connect(owner).transfer(pairAddress, WeiPerEther.mul(100))
+		await pair.connect(owner).mint(owner.address)
+	}
+	return sushiswapFactory
+}
+
+export async function deployOracle(
+	owner: SignerWithAddress,
+	strategyProxyFactory: string,
+	uniswapOracleFactory: string,
+	uniswapV3Factory: string,
+	uniswapV3Registry: string,
+	chainlinkRegistry: string,
+	weth: string,
+	susd: string,
+	registerEstimator: (estimatorCategory: number, estimatorAddress: string) => void
+): Promise<Contract[]> {
+	let uniswapOracle
+	if (uniswapOracleFactory == uniswapV3Factory) {
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry, weth])
+	} else {
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapOracleFactory, weth])
+	}
+	await uniswapOracle.deployed()
+
+	/* TODO switch to this approach once we setup registry script
+	let uniswapOracle: Contract, uniswapV3Registry: Contract;
+	if (uniswapFactory === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
+		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory, weth])
+		await uniswapV3Registry.deployed()
+		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry, weth])
+	} else {
+		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory, weth])
+	}
+	await uniswapOracle.deployed()
+	*/
+
+	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [chainlinkRegistry, weth])
+	await chainlinkOracle.deployed()
+	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [strategyProxyFactory, weth, susd])
+	await ensoOracle.deployed()
+
+	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
+	await registerEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)
+	const chainlinkEstimator = await waffle.deployContract(owner, BasicEstimator, [chainlinkOracle.address])
+	await registerEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)
+	const strategyEstimator = await waffle.deployContract(owner, StrategyEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
+	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
+	const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
+	const aaveV2DebtEstimator = await waffle.deployContract(owner, AaveV2DebtEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)
+	const compoundEstimator = await waffle.deployContract(owner, CompoundEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)
+	const curveLPEstimator = await waffle.deployContract(owner, CurveLPEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)
+	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
+	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
+	await registerEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
+
+	return [ensoOracle, uniswapOracle, chainlinkOracle]
 }
 
 export async function deployPlatform(
@@ -255,69 +337,35 @@ export async function deployPlatform(
 	await strategyLibrary.deployed()
 	const strategyLibraryLink = createLink(StrategyLibrary, strategyLibrary.address)
 
-	// Setup Oracle infrastructure - registries, estimators, protocol oracles
+	const controllerLibrary = await waffle.deployContract(
+		owner,
+		linkBytecode(ControllerLibrary, [strategyLibraryLink]),
+		[]
+	)
+	await controllerLibrary.deployed()
+	const controllerLibraryLink = createLink(ControllerLibrary, controllerLibrary.address)
+
+	console.log('controller size:', StrategyController.bytecode.length / 2 - 1)
+	console.log('strategyLibrary size:', StrategyLibrary.bytecode.length / 2 - 1)
+	console.log('controllerLibrary size:', ControllerLibrary.bytecode.length / 2 - 1)
+	console.log('strategy size:', Strategy.bytecode.length / 2 - 1)
+
+	// Setup Registries
 	const tokenRegistry = await waffle.deployContract(owner, TokenRegistry, [])
 	await tokenRegistry.deployed()
 	const curveDepositZapRegistry = await waffle.deployContract(owner, CurveDepositZapRegistry, [])
 	await curveDepositZapRegistry.deployed()
-	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapV3Factory.address, weth.address])
+	const uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [
+		uniswapV3Factory.address,
+		weth.address,
+	])
 	await uniswapV3Registry.deployed()
 	const chainlinkRegistry = await waffle.deployContract(owner, ChainlinkRegistry, [])
 	await chainlinkRegistry.deployed()
 
-	let uniswapOracle
-	if (uniswapOracleFactory.address == uniswapV3Factory.address) {
-		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
-	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapOracleFactory.address, weth.address])
-	}
-	await uniswapOracle.deployed()
-
-	/* TODO switch to this approach once we setup registry script
-	let uniswapOracle: Contract, uniswapV3Registry: Contract;
-	if (uniswapFactory.address === MAINNET_ADDRESSES.UNISWAP_V3_FACTORY) {
-		uniswapV3Registry = await waffle.deployContract(owner, UniswapV3Registry, [ORACLE_TIME_WINDOW, uniswapFactory.address, weth.address])
-		await uniswapV3Registry.deployed()
-		uniswapOracle = await waffle.deployContract(owner, UniswapV3Oracle, [uniswapV3Registry.address, weth.address])
-	} else {
-		uniswapOracle = await waffle.deployContract(owner, UniswapNaiveOracle, [uniswapFactory.address, weth.address])
-	}
-	await uniswapOracle.deployed()
-	*/
-
-	const chainlinkOracle = await waffle.deployContract(owner, ChainlinkOracle, [chainlinkRegistry.address, weth.address])
-	await chainlinkOracle.deployed()
-	const ensoOracle = await waffle.deployContract(owner, EnsoOracle, [tokenRegistry.address, weth.address, susd?.address || AddressZero])
-	await ensoOracle.deployed()
-
-	const defaultEstimator = await waffle.deployContract(owner, BasicEstimator, [uniswapOracle.address])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.DEFAULT_ORACLE, defaultEstimator.address)
-	const chainlinkEstimator = await waffle.deployContract(owner, BasicEstimator, [chainlinkOracle.address])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, chainlinkEstimator.address)
-	const strategyEstimator = await waffle.deployContract(owner, StrategyEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.STRATEGY, strategyEstimator.address)
-	const emergencyEstimator = await waffle.deployContract(owner, EmergencyEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.BLOCKED, emergencyEstimator.address)
-	const aaveV2Estimator = await waffle.deployContract(owner, AaveV2Estimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2, aaveV2Estimator.address)
-	const aaveV2DebtEstimator = await waffle.deployContract(owner, AaveV2DebtEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.AAVE_V2_DEBT, aaveV2DebtEstimator.address)
-	const compoundEstimator = await waffle.deployContract(owner, CompoundEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.COMPOUND, compoundEstimator.address)
-	const curveLPEstimator = await waffle.deployContract(owner, CurveLPEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_LP, curveLPEstimator.address)
-	const curveGaugeEstimator = await waffle.deployContract(owner, CurveGaugeEstimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.CURVE_GAUGE, curveGaugeEstimator.address)
-	const yearnV2Estimator = await waffle.deployContract(owner, YEarnV2Estimator, [])
-	await tokenRegistry.connect(owner).addEstimator(ESTIMATOR_CATEGORY.YEARN_V2, yearnV2Estimator.address)
-
-	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
-	if (susd) await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
-
 	// Whitelist
 	const whitelist = await waffle.deployContract(owner, Whitelist, [])
 	await whitelist.deployed()
-
 
 	// Deploy Platfrom Admin and get controller and factory addresses
 	const platformProxyAdmin = await waffle.deployContract(owner, PlatformProxyAdmin, [])
@@ -328,7 +376,7 @@ export async function deployPlatform(
 	// Controller Implementation
 	const controllerImplementation = await waffle.deployContract(
 		owner,
-		linkBytecode(StrategyController, [strategyLibraryLink]),
+		linkBytecode(StrategyController, [controllerLibraryLink]),
 		[factoryAddress]
 	)
 	await controllerImplementation.deployed()
@@ -338,15 +386,45 @@ export async function deployPlatform(
 	await factoryImplementation.deployed()
 
 	// Strategy Implementation
-	const strategyImplementation = await waffle.deployContract(owner, Strategy, [
+	const strategyClaim = await waffle.deployContract(owner, StrategyClaim, [])
+	const strategyLibraries = { libraries: { StrategyClaim: strategyClaim.address } }
+	await strategyClaim.deployed()
+	const strategyClaimLink = createLink(StrategyClaim, strategyClaim.address)
+
+	const strategyLinked = linkBytecode(Strategy, [strategyClaimLink])
+
+	const strategyImplementation = await waffle.deployContract(owner, strategyLinked, [
 		factoryAddress,
 		controllerAddress,
 		MAINNET_ADDRESSES.SYNTHETIX_ADDRESS_PROVIDER,
-		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER
+		MAINNET_ADDRESSES.AAVE_ADDRESS_PROVIDER,
 	])
 	await strategyImplementation.deployed()
 
-	await platformProxyAdmin.connect(owner).initialize(
+	// Setup Oracle
+	const [ensoOracle, uniswapOracle, chainlinkOracle] = await deployOracle(
+		owner,
+		factoryAddress,
+		uniswapOracleFactory.address,
+		uniswapV3Factory.address,
+		uniswapV3Registry.address,
+		chainlinkRegistry.address,
+		weth.address,
+		susd?.address || AddressZero,
+		(estimatorCategory: number, estimatorAddress: string) => {
+			return tokenRegistry.connect(owner).addEstimator(estimatorCategory, estimatorAddress)
+		}
+	)
+
+	await tokenRegistry.connect(owner).addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.DEFAULT_ORACLE, weth.address)
+	if (susd)
+		await tokenRegistry
+			.connect(owner)
+			.addItem(ITEM_CATEGORY.RESERVE, ESTIMATOR_CATEGORY.CHAINLINK_ORACLE, susd.address)
+
+	await platformProxyAdmin
+		.connect(owner)
+		.initialize(
 			controllerImplementation.address,
 			factoryImplementation.address,
 			strategyImplementation.address,
@@ -354,54 +432,67 @@ export async function deployPlatform(
 			tokenRegistry.address,
 			whitelist.address,
 			feePool || owner.address
-	)
+		)
 
 	// Factory
-	const factory = new Contract(
-		factoryAddress,
-		StrategyProxyFactory.abi,
-		owner
-	)
+	const factory = new Contract(factoryAddress, StrategyProxyFactory.abi, owner)
 
 	// Strategy Controller
-	const controller = new Contract(
-		controllerAddress,
-		StrategyController.abi,
-		owner
-	)
+	const controller = new Contract(controllerAddress, StrategyController.abi, owner)
 
-	await tokenRegistry.connect(owner).transferOwnership(factoryAddress);
+	await tokenRegistry.connect(owner).transferOwnership(factoryAddress)
 
 	const oracles: Oracles = {
 		ensoOracle,
 		protocols: {
 			uniswapOracle,
-			chainlinkOracle
+			chainlinkOracle,
 		},
 		registries: {
 			tokenRegistry,
 			curveDepositZapRegistry,
 			uniswapV3Registry,
-			chainlinkRegistry
-		}
+			chainlinkRegistry,
+		},
 	}
 
 	const administration: Administration = {
 		whitelist,
-		platformProxyAdmin
+		platformProxyAdmin,
 	}
 
-	return new Platform(factory, controller, oracles, administration, strategyLibrary)
+	return new Platform(
+		factory,
+		controller,
+		oracles,
+		administration,
+		strategyLibrary,
+		controllerLibrary,
+		strategyLibraries
+	)
 }
 
-export async function deployUniswapV2Adapter(owner: SignerWithAddress, uniswapV2Factory: Contract, weth: Contract): Promise<Contract> {
+export async function deployUniswapV2Adapter(
+	owner: SignerWithAddress,
+	uniswapV2Factory: Contract,
+	weth: Contract
+): Promise<Contract> {
 	const adapter = await waffle.deployContract(owner, UniswapV2Adapter, [uniswapV2Factory.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployUniswapV3Adapter(owner: SignerWithAddress, uniswapRegistry: Contract, uniswapRouter: Contract, weth: Contract): Promise<Contract> {
-	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [uniswapRegistry.address, uniswapRouter.address, weth.address])
+export async function deployUniswapV3Adapter(
+	owner: SignerWithAddress,
+	uniswapRegistry: Contract,
+	uniswapRouter: Contract,
+	weth: Contract
+): Promise<Contract> {
+	const adapter = await waffle.deployContract(owner, UniswapV3Adapter, [
+		uniswapRegistry.address,
+		uniswapRouter.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -412,7 +503,11 @@ export async function deployMetaStrategyAdapter(
 	router: Contract,
 	weth: Contract
 ) {
-	const adapter = await waffle.deployContract(owner, MetaStrategyAdapter, [controller.address, router.address, weth.address])
+	const adapter = await waffle.deployContract(owner, MetaStrategyAdapter, [
+		controller.address,
+		router.address,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -421,19 +516,28 @@ export async function deployAaveV2Adapter(
 	owner: SignerWithAddress,
 	addressProvider: Contract,
 	strategyController: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
-	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [addressProvider.address, strategyController.address, weth.address])
+	const adapter = await waffle.deployContract(owner, AaveV2Adapter, [
+		addressProvider.address,
+		strategyController.address,
+		MAINNET_ADDRESSES.AAVE_INCENTIVES_CONTROLLER,
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployAaveV2DebtAdapter(
-	owner: SignerWithAddress,
-	addressProvider: Contract,
-	weth: Contract
-) {
-	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [addressProvider.address, weth.address])
+export async function deployAaveV2DebtAdapter(owner: SignerWithAddress, addressProvider: Contract, weth: Contract) {
+	const adapter = await waffle.deployContract(owner, AaveV2DebtAdapter, [
+		addressProvider.address,
+		MAINNET_ADDRESSES.AAVE_INCENTIVES_CONTROLLER,
+		weth.address,
+	])
 	await adapter.deployed()
 	return adapter
 }
@@ -441,31 +545,37 @@ export async function deployAaveV2DebtAdapter(
 export async function deployCompoundAdapter(
 	owner: SignerWithAddress,
 	comptroller: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
-	const adapter = await waffle.deployContract(owner, CompoundAdapter, [comptroller.address, weth.address])
+	const adapter = await waffle.deployContract(owner, CompoundAdapter, [
+		comptroller.address,
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
 export async function deployYEarnAdapter(
 	owner: SignerWithAddress,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
-	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [weth.address])
+	const adapter = await waffle.deployContract(owner, YEarnV2Adapter, [
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
+	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployCurveAdapter(
-	owner: SignerWithAddress,
-	curveAddressProvider: Contract,
-	weth: Contract
-) {
-	const adapter = await waffle.deployContract(owner, CurveAdapter, [
-			curveAddressProvider.address,
-			weth.address
-	])
+export async function deployCurveAdapter(owner: SignerWithAddress, curveAddressProvider: Contract, weth: Contract) {
+	const adapter = await waffle.deployContract(owner, CurveAdapter, [curveAddressProvider.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
@@ -477,9 +587,9 @@ export async function deployCurveLPAdapter(
 	weth: Contract
 ) {
 	const adapter = await waffle.deployContract(owner, CurveLPAdapter, [
-			curveAddressProvider.address,
-			curveDepositZapRegistry.address,
-			weth.address
+		curveAddressProvider.address,
+		curveDepositZapRegistry.address,
+		weth.address,
 	])
 	await adapter.deployed()
 	return adapter
@@ -487,26 +597,21 @@ export async function deployCurveLPAdapter(
 
 export async function deployCurveGaugeAdapter(
 	owner: SignerWithAddress,
-	curveAddressProvider: Contract,
-	weth: Contract
+	weth: Contract,
+	tokenRegistry: Contract,
+	categoryIndex: number
 ) {
 	const adapter = await waffle.deployContract(owner, CurveGaugeAdapter, [
-			curveAddressProvider.address,
-			weth.address
+		weth.address,
+		tokenRegistry.address,
+		categoryIndex,
 	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deploySynthetixAdapter(
-	owner: SignerWithAddress,
-	resolver: Contract,
-	weth: Contract
-) {
-	const adapter = await waffle.deployContract(owner, SynthetixAdapter, [
-			resolver.address,
-			weth.address
-	])
+export async function deploySynthetixAdapter(owner: SignerWithAddress, resolver: Contract, weth: Contract) {
+	const adapter = await waffle.deployContract(owner, SynthetixAdapter, [resolver.address, weth.address])
 	await adapter.deployed()
 	return adapter
 }
@@ -521,22 +626,33 @@ export async function deployLeverage2XAdapter(
 	weth: Contract
 ) {
 	const adapter = await waffle.deployContract(owner, Leverage2XAdapter, [
-			defaultAdapter.address,
-			aaveV2Adapter.address,
-			aaveV2DebtAdapter.address,
-			addressProvider.address,
-			debtToken.address,
-			weth.address
+		defaultAdapter.address,
+		aaveV2Adapter.address,
+		aaveV2DebtAdapter.address,
+		addressProvider.address,
+		debtToken.address,
+		weth.address,
 	])
 	await adapter.deployed()
 	return adapter
 }
 
-export async function deployLoopRouter(
+export async function deployKyberSwapAdapter(
 	owner: SignerWithAddress,
-	controller: Contract,
-	library: Contract,
+	kyberFactory: Contract,
+	kyberRouter: Contract,
+	weth: Contract
 ) {
+	const adapter = await waffle.deployContract(owner, KyberSwapAdapter, [
+		kyberFactory.address,
+		kyberRouter.address,
+		weth.address,
+	])
+	await adapter.deployed()
+	return adapter
+}
+
+export async function deployLoopRouter(owner: SignerWithAddress, controller: Contract, library: Contract) {
 	const router = await waffle.deployContract(
 		owner,
 		linkBytecode(LoopRouter, [createLink(StrategyLibrary, library.address)]),
@@ -563,11 +679,7 @@ export async function deployFullRouter(
 	return router
 }
 
-export async function deployBatchDepositRouter(
-	owner: SignerWithAddress,
-	controller: Contract,
-	library: Contract
-) {
+export async function deployBatchDepositRouter(owner: SignerWithAddress, controller: Contract, library: Contract) {
 	const router = await waffle.deployContract(
 		owner,
 		linkBytecode(BatchDepositRouter, [createLink(StrategyLibrary, library.address)]),
@@ -578,10 +690,7 @@ export async function deployBatchDepositRouter(
 	return router
 }
 
-export async function deployMulticallRouter(
-	owner: SignerWithAddress,
-	controller: Contract
-) {
+export async function deployMulticallRouter(owner: SignerWithAddress, controller: Contract) {
 	const router = await waffle.deployContract(owner, MulticallRouter, [controller.address])
 	await router.deployed()
 
