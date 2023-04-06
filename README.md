@@ -4,7 +4,7 @@ Enso V1 core contracts allow users to create strategies for a set of assets with
 ## :warning: Deprecated Codebase :warning:
 This codebase has been deprecated.  Use this code at your own risk, and Enso does not take any responsibility for vulnerabilities or any impact thereafter from learning/utilizing this codebase.
 
-Codebase has underwent 2 audits from Chainsecurity, and Code4rena.  Use at your own risk.
+Use at your own risk.
 
 
 ## Installation
